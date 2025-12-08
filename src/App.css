@@ -1,0 +1,489 @@
+/* ========================================
+   APP LAYOUT & CONTAINER STYLES
+   ======================================== */
+
+.App {
+  min-height: 100vh;
+  background: transparent;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.App-main {
+  padding: var(--spacing-2xl);
+  max-width: 1600px;
+  margin: 0 auto;
+  flex: 1;
+}
+
+/* ========================================
+   HEADER STYLES
+   ======================================== */
+
+.App-header {
+  background: rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(30px);
+  -webkit-backdrop-filter: blur(30px);
+  padding: var(--spacing-md) var(--spacing-xl);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  transition: all var(--transition-base);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+}
+
+.header-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  max-width: 1600px;
+}
+
+.App-header h1 {
+  margin: 0;
+  font-size: 1.8rem;
+  font-weight: var(--font-weight-bold);
+  letter-spacing: -0.5px;
+  color: #B19EEF;
+}
+
+.header-stats {
+  display: flex;
+  gap: var(--spacing-md);
+  align-items: center;
+}
+
+.stat-item {
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--radius-full);
+  font-size: 0.85rem;
+  font-weight: var(--font-weight-medium);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  transition: all var(--transition-fast);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.stat-item:hover {
+  background: rgba(255, 255, 255, 0.25);
+  border-color: rgba(255, 255, 255, 0.3);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+}
+
+/* ========================================
+   DASHBOARD GRID LAYOUT
+   ======================================== */
+
+.dashboard-content {
+  display: grid;
+  grid-template-columns: 1.2fr 1.8fr;
+  grid-template-rows: auto auto;
+  gap: var(--spacing-xl);
+  grid-template-areas:
+    "brand model"
+    "references references";
+}
+
+.brand-section {
+  grid-area: brand;
+}
+
+.model-section {
+  grid-area: model;
+}
+
+.references-section {
+  grid-area: references;
+}
+
+/* ========================================
+   TIME FILTER COMPONENT
+   ======================================== */
+
+.time-filter {
+  margin-bottom: var(--spacing-2xl);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.time-filter h2 {
+  display: none;
+}
+
+.filter-buttons {
+  background: rgba(0, 0, 0, 0.15);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  padding: 6px;
+  border-radius: var(--radius-lg);
+  display: inline-flex;
+  gap: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+}
+
+.filter-buttons button {
+  color: #B19EEF;
+  font-weight: var(--font-weight-semibold);
+  font-size: 0.95rem;
+}
+
+.filter-buttons button[data-variant="ghost"] {
+  color: #B19EEF;
+}
+
+.filter-buttons button[data-variant="ghost"]:hover {
+  color: #B19EEF;
+  background: rgba(177, 158, 239, 0.1);
+}
+
+.filter-buttons button[data-variant="default"] {
+  background: #B19EEF !important;
+  color: var(--color-primary) !important;
+}
+
+/* ========================================
+   DASHBOARD CARD COMPONENTS
+   ======================================== */
+
+/* Custom card styling with glassmorphism effect */
+.dashboard-card .card {
+  background: #271E37;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-radius: var(--radius-lg);
+  padding: 0;
+  box-shadow:
+    0 20px 50px rgba(0, 0, 0, 0.1),
+    0 0 0 1px rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  transition: all var(--transition-base);
+  height: 100%;
+  position: relative;
+  overflow: visible;
+  z-index: 5;
+}
+
+.dashboard-card .card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(102, 126, 234, 0.4),
+    rgba(118, 75, 162, 0.4),
+    transparent
+  );
+  opacity: 0;
+  transition: opacity var(--transition-base);
+}
+
+.dashboard-card .card:hover {
+  transform: translateY(-8px);
+  box-shadow:
+    0 30px 60px rgba(0, 0, 0, 0.15),
+    0 0 0 1px rgba(255, 255, 255, 0.4);
+}
+
+.dashboard-card .card:hover::before {
+  opacity: 1;
+}
+
+/* Card header styling */
+.dashboard-card .card-header {
+  background: rgba(39, 30, 55, 0.8);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  padding: var(--spacing-xl) var(--spacing-2xl);
+  position: relative;
+  z-index: 10;
+}
+
+.dashboard-card .card-title {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  font-size: 1.4rem;
+  font-weight: var(--font-weight-bold);
+  color: #B19EEF;
+  margin: 0;
+}
+
+.dashboard-card .card-title::before {
+  content: '';
+  display: block;
+  width: 4px;
+  height: 24px;
+  background: var(--gradient-primary);
+  border-radius: var(--radius-sm);
+}
+
+/* Card content styling */
+.dashboard-card .card-content {
+  padding: var(--spacing-2xl);
+  position: relative;
+  z-index: 5;
+}
+
+/* Common Component Layout */
+.brand-mention-rate,
+.model-mention-rates,
+.references-table {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ========================================
+   TYPOGRAPHY & HEADINGS
+   ======================================== */
+
+h2 {
+  margin: 0 0 var(--spacing-xl) 0;
+  font-size: 1.4rem;
+  font-weight: var(--font-weight-bold);
+  color: #B19EEF;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+h2::before {
+  content: '';
+  display: block;
+  width: 4px;
+  height: 24px;
+  background: var(--gradient-primary);
+  border-radius: var(--radius-sm);
+}
+
+/* ========================================
+   BRAND MENTION RATES COMPONENT
+   ======================================== */
+
+/* Ensure brand mention rate component is fully visible */
+.brand-mention-rate {
+  position: relative;
+  z-index: 6;
+}
+
+.brand-mention-rate .card-header {
+  position: relative;
+  z-index: 7;
+}
+
+.mention-rate-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-2xl);
+  flex: 1;
+  justify-content: center;
+}
+
+.circular-progress-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.progress-text {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.progress-number {
+  font-size: 2.5rem;
+  font-weight: var(--font-weight-bold);
+  color: #B19EEF;
+  line-height: 1;
+}
+
+.progress-change {
+  font-size: 1rem;
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-success);
+  margin-top: 4px;
+  background: rgba(40, 167, 69, 0.1);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+}
+
+.rate-info {
+  width: 100%;
+}
+
+.keyword-columns {
+  display: flex;
+  gap: var(--spacing-lg);
+  width: 100%;
+}
+
+.keyword-column {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.keyword-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: var(--color-background);
+  border-radius: var(--radius-md);
+  font-size: 0.9rem;
+  transition: background var(--transition-fast);
+}
+
+.keyword-item:hover {
+  background: #eef2ff;
+}
+
+.rank {
+  font-weight: var(--font-weight-bold);
+  color: #B19EEF;
+  width: 30px;
+}
+
+.rank-1st .rank { color: var(--color-warning); }
+.rank-2nd .rank { color: var(--color-text-secondary); }
+.rank-3rd .rank { color: #b45309; }
+
+.keyword {
+  flex: 1;
+  font-weight: var(--font-weight-medium);
+  color: #B19EEF;
+}
+
+.percentage {
+  font-weight: var(--font-weight-semibold);
+  color: #B19EEF;
+}
+
+/* ========================================
+   MODEL MENTION RATES COMPONENT
+   ======================================== */
+
+.models-container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+}
+
+.model-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.model-name {
+  min-width: 80px;
+  text-align: right;
+  font-weight: var(--font-weight-medium);
+  color: #B19EEF;
+}
+
+.rate-value {
+  min-width: 50px;
+  text-align: right;
+  font-weight: var(--font-weight-semibold);
+  color: #B19EEF;
+}
+
+/* ========================================
+   REFERENCES TABLE COMPONENT
+   ======================================== */
+
+/* ========================================
+   RESPONSIVE DESIGN
+   ======================================== */
+
+@media (max-width: 1200px) {
+  .dashboard-content {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "brand"
+      "model"
+      "references";
+  }
+
+  .mention-rate-content {
+    flex-direction: row;
+    gap: 40px;
+  }
+  
+  .brand-mention-rate {
+    min-height: 400px;
+  }
+}
+
+@media (max-width: 768px) {
+  .mention-rate-content {
+    flex-direction: column;
+  }
+
+  .header-content {
+    flex-direction: column;
+    gap: var(--spacing-md);
+  }
+
+  .App-main {
+    padding: var(--spacing-lg);
+  }
+
+  .dashboard-card {
+    padding: var(--spacing-lg);
+  }
+
+  .filter-buttons button {
+    padding: 8px 16px;
+    font-size: 0.85rem;
+  }
+  
+  .brand-mention-rate {
+    min-height: auto;
+  }
+}
+
+@media (max-width: 480px) {
+  .header-stats {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .keyword-columns {
+    flex-direction: column;
+    gap: var(--spacing-md);
+  }
+
+  .model-item {
+    flex-wrap: wrap;
+  }
+
+  .model-name {
+    width: 100%;
+    text-align: left;
+  }
+}
