@@ -37,9 +37,9 @@
 ## 6. Git Workflow & Commit Messages
 
 - Use Conventional Commits, e.g.:
-  - `feat: 添加模型对比视图`
-  - `fix: 修复加载状态闪烁`
-  - `docs: 更新README文档`
+  - `feat: add model comparison view`
+  - `fix: fix loading spinner flicker`
+  - `docs: update README for new sections`
 - Keep commits small and focused; avoid mixing refactors with feature changes.
 - Before pushing, ensure the project builds and key flows still work in the browser.
 
@@ -52,6 +52,7 @@
   - `## Code Highlights` – key files, components, or patterns.
   - `## Self-Tests` – manual checks or commands run (e.g. `npm run dev`, `npm run build`).
 - Pre-commit also runs available npm quality scripts (`npm run lint` / `npm test` when defined).
+- Language policy: `agents_chat` records should be written primarily in Chinese (Simplified), while this `AGENTS.md` file must remain English-only.
 
 ## 8. Agent-Specific Instructions
 
@@ -59,12 +60,11 @@
 - When adding tooling (tests, linting, formatting), wire it into `package.json` scripts and document usage here or in `README.md`.
 - For every substantial change, add or update an `agents_chat` record in the same commit to keep the project auditable.
 
-## 9. tasks.md 任务列表规范
+## 9. tasks.md Task List Guidelines
 
-- 对于复杂或跨多次提交的工作，请在仓库根目录维护 `tasks.md`。
-- 使用 Markdown 复选框表示任务状态，例如：
-  - `- [ ] 实现新的品牌趋势图表组件`
-  - `- [x] 增加 GooeyNav 粘性导航交互`
-- 保持条目粒度清晰（可在 1–2 个提交内完成），并在任务完成后及时将 `[ ]` 更新为 `[x]`。
-- 重要里程碑或需求变更，优先先更新 `tasks.md`，再开始编码，以保持对外可见的计划。
-
+- For complex or multi-commit work, maintain `tasks.md` in the repository root.
+- Use Markdown checkboxes to represent task status, for example:
+  - `- [ ] Implement new brand trend chart component`
+  - `- [x] Add sticky GooeyNav navigation behavior`
+- Keep each item small and well-scoped (ideally completable in 1–2 commits), and update `[ ]` to `[x]` as work is finished.
+- For important milestones or scope changes, update `tasks.md` first and then start coding, so the plan stays visible to others.
