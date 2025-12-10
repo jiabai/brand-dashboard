@@ -1,13 +1,12 @@
 """FastAPI应用主文件."""
 
-import os
-import sys
 from typing import Dict
+
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
-from brand_analysis_api.models.schemas import HealthResponse
-from brand_analysis_api.routes import analysis, config, dashboard, positioning
+from api.models.schemas import HealthResponse
+from api.routes import analysis, config, dashboard, positioning
 
 # 创建FastAPI应用
 app = FastAPI(
@@ -65,7 +64,7 @@ async def http_exception_handler(request, exc):
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(
-        "brand_analysis_api.main:app",
+        "api.main:app",
         host="0.0.0.0",
         port=8000,
         reload=True

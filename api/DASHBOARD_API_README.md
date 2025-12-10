@@ -293,7 +293,7 @@ curl -X GET "http://localhost:8000/api/dashboard/reference-url-stats?timeframe=y
 ### 主要文件结构
 
 ```
-brand_analysis_api/
+api/
 ├── main.py                    # FastAPI应用主文件
 ├── routes/
 │   ├── dashboard.py          # Dashboard API路由实现

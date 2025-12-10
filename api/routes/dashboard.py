@@ -1,22 +1,16 @@
-"""Dashboard相关API路由."""
-
-import sys
-import os
-from enum import Enum
-from typing import Dict, Any, Optional, List
 from datetime import datetime
-from pydantic import BaseModel, Field
+from enum import Enum
+from typing import Any, Dict, List, Optional
+
 from fastapi import APIRouter, HTTPException, Query
+from pydantic import BaseModel, Field
 
-# 添加项目根目录到Python路径
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))))
-
-from brand_analysis_api.repositories.database import (
+from api.repositories.database import (
     query_brand_mention_data,
     query_brand_platform_mention_data,
-    query_reference_url_stats
+    query_reference_url_stats,
 )
-from brand_analysis_api.utils.url_domain_resolver import resolve_url_domain
+from api.utils.url_domain_resolver import resolve_url_domain
 
 router = APIRouter()
 
@@ -177,17 +171,23 @@ async def get_reference_url_stats(
         # 转换数据格式以匹配响应模型
         response_data = []
         for reference_data in reference_data_list:
+            reference_count = reference_data["reference_count"]
+            total_questions = reference_data["total_questions"]
             # 解析URL获取中文名称
             domain_info = resolve_url_domain(reference_data["answer_reference_url"])
             chinese_name = domain_info["chinese_name"]
             
             # 计算引用率
-            reference_rate = round(reference_data["reference_count"] / reference_data["total_questions"] * 100, 2) if reference_data["total_questions"] > 0 else 0.0
+            reference_rate = (
+                round(reference_count / total_questions * 100, 2)
+                if total_questions > 0
+                else 0.0
+            )
             
             response_data.append(ReferenceUrlData(
                 answer_reference_url=reference_data["answer_reference_url"],
-                reference_count=reference_data["reference_count"],
-                total_questions=reference_data["total_questions"],
+                reference_count=reference_count,
+                total_questions=total_questions,
                 chinese_name=chinese_name,
                 reference_rate=reference_rate
             ))

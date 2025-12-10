@@ -1,17 +1,24 @@
 """分析相关API路由."""
-import os
-import sys
+
 from datetime import datetime
-from typing import Dict, Any
+from typing import Any, Dict
+
 from fastapi import APIRouter, HTTPException
 
-from brand_analysis_api.services import BrandAnalyzer, LLMBrandRecognizer
-from ..models.schemas import (
-    AnalysisRequest, 
-    AnalysisResponse, 
+from api.models.schemas import (
+    AnalysisRequest,
+    AnalysisResponse,
     BrandRecognitionRequest,
-    BrandRecognitionResponse
+    BrandRecognitionResponse,
 )
+
+try:
+    from brand_analysis import BrandAnalyzer, LLMBrandRecognizer
+    HAS_BRAND_ANALYSIS = True
+except ImportError:
+    BrandAnalyzer = None  # type: ignore[assignment]
+    LLMBrandRecognizer = None  # type: ignore[assignment]
+    HAS_BRAND_ANALYSIS = False
 
 router = APIRouter()
 
@@ -20,6 +27,14 @@ router = APIRouter()
 async def analyze_brand(request: AnalysisRequest):
     """执行品牌分析."""
     try:
+        if not HAS_BRAND_ANALYSIS:
+            raise HTTPException(
+                status_code=501,
+                detail=(
+                    "brand_analysis 模块未在容器中安装，"
+                    "无法执行分析，请在 API 镜像中安装该依赖或提供相应模块。"
+                ),
+            )
         # 初始化分析器
         analyzer = BrandAnalyzer()
         # 执行分析
@@ -44,6 +59,14 @@ async def analyze_brand(request: AnalysisRequest):
 async def recognize_brand(request: BrandRecognitionRequest):
     """品牌识别."""
     try:
+        if not HAS_BRAND_ANALYSIS:
+            raise HTTPException(
+                status_code=501,
+                detail=(
+                    "brand_analysis 模块未在容器中安装，"
+                    "无法执行品牌识别，请在 API 镜像中安装该依赖或提供相应模块。"
+                ),
+            )
         # 初始化品牌识别器
         recognizer = LLMBrandRecognizer()
         

@@ -3,23 +3,27 @@ LLM操作器 - 支持多种LLM SDK的统一接口
 兼容OpenAI、智谱AI等多种LLM提供商
 """
 
-import json
 import asyncio
 import hashlib
+import json
+import logging
+import threading
 import time
-from typing import Dict, Any, List, Optional, Union, AsyncGenerator
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from enum import Enum
-import logging
-import threading
+from typing import Any, AsyncGenerator, Dict, List, Optional, Union
 
 # 导入适配器
 from .llm_adapters import (
-    BaseLLMAdapter, create_llm_adapter,
-    UnifiedResponse, UnifiedError, PRESET_CONFIGS
+    PRESET_CONFIGS,
+    BaseLLMAdapter,
+    OpenAIAdapter,
+    UnifiedError,
+    UnifiedResponse,
+    create_llm_adapter,
 )
-from .llm_adapters import OpenAIAdapter
+
 
 class LLMProvider(Enum):
     """LLM提供商枚举"""

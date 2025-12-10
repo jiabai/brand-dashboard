@@ -1,6 +1,6 @@
 # Dashboard 部署文档
 
-本文档描述了如何在 Linux 服务器上部署 Dashboard 前端应用。
+本文档描述了如何在 Linux 服务器上部署 Dashboard 前端应用。后端 FastAPI 服务位于 `api/`，可使用仓库根目录的 `Dockerfile` 构建并运行（`uvicorn api.main:app`）。
 
 ## 环境要求
 
@@ -87,7 +87,7 @@ git clone your-repository-url .
 ### 2. 安装依赖
 
 ```bash
-cd /var/www/dashboard
+cd /var/www/dashboard/web
 
 # 清理 npm 缓存（可选，如果遇到问题）
 npm cache clean --force
@@ -105,9 +105,9 @@ npm list --depth=0
 # 构建生产版本
 npm run build
 
-# 构建完成后，文件会在 dist/dashboard 目录
-# 检查构建结果
-ls -la dist/dashboard/
+# 构建完成后，文件会在 web/dist 目录
+# 检查构建结果（仍在 web/ 目录下）
+ls -la dist/
 
 # 如果构建失败，检查错误信息并确保所有依赖正确安装
 # 可以尝试删除 node_modules 重新安装
@@ -134,7 +134,7 @@ server {
     listen 80;
     server_name your-domain.com;  # 替换为你的域名或IP
 
-    root /var/www/dashboard/dist/dashboard;
+    root /var/www/dashboard/web/dist;
     index index.html;
 
     # 前端路由支持
@@ -201,7 +201,7 @@ server {
     listen 80;
     server_name your-domain.com;  # 替换为你的域名或IP
 
-    root /var/www/dashboard/dist/dashboard;
+    root /var/www/dashboard/web/dist;
     index index.html;
 
     # 前端路由支持
@@ -262,6 +262,7 @@ sudo systemctl restart nginx
 
 ```bash
 # 安装依赖
+cd /var/www/dashboard/web
 npm install
 
 # 使用 PM2 启动
@@ -291,7 +292,7 @@ sudo firewall-cmd --reload
 创建环境变量文件：
 
 ```bash
-cd /var/www/dashboard
+cd /var/www/dashboard/web
 cp .env.example .env.production
 ```
 
@@ -458,7 +459,7 @@ npm install -g pm2
 
 # 2. 创建项目目录并上传文件
 sudo mkdir -p /var/www/dashboard
-cd /var/www/dashboard
+cd /var/www/dashboard/web
 # 上传您的项目文件...
 
 # 3. 安装依赖并构建
@@ -486,7 +487,7 @@ server {
     listen 80;
     server_name localhost;  # 或您的域名/IP
 
-    root /var/www/dashboard/dist/dashboard;
+    root /var/www/dashboard/web/dist;
     index index.html;
 
     location / {

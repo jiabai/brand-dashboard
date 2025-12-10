@@ -23,16 +23,18 @@
 pip install -r requirements.txt
 ```
 
+> 说明：路由中依赖的 `brand_analysis` 模块需提前可用（私有包或本地模块），否则分析相关接口无法正常运行。
+
 ### 启动服务
 
 开发模式：
 ```bash
-python -m src.brand_analysis_api.main
+python -m api.main
 ```
 
 或使用uvicorn：
 ```bash
-uvicorn src.brand_analysis_api.main:app --reload --host 0.0.0.0 --port 8000
+uvicorn api.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
 ### API文档
@@ -40,6 +42,15 @@ uvicorn src.brand_analysis_api.main:app --reload --host 0.0.0.0 --port 8000
 启动服务后，访问：
 - Swagger文档: http://localhost:8000/api/docs
 - ReDoc文档: http://localhost:8000/api/redoc
+
+### 代码检查
+
+开发时推荐安装开发依赖并运行 Ruff 进行静态检查：
+
+```bash
+pip install -r requirements-dev.txt
+ruff check api
+```
 
 ## API端点
 
@@ -66,7 +77,7 @@ uvicorn src.brand_analysis_api.main:app --reload --host 0.0.0.0 --port 8000
 ## 项目结构
 
 ```
-src/brand_analysis_api/
+api/
 ├── __init__.py          # 模块初始化
 ├── main.py              # FastAPI应用主文件
 ├── database/            # 数据库相关文件
@@ -83,9 +94,11 @@ src/brand_analysis_api/
 ├── models/              # 数据模型
 │   ├── __init__.py
 │   └── schemas.py       # Pydantic模型
-└── utils/               # 工具函数
-    ├── __init__.py
-    └── url_domain_resolver.py  # URL域名解析工具
+├── utils/               # 工具函数
+│   ├── __init__.py
+│   └── url_domain_resolver.py  # URL域名解析工具
+├── requirements.txt     # 运行时依赖
+└── requirements-dev.txt # 开发/检查依赖
 ```
 
 ## 与前端集成
@@ -168,4 +181,3 @@ const referenceData = await referenceResponse.json();
 ### 配置CORS
 
 在`main.py`中修改CORS配置以支持更多的前端域名。
-

@@ -1,8 +1,9 @@
 """配置相关API路由."""
 
-import os
 import json
-from typing import Dict, Any
+import os
+from typing import Any, Dict
+
 from fastapi import APIRouter, HTTPException
 
 router = APIRouter()

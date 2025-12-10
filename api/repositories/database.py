@@ -1,6 +1,7 @@
-from datetime import datetime, timedelta
-from typing import Optional, Dict, Any, List
 import logging
+import os
+from datetime import datetime, timedelta
+from typing import Any, Dict, List, Optional
 
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
@@ -10,12 +11,12 @@ logger = logging.getLogger(__name__)
 
 # 数据库配置
 DATABASE_CONFIG = {
-    "host": "192.168.31.233",
-    "port": 3306,
-    "user": "root",
-    "password": "123456",
-    "database": "geo",
-    "charset": "utf8mb4"
+    "host": os.getenv("DB_HOST", "127.0.0.1"),
+    "port": int(os.getenv("DB_PORT", "3306")),
+    "user": os.getenv("DB_USER", "root"),
+    "password": os.getenv("DB_PASSWORD", "123456"),
+    "database": os.getenv("DB_NAME", "geo"),
+    "charset": os.getenv("DB_CHARSET", "utf8mb4"),
 }
 
 # 创建数据库引擎和连接池
@@ -293,7 +294,11 @@ def query_reference_url_stats(
                 }
             )
             total_questions_scalar = total_result.scalar()
-            total_questions = int(total_questions_scalar) if total_questions_scalar is not None else 0
+            total_questions = (
+                int(total_questions_scalar)
+                if total_questions_scalar is not None
+                else 0
+            )
 
             if not url_rows:
                 return []

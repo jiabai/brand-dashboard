@@ -1,8 +1,9 @@
 from typing import List
+
 from fastapi import APIRouter, HTTPException
 
-from brand_analysis_api.models.schemas import PositioningRequest
-from brand_analysis_api.utils.llm_client import generate_positioning_keywords
+from api.models.schemas import PositioningRequest
+from api.utils.llm_client import generate_positioning_keywords
 
 router = APIRouter()
 

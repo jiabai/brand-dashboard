@@ -1,11 +1,13 @@
-import os
 import json
 import logging
-from typing import List, Optional
+import os
+from typing import List
+
+# ruff: noqa: E501
 
 # 导入 LLM Operator 相关组件
 try:
-    from .llm_operator import create_enhanced_llm_operator, LLMResponse
+    from .llm_operator import LLMResponse, create_enhanced_llm_operator
 except ImportError:
     # 允许在某些环境下导入失败（如缺少依赖），后续通过 try-except 处理
     create_enhanced_llm_operator = None

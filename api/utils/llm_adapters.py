@@ -3,16 +3,17 @@ LLM适配器 - 统一多种LLM SDK的接口适配器
 支持OpenAI、智谱AI等多种LLM提供商
 """
 
-from abc import ABC, abstractmethod
-from typing import Dict, Any, List, Optional, Union, AsyncGenerator
-import logging
-from dataclasses import dataclass
 import asyncio
+import logging
 import time
+from abc import ABC, abstractmethod
+from dataclasses import dataclass
+from typing import Any, AsyncGenerator, Dict, List, Optional, Union
 
 # OpenAI SDK
 from openai import AsyncOpenAI, OpenAI
 from openai.types.chat import ChatCompletion
+
 # 智谱AI SDK
 try:
     from zai import ZhipuAiClient
@@ -481,7 +482,10 @@ class LLMFactory:
     ) -> BaseLLMAdapter:
         """创建适配器实例"""
         if provider not in cls._adapters:
-            raise ValueError(f"不支持的提供商: {provider}。支持的提供商: {list(cls._adapters.keys())}")
+            supported = list(cls._adapters.keys())
+            raise ValueError(
+                f"不支持的提供商: {provider}。支持的提供商: {supported}"
+            )
 
         adapter_class = cls._adapters[provider]
         return adapter_class(api_key, base_url, model, **kwargs)
@@ -577,7 +581,9 @@ def create_llm_adapter(
 
         # 如果是支持的提供商（但不在预设配置中），则必须提供配置参数
         if not model or not base_url:
-            raise ValueError(f"使用非预设提供商 '{provider}' 时，需要明确提供 model 和 base_url 参数")
+            raise ValueError(
+                f"使用非预设提供商 '{provider}' 时，需要明确提供 model 和 base_url 参数"
+            )
 
         return LLMFactory.create_adapter(
             provider=provider,

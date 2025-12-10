@@ -2,9 +2,11 @@ set -euo pipefail
 
 COMMIT_MSG_FILE="$1"
 
-if [ -x "./node_modules/.bin/commitlint" ]; then
-  node ./node_modules/.bin/commitlint --edit "$COMMIT_MSG_FILE"
+if command -v npm >/dev/null 2>&1; then
+  if ! (cd web && npm exec commitlint -- --config commitlint.config.mjs --edit "$COMMIT_MSG_FILE"); then
+    echo "[commitlint] commitlint is not installed under web/. Run \"npm install\" in web/ first." >&2
+    exit 1
+  fi
 else
-  echo "[commitlint] commitlint is not installed; skipping commit message check." >&2
+  echo "[commitlint] npm is not available; skipping commit message check." >&2
 fi
-

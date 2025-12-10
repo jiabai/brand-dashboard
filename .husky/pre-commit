@@ -42,9 +42,16 @@ for file in $STAGED_CHAT_FILES; do
   esac
 done
 
-# Run available npm quality checks if configured
-if command -v npm >/dev/null 2>&1; then
-  npm run lint --if-present
-  npm test --if-present
+# Backend lint
+if command -v ruff >/dev/null 2>&1; then
+  (cd api && ruff check .)
+else
+  echo "[backend] Ruff is not installed. Install via \"pip install -r api/requirements-dev.txt\"." >&2
+  exit 1
 fi
 
+# Run available frontend quality checks if configured
+if command -v npm >/dev/null 2>&1; then
+  npm --prefix web run lint --if-present
+  npm --prefix web test --if-present
+fi

@@ -1,0 +1,10 @@
+.git
+.gitignore
+.husky
+agents_chat
+web
+*.md
+.venv
+api/.venv
+__pycache__
+*.pyc

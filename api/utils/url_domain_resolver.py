@@ -105,7 +105,12 @@ def get_domain_name(domain: str) -> Tuple[str, str]:
             return domain_mappings[tld]
 
     # 默认返回域名本身作为英文名称
-    domain_display = domain.replace('.com', '').replace('.cn', '').replace('.net', '').replace('.org', '')
+    domain_display = (
+        domain.replace('.com', '')
+        .replace('.cn', '')
+        .replace('.net', '')
+        .replace('.org', '')
+    )
     domain_display = domain_display.replace('-', ' ').replace('_', ' ').title()
 
     return (domain_display, domain_display)
