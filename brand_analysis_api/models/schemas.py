@@ -75,3 +75,7 @@ class ErrorResponse(BaseModel):
     error: str = Field(..., description="错误信息")
     status_code: int = Field(..., description="HTTP状态码")
     timestamp: datetime = Field(default_factory=datetime.now, description="时间戳")
+
+class PositioningRequest(BaseModel):
+    industry: str = Field(..., description="行业")
+    brand: str = Field(..., description="品牌")

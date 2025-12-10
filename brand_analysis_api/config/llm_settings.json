@@ -1,0 +1,7 @@
+{
+  "provider": "zhipuai",
+  "api_key": "mock_zhipuai_key",
+  "model": "glm-4.6",
+  "endpoint": "https://open.bigmodel.cn/api/paas/v4/chat/completions",
+  "timeout_seconds": 30
+}

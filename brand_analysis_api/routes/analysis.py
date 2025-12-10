@@ -1,19 +1,14 @@
 """分析相关API路由."""
-
-from fastapi import APIRouter, HTTPException, Depends
-from typing import Dict, Any, List, Optional
 import os
 import sys
 from datetime import datetime
+from typing import Dict, Any
+from fastapi import APIRouter, HTTPException
 
-# 添加父目录到Python路径
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-
-from brand_analysis import BrandAnalyzer, LLMBrandRecognizer
+from brand_analysis_api.services import BrandAnalyzer, LLMBrandRecognizer
 from ..models.schemas import (
     AnalysisRequest, 
     AnalysisResponse, 
-    AnalysisResult,
     BrandRecognitionRequest,
     BrandRecognitionResponse
 )
@@ -27,23 +22,22 @@ async def analyze_brand(request: AnalysisRequest):
     try:
         # 初始化分析器
         analyzer = BrandAnalyzer()
-        
         # 执行分析
         result = analyzer.analyze(
             brand_name=request.brand_name,
             analysis_type=request.analysis_type,
             params=request.params
         )
-        
+
         return AnalysisResponse(
             success=True,
             data=result,
             message="分析完成",
             timestamp=datetime.now()
         )
-        
+
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"分析失败: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"分析失败: {str(e)}") from e
 
 
 @router.post("/recognize-brand", response_model=BrandRecognitionResponse)
@@ -104,6 +98,6 @@ async def get_analysis_history(limit: int = 10, offset: int = 0):
             "message": "获取历史记录成功",
             "timestamp": datetime.now()
         }
-        
+
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"获取历史记录失败: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"获取历史记录失败: {str(e)}") from e
