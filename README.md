@@ -70,6 +70,11 @@ docker run -p 8000:8000 brand-analysis-api
   # 后端: http://localhost:8000
   ```
 
+> 说明：`docker-compose.yml` 中还会同时启动一个 `mysql` 容器：
+> - 服务名：`mysql`，对外端口 `3306`。
+> - 默认数据库：`geo`，root 用户密码：`devpassword`（仅用于本地开发）。
+> - `api` 通过环境变量 `DB_HOST=mysql`、`DB_PORT=3306`、`DB_USER=root`、`DB_PASSWORD=devpassword`、`DB_NAME=geo` 连接该实例。
+
 ## 开发与规范
 
 - Git Hooks：`husky` 会检查 `agents_chat/` 记录，并调用 `ruff check api` 和 `npm --prefix web run lint/test --if-present`。
