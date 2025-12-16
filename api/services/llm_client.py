@@ -7,7 +7,7 @@ from typing import List, Dict, Optional, Any
 
 # 导入 LLM Operator 相关组件
 try:
-    from .llm_operator import LLMResponse, create_enhanced_llm_operator
+    from api.utils.llm_operator import LLMResponse, create_enhanced_llm_operator
 except ImportError:
     # 允许在某些环境下导入失败（如缺少依赖），后续通过 try-except 处理
     create_enhanced_llm_operator = None
@@ -137,7 +137,7 @@ async def generate_positioning_keywords(industry: str, brand: str) -> List[str]:
                     return result
 
         except Exception as e:
-            logger.warning("Failed to generate keywords using LLM: %s", str(e))
+            logger.warning(f"Failed to generate keywords using LLM: {str(e)}")
             # 继续执行回退逻辑
 
     # 回退方案：基于输入返回通用占位关键词，保持顺序与规格
@@ -195,8 +195,9 @@ async def generate_consumer_questions(
                         else:
                             result[keyword] = []
                     return result
+
         except Exception as e:
-            logger.warning("Failed to generate consumer questions using LLM: %s", str(e))
+            logger.warning("Failed to generate consumer questions using LLM: %s", e)
             # 继续执行回退逻辑
 
     # 回退方案

@@ -78,3 +78,8 @@ class ErrorResponse(BaseModel):
 class PositioningRequest(BaseModel):
     industry: str = Field(..., description="行业")
     brand: str = Field(..., description="品牌")
+
+class ConsumerQuestionsRequest(BaseModel):
+    industry: str = Field(..., description="行业")
+    brand: str = Field(..., description="品牌")
+    keywords: List[str] = Field(..., description="关键词列表")
