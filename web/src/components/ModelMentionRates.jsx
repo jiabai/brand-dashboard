@@ -81,8 +81,8 @@ const ModelMentionRates = () => {
         各模型提及率
       </h2>
       <div className="models-container">
-        {models.map((model, index) => (
-          <div key={index} className="model-item">
+        {models.map((model) => (
+          <div key={model.name} className="model-item">
             <div className="model-name">{model.name}</div>
             <div className="rate-bar-container">
               <div 

@@ -11,7 +11,7 @@
  * );
  */
 
-import React, { useState, useCallback } from 'react';
+import React, { useCallback } from 'react';
 import { Button } from './ui/button';
 
 /**
@@ -25,36 +25,11 @@ import { Button } from './ui/button';
  * @returns {JSX.Element} Error boundary wrapper
  */
 const ErrorBoundary = ({ children, fallback, onError, className }) => {
-  const [errorState, setErrorState] = useState({
-    hasError: false,
-    error: null,
-    errorInfo: null
-  });
-
-  /**
-   * Handle error reset
-   */
-  const handleReset = useCallback(() => {
-    setErrorState({
-      hasError: false,
-      error: null,
-      errorInfo: null
-    });
-  }, []);
-
   /**
    * Catch errors thrown in child components
-   * Note: This is a simplified version - full error boundaries require class components
-   * or a library like react-error-boundary for full functionality
    */
   const handleError = useCallback((error, errorInfo) => {
     console.error('Error caught by boundary:', error, errorInfo);
-
-    setErrorState({
-      hasError: true,
-      error,
-      errorInfo
-    });
 
     // Call custom error handler if provided
     if (typeof onError === 'function') {
@@ -67,7 +42,6 @@ const ErrorBoundary = ({ children, fallback, onError, className }) => {
   return (
     <ErrorBoundaryClass
       onError={handleError}
-      reset={handleReset}
       fallback={fallback}
       className={className}
     >
@@ -118,10 +92,6 @@ class ErrorBoundaryClass extends React.Component {
       error: null,
       errorInfo: null
     });
-
-    if (this.props.reset) {
-      this.props.reset();
-    }
   };
 
   render() {
@@ -161,6 +131,5 @@ class ErrorBoundaryClass extends React.Component {
     return <div className={this.props.className}>{this.props.children}</div>;
   }
 }
-
 
 export default ErrorBoundary;

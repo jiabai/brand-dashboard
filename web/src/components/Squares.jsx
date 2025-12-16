@@ -14,6 +14,8 @@ const Squares = ({
   const numSquaresY = useRef(0);
   const gridOffset = useRef({ x: 0, y: 0 });
   const hoveredSquareRef = useRef(null);
+  // 保存 CSS 尺寸用于绘制计算
+  const canvasSizeRef = useRef({ width: 0, height: 0 });
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -26,6 +28,8 @@ const Squares = ({
       const cssHeight = canvas.clientHeight || window.innerHeight;
       canvas.width = Math.floor(cssWidth * dpr);
       canvas.height = Math.floor(cssHeight * dpr);
+      // 保存 CSS 尺寸用于绘制
+      canvasSizeRef.current = { width: cssWidth, height: cssHeight };
       if (ctx) ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       numSquaresX.current = Math.ceil(cssWidth / squareSize) + 1;
       numSquaresY.current = Math.ceil(cssHeight / squareSize) + 1;
@@ -37,13 +41,16 @@ const Squares = ({
     const drawGrid = () => {
       if (!ctx) return;
 
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      const { width: cssWidth, height: cssHeight } = canvasSizeRef.current;
+
+      // 使用 CSS 尺寸清除画布（ctx 已经应用了 DPR 变换）
+      ctx.clearRect(0, 0, cssWidth, cssHeight);
 
       const startX = Math.floor(gridOffset.current.x / squareSize) * squareSize;
       const startY = Math.floor(gridOffset.current.y / squareSize) * squareSize;
 
-      for (let x = startX; x < canvas.width + squareSize; x += squareSize) {
-        for (let y = startY; y < canvas.height + squareSize; y += squareSize) {
+      for (let x = startX; x < cssWidth + squareSize; x += squareSize) {
+        for (let y = startY; y < cssHeight + squareSize; y += squareSize) {
           const squareX = x - (gridOffset.current.x % squareSize);
           const squareY = y - (gridOffset.current.y % squareSize);
 
@@ -61,19 +68,20 @@ const Squares = ({
         }
       }
 
+      // 使用 CSS 尺寸计算渐变
       const gradient = ctx.createRadialGradient(
-        canvas.width / 2,
-        canvas.height / 2,
+        cssWidth / 2,
+        cssHeight / 2,
         0,
-        canvas.width / 2,
-        canvas.height / 2,
-        Math.sqrt(canvas.width ** 2 + canvas.height ** 2) / 2
+        cssWidth / 2,
+        cssHeight / 2,
+        Math.sqrt(cssWidth ** 2 + cssHeight ** 2) / 2
       );
       gradient.addColorStop(0, 'rgba(0, 0, 0, 0)');
       gradient.addColorStop(1, '#060010');
 
       ctx.fillStyle = gradient;
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillRect(0, 0, cssWidth, cssHeight);
     };
 
     const updateAnimation = () => {

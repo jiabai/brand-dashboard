@@ -2,8 +2,6 @@
  * 工具函数和常量定义
  */
 
- 
-
 // 默认数据
 export const DEFAULT_BRAND_DATA = {
   mentionRate: 69.1,

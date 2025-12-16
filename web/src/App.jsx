@@ -8,7 +8,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 import LoadingSpinner from './components/LoadingSpinner';
 import Squares from './components/Squares.jsx';
 import GooeyNav from './components/GooeyNav.jsx';
- 
+import TaskName from './components/TaskName.jsx';
 
 // Styles
 import './App.css';
@@ -23,6 +23,7 @@ function App() {
   const [selectedFilter, setSelectedFilter] = useState('7days');
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isLoading, setIsLoading] = useState(false);
+  const loadingTimerRef = React.useRef(null);
 
   // GooeyNav navigation items
   const navItems = [
@@ -40,15 +41,28 @@ function App() {
     return () => clearInterval(timer);
   }, []);
 
+  // Cleanup loading timer on unmount
+  useEffect(() => {
+    return () => {
+      if (loadingTimerRef.current) {
+        clearTimeout(loadingTimerRef.current);
+      }
+    };
+  }, []);
+
   /**
    * Handle filter change with loading state
    * @param {string} filter - The selected time filter
    */
   const handleFilterChange = (filter) => {
     setSelectedFilter(filter);
+    // Clear any existing timer
+    if (loadingTimerRef.current) {
+      clearTimeout(loadingTimerRef.current);
+    }
     // Simulate loading state for better UX
     setIsLoading(true);
-    setTimeout(() => setIsLoading(false), 800);
+    loadingTimerRef.current = setTimeout(() => setIsLoading(false), 800);
   };
 
   /**
@@ -89,17 +103,25 @@ function App() {
         <main className="App-main relative z-10 pt-6">
           {/* GooeyNav Sticky Navigation */}
           <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm p-4 rounded-lg border mb-6 overflow-hidden">
-            <GooeyNav
-              items={navItems}
-              animationTime={600}
-              particleCount={15}
-              particleDistances={[90, 10]}
-              particleR={100}
-              timeVariance={300}
-              colors={[1, 2, 3, 1, 2, 3, 1, 4]}
-              initialActiveIndex={1} // 默认选中 "过去7天"
-              onItemClick={handleNavClick}
-            />
+            <div className="flex items-center justify-between">
+              {/* 左侧：任务名称 */}
+              <TaskName />
+
+              {/* 右侧：时间筛选器 */}
+              <div className="flex-1 max-w-md flex justify-end">
+                <GooeyNav
+                  items={navItems}
+                  animationTime={600}
+                  particleCount={15}
+                  particleDistances={[90, 10]}
+                  particleR={100}
+                  timeVariance={300}
+                  colors={[1, 2, 3, 1, 2, 3, 1, 4]}
+                  initialActiveIndex={1} // 默认选中 "过去7天"
+                  onItemClick={handleNavClick}
+                />
+              </div>
+            </div>
           </div>
 
           {/* Loading State or Dashboard Content */}
@@ -107,8 +129,6 @@ function App() {
             <LoadingSpinner text="正在加载数据..." />
           ) : (
             <div className="dashboard-content">
- 
-
               <div className="dashboard-card brand-section">
                 <BrandMentionRate />
               </div>

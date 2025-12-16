@@ -114,7 +114,7 @@ const GooeyNav = ({
       e.preventDefault();
       const liEl = e.currentTarget.parentElement;
       if (liEl) {
-        handleClick({ currentTarget: liEl }, index);
+        handleClick({ currentTarget: liEl, preventDefault: () => {} }, index);
       }
     }
   };
@@ -133,6 +133,7 @@ const GooeyNav = ({
     });
     resizeObserver.observe(containerRef.current);
     return () => resizeObserver.disconnect();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeIndex]);
 
   return (

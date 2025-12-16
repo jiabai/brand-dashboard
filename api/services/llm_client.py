@@ -137,7 +137,7 @@ async def generate_positioning_keywords(industry: str, brand: str) -> List[str]:
                     return result
 
         except Exception as e:
-            logger.warning(f"Failed to generate keywords using LLM: {str(e)}")
+            logger.warning("Failed to generate keywords using LLM: %s", e)
             # 继续执行回退逻辑
 
     # 回退方案：基于输入返回通用占位关键词，保持顺序与规格

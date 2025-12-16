@@ -24,7 +24,6 @@ import { DEFAULT_BRAND_DATA, formatPercentage } from '@/utils';
 // Components
 import LoadingSpinner from './LoadingSpinner';
 import EmptyState from './EmptyState';
- 
 
 // Mock brand ranking data for demonstration
 const BRAND_RANKINGS = [
@@ -193,6 +192,5 @@ const BrandMentionRate = ({ brandData, isLoading, error }) => {
     </div>
   );
 }
-
 
 export default BrandMentionRate;

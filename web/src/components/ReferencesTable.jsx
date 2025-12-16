@@ -6,20 +6,20 @@
 import React, { useState, useEffect } from 'react';
 import '../styles/references-table.css';
 
+// 模拟数据 - 移到组件外部避免每次渲染重新创建
+const MOCK_REFERENCES_DATA = [
+  { rank: 1, domain: 'techcrunch.com', rate: 95 },
+  { rank: 2, domain: 'reddit.com', rate: 88 },
+  { rank: 3, domain: 'twitter.com', rate: 82 },
+  { rank: 4, domain: 'youtube.com', rate: 76 },
+  { rank: 5, domain: 'medium.com', rate: 71 }
+];
+
 const ReferencesTable = ({ referencesData, isLoading, error }) => {
   // 内部状态管理
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState(null);
-
-  // 模拟数据
-  const mockData = [
-    { rank: 1, domain: 'techcrunch.com', rate: 95 },
-    { rank: 2, domain: 'reddit.com', rate: 88 },
-    { rank: 3, domain: 'twitter.com', rate: 82 },
-    { rank: 4, domain: 'youtube.com', rate: 76 },
-    { rank: 5, domain: 'medium.com', rate: 71 }
-  ];
 
   // 模拟数据加载
   useEffect(() => {
@@ -27,10 +27,12 @@ const ReferencesTable = ({ referencesData, isLoading, error }) => {
       setLoading(isLoading);
     } else {
       setLoading(true);
-      setTimeout(() => {
-        setData(mockData);
+      const timer = setTimeout(() => {
+        setData(MOCK_REFERENCES_DATA);
         setLoading(false);
       }, 1000);
+      // 清理函数防止内存泄漏
+      return () => clearTimeout(timer);
     }
 
     if (error) {
@@ -137,7 +139,7 @@ const ReferencesTable = ({ referencesData, isLoading, error }) => {
                   <a 
                     href={`https://${item.domain}`} 
                     target="_blank" 
-                    rel="noreferrer" 
+                    rel="noopener noreferrer" 
                     className="text-slate-300 hover:text-violet-300 transition-colors"
                   >
                     {item.domain}
