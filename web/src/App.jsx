@@ -105,10 +105,12 @@ function App() {
           <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm p-4 rounded-lg border mb-6 overflow-hidden">
             <div className="flex items-center justify-between">
               {/* 左侧：任务名称 */}
-              <TaskName />
+              <div className="ml-16">
+                <TaskName />
+              </div>
 
               {/* 右侧：时间筛选器 */}
-              <div className="flex-1 max-w-md flex justify-end">
+              <div className="flex-1 max-w-md flex justify-end mr-12">
                 <GooeyNav
                   items={navItems}
                   animationTime={600}

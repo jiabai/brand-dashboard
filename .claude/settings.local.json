@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm config:*)",
+      "Bash(where:*)",
+      "Bash(tasklist:*)",
+      "Bash(findstr /i \"node\":*)",
+      "Bash(find websrccomponentsGooeyNav.jsx -type f -exec grep -n \"return\" {} ;)",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(findstr \":3000\":*)",
+      "Bash(dir \"D:\\Github\\brand-dashboard\\web\\.claude\" /s /b:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
