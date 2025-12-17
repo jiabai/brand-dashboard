@@ -9,6 +9,7 @@ import LoadingSpinner from './components/LoadingSpinner';
 import Squares from './components/Squares.jsx';
 import GooeyNav from './components/GooeyNav.jsx';
 import TaskName from './components/TaskName.jsx';
+import Sidebar from './components/Sidebar.jsx';
 
 // Styles
 import './App.css';
@@ -75,7 +76,7 @@ function App() {
   };
 
   return (
-    <div className="App">
+    <div className="App flex flex-row min-h-screen">
       {/* Background Animation */}
       <div className="fixed inset-0 z-[-1]">
         <Squares
@@ -87,44 +88,55 @@ function App() {
         />
       </div>
 
-      <ErrorBoundary className="relative z-10">
-        {/* Header Section */}
-        <header className="App-header relative z-10">
-          <div className="header-content">
-            <h1>品牌分析仪表板</h1>
-            <div className="header-stats">
-              <span className="stat-item">实时数据</span>
-              <span className="stat-item">最后更新: {currentTime.toLocaleTimeString()}</span>
-            </div>
-          </div>
-        </header>
+      <Sidebar />
 
-        {/* Main Dashboard Content */}
-        <main className="App-main relative z-10 pt-6">
-          {/* GooeyNav Sticky Navigation */}
-          <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm p-4 rounded-lg border mb-6 overflow-hidden">
-            <div className="flex items-center justify-between">
-              {/* 左侧：任务名称 */}
-              <div className="ml-16">
-                <TaskName />
-              </div>
+      <div className="flex-1 flex flex-col min-w-0">
+        <ErrorBoundary className="relative z-10 flex flex-col min-h-screen">
+          {/* Main Dashboard Content */}
+          <main className="App-main relative z-10 pt-6 w-full">
+            {/* GooeyNav Sticky Navigation */}
+            <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm p-4 rounded-lg border mb-6 overflow-hidden">
+              <div className="flex items-center justify-between">
+                {/* 左侧：任务名称 */}
+                <div className="ml-4">
+                  <TaskName />
+                </div>
 
-              {/* 右侧：时间筛选器 */}
-              <div className="flex-1 max-w-md flex justify-end mr-12">
-                <GooeyNav
-                  items={navItems}
-                  animationTime={600}
-                  particleCount={15}
-                  particleDistances={[90, 10]}
-                  particleR={100}
-                  timeVariance={300}
-                  colors={[1, 2, 3, 1, 2, 3, 1, 4]}
-                  initialActiveIndex={1} // 默认选中 "过去7天"
-                  onItemClick={handleNavClick}
-                />
+                {/* 右侧：导航与状态 */}
+                <div className="flex items-center gap-6 mr-4">
+                   {/* 状态信息 */}
+                   <div className="flex items-center gap-3 text-sm text-slate-400 hidden lg:flex">
+                      <span className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 shadow-sm backdrop-blur-md">
+                        <span className="relative flex h-2 w-2">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                        </span>
+                        <span className="text-xs font-medium text-white/80">实时数据</span>
+                      </span>
+                      <span className="text-xs font-mono text-white/50 bg-black/20 px-2 py-1 rounded-md border border-white/5">
+                        更新: {currentTime.toLocaleTimeString()}
+                      </span>
+                   </div>
+
+                   <div className="h-6 w-px bg-white/10 hidden lg:block"></div>
+
+                   {/* 时间筛选器 */}
+                   <div className="flex-1 max-w-md flex justify-end">
+                    <GooeyNav
+                      items={navItems}
+                      animationTime={600}
+                      particleCount={15}
+                      particleDistances={[90, 10]}
+                      particleR={100}
+                      timeVariance={300}
+                      colors={[1, 2, 3, 1, 2, 3, 1, 4]}
+                      initialActiveIndex={1} // 默认选中 "过去7天"
+                      onItemClick={handleNavClick}
+                    />
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
 
           {/* Loading State or Dashboard Content */}
           {isLoading ? (
@@ -146,6 +158,7 @@ function App() {
           )}
         </main>
       </ErrorBoundary>
+      </div>
     </div>
   );
 }
