@@ -6,7 +6,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
 from api.models.schemas import HealthResponse
-from api.routes import analysis, config, dashboard, brand_strategy
+from api.routes import analysis, brand_strategy, config, dashboard
 
 # 创建FastAPI应用
 app = FastAPI(

@@ -76,8 +76,8 @@ ruff check api
 - `GET /api/dashboard/reference-url-stats` - 获取全局引用URL统计数据
 
 ### 品牌策略相关
-- `GET /api/brand-strategy/advice` - 获取品牌策略建议
-- `GET /api/brand-strategy/compare` - 品牌对比分析
+- `GET /api/analysis/brand-strategy/advice` - 获取品牌策略建议
+- `GET /api/analysis/brand-strategy/compare` - 品牌对比分析
 
 ## 项目结构
 

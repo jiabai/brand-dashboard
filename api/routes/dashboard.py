@@ -40,7 +40,8 @@ class BrandMentionRateResponse(BaseModel):
 class PlatformMentionRateData(BaseModel):
     """各平台提及率数据模型."""
     name: str = Field(..., description="平台名称")
-    rate: float = Field(..., description="提及率")
+    mention_rate: float = Field(..., description="该平台上的品牌提及率(百分比)")
+    first_mention_rate: float = Field(..., description="该平台上的品牌首次提及率(百分比)")
     color: str = Field(..., description="颜色")
 
 class PlatformMentionRateResponse(BaseModel):
@@ -107,7 +108,9 @@ async def get_brand_mention_rate(
 
 @router.get("/platform-mention-rates", response_model=PlatformMentionRateResponse)
 async def get_platform_mention_rates(
+    category: str = Query(..., description="商品大类"),
     brand: str = Query(..., description="品牌名称"),
+    keyword: str = Query(..., description='品牌关键词，或"全部"'),
     timeframe: TimeFrame = Query(..., description="时间范围"),
     date: Optional[str] = Query(None, description="具体日期(格式: YYYYMMDD)")
 ):
@@ -116,38 +119,55 @@ async def get_platform_mention_rates(
         # 从数据库查询各平台数据
         platform_data_list = query_brand_platform_mention_data(
             brand=brand,
+            category=category,
+            keyword=keyword,
             timeframe=timeframe.value,
             specific_date=date
         )
+
+        platform_colors = {
+            "ChatGPT": "#10b981",
+            "Gemini": "#3b82f6",
+            "Claude": "#f59e0b",
+            "通义千问": "#ef4444",
+            "Qwen": "#ef4444",
+            "豆包": "#8b5cf6",
+            "DeepSeek": "#06b6d4",
+            "Deepseek": "#06b6d4",
+            "Kimi": "#a855f7",
+            "元宝": "#f97316",
+            "夸克": "#ec4899",
+            "文心一言": "#6b7280",
+        }
+
         # 转换数据格式以匹配响应模型
         response_data = []
         for platform_data in platform_data_list:
-            # 为不同平台分配颜色
-            platform_colors = {
-                "ChatGPT": "#10b981",
-                "Gemini": "#3b82f6", 
-                "Claude": "#f59e0b",
-                "通义千问": "#ef4444",
-                "豆包": "#8b5cf6",
-                "DeepSeek": "#06b6d4",
-                "Kimi": "#a855f7",
-                "元宝": "#f97316",
-                "夸克": "#ec4899",
-                "文心一言": "#6b7280"
-            }
+            platform_name = platform_data["platform"]
+            response_data.append(
+                PlatformMentionRateData(
+                    name=platform_name,
+                    mention_rate=platform_data["mention_rate"],
+                    first_mention_rate=platform_data["first_mention_rate"],
+                    color=platform_colors.get(platform_name, "#6b7280"),
+                )
+            )
 
-            response_data.append(PlatformMentionRateData(
-                name=platform_data["platform"],
-                rate=platform_data["mention_rate"],
-                color=platform_colors.get(platform_data["platform"], "#6b7280")
-            ))
+        meta_date = date or datetime.now().strftime("%Y%m%d")
+        total_queries = sum((p["query_count"] for p in platform_data_list), start=0)
+
         return PlatformMentionRateResponse(
             status="success",
             data=response_data,
             metadata={
+                "category": category,
+                "brand": brand,
+                "keyword": keyword,
                 "timeframe": timeframe.value,
+                "date": meta_date,
                 "calculation_method": "platform_mention_rate",
-                "platform_count": len(response_data)
+                "platform_count": len(response_data),
+                "queries": total_queries,
             }
         )
     except ValueError as e:

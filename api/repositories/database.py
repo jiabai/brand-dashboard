@@ -322,6 +322,8 @@ def query_reference_url_stats(
 
 def query_brand_platform_mention_data(
     brand: str,
+    category: str,
+    keyword: str,
     timeframe: str,
     specific_date: Optional[str] = None
 ) -> List[Dict[str, Any]]:
@@ -330,6 +332,8 @@ def query_brand_platform_mention_data(
     
     Args:
         brand: 品牌名称
+        category: 商品大类
+        keyword: 品牌关键词（或"全部"）
         timeframe: 时间范围
         specific_date: 指定日期
     
@@ -341,67 +345,109 @@ def query_brand_platform_mention_data(
     """
     start_date, end_date = get_date_range(timeframe, specific_date)
 
-    query = """
-    SELECT 
-        platform,
-        SUM(question_count) as total_questions,
-        SUM(mention_count) as total_mentions,
-        SUM(first_mention_count) as total_first_mentions,
-        MAX(date) as latest_date,
-        AVG(mention_rate) as avg_mention_rate
-    FROM qa_brand_summary 
-    WHERE brand = :brand 
-    AND date BETWEEN :start_date AND :end_date
-    GROUP BY platform
-    ORDER BY avg_mention_rate DESC
-    """
-
     try:
         with engine.connect() as conn:
-            # 检查品牌是否存在
-            check_brand_query = text("SELECT 1 FROM qa_brand_summary WHERE brand = :brand LIMIT 1")
-            brand_exists = conn.execute(check_brand_query, {"brand": brand}).fetchone()
+            columns_result = conn.execute(text("SHOW COLUMNS FROM qa_brand_state")).fetchall()
+            columns = {row[0] for row in columns_result}
 
-            # 如果品牌不存在，返回空列表
-            if not brand_exists:
-                return []
-
-            result = conn.execute(
-                text(query),
-                {
-                    "brand": brand,
-                    "start_date": start_date,
-                    "end_date": end_date
-                }
+            id_column = (
+                "conversation_id"
+                if "conversation_id" in columns
+                else "question_id"
+                if "question_id" in columns
+                else "id"
             )
 
+            if "is_mentioned" not in columns:
+                raise Exception("qa_brand_state 表缺少 is_mentioned 字段")
+
+            first_mention_column = (
+                "is_first_mentioned"
+                if "is_first_mentioned" in columns
+                else "is_first_mention"
+                if "is_first_mention" in columns
+                else "is_first_mentioned"
+            )
+
+            category_column = (
+                "category"
+                if "category" in columns
+                else "product"
+                if "product" in columns
+                else None
+            )
+            if category_column is None:
+                raise Exception("qa_brand_state 表缺少 category 字段")
+
+            keyword_column = "keyword" if "keyword" in columns else None
+            if keyword != "全部" and keyword_column is None:
+                raise ValueError("qa_brand_state 表缺少 keyword 字段，无法按 keyword 筛选")
+
+            where_clauses = [
+                "brand = :brand",
+                "date BETWEEN :start_date AND :end_date",
+                f"{category_column} = :category",
+            ]
+            params: Dict[str, Any] = {
+                "brand": brand,
+                "category": category,
+                "start_date": start_date,
+                "end_date": end_date,
+            }
+
+            if keyword != "全部":
+                where_clauses.append(f"{keyword_column} = :keyword")
+                params["keyword"] = keyword
+
+            where_sql = " AND ".join(where_clauses)
+
+            platform_query = f"""
+            SELECT
+                platform,
+                COUNT(DISTINCT {id_column}) AS query_count,
+                COUNT(
+                    DISTINCT CASE WHEN is_mentioned = 1 THEN {id_column} END
+                ) AS mention_count,
+                COUNT(
+                    DISTINCT CASE WHEN {first_mention_column} = 1 THEN {id_column} END
+                ) AS first_mention_count
+            FROM qa_brand_state
+            WHERE {where_sql}
+            GROUP BY platform
+            """
+
+            result = conn.execute(text(platform_query), params)
             rows = result.fetchall()
 
             if not rows:
-                # 如果没有数据，返回空列表
                 return []
 
-            # 构建结果列表
-            platform_data = []
-            for index, row in enumerate(rows):
+            platform_data: List[Dict[str, Any]] = []
+            for row in rows:
                 platform = row[0]
-                question_count = int(row[1]) if row[1] else 0
+                query_count = int(row[1]) if row[1] else 0
                 mention_count = int(row[2]) if row[2] else 0
                 first_mention_count = int(row[3]) if row[3] else 0
-                latest_date = row[4] or end_date
-                mention_rate = float(row[5]) if row[5] else 0.0
 
-                platform_data.append({
-                    "platform": platform,
-                    "mention_rate": round(mention_rate, 2),
-                    "rank": index + 1,  # 按提及率排序的排名
-                    "question_count": question_count,
-                    "mention_count": mention_count,
-                    "first_mention_count": first_mention_count,
-                    "analysis_date": latest_date.isoformat(),
-                    "last_updated": datetime.now().isoformat()
-                })
+                mention_rate = (
+                    round(mention_count / query_count * 100, 2) if query_count > 0 else 0.0
+                )
+                first_mention_rate = (
+                    round(first_mention_count / query_count * 100, 2) if query_count > 0 else 0.0
+                )
 
+                platform_data.append(
+                    {
+                        "platform": platform,
+                        "query_count": query_count,
+                        "mention_count": mention_count,
+                        "first_mention_count": first_mention_count,
+                        "mention_rate": mention_rate,
+                        "first_mention_rate": first_mention_rate,
+                    }
+                )
+
+            platform_data.sort(key=lambda x: x["mention_rate"], reverse=True)
             return platform_data
     except Exception as e:
         logger.error("数据库查询失败: %s", str(e))

@@ -1,7 +1,7 @@
 import json
 import logging
 import os
-from typing import List, Dict, Optional, Any
+from typing import Any, Dict, List, Optional
 
 # ruff: noqa: E501
 

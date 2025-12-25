@@ -1,4 +1,4 @@
 # API路由模块
-from . import analysis, config, dashboard, brand_strategy
+from . import analysis, brand_strategy, config, dashboard
 
-__all__ = ["analysis", "config", "dashboard", "brand_strategy"]
+__all__ = ["analysis", "brand_strategy", "config", "dashboard"]

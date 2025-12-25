@@ -80,7 +80,9 @@ curl -X GET "http://localhost:8000/api/dashboard/brand-mention-rate?brand=Apple&
 
 | 参数名 | 类型 | 必填 | 描述 |
 |--------|------|------|------|
+| category | string | 是 | 商品大类 |
 | brand | string | 是 | 品牌名称 |
+| keyword | string | 是 | 品牌关键词，或"全部" |
 | timeframe | string | 是 | 时间范围，可选值: `yesterday`, `7days`, `30days` |
 | date | string | 否 | 具体日期，格式: `YYYYMMDD` |
 
@@ -92,24 +94,32 @@ curl -X GET "http://localhost:8000/api/dashboard/brand-mention-rate?brand=Apple&
   "data": [
     {
       "name": "DeepSeek",
-      "rate": 45.0,
+      "mention_rate": 45.0,
+      "first_mention_rate": 30.0,
       "color": "#06b6d4"
     },
     {
       "name": "Claude",
-      "rate": 35.0,
+      "mention_rate": 35.0,
+      "first_mention_rate": 25.0,
       "color": "#f59e0b"
     },
     {
       "name": "ChatGPT",
-      "rate": 28.5,
+      "mention_rate": 28.5,
+      "first_mention_rate": 20.0,
       "color": "#10b981"
     }
   ],
   "metadata": {
+    "category": "手机",
+    "brand": "Apple",
+    "keyword": "iPhone",
     "timeframe": "7days",
+    "date": "20250115",
     "calculation_method": "platform_mention_rate",
-    "platform_count": 3
+    "platform_count": 3,
+    "queries": 1500
   }
 }
 ```
@@ -121,12 +131,18 @@ curl -X GET "http://localhost:8000/api/dashboard/brand-mention-rate?brand=Apple&
 | status | string | 响应状态，"success" 或 "error" |
 | data | array | 各平台提及率数据列表 |
 | name | string | 平台名称（如：DeepSeek、Claude、ChatGPT 等） |
-| rate | float | 该平台上的品牌提及率（百分比） |
+| mention_rate | float | 该平台上的品牌提及率（百分比） |
+| first_mention_rate | float | 该平台上的品牌首次提及率（百分比） |
 | color | string | 平台颜色编码（用于前端图表展示） |
 | metadata | object | 元数据 |
+| metadata.category | string | 请求的商品大类 |
+| metadata.brand | string | 请求的品牌名称 |
+| metadata.keyword | string | 请求的品牌关键词 |
 | metadata.timeframe | string | 请求的时间范围 |
+| metadata.date | string | 请求的日期 |
 | metadata.calculation_method | string | 计算方式说明 |
 | metadata.platform_count | int | 平台数量 |
+| metadata.queries | int | 总查询次数 |
 
 ### 平台颜色映射
 
@@ -135,9 +151,9 @@ curl -X GET "http://localhost:8000/api/dashboard/brand-mention-rate?brand=Apple&
 | ChatGPT | #10b981 |
 | Gemini | #3b82f6 |
 | Claude | #f59e0b |
-| 通义千问 | #ef4444 |
+| 通义千问/Qwen | #ef4444 |
 | 豆包 | #8b5cf6 |
-| DeepSeek | #06b6d4 |
+| DeepSeek/Deepseek | #06b6d4 |
 | Kimi | #a855f7 |
 | 元宝 | #f97316 |
 | 夸克 | #ec4899 |
