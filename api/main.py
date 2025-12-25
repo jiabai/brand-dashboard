@@ -14,7 +14,8 @@ app = FastAPI(
     description="品牌分析API服务，为dashboard提供数据接口",
     version="0.1.0",
     docs_url="/api/docs",
-    redoc_url="/api/redoc"
+    redoc_url="/api/redoc",
+    openapi_url="/api/openapi.json"
 )
 
 # 配置CORS

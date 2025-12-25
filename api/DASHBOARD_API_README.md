@@ -163,7 +163,7 @@ curl -X GET "http://localhost:8000/api/dashboard/brand-mention-rate?brand=Apple&
 ### 使用示例
 
 ```bash
-curl -X GET "http://localhost:8000/api/dashboard/platform-mention-rates?brand=Apple&timeframe=7days" \
+curl -X GET "http://localhost:8000/api/dashboard/platform-mention-rates?category=手机&brand=Apple&keyword=iPhone&timeframe=7days" \
   -H "accept: application/json"
 ```
 

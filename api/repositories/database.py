@@ -3,9 +3,13 @@ import os
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
 
+from dotenv import load_dotenv
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import QueuePool
+
+# 加载.env文件
+load_dotenv()
 
 logger = logging.getLogger(__name__)
 
