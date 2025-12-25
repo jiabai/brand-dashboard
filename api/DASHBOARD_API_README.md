@@ -22,81 +22,49 @@
 {
   "status": "success",
   "data": {
-    "mention_rate": 50.0,           // 品牌总提及率(百分比)
-    "rank": 1,                      // 品牌排名
-    "change": 5.2,                  // 与上一周期对比的变化(百分比)
-    "question_count": 12,           // 问题总数
-    "mention_count": 6,             // 品牌提及数量
-    "first_mention_count": 3,       // 首次提及品牌数量
-    "analysis_date": "2025-11-28",  // 分析日期
-    "last_updated": "2025-12-08T20:02:15.198791"   // 最后更新时间
+    "mention_rate": 50.0,
+    "rank": 1,
+    "change": 5.2,
+    "question_count": 12,
+    "mention_count": 6,
+    "first_mention_count": 3,
+    "analysis_date": "2025-11-28",
+    "last_updated": "2025-12-08T20:02:15.198791"
   },
   "metadata": {
-    "timeframe": "7days",           // 请求的时间范围
-    "calculation_method": "mention_count_ratio",    // 计算方式说明
-    "data_source": "qa_brand_summary"             // 数据来源表
+    "timeframe": "7days",
+    "calculation_method": "mention_count_ratio"
   }
 }
 ```
 
+### 响应字段说明
+
+| 字段名 | 类型 | 描述 |
+|--------|------|------|
+| status | string | 响应状态，"success" 或 "error" |
+| mention_rate | float | 品牌总提及率（百分比） |
+| rank | int | 品牌排名 |
+| change | float | 与上一周期对比的变化（百分比） |
+| question_count | int | 问题总数 |
+| mention_count | int | 品牌提及数量 |
+| first_mention_count | int | 首次提及品牌数量 |
+| analysis_date | string | 分析日期 |
+| last_updated | string | 最后更新时间 |
+| metadata | object | 元数据，包含 timeframe 和 calculation_method |
+
 ### 使用示例
 
-#### 获取7天数据
 ```bash
 curl -X GET "http://localhost:8000/api/dashboard/brand-mention-rate?brand=Apple&timeframe=7days" \
-  -H "accept: application/json"
-```
-
-
-
-#### 获取昨天数据并指定日期
-```bash
-curl -X GET "http://localhost:8000/api/dashboard/brand-mention-rate?brand=Apple&timeframe=yesterday&date=20251128" \
   -H "accept: application/json"
 ```
 
 ### 数据计算逻辑
 
 基于`qa_brand_summary`表的字段计算：
-- **mention_rate**: `mention_count / question_count * 100`
-- **change**: 与上一周期对比的百分比变化
-
-### 错误处理
-
-#### 参数验证错误
-```json
-{
-  "detail": [
-    {
-      "type": "enum",
-      "loc": ["query", "timeframe"],
-      "msg": "Input should be 'yesterday', '7days' or '30days'",
-      "input": "invalid",
-      "ctx": {
-        "expected": "'yesterday', '7days' or '30days'"
-      }
-    }
-  ]
-}
-```
-
-#### 数据不存在错误
-```json
-{
-  "status": "error",
-  "message": "No data found for brand 'Apple' in the specified timeframe",
-  "data": null
-}
-```
-
-#### 数据库错误处理
-```python
-try:
-    result = query_brand_mention_data(brand, timeframe, specific_date)
-except Exception as e:
-    logger.error(f"数据库查询失败: {str(e)}")
-    return {"error": "数据查询失败，请稍后重试"}
-```
+- **mention_rate**: `AVG(mention_rate)` 在指定时间范围内的平均值
+- **change**: 当前周期与上一周期提及率的百分比变化
 
 ---
 
@@ -105,14 +73,14 @@ except Exception as e:
 ### 接口信息
 - **路径**: `/api/dashboard/platform-mention-rates`
 - **方法**: `GET`
-- **描述**: 获取多个品牌在各平台的提及率对比数据，基于`qa_brand_summary`表计算
+- **描述**: 获取单个品牌在各平台的提及率对比数据，基于`qa_brand_summary`表计算
 - **实现状态**: ✅ 已完成
 
 ### 请求参数
 
 | 参数名 | 类型 | 必填 | 描述 |
 |--------|------|------|------|
-| brands | string | 是 | 品牌名称列表（逗号分隔） |
+| brand | string | 是 | 品牌名称 |
 | timeframe | string | 是 | 时间范围，可选值: `yesterday`, `7days`, `30days` |
 | date | string | 否 | 具体日期，格式: `YYYYMMDD` |
 
@@ -121,54 +89,65 @@ except Exception as e:
 ```json
 {
   "status": "success",
-  "data": {
-    "timeframe": "7days",
-    "platforms": ["qwen", "deepseek"],
-    "brands": ["Apple", "Huawei"],
-    "platform_data": {
-      "qwen": {
-        "Apple": {
-          "mention_rate": 45.0,
-          "mention_count": 9,
-          "question_count": 20,
-          "rank": 1
-        },
-        "Huawei": {
-          "mention_rate": 35.0,
-          "mention_count": 7,
-          "question_count": 20,
-          "rank": 2
-        }
-      },
-      "deepseek": {
-        "Apple": {
-          "mention_rate": 60.0,
-          "mention_count": 6,
-          "question_count": 10,
-          "rank": 1
-        },
-        "Huawei": {
-          "mention_rate": 40.0,
-          "mention_count": 4,
-          "question_count": 10,
-          "rank": 2
-        }
-      }
+  "data": [
+    {
+      "name": "DeepSeek",
+      "rate": 45.0,
+      "color": "#06b6d4"
+    },
+    {
+      "name": "Claude",
+      "rate": 35.0,
+      "color": "#f59e0b"
+    },
+    {
+      "name": "ChatGPT",
+      "rate": 28.5,
+      "color": "#10b981"
     }
-  },
+  ],
   "metadata": {
-    "total_brands": 2,
-    "total_platforms": 2,
-    "data_source": "qa_brand_summary"
+    "timeframe": "7days",
+    "calculation_method": "platform_mention_rate",
+    "platform_count": 3
   }
 }
 ```
 
+### 响应字段说明
+
+| 字段名 | 类型 | 描述 |
+|--------|------|------|
+| status | string | 响应状态，"success" 或 "error" |
+| data | array | 各平台提及率数据列表 |
+| name | string | 平台名称（如：DeepSeek、Claude、ChatGPT 等） |
+| rate | float | 该平台上的品牌提及率（百分比） |
+| color | string | 平台颜色编码（用于前端图表展示） |
+| metadata | object | 元数据 |
+| metadata.timeframe | string | 请求的时间范围 |
+| metadata.calculation_method | string | 计算方式说明 |
+| metadata.platform_count | int | 平台数量 |
+
+### 平台颜色映射
+
+| 平台名称 | 颜色编码 |
+|----------|----------|
+| ChatGPT | #10b981 |
+| Gemini | #3b82f6 |
+| Claude | #f59e0b |
+| 通义千问 | #ef4444 |
+| 豆包 | #8b5cf6 |
+| DeepSeek | #06b6d4 |
+| Kimi | #a855f7 |
+| 元宝 | #f97316 |
+| 夸克 | #ec4899 |
+| 文心一言 | #6b7280 |
+| 其他平台 | #6b7280 |
+
 ### 使用示例
 
 ```bash
-# 比较Apple和华为在各平台的提及率
-curl -X GET "http://localhost:8000/api/dashboard/platform-mention-rates?brands=Apple,Huawei&timeframe=7days" \
+curl -X GET "http://localhost:8000/api/dashboard/platform-mention-rates?brand=Apple&timeframe=7days" \
   -H "accept: application/json"
 ```
 
@@ -188,102 +167,57 @@ curl -X GET "http://localhost:8000/api/dashboard/platform-mention-rates?brands=A
 |--------|------|------|------|
 | timeframe | string | 是 | 时间范围，可选值: `yesterday`, `7days`, `30days` |
 | date | string | 否 | 具体日期，格式: `YYYYMMDD` |
-| limit | integer | 否 | 返回结果数量限制，默认50 |
-
-### 响应格式
-
-```json
-[
-  {
-    "answer_reference_url": "https://item.taobao.com/12345.htm",
-    "reference_count": 25,
-    "total_questions": 100
-  },
-  {
-    "answer_reference_url": "https://item.jd.com/67890.htm", 
-    "reference_count": 15,
-    "total_questions": 100
-  }
-]
-```
-
-### 使用示例
-
-```bash
-# 获取引用URL统计
-curl -X GET "http://localhost:8000/api/dashboard/reference-url-stats?timeframe=7days" \
-  -H "accept: application/json"
-
-# 获取指定日期的引用统计
-curl -X GET "http://localhost:8000/api/dashboard/reference-url-stats?timeframe=yesterday&date=20251128&limit=10" \
-  -H "accept: application/json"
-```
-
----
-
-## 📈 品牌情感分析 API
-
-### 接口信息
-- **路径**: `/api/dashboard/brand-sentiment`
-- **方法**: `GET`
-- **描述**: 获取品牌情感分析数据，基于`qa_brand_state`表计算
-- **实现状态**: 🔄 开发中
-
-### 请求参数
-
-| 参数名 | 类型 | 必填 | 描述 |
-|--------|------|------|------|
-| brand | string | 是 | 品牌名称 |
-| timeframe | string | 是 | 时间范围，可选值: `yesterday`, `7days`, `30days` |
-| date | string | 否 | 具体日期，格式: `YYYYMMDD` |
-| sentiment | string | 否 | 情感类型筛选，`positive`、`negative`、`neutral` |
 
 ### 响应格式
 
 ```json
 {
   "status": "success",
-  "data": {
-    "brand": "Apple",
-    "timeframe": "7days",
-    "sentiment_distribution": {
-      "positive": 45,
-      "negative": 15,
-      "neutral": 40
+  "data": [
+    {
+      "answer_reference_url": "https://item.taobao.com/item.htm?id=12345",
+      "reference_count": 25,
+      "total_questions": 100,
+      "chinese_name": "淘宝",
+      "reference_rate": 25.0
     },
-    "sentiment_ratios": {
-      "positive_ratio": 0.45,
-      "negative_ratio": 0.15,
-      "neutral_ratio": 0.40
-    },
-    "total_mentions": 100,
-    "analysis_date": "2025-11-28",
-    "last_updated": "2025-12-08T20:02:15.198791",
-    "top_positive_questions": [
-      {
-        "question_id": "q123",
-        "question": "Apple的产品质量如何？",
-        "answer": "Apple的产品质量一直很优秀...",
-        "platform": "qwen",
-        "date": "2025-11-27"
-      }
-    ],
-    "top_negative_questions": [
-      {
-        "question_id": "q456",
-        "question": "Apple的价格是否合理？",
-        "answer": "Apple的价格相对较高...",
-        "platform": "deepseek",
-        "date": "2025-11-26"
-      }
-    ]
-  },
+    {
+      "answer_reference_url": "https://item.jd.com/item.html?sku=67890",
+      "reference_count": 18,
+      "total_questions": 100,
+      "chinese_name": "京东",
+      "reference_rate": 18.0
+    }
+  ],
   "metadata": {
-    "data_source": "qa_brand_state",
-    "sentiment_fields": ["positive", "negative", "neutral"],
-    "calculation_method": "sentiment_status_count"
+    "timeframe": "7days",
+    "calculation_method": "reference_url_count",
+    "url_count": 10
   }
 }
+```
+
+### 响应字段说明
+
+| 字段名 | 类型 | 描述 |
+|--------|------|------|
+| status | string | 响应状态，"success" 或 "error" |
+| data | array | 引用URL统计数据列表 |
+| answer_reference_url | string | 被引用的URL地址 |
+| reference_count | int | 该URL被引用的次数 |
+| total_questions | int | 总提问数（用于计算引用率） |
+| chinese_name | string | URL域名对应的中文名称（如：淘宝、京东等） |
+| reference_rate | float | 引用率（引用次数/总提问数 * 100） |
+| metadata | object | 元数据 |
+| metadata.timeframe | string | 请求的时间范围 |
+| metadata.calculation_method | string | 计算方式说明 |
+| metadata.url_count | int | 返回的URL数量 |
+
+### 使用示例
+
+```bash
+curl -X GET "http://localhost:8000/api/dashboard/reference-url-stats?timeframe=7days" \
+  -H "accept: application/json"
 ```
 
 ---
@@ -298,11 +232,19 @@ api/
 ├── routes/
 │   ├── dashboard.py          # Dashboard API路由实现
 │   ├── analysis.py           # 分析相关API
+│   ├── brand_strategy.py     # 品牌策略API
 │   └── config.py             # 配置相关API
 ├── repositories/
 │   └── database.py           # 数据库查询函数
 ├── models/
 │   └── schemas.py            # 数据模型定义
+├── services/
+│   └── llm_client.py         # LLM客户端服务
+├── utils/
+│   ├── llm_client.py         # LLM客户端工具
+│   ├── llm_adapters.py       # LLM适配器
+│   ├── llm_operator.py       # LLM操作器
+│   └── url_domain_resolver.py # URL域名解析工具
 └── database/
     ├── schema.sql            # 数据库表结构
     └── README.md             # 数据库文档
@@ -311,38 +253,43 @@ api/
 ### 核心查询函数（位于 `repositories/database.py`）
 
 #### `query_brand_mention_data(brand, timeframe, specific_date)`
-- **功能**: 查询品牌提及数据
-- **参数**: 
+- **功能**: 查询品牌提及率数据
+- **参数**:
+  - `brand`: 品牌名称
+  - `timeframe`: 时间范围（yesterday, 7days, 30days）
+  - `specific_date`: 指定日期（可选，格式: YYYYMMDD）
+- **返回**: 包含提及率数据的字典
+
+#### `query_brand_platform_mention_data(brand, timeframe, specific_date)`
+- **功能**: 查询品牌在各平台的提及率数据
+- **参数**:
   - `brand`: 品牌名称
   - `timeframe`: 时间范围
   - `specific_date`: 指定日期（可选）
-- **返回**: 提及数据和趋势
+- **返回**: 包含各平台提及率数据的列表
 
-#### `query_reference_url_stats(timeframe, specific_date, limit)`
+#### `query_reference_url_stats(timeframe, specific_date)`
 - **功能**: 查询引用URL统计数据
 - **参数**:
   - `timeframe`: 时间范围
   - `specific_date`: 指定日期（可选）
-  - `limit`: 返回数量限制
-- **返回**: URL统计和分布数据
-
-#### `query_brand_platform_mention_data(brand, timeframe, specific_date)`
-- **功能**: 查询品牌在各平台的提及数据
-- **参数**:
-  - `brand`: 品牌名称
-  - `timeframe`: 时间范围
-  - `specific_date`: 指定日期（可选）
-- **返回**: 平台提及率对比数据
+- **返回**: 包含引用URL统计数据的列表
 
 ### 辅助函数
 
-#### `get_date_range(timeframe)`
+#### `get_date_range(timeframe, specific_date)`
 - **功能**: 根据时间范围计算日期区间
-- **返回**: 开始日期和结束日期
+- **参数**:
+  - `timeframe`: 时间范围
+  - `specific_date`: 指定日期（可选）
+- **返回**: (start_date, end_date) 元组
 
-#### `get_previous_date_range(timeframe)`
+#### `get_previous_date_range(timeframe, specific_date)`
 - **功能**: 计算上一期日期区间（用于同比分析）
-- **返回**: 上一期的开始日期和结束日期
+- **参数**:
+  - `timeframe`: 时间范围
+  - `specific_date`: 指定日期（可选）
+- **返回**: (prev_start_date, prev_end_date) 元组
 
 ---
 
@@ -353,18 +300,65 @@ api/
 | 品牌总提及率 | `qa_brand_summary` | `query_brand_mention_data` | ✅ 已完成 |
 | 各平台提及率 | `qa_brand_summary` | `query_brand_platform_mention_data` | ✅ 已完成 |
 | 引用URL统计 | `qa_reference` | `query_reference_url_stats` | ✅ 已完成（全局统计） |
-| 品牌情感分析 | `qa_brand_state` | 待实现 | 🔄 开发中 |
+
+---
+
+## ⚡ 错误处理
+
+### 通用错误响应格式
+
+```json
+{
+  "detail": "错误描述信息"
+}
+```
+
+### 参数验证错误
+
+当 timeframe 参数值无效时，返回 HTTP 400 错误：
+
+```json
+{
+  "detail": [
+    {
+      "type": "enum",
+      "loc": ["query", "timeframe"],
+      "msg": "Input should be 'yesterday', '7days' or '30days'",
+      "input": "invalid",
+      "ctx": {
+        "expected": "'yesterday', '7days' or '30days'"
+      }
+    }
+  ]
+}
+```
+
+### 日期格式错误
+
+当 date 参数格式错误时，返回 HTTP 400 错误：
+
+```json
+{
+  "detail": "日期格式错误，应为YYYYMMDD"
+}
+```
+
+### 服务器内部错误
+
+当数据库查询失败时，返回 HTTP 500 错误：
+
+```json
+{
+  "detail": "获取品牌总提及率失败: 数据库查询失败"
+}
+```
 
 ---
 
 ## 🧪 测试文件
 
-### 测试文件位置
-- `tests/test_dashboard_api.py` - API接口测试
-- `tests/test_dashboard_service.py` - 服务层测试
-- `tests/test_database.py` - 数据库查询测试
-
 ### 测试命令
+
 ```bash
 # 运行所有测试
 pytest tests/
@@ -378,61 +372,10 @@ pytest tests/test_dashboard_api.py::test_brand_mention_rate
 
 ---
 
-## ⚡ 性能优化建议
-
-### 1. 数据库优化
-- 使用索引字段进行过滤（date, brand, platform）
-- 合理使用聚合函数减少数据量
-- 考虑添加复合索引提升查询性能
-
-### 2. 缓存策略
-- 对热门查询结果添加Redis缓存
-- 设置合理的缓存过期时间（5-15分钟）
-- 实现缓存预热机制
-
-### 3. 查询优化
-- 限制返回数据量（分页、时间范围）
-- 使用预计算字段存储聚合结果
-- 考虑使用物化视图优化复杂查询
-
----
-
-## 🔧 开发建议
-
-### 1. 数据查询优化
-- 利用表的索引字段进行高效查询
-- 使用`qa_brand_summary`进行汇总统计，避免实时计算
-- 引用URL统计为全局统计，不按品牌筛选
-- 合理设计查询语句，减少数据库压力
-
-### 2. 错误处理
-- 参数验证：品牌名称不能为空（品牌相关API）
-- 时间范围验证：支持预定义的时间范围
-- 异常处理：数据库连接错误、查询超时等
-
-### 3. 代码规范
-- 遵循RESTful API设计原则
-- 使用类型提示提高代码可读性
-- 添加充分的注释和文档
-
----
-
-## 📋 实现状态总结
-
-| API接口 | 实现状态 | 数据表 | 备注 |
-|---------|----------|--------|------|
-| 品牌总提及率 | ✅ 已完成 | `qa_brand_summary` | 全功能实现 |
-| 各平台提及率 | ✅ 已完成 | `qa_brand_summary` | 单品牌多平台对比 |
-| 引用URL统计 | ✅ 已完成 | `qa_reference` | 全局URL引用统计 |
-| 品牌情感分析 | 🔄 开发中 | `qa_brand_state` | 待实现 |
-
----
-
 ## 📝 更新记录
 
-- **2024-01-15**: 创建API文档
-- **2024-01-15**: 添加品牌情感分析和参考链接API
-- **2024-01-15**: 更新已实现API状态和数据模型说明
-- **2024-01-15**: 完善代码架构和查询函数文档
-- **2024-01-15**: 修正文档错误：删除未实现的platform参数和platform_breakdown字段
-- **2024-01-15**: 更新引用URL统计API为全局统计，不按品牌筛选
+- **2025-01-15**: 修正各平台提及率API文档，参数改为单个brand，响应格式改为扁平列表
+- **2025-01-15**: 修正引用URL统计API响应格式，添加status、metadata包装字段
+- **2025-01-15**: 更新字段说明，添加 chinese_name、reference_rate、color 等字段
+- **2025-01-15**: 移除品牌情感分析API文档（代码中未实现）
+- **2025-01-15**: 更新平台颜色映射表
