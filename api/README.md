@@ -11,6 +11,7 @@
 - **品牌分析API**: 提供品牌识别、情感分析、竞争分析等功能
 - **配置管理**: 管理LLM提供商、分析类型等配置
 - **Dashboard API**: 提供品牌提及率、平台对比、引用URL统计等仪表板数据
+- **品牌策略API**: 提供品牌策略建议和分析
 - **异步处理**: 支持异步分析任务
 - **CORS支持**: 支持跨域请求，便于前端集成
 - **自动文档**: 自动生成API文档 (Swagger/ReDoc)
@@ -74,31 +75,42 @@ ruff check api
 - `GET /api/dashboard/platform-mention-rates` - 获取品牌在各平台的提及率数据
 - `GET /api/dashboard/reference-url-stats` - 获取全局引用URL统计数据
 
+### 品牌策略相关
+- `GET /api/brand-strategy/advice` - 获取品牌策略建议
+- `GET /api/brand-strategy/compare` - 品牌对比分析
+
 ## 项目结构
 
 ```
 api/
-├── __init__.py          # 模块初始化
-├── main.py              # FastAPI应用主文件
-├── database/            # 数据库相关文件
-│   ├── README.md       # 数据库文档
-│   └── schema.sql      # 数据库模式
-├── repositories/        # 数据访问层
+├── __init__.py              # 模块初始化
+├── main.py                  # FastAPI应用主文件
+├── database/                # 数据库相关文件
+│   ├── README.md           # 数据库文档
+│   └── schema.sql          # 数据库模式
+├── repositories/            # 数据访问层
 │   ├── __init__.py
-│   └── database.py     # 数据库查询函数
-├── routes/              # API路由
+│   └── database.py         # 数据库查询函数
+├── routes/                  # API路由
 │   ├── __init__.py
-│   ├── analysis.py      # 分析相关API
-│   ├── config.py        # 配置相关API
-│   └── dashboard.py     # Dashboard相关API
-├── models/              # 数据模型
+│   ├── analysis.py          # 分析相关API
+│   ├── brand_strategy.py    # 品牌策略API
+│   ├── config.py            # 配置相关API
+│   └── dashboard.py         # Dashboard相关API
+├── models/                  # 数据模型
 │   ├── __init__.py
-│   └── schemas.py       # Pydantic模型
-├── utils/               # 工具函数
+│   └── schemas.py           # Pydantic模型
+├── services/                # 服务层
 │   ├── __init__.py
+│   └── llm_client.py        # LLM客户端服务
+├── utils/                   # 工具函数
+│   ├── __init__.py
+│   ├── llm_adapters.py      # LLM适配器
+│   ├── llm_client.py        # LLM客户端工具
+│   ├── llm_operator.py      # LLM操作器
 │   └── url_domain_resolver.py  # URL域名解析工具
-├── requirements.txt     # 运行时依赖
-└── requirements-dev.txt # 开发/检查依赖
+├── requirements.txt         # 运行时依赖
+└── requirements-dev.txt     # 开发/检查依赖
 ```
 
 ## 与前端集成
@@ -131,7 +143,7 @@ const mentionRateResponse = await fetch('http://localhost:8000/api/dashboard/bra
 
 const mentionRateData = await mentionRateResponse.json();
 
-// 获取品牌在各平台的提及率数据
+// 获取品牌在各平台的提及率数据（单个品牌）
 const platformResponse = await fetch('http://localhost:8000/api/dashboard/platform-mention-rates?brand=Apple&timeframe=7days', {
   method: 'GET',
   headers: {
@@ -150,6 +162,16 @@ const referenceResponse = await fetch('http://localhost:8000/api/dashboard/refer
 });
 
 const referenceData = await referenceResponse.json();
+
+// 获取品牌策略建议
+const strategyResponse = await fetch('http://localhost:8000/api/brand-strategy/advice?brand=Apple', {
+  method: 'GET',
+  headers: {
+    'Accept': 'application/json',
+  }
+});
+
+const strategyData = await strategyResponse.json();
 ```
 
 ## 开发指南
@@ -181,3 +203,4 @@ const referenceData = await referenceResponse.json();
 ### 配置CORS
 
 在`main.py`中修改CORS配置以支持更多的前端域名。
+
