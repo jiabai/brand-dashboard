@@ -12,7 +12,7 @@
  */
 
 import React, { useCallback } from 'react';
-import { Button } from './ui/button';
+import { Button, Result, Typography } from 'antd';
 
 /**
  * ErrorBoundary component that catches JavaScript errors in child components
@@ -105,26 +105,25 @@ class ErrorBoundaryClass extends React.Component {
 
       // Default error fallback UI
       return (
-        <div className="error-boundary">
-          <div className="error-content">
-            <h2>😅 出错了！</h2>
-            <p>组件渲染时遇到了问题</p>
-
-            {/* Error details (only in development) */}
-            {process.env.NODE_ENV === 'development' && (
-              <details style={{ whiteSpace: 'pre-wrap' }}>
-                <summary>错误详情</summary>
-                {this.state.error && this.state.error.toString()}
-                <br />
-                {this.state.errorInfo && this.state.errorInfo.componentStack}
-              </details>
-            )}
-
-            <Button onClick={this.handleReset} className="error-reset-btn" size="sm" variant="secondary">
+        <Result
+          status="error"
+          title="出错了"
+          subTitle="组件渲染时遇到了问题"
+          extra={
+            <Button type="primary" onClick={this.handleReset}>
               重试
             </Button>
-          </div>
-        </div>
+          }
+        >
+          {process.env.NODE_ENV === 'development' ? (
+            <Typography.Paragraph style={{ whiteSpace: 'pre-wrap', marginBottom: 0 }}>
+              {this.state.error ? String(this.state.error) : null}
+              {this.state.errorInfo?.componentStack
+                ? `\n\n${this.state.errorInfo.componentStack}`
+                : null}
+            </Typography.Paragraph>
+          ) : null}
+        </Result>
       );
     }
 

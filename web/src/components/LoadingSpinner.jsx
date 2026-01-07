@@ -4,28 +4,19 @@
  */
 
 import React from 'react';
+import { Spin } from 'antd';
 
 const LoadingSpinner = ({ size = 'medium', text = '加载中...' }) => {
   const sizeMap = {
-    small: 20,
-    medium: 40,
-    large: 60
+    small: 'small',
+    medium: 'default',
+    large: 'large'
   };
 
   const spinnerSize = sizeMap[size] || sizeMap.medium;
 
   return (
-    <div className="loading-spinner">
-      <div 
-        className="spinner"
-        style={{
-          width: spinnerSize,
-          height: spinnerSize,
-          borderWidth: spinnerSize * 0.1
-        }}
-      />
-      {text && <span className="loading-text">{text}</span>}
-    </div>
+    <Spin size={spinnerSize} tip={text} />
   );
 };
 

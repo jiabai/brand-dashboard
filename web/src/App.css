@@ -10,10 +10,11 @@
 }
 
 .App-main {
-  padding: var(--spacing-2xl);
+  padding: var(--spacing-lg) var(--spacing-xl);
   max-width: 1600px;
   margin: 0 auto;
   flex: 1;
+  gap: var(--spacing-lg);
 }
 
 .sidebar-nav::-webkit-scrollbar {

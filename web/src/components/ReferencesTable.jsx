@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import '../styles/references-table.css';
+import { Button, Card, Empty, Table, Typography } from 'antd';
 
 // 模拟数据 - 移到组件外部避免每次渲染重新创建
 const MOCK_REFERENCES_DATA = [
@@ -43,117 +43,71 @@ const ReferencesTable = ({ referencesData, isLoading, error }) => {
   // 使用传入数据或模拟数据
   const displayData = referencesData || data;
 
+  const columns = [
+    {
+      title: '排名',
+      dataIndex: 'rank',
+      key: 'rank',
+      width: 80
+    },
+    {
+      title: '链接域名',
+      dataIndex: 'domain',
+      key: 'domain',
+      render: (domain) => (
+        <a href={`https://${domain}`} target="_blank" rel="noopener noreferrer">
+          {domain}
+        </a>
+      )
+    },
+    {
+      title: '引用率',
+      dataIndex: 'rate',
+      key: 'rate',
+      width: 120,
+      render: (rate) => `${rate}%`
+    }
+  ];
+
   // 加载状态
   if (loading) {
     return (
-      <div className="references-table">
-        <div className="mb-6">
-          <h2 className="text-xl font-bold flex items-center gap-3">
-            <div className="w-1 h-6 rounded-full"></div>
-            引用链接详情
-          </h2>
-        </div>
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-violet-400 mx-auto mb-4"></div>
-            <p className="text-slate-400">正在加载引用数据...</p>
-          </div>
-        </div>
-      </div>
+      <Card title="引用链接详情" loading />
     );
   }
 
   // 错误状态
   if (errorMsg) {
     return (
-      <div className="references-table">
-        <div className="mb-6">
-          <h2 className="text-xl font-bold flex items-center gap-3">
-            <div className="w-1 h-6 rounded-full"></div>
-            引用链接详情
-          </h2>
-        </div>
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-center">
-            <div className="text-4xl mb-4">❌</div>
-            <h3 className="text-lg font-semibold text-slate-300 mb-2">数据加载失败</h3>
-            <p className="text-slate-400 mb-4">{errorMsg}</p>
-            <button 
-              onClick={() => window.location.reload()}
-              className="px-4 py-2 bg-violet-600 hover:bg-violet-700 rounded-lg transition-colors"
-            >
-              重试
-            </button>
-          </div>
-        </div>
-      </div>
+      <Card title="引用链接详情">
+        <Typography.Paragraph type="danger">{errorMsg}</Typography.Paragraph>
+        <Button type="primary" onClick={() => window.location.reload()}>
+          重试
+        </Button>
+      </Card>
     );
   }
 
   // 空状态
   if (!displayData || displayData.length === 0) {
     return (
-      <div className="references-table">
-        <div className="mb-6">
-          <h2 className="text-xl font-bold flex items-center gap-3">
-            <div className="w-1 h-6 rounded-full"></div>
-            引用链接详情
-          </h2>
-        </div>
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-center">
-            <div className="text-4xl mb-4">🔗</div>
-            <h3 className="text-lg font-semibold text-slate-300 mb-2">暂无引用数据</h3>
-            <p className="text-slate-400">当前时间范围内没有可用的引用链接数据</p>
-          </div>
-        </div>
-      </div>
+      <Card title="引用链接详情">
+        <Empty description="当前时间范围内没有可用的引用链接数据" />
+      </Card>
     );
   }
 
   return (
-    <div className="references-table">
-      <div className="mb-6 w-full">
-        <h2 className="text-xl font-bold flex items-center gap-3 m-0">
-          <div className="w-1 h-6 rounded-full"></div>
-          引用链接详情
-        </h2>
-      </div>
-      
-      <div className="table-container flex-1 overflow-auto">
-        <table className="w-full">
-          <thead>
-            <tr className="border-b border-white/10">
-              <th className="text-left p-4 text-slate-400 font-semibold">排名</th>
-              <th className="text-left p-4 text-slate-400 font-semibold">链接域名</th>
-              <th className="text-left p-4 text-slate-400 font-semibold">引用率</th>
-            </tr>
-          </thead>
-          <tbody>
-            {displayData.map((item) => (
-              <tr key={item.rank} className="border-b border-white/5 hover:bg-white/5 transition-all duration-300 group">
-                <td className="p-4 font-bold text-slate-300 group-hover:text-white transition-colors">
-                  {item.rank}
-                </td>
-                <td className="p-4">
-                  <a 
-                    href={`https://${item.domain}`} 
-                    target="_blank" 
-                    rel="noopener noreferrer" 
-                    className="text-slate-300 hover:text-violet-300 transition-colors"
-                  >
-                    {item.domain}
-                  </a>
-                </td>
-                <td className="p-4 text-left font-semibold text-slate-300 group-hover:text-white transition-colors">
-                  {item.rate}%
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
+    <Card title="引用链接详情">
+      <Table
+        rowKey="rank"
+        size="middle"
+        columns={columns}
+        dataSource={displayData}
+        pagination={false}
+        loading={Boolean(isLoading)}
+      />
+    </Card>
   );
 };
 
