@@ -5,8 +5,8 @@
 .App {
   min-height: 100vh;
   background: transparent;
-  display: flex;
   position: relative;
+  width: 100%;
 }
 
 .App-main {
@@ -14,6 +14,25 @@
   max-width: 1600px;
   margin: 0 auto;
   flex: 1;
+}
+
+.sidebar-nav::-webkit-scrollbar {
+  width: 8px;
+}
+
+.sidebar-nav::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 999px;
+}
+
+.sidebar-nav::-webkit-scrollbar-thumb {
+  background: rgba(177, 158, 239, 0.35);
+  border-radius: 999px;
+  border: 2px solid rgba(0, 0, 0, 0.2);
+}
+
+.sidebar-nav::-webkit-scrollbar-thumb:hover {
+  background: rgba(177, 158, 239, 0.55);
 }
 
 /* ========================================
@@ -94,18 +113,22 @@
   grid-template-areas:
     "brand model"
     "references references";
+  min-width: 0;
 }
 
 .brand-section {
   grid-area: brand;
+  min-width: 0;
 }
 
 .model-section {
   grid-area: model;
+  min-width: 0;
 }
 
 .references-section {
   grid-area: references;
+  min-width: 0;
 }
 
 /* ========================================
@@ -248,29 +271,6 @@
   height: 100%;
   display: flex;
   flex-direction: column;
-}
-
-/* ========================================
-   TYPOGRAPHY & HEADINGS
-   ======================================== */
-
-h2 {
-  margin: 0 0 var(--spacing-xl) 0;
-  font-size: 1.4rem;
-  font-weight: var(--font-weight-bold);
-  color: #B19EEF;
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-md);
-}
-
-h2::before {
-  content: '';
-  display: block;
-  width: 4px;
-  height: 24px;
-  background: var(--gradient-primary);
-  border-radius: var(--radius-sm);
 }
 
 /* ========================================

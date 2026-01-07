@@ -76,7 +76,7 @@ function App() {
   };
 
   return (
-    <div className="App flex flex-row min-h-screen">
+    <div className="App min-h-screen">
       {/* Background Animation */}
       <div className="fixed inset-0 z-[-1]">
         <Squares
@@ -88,12 +88,12 @@ function App() {
         />
       </div>
 
-      <Sidebar />
+      <ErrorBoundary className="relative z-10 flex flex-col min-h-screen">
+        {/* Main Dashboard Content */}
+        <main className="App-main relative z-10 pt-6 w-full flex gap-6">
+          <Sidebar />
 
-      <div className="flex-1 flex flex-col min-w-0">
-        <ErrorBoundary className="relative z-10 flex flex-col min-h-screen">
-          {/* Main Dashboard Content */}
-          <main className="App-main relative z-10 pt-6 w-full">
+          <div className="flex-1 flex flex-col min-w-0">
             {/* GooeyNav Sticky Navigation */}
             <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm p-4 rounded-lg border mb-6 overflow-hidden">
               <div className="flex items-center justify-between">
@@ -138,27 +138,27 @@ function App() {
               </div>
             </div>
 
-          {/* Loading State or Dashboard Content */}
-          {isLoading ? (
-            <LoadingSpinner text="正在加载数据..." />
-          ) : (
-            <div className="dashboard-content">
-              <div className="dashboard-card brand-section">
-                <BrandMentionRate />
-              </div>
+            {/* Loading State or Dashboard Content */}
+            {isLoading ? (
+              <LoadingSpinner text="正在加载数据..." />
+            ) : (
+              <div className="dashboard-content">
+                <div className="dashboard-card brand-section">
+                  <BrandMentionRate />
+                </div>
 
-              <div className="dashboard-card model-section">
-                <ModelMentionRates />
-              </div>
+                <div className="dashboard-card model-section">
+                  <ModelMentionRates />
+                </div>
 
-              <div className="dashboard-card references-section">
-                <ReferencesTable />
+                <div className="dashboard-card references-section">
+                  <ReferencesTable />
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </main>
       </ErrorBoundary>
-      </div>
     </div>
   );
 }

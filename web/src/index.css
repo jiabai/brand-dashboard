@@ -1,12 +1,7 @@
-
-/* @import "tw-animate-css"; */
-/* @plugin "tailwindcss-animate"; */
+@import "tailwindcss";
+@plugin "tailwindcss-animate";
 
 @custom-variant dark (&:is(.dark *));
-
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
 
 @layer base {
   :root {
@@ -185,11 +180,6 @@ body {
   font-family: var(--font-family-primary);
   color: #B19EEF;
   overflow-x: hidden;
-}
-
-/* Ensure all text elements inherit the #B19EEF color */
-* {
-  color: inherit;
 }
 
 #root {
