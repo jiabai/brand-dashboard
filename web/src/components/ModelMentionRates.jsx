@@ -14,12 +14,12 @@ const ModelMentionRates = () => {
         
         const mockData = [
           { name: 'ChatGPT', rate: 85, color: '#52c41a' },
-          { name: 'Gemini', rate: 72, color: '#1677ff' },
+          { name: 'Gemini', rate: 72, color: '#722ed1' },
           { name: 'Claude', rate: 68, color: '#faad14' },
           { name: '通义千问', rate: 45, color: '#ff4d4f' },
-          { name: '豆包', rate: 38, color: '#722ed1' },
+          { name: '豆包', rate: 38, color: '#9254de' },
           { name: 'DeepSeek', rate: 35, color: '#13c2c2' },
-          { name: 'Kimi', rate: 32, color: '#2f54eb' },
+          { name: 'Kimi', rate: 32, color: '#531dab' },
           { name: '元宝', rate: 28, color: '#fa8c16' },
           { name: '夸克', rate: 25, color: '#eb2f96' },
           { name: '文心一言', rate: 22, color: '#8c8c8c' }

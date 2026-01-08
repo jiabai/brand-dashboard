@@ -70,12 +70,12 @@ function App() {
         token: {
           fontFamily:
             "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', 'Apple Color Emoji', 'Segoe UI Emoji', sans-serif",
-          colorPrimary: '#1677ff',
-          colorInfo: '#1677ff',
+          colorPrimary: '#722ED1',
+          colorInfo: '#722ED1',
           colorSuccess: '#52c41a',
           colorWarning: '#faad14',
           colorError: '#ff4d4f',
-          colorLink: '#1677ff'
+          colorLink: '#722ED1'
         }
       }}
     >

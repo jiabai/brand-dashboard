@@ -22,7 +22,17 @@ export default defineConfig(({ mode, command }) => {
     },
     build: {
       outDir: 'dist',
-      emptyOutDir: true
+      emptyOutDir: true,
+      chunkSizeWarningLimit: 1000,
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            'react-vendor': ['react', 'react-dom'],
+            'antd-vendor': ['antd', '@ant-design/icons'],
+            'lucide-vendor': ['lucide-react']
+          }
+        }
+      }
     }
   }
 
