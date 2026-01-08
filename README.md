@@ -83,7 +83,7 @@ docker run -p 8000:8000 brand-analysis-api
 
 ## 组件与样式索引（web/src）
 
-- 主要组件：`components/BrandMentionRate.jsx`、`components/ModelMentionRates.jsx`、`components/ReferencesTable.jsx`、`components/GooeyNav.jsx` 等。
+- 主要组件：`components/BrandMentionRate.jsx`、`components/ModelMentionRates.jsx`、`components/ReferencesTable.jsx`、`components/Sidebar.jsx` 等。
 - UI 基础：`components/ui/`；工具方法：`lib/cn.js`、`utils/index.js`。
 - 样式文件：`styles/*.css`、`index.css`（全局变量）、`App.css`。
 
