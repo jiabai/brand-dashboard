@@ -55,9 +55,9 @@ const ReferencesTable = ({ referencesData, isLoading, error }) => {
       dataIndex: 'domain',
       key: 'domain',
       render: (domain) => (
-        <a href={`https://${domain}`} target="_blank" rel="noopener noreferrer">
+        <Typography.Link href={`https://${domain}`} target="_blank" rel="noopener noreferrer">
           {domain}
-        </a>
+        </Typography.Link>
       )
     },
     {

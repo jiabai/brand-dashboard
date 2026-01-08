@@ -7,10 +7,10 @@
 /* Custom CSS Variables for consistent theming */
 :root {
   /* Light Theme Ant Design Variables */
-  --ant-color-primary: #722ED1;
-  --ant-color-primary-hover: #9254de;
-  --ant-color-primary-active: #531dab;
-  --ant-color-bg-layout: #faf4ff;
+  --ant-color-primary: #fa8c16;
+  --ant-color-primary-hover: #ffa940;
+  --ant-color-primary-active: #d46b08;
+  --ant-color-bg-layout: #fff7e6;
   --ant-color-bg-container: #ffffff;
   --ant-color-border: #d9d9d9;
   --ant-color-border-secondary: #f0f0f0;
@@ -20,16 +20,16 @@
   --ant-color-success: #52c41a;
   --ant-color-warning: #faad14;
   --ant-color-error: #ff4d4f;
-  --ant-color-link: #722ED1;
-  --ant-color-link-hover: #9254de;
-  --ant-color-link-active: #531dab;
+  --ant-color-link: #fa8c16;
+  --ant-color-link-hover: #ffa940;
+  --ant-color-link-active: #d46b08;
 }
 
 .dark {
   /* Dark Theme Ant Design Variables */
-  --ant-color-primary: #722ED1;
-  --ant-color-primary-hover: #9254de;
-  --ant-color-primary-active: #531dab;
+  --ant-color-primary: #fa8c16;
+  --ant-color-primary-hover: #ffa940;
+  --ant-color-primary-active: #d46b08;
   --ant-color-bg-layout: #0a0512;
   --ant-color-bg-container: #150c24;
   --ant-color-border: #434343;
@@ -40,9 +40,9 @@
   --ant-color-success: #52c41a;
   --ant-color-warning: #faad14;
   --ant-color-error: #ff4d4f;
-  --ant-color-link: #722ED1;
-  --ant-color-link-hover: #9254de;
-  --ant-color-link-active: #531dab;
+  --ant-color-link: #fa8c16;
+  --ant-color-link-hover: #ffa940;
+  --ant-color-link-active: #d46b08;
 }
 
 @layer base {

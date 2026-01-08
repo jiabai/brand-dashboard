@@ -1,5 +1,5 @@
 import React from 'react';
-import { Layout, Menu, Typography } from 'antd';
+import { Layout, Menu, Typography, theme } from 'antd';
 import {
   BarChartOutlined,
   BookOutlined,
@@ -12,6 +12,8 @@ import {
 } from '@ant-design/icons';
 
 const Sidebar = ({ collapsed, onCollapse }) => {
+  const { token } = theme.useToken();
+
   const menuItems = [
     { key: 'home', icon: <HomeOutlined />, label: '首页' },
     { key: 'trend', icon: <LineChartOutlined />, label: '趋势分析' },
@@ -24,19 +26,19 @@ const Sidebar = ({ collapsed, onCollapse }) => {
 
   return (
     <Layout.Sider
-      theme="light"
       width={240}
       collapsible
       collapsed={collapsed}
       onCollapse={onCollapse}
       style={{
-        borderRight: '1px solid rgba(5, 5, 5, 0.06)',
+        borderRight: `1px solid ${token.colorBorderSecondary}`,
         position: 'sticky',
         top: 0,
-        height: '100vh'
+        height: '100vh',
+        background: token.colorBgContainer
       }}
     >
-      <div style={{ padding: 16 }}>
+      <div style={{ padding: token.padding }}>
         <Typography.Title level={5} style={{ margin: 0 }}>
           Brand Dashboard
         </Typography.Title>
@@ -45,7 +47,7 @@ const Sidebar = ({ collapsed, onCollapse }) => {
         ) : null}
       </div>
 
-      <div style={{ paddingInline: 12, paddingBottom: 12 }}>
+      <div style={{ paddingInline: token.paddingSM, paddingBottom: token.paddingSM }}>
         <Menu
           mode="inline"
           defaultSelectedKeys={['home']}
@@ -56,10 +58,16 @@ const Sidebar = ({ collapsed, onCollapse }) => {
               label: '任务'
             }
           ]}
+          style={{ border: 'none' }}
         />
       </div>
 
-      <Menu mode="inline" defaultSelectedKeys={['home']} items={menuItems} />
+      <Menu
+        mode="inline"
+        defaultSelectedKeys={['home']}
+        items={menuItems}
+        style={{ border: 'none' }}
+      />
     </Layout.Sider>
   );
 };

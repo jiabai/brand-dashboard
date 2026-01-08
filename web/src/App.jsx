@@ -12,11 +12,9 @@ import Sidebar from './components/Sidebar.jsx';
 const { Header, Content } = Layout;
 
 /**
- * Main application component for Brand Analysis Dashboard
- *
- * @returns {JSX.Element} The rendered dashboard application
+ * Dashboard content component
  */
-function App() {
+function Dashboard() {
   const { token } = theme.useToken();
   // State management
   const [selectedFilter, setSelectedFilter] = useState('7days');
@@ -65,82 +63,98 @@ function App() {
   };
 
   return (
+    <Layout style={{ minHeight: '100vh', position: 'relative', zIndex: 1 }}>
+      <Sidebar collapsed={siderCollapsed} onCollapse={setSiderCollapsed} />
+      <Layout>
+        <Header
+          style={{
+            position: 'sticky',
+            top: 0,
+            zIndex: 10,
+            paddingInline: 24,
+            display: 'flex',
+            alignItems: 'center',
+            background: token.colorBgContainer,
+            borderBottom: `1px solid ${token.colorBorderSecondary}`
+          }}
+        >
+          <Space
+            size="middle"
+            style={{
+              width: '100%',
+              justifyContent: 'space-between'
+            }}
+          >
+            <TaskName />
+            <Space size="middle" wrap>
+              <Badge status="processing" text="实时数据" />
+              <Typography.Text type="secondary">
+                更新: {currentTime.toLocaleTimeString()}
+              </Typography.Text>
+              <Segmented
+                options={timeOptions}
+                value={selectedFilter}
+                onChange={handleFilterChange}
+              />
+            </Space>
+          </Space>
+        </Header>
+
+        <Content style={{ padding: 24 }}>
+          <ErrorBoundary>
+            <Spin spinning={isLoading} tip="正在加载数据...">
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'minmax(0, 1.2fr) minmax(0, 1.8fr)',
+                  gap: 16
+                }}
+              >
+                <div style={{ minWidth: 0 }}>
+                  <BrandMentionRate />
+                </div>
+                <div style={{ minWidth: 0 }}>
+                  <ModelMentionRates />
+                </div>
+                <div style={{ minWidth: 0, gridColumn: '1 / -1' }}>
+                  <ReferencesTable />
+                </div>
+              </div>
+            </Spin>
+          </ErrorBoundary>
+        </Content>
+      </Layout>
+    </Layout>
+  );
+}
+
+/**
+ * Main application component for Brand Analysis Dashboard
+ *
+ * @returns {JSX.Element} The rendered dashboard application
+ */
+function App() {
+  useEffect(() => {
+    document.documentElement.classList.add('dark');
+  }, []);
+
+  return (
     <ConfigProvider
       theme={{
+        algorithm: theme.darkAlgorithm,
         token: {
           fontFamily:
             "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', 'Apple Color Emoji', 'Segoe UI Emoji', sans-serif",
-          colorPrimary: '#722ED1',
-          colorInfo: '#722ED1',
+          colorPrimary: '#fa8c16',
+          colorInfo: '#fa8c16',
           colorSuccess: '#52c41a',
           colorWarning: '#faad14',
           colorError: '#ff4d4f',
-          colorLink: '#722ED1'
+          colorLink: '#fa8c16'
         }
       }}
     >
-      <Layout style={{ minHeight: '100vh', position: 'relative', zIndex: 1 }}>
-        <Sidebar collapsed={siderCollapsed} onCollapse={setSiderCollapsed} />
-        <Layout>
-          <Header
-            style={{
-              position: 'sticky',
-              top: 0,
-              zIndex: 10,
-              paddingInline: 24,
-              display: 'flex',
-              alignItems: 'center',
-              background: token.colorBgContainer,
-              borderBottom: `1px solid ${token.colorBorderSecondary}`
-            }}
-          >
-            <Space
-              size="middle"
-              style={{
-                width: '100%',
-                justifyContent: 'space-between'
-              }}
-            >
-              <TaskName />
-              <Space size="middle" wrap>
-                <Badge status="processing" text="实时数据" />
-                <Typography.Text type="secondary">
-                  更新: {currentTime.toLocaleTimeString()}
-                </Typography.Text>
-                <Segmented
-                  options={timeOptions}
-                  value={selectedFilter}
-                  onChange={handleFilterChange}
-                />
-              </Space>
-            </Space>
-          </Header>
-
-          <Content style={{ padding: 24 }}>
-            <ErrorBoundary>
-              <Spin spinning={isLoading} tip="正在加载数据...">
-                <div
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'minmax(0, 1.2fr) minmax(0, 1.8fr)',
-                    gap: 16
-                  }}
-                >
-                  <div style={{ minWidth: 0 }}>
-                    <BrandMentionRate />
-                  </div>
-                  <div style={{ minWidth: 0 }}>
-                    <ModelMentionRates />
-                  </div>
-                  <div style={{ minWidth: 0, gridColumn: '1 / -1' }}>
-                    <ReferencesTable />
-                  </div>
-                </div>
-              </Spin>
-            </ErrorBoundary>
-          </Content>
-        </Layout>
-      </Layout>
+      <Dashboard />
     </ConfigProvider>
   );
 }
