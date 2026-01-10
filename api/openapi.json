@@ -1,0 +1,1426 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Brand Analysis API",
+    "description": "品牌分析API服务，为dashboard提供数据接口",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/api/analysis/analyze": {
+      "post": {
+        "tags": [
+          "analysis"
+        ],
+        "summary": "Analyze Brand",
+        "description": "执行品牌分析.",
+        "operationId": "analyze_brand_api_analysis_analyze_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AnalysisRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalysisResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/analysis/recognize-brand": {
+      "post": {
+        "tags": [
+          "analysis"
+        ],
+        "summary": "Recognize Brand",
+        "description": "品牌识别.",
+        "operationId": "recognize_brand_api_analysis_recognize_brand_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BrandRecognitionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BrandRecognitionResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/analysis/results/{result_id}": {
+      "get": {
+        "tags": [
+          "analysis"
+        ],
+        "summary": "Get Analysis Result",
+        "description": "获取分析结果.",
+        "operationId": "get_analysis_result_api_analysis_results__result_id__get",
+        "parameters": [
+          {
+            "name": "result_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Result Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalysisResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/analysis/history": {
+      "get": {
+        "tags": [
+          "analysis"
+        ],
+        "summary": "Get Analysis History",
+        "description": "获取分析历史记录.",
+        "operationId": "get_analysis_history_api_analysis_history_get",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 10,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 0,
+              "title": "Offset"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Get Analysis History Api Analysis History Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/config/providers": {
+      "get": {
+        "tags": [
+          "config"
+        ],
+        "summary": "Get Llm Providers",
+        "description": "获取可用的LLM提供商列表.",
+        "operationId": "get_llm_providers_api_config_providers_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/config/analysis-types": {
+      "get": {
+        "tags": [
+          "config"
+        ],
+        "summary": "Get Analysis Types",
+        "description": "获取可用的分析类型.",
+        "operationId": "get_analysis_types_api_config_analysis_types_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/config/settings": {
+      "get": {
+        "tags": [
+          "config"
+        ],
+        "summary": "Get Settings",
+        "description": "获取当前配置设置.",
+        "operationId": "get_settings_api_config_settings_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "config"
+        ],
+        "summary": "Update Settings",
+        "description": "更新配置设置.",
+        "operationId": "update_settings_api_config_settings_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "title": "Settings"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/dashboard/brand-mention-rate": {
+      "get": {
+        "tags": [
+          "dashboard"
+        ],
+        "summary": "Get Brand Mention Rate",
+        "description": "获取品牌总提及率数据.",
+        "operationId": "get_brand_mention_rate_api_dashboard_brand_mention_rate_get",
+        "parameters": [
+          {
+            "name": "brand",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "品牌名称",
+              "title": "Brand"
+            },
+            "description": "品牌名称"
+          },
+          {
+            "name": "timeframe",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TimeFrame",
+              "description": "时间范围"
+            },
+            "description": "时间范围"
+          },
+          {
+            "name": "date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "具体日期(格式: YYYYMMDD)",
+              "title": "Date"
+            },
+            "description": "具体日期(格式: YYYYMMDD)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BrandMentionRateResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/dashboard/platform-mention-rates": {
+      "get": {
+        "tags": [
+          "dashboard"
+        ],
+        "summary": "Get Platform Mention Rates",
+        "description": "获取品牌在各平台的提及率数据.",
+        "operationId": "get_platform_mention_rates_api_dashboard_platform_mention_rates_get",
+        "parameters": [
+          {
+            "name": "category",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "商品大类",
+              "title": "Category"
+            },
+            "description": "商品大类"
+          },
+          {
+            "name": "brand",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "品牌名称",
+              "title": "Brand"
+            },
+            "description": "品牌名称"
+          },
+          {
+            "name": "keyword",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "品牌关键词，或\"全部\"",
+              "title": "Keyword"
+            },
+            "description": "品牌关键词，或\"全部\""
+          },
+          {
+            "name": "timeframe",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TimeFrame",
+              "description": "时间范围"
+            },
+            "description": "时间范围"
+          },
+          {
+            "name": "date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "具体日期(格式: YYYYMMDD)",
+              "title": "Date"
+            },
+            "description": "具体日期(格式: YYYYMMDD)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlatformMentionRateResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/dashboard/reference-url-stats": {
+      "get": {
+        "tags": [
+          "dashboard"
+        ],
+        "summary": "Get Reference Url Stats",
+        "description": "获取引用URL统计数据.",
+        "operationId": "get_reference_url_stats_api_dashboard_reference_url_stats_get",
+        "parameters": [
+          {
+            "name": "timeframe",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TimeFrame",
+              "description": "时间范围"
+            },
+            "description": "时间范围"
+          },
+          {
+            "name": "date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "具体日期(格式: YYYYMMDD)",
+              "title": "Date"
+            },
+            "description": "具体日期(格式: YYYYMMDD)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReferenceUrlResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/dashboard/brand-metrics": {
+      "get": {
+        "tags": [
+          "dashboard"
+        ],
+        "summary": "Get Brand Metrics",
+        "operationId": "get_brand_metrics_api_dashboard_brand_metrics_get",
+        "parameters": [
+          {
+            "name": "timeframe",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TimeFrame",
+              "description": "时间范围"
+            },
+            "description": "时间范围"
+          },
+          {
+            "name": "date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "具体日期(格式: YYYYMMDD)",
+              "title": "Date"
+            },
+            "description": "具体日期(格式: YYYYMMDD)"
+          },
+          {
+            "name": "brand",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "品牌名称",
+              "title": "Brand"
+            },
+            "description": "品牌名称"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BrandMetricsResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/analysis/positioning-keywords": {
+      "post": {
+        "tags": [
+          "analysis"
+        ],
+        "summary": "Positioning Keywords",
+        "description": "Generate positioning keywords for a brand within a given industry.\n\nArgs:\n    req: A PositioningRequest containing the industry and brand name.\n\nReturns:\n    A list of suggested positioning keywords.",
+        "operationId": "positioning_keywords_api_analysis_positioning_keywords_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PositioningRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array",
+                  "title": "Response Positioning Keywords Api Analysis Positioning Keywords Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/analysis/consumer-questions": {
+      "post": {
+        "tags": [
+          "analysis"
+        ],
+        "summary": "Consumer Questions",
+        "description": "Generate consumer questions for brand keywords.\n\nArgs:\n    req: A ConsumerQuestionsRequest containing the industry, brand name and keywords.\n\nReturns:\n    A dictionary mapping keywords to lists of consumer questions.",
+        "operationId": "consumer_questions_api_analysis_consumer_questions_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConsumerQuestionsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "type": "object",
+                  "title": "Response Consumer Questions Api Analysis Consumer Questions Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/": {
+      "get": {
+        "summary": "Root",
+        "description": "根路径，返回API信息.",
+        "operationId": "root__get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object",
+                  "title": "Response Root  Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "summary": "Health Check",
+        "description": "健康检查接口.",
+        "operationId": "health_check_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AnalysisRequest": {
+        "properties": {
+          "brand_name": {
+            "type": "string",
+            "title": "Brand Name",
+            "description": "品牌名称"
+          },
+          "analysis_type": {
+            "$ref": "#/components/schemas/AnalysisType",
+            "description": "分析类型"
+          },
+          "params": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Params",
+            "description": "分析参数"
+          },
+          "provider": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider",
+            "description": "LLM提供商",
+            "default": "openai"
+          },
+          "model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model",
+            "description": "模型名称",
+            "default": "gpt-3.5-turbo"
+          }
+        },
+        "type": "object",
+        "required": [
+          "brand_name",
+          "analysis_type"
+        ],
+        "title": "AnalysisRequest",
+        "description": "分析请求模型."
+      },
+      "AnalysisResponse": {
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "title": "Success",
+            "description": "是否成功"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data",
+            "description": "响应数据"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "响应消息"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Timestamp",
+            "description": "时间戳"
+          }
+        },
+        "type": "object",
+        "required": [
+          "success",
+          "message",
+          "timestamp"
+        ],
+        "title": "AnalysisResponse",
+        "description": "分析响应模型."
+      },
+      "AnalysisType": {
+        "type": "string",
+        "enum": [
+          "brand_recognition",
+          "sentiment_analysis",
+          "competitive_analysis",
+          "mention_analysis"
+        ],
+        "title": "AnalysisType",
+        "description": "分析类型枚举."
+      },
+      "BrandMentionRateData": {
+        "properties": {
+          "mention_rate": {
+            "type": "number",
+            "title": "Mention Rate",
+            "description": "品牌总提及率(百分比)"
+          },
+          "rank": {
+            "type": "integer",
+            "title": "Rank",
+            "description": "品牌排名"
+          },
+          "change": {
+            "type": "number",
+            "title": "Change",
+            "description": "与上一周期对比的变化(百分比)"
+          },
+          "question_count": {
+            "type": "integer",
+            "title": "Question Count",
+            "description": "问题总数"
+          },
+          "mention_count": {
+            "type": "integer",
+            "title": "Mention Count",
+            "description": "品牌提及数量"
+          },
+          "first_mention_count": {
+            "type": "integer",
+            "title": "First Mention Count",
+            "description": "首次提及品牌数量"
+          },
+          "analysis_date": {
+            "type": "string",
+            "title": "Analysis Date",
+            "description": "分析日期"
+          },
+          "last_updated": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Last Updated",
+            "description": "最后更新时间"
+          }
+        },
+        "type": "object",
+        "required": [
+          "mention_rate",
+          "rank",
+          "change",
+          "question_count",
+          "mention_count",
+          "first_mention_count",
+          "analysis_date",
+          "last_updated"
+        ],
+        "title": "BrandMentionRateData",
+        "description": "品牌总提及率数据模型."
+      },
+      "BrandMentionRateResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "响应状态"
+          },
+          "data": {
+            "$ref": "#/components/schemas/BrandMentionRateData",
+            "description": "品牌总提及率数据"
+          },
+          "metadata": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Metadata",
+            "description": "元数据"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "data",
+          "metadata"
+        ],
+        "title": "BrandMentionRateResponse",
+        "description": "品牌总提及率响应模型."
+      },
+      "BrandMetricsItem": {
+        "properties": {
+          "brand": {
+            "type": "string",
+            "title": "Brand",
+            "description": "品牌名称"
+          },
+          "platform": {
+            "type": "string",
+            "title": "Platform",
+            "description": "平台名称"
+          },
+          "mention_rate": {
+            "type": "number",
+            "title": "Mention Rate",
+            "description": "品牌总提及率"
+          },
+          "first_mention_rate": {
+            "type": "number",
+            "title": "First Mention Rate",
+            "description": "首次提及品牌率"
+          },
+          "citation_rate_by_post": {
+            "type": "number",
+            "title": "Citation Rate By Post",
+            "description": "引用率"
+          },
+          "prompt_count": {
+            "type": "integer",
+            "title": "Prompt Count",
+            "description": "问题总数"
+          },
+          "citation_source_count": {
+            "type": "integer",
+            "title": "Citation Source Count",
+            "description": "引用来源数量"
+          },
+          "keyword_coverage": {
+            "type": "integer",
+            "title": "Keyword Coverage",
+            "description": "关键词覆盖数"
+          }
+        },
+        "type": "object",
+        "required": [
+          "brand",
+          "platform",
+          "mention_rate",
+          "first_mention_rate",
+          "citation_rate_by_post",
+          "prompt_count",
+          "citation_source_count",
+          "keyword_coverage"
+        ],
+        "title": "BrandMetricsItem"
+      },
+      "BrandMetricsResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "响应状态"
+          },
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/BrandMetricsItem"
+            },
+            "type": "array",
+            "title": "Data",
+            "description": "品牌总指标列表"
+          },
+          "metadata": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Metadata",
+            "description": "元数据"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "data",
+          "metadata"
+        ],
+        "title": "BrandMetricsResponse"
+      },
+      "BrandRecognitionRequest": {
+        "properties": {
+          "text": {
+            "type": "string",
+            "title": "Text",
+            "description": "要分析的文本"
+          },
+          "context": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Context",
+            "description": "上下文信息"
+          },
+          "provider": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider",
+            "description": "LLM提供商",
+            "default": "openai"
+          },
+          "model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model",
+            "description": "模型名称",
+            "default": "gpt-3.5-turbo"
+          }
+        },
+        "type": "object",
+        "required": [
+          "text"
+        ],
+        "title": "BrandRecognitionRequest",
+        "description": "品牌识别请求模型."
+      },
+      "BrandRecognitionResponse": {
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "title": "Success",
+            "description": "是否成功"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BrandRecognitionResult"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "识别结果"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "响应消息"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Timestamp",
+            "description": "时间戳"
+          }
+        },
+        "type": "object",
+        "required": [
+          "success",
+          "message",
+          "timestamp"
+        ],
+        "title": "BrandRecognitionResponse",
+        "description": "品牌识别响应模型."
+      },
+      "BrandRecognitionResult": {
+        "properties": {
+          "brands_found": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Brands Found",
+            "description": "发现的品牌列表"
+          },
+          "mentions": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Mentions",
+            "description": "品牌提及详情"
+          },
+          "sentiment_scores": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "number"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sentiment Scores",
+            "description": "情感评分"
+          }
+        },
+        "type": "object",
+        "required": [
+          "brands_found",
+          "mentions"
+        ],
+        "title": "BrandRecognitionResult",
+        "description": "品牌识别结果模型."
+      },
+      "ConsumerQuestionsRequest": {
+        "properties": {
+          "industry": {
+            "type": "string",
+            "title": "Industry",
+            "description": "行业"
+          },
+          "brand": {
+            "type": "string",
+            "title": "Brand",
+            "description": "品牌"
+          },
+          "keywords": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Keywords",
+            "description": "关键词列表"
+          }
+        },
+        "type": "object",
+        "required": [
+          "industry",
+          "brand",
+          "keywords"
+        ],
+        "title": "ConsumerQuestionsRequest"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "HealthResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "服务状态"
+          },
+          "service": {
+            "type": "string",
+            "title": "Service",
+            "description": "服务名称"
+          },
+          "version": {
+            "type": "string",
+            "title": "Version",
+            "description": "服务版本"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "service",
+          "version"
+        ],
+        "title": "HealthResponse",
+        "description": "健康检查响应模型."
+      },
+      "PlatformMentionRateData": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "平台名称"
+          },
+          "mention_rate": {
+            "type": "number",
+            "title": "Mention Rate",
+            "description": "该平台上的品牌提及率(百分比)"
+          },
+          "first_mention_rate": {
+            "type": "number",
+            "title": "First Mention Rate",
+            "description": "该平台上的品牌首次提及率(百分比)"
+          },
+          "color": {
+            "type": "string",
+            "title": "Color",
+            "description": "颜色"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "mention_rate",
+          "first_mention_rate",
+          "color"
+        ],
+        "title": "PlatformMentionRateData",
+        "description": "各平台提及率数据模型."
+      },
+      "PlatformMentionRateResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "响应状态"
+          },
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/PlatformMentionRateData"
+            },
+            "type": "array",
+            "title": "Data",
+            "description": "各平台提及率数据列表"
+          },
+          "metadata": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Metadata",
+            "description": "元数据"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "data",
+          "metadata"
+        ],
+        "title": "PlatformMentionRateResponse",
+        "description": "各平台提及率响应模型."
+      },
+      "PositioningRequest": {
+        "properties": {
+          "industry": {
+            "type": "string",
+            "title": "Industry",
+            "description": "行业"
+          },
+          "brand": {
+            "type": "string",
+            "title": "Brand",
+            "description": "品牌"
+          }
+        },
+        "type": "object",
+        "required": [
+          "industry",
+          "brand"
+        ],
+        "title": "PositioningRequest"
+      },
+      "ReferenceUrlData": {
+        "properties": {
+          "answer_reference_url": {
+            "type": "string",
+            "title": "Answer Reference Url",
+            "description": "引用URL"
+          },
+          "reference_count": {
+            "type": "integer",
+            "title": "Reference Count",
+            "description": "引用次数"
+          },
+          "total_questions": {
+            "type": "integer",
+            "title": "Total Questions",
+            "description": "总提问数"
+          },
+          "chinese_name": {
+            "type": "string",
+            "title": "Chinese Name",
+            "description": "中文名称"
+          },
+          "reference_rate": {
+            "type": "number",
+            "title": "Reference Rate",
+            "description": "引用率(引用次数/总提问数)"
+          }
+        },
+        "type": "object",
+        "required": [
+          "answer_reference_url",
+          "reference_count",
+          "total_questions",
+          "chinese_name",
+          "reference_rate"
+        ],
+        "title": "ReferenceUrlData",
+        "description": "引用URL统计数据模型."
+      },
+      "ReferenceUrlResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "响应状态"
+          },
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/ReferenceUrlData"
+            },
+            "type": "array",
+            "title": "Data",
+            "description": "引用URL统计数据列表"
+          },
+          "metadata": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Metadata",
+            "description": "元数据"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "data",
+          "metadata"
+        ],
+        "title": "ReferenceUrlResponse",
+        "description": "引用URL统计响应模型."
+      },
+      "TimeFrame": {
+        "type": "string",
+        "enum": [
+          "yesterday",
+          "7days",
+          "30days"
+        ],
+        "title": "TimeFrame",
+        "description": "时间范围枚举."
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  }
+}

@@ -7,7 +7,10 @@ from pydantic import BaseModel, Field
 
 from api.repositories.database import (
     query_brand_mention_data,
+    query_brand_metrics,
     query_brand_platform_mention_data,
+    query_platform_metrics_by_brand,
+    query_post_citation_rate,
     query_reference_url_stats,
 )
 from api.utils.url_domain_resolver import resolve_url_domain
@@ -64,6 +67,51 @@ class ReferenceUrlResponse(BaseModel):
     """引用URL统计响应模型."""
     status: str = Field(..., description="响应状态")
     data: List[ReferenceUrlData] = Field(..., description="引用URL统计数据列表")
+    metadata: Dict[str, Any] = Field(..., description="元数据")
+
+
+class BrandMetricsItem(BaseModel):
+    brand: str = Field(..., description="品牌名称")
+    platform: str = Field(..., description="平台名称")
+    mention_rate: float = Field(..., description="品牌总提及率")
+    first_mention_rate: float = Field(..., description="首次提及品牌率")
+    citation_rate_by_post: float = Field(..., description="引用率")
+    prompt_count: int = Field(..., description="问题总数")
+    citation_source_count: int = Field(..., description="引用来源数量")
+    keyword_coverage: int = Field(..., description="关键词覆盖数")
+
+
+class BrandMetricsResponse(BaseModel):
+    status: str = Field(..., description="响应状态")
+    data: List[BrandMetricsItem] = Field(..., description="品牌总指标列表")
+    metadata: Dict[str, Any] = Field(..., description="元数据")
+
+
+class PlatformMetricsByBrandItem(BaseModel):
+    platform: str = Field(..., description="平台名称")
+    mention_rate: float = Field(..., description="平台提及率")
+
+
+class PlatformMetricsByBrandData(BaseModel):
+    brand: str = Field(..., description="品牌名称")
+    platforms: List[PlatformMetricsByBrandItem] = Field(..., description="平台指标列表")
+
+
+class PlatformMetricsByBrandResponse(BaseModel):
+    status: str = Field(..., description="响应状态")
+    data: PlatformMetricsByBrandData = Field(..., description="品牌平台指标数据")
+    metadata: Dict[str, Any] = Field(..., description="元数据")
+
+
+class PostCitationRateData(BaseModel):
+    brand: str = Field(..., description="品牌名称")
+    citation_source_count: int = Field(..., description="引用来源数量")
+    citation_rate_by_post: float = Field(..., description="发文引用率")
+
+
+class PostCitationRateResponse(BaseModel):
+    status: str = Field(..., description="响应状态")
+    data: List[PostCitationRateData] = Field(..., description="数据列表")
     metadata: Dict[str, Any] = Field(..., description="元数据")
 
 @router.get("/brand-mention-rate", response_model=BrandMentionRateResponse)
@@ -225,3 +273,118 @@ async def get_reference_url_stats(
         raise HTTPException(status_code=400, detail=str(e)) from e
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"获取引用URL统计数据失败: {str(e)}") from e
+
+
+@router.get("/brand-metrics", response_model=BrandMetricsResponse)
+async def get_brand_metrics(
+    user_id: str = Query(..., description="用户ID"),
+    job_id: str = Query(..., description="任务ID"),
+    timeframe: TimeFrame = Query(..., description="时间范围"),
+    date: Optional[str] = Query(None, description="具体日期(格式: YYYYMMDD)"),
+    brand: Optional[str] = Query(None, description="品牌名称"),
+):
+    try:
+        metrics = query_brand_metrics(
+            user_id=user_id,
+            job_id=job_id,
+            timeframe=timeframe.value,
+            specific_date=date,
+            brand=brand,
+        )
+
+        data = [
+            BrandMetricsItem(
+                brand=item["brand"],
+                platform=item["platform"],
+                mention_rate=item["mention_rate"],
+                first_mention_rate=item["first_mention_rate"],
+                citation_rate_by_post=item["citation_rate_by_post"],
+                prompt_count=item["prompt_count"],
+                citation_source_count=item["citation_source_count"],
+                keyword_coverage=item["keyword_coverage"],
+            )
+            for item in metrics
+        ]
+
+        return BrandMetricsResponse(
+            status="success",
+            data=data,
+            metadata={
+                "timeframe": timeframe.value,
+                "calculation_method": "mention_count_ratio",
+            },
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"获取品牌总指标失败: {str(e)}") from e
+
+
+@router.get("/platform-metrics-by-brand", response_model=PlatformMetricsByBrandResponse)
+async def get_platform_metrics_by_brand(
+    user_id: str = Query(..., description="用户ID"),
+    job_id: str = Query(..., description="任务ID"),
+    brand: str = Query(..., description="品牌名称"),
+    timeframe: TimeFrame = Query(..., description="时间范围"),
+    date: Optional[str] = Query(None, description="具体日期(格式: YYYYMMDD)"),
+):
+    try:
+        platforms = query_platform_metrics_by_brand(
+            user_id=user_id,
+            job_id=job_id,
+            brand=brand,
+            timeframe=timeframe.value,
+            specific_date=date,
+        )
+
+        return PlatformMetricsByBrandResponse(
+            status="success",
+            data=PlatformMetricsByBrandData(
+                brand=brand,
+                platforms=[
+                    PlatformMetricsByBrandItem(
+                        platform=item["platform"],
+                        mention_rate=item["mention_rate"],
+                    )
+                    for item in platforms
+                ],
+            ),
+            metadata={
+                "timeframe": timeframe.value,
+                "calculation_method": "platform_metrics_by_brand",
+            },
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"获取平台指标失败: {str(e)}") from e
+
+
+@router.get("/post-citation-rate", response_model=PostCitationRateResponse)
+async def get_post_citation_rate(
+    user_id: str = Query(..., description="用户ID"),
+    job_id: str = Query(..., description="任务ID"),
+    brand: str = Query(..., description="品牌名称"),
+    timeframe: TimeFrame = Query(..., description="时间范围"),
+    date: Optional[str] = Query(None, description="具体日期(格式: YYYYMMDD)")
+):
+    """获取品牌发文引用率信息."""
+    try:
+        data = query_post_citation_rate(
+            user_id=user_id,
+            job_id=job_id,
+            brand=brand,
+            timeframe=timeframe.value,
+            specific_date=date
+        )
+
+        return PostCitationRateResponse(
+            status="success",
+            data=[PostCitationRateData(**data)],
+            metadata={
+                "timeframe": timeframe.value,
+                "calculation_method": "post_citation_rate"
+            }
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"获取品牌发文引用率失败: {str(e)}") from e

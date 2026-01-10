@@ -1,6 +1,7 @@
 import logging
 import os
 from datetime import datetime, timedelta
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from dotenv import load_dotenv
@@ -9,7 +10,11 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import QueuePool
 
 # 加载.env文件
-load_dotenv()
+# 获取当前文件所在的目录 (api/repositories)
+current_dir = Path(__file__).resolve().parent
+# 获取api目录 (api/.env)
+env_path = current_dir.parent / '.env'
+load_dotenv(dotenv_path=env_path)
 
 logger = logging.getLogger(__name__)
 
@@ -194,53 +199,153 @@ def query_brand_mention_data(
             latest_date = row[3] or end_date
             mention_rate = float(row[4]) if row[4] else 0.0
 
-            # 计算变化百分比 - 查询上一周期的数据
-            change = 0.0
-            try:
-                prev_start_date, prev_end_date = get_previous_date_range(timeframe, specific_date)
+            # 计算排名
+            # 这里简单处理，实际上可能需要更复杂的排名逻辑
+            rank_query = """
+            SELECT COUNT(*) + 1
+            FROM (
+                SELECT brand, AVG(mention_rate) as rate
+                FROM qa_brand_summary
+                WHERE date BETWEEN :start_date AND :end_date
+                GROUP BY brand
+                HAVING rate > :my_rate
+            ) as ranks
+            """
+            
+            rank_result = conn.execute(
+                text(rank_query),
+                {
+                    "start_date": start_date,
+                    "end_date": end_date,
+                    "my_rate": mention_rate
+                }
+            )
+            rank = rank_result.scalar()
 
-                prev_query = """
-                SELECT 
-                    AVG(mention_rate) as prev_avg_mention_rate
-                FROM qa_brand_summary 
-                WHERE brand = :brand 
-                AND date BETWEEN :prev_start_date AND :prev_end_date
-                """
+            # 计算变化率
+            prev_start, prev_end = get_previous_date_range(timeframe, specific_date)
+            
+            prev_query = """
+            SELECT AVG(mention_rate)
+            FROM qa_brand_summary
+            WHERE brand = :brand
+            AND date BETWEEN :prev_start AND :prev_end
+            """
+            
+            prev_result = conn.execute(
+                text(prev_query),
+                {
+                    "brand": brand,
+                    "prev_start": prev_start,
+                    "prev_end": prev_end
+                }
+            )
+            prev_rate = prev_result.scalar() or 0.0
+            
+            change = mention_rate - prev_rate
 
-                prev_result = conn.execute(
-                    text(prev_query),
-                    {
-                        "brand": brand,
-                        "prev_start_date": prev_start_date,
-                        "prev_end_date": prev_end_date
-                    }
-                )
-
-                prev_row = prev_result.fetchone()
-                if prev_row and prev_row[0] is not None:
-                    prev_mention_rate = float(prev_row[0])
-                    if prev_mention_rate > 0:  # 避免除零错误
-                        change = round(
-                            (mention_rate - prev_mention_rate) / prev_mention_rate * 100,
-                            2
-                        )
-            except Exception as e:
-                logger.warning("计算变化百分比时出错: %s", str(e))
-                change = 0.0
-
+            analysis_date = (
+                latest_date.isoformat()
+                if hasattr(latest_date, "isoformat")
+                else str(latest_date)
+            )
             return {
                 "mention_rate": round(mention_rate, 2),
-                "rank": 1,  # 默认排名
-                "change": change,  # 变化百分比
+                "rank": rank,
+                "change": round(change, 2),
                 "question_count": question_count,
                 "mention_count": mention_count,
                 "first_mention_count": first_mention_count,
-                "analysis_date": latest_date.isoformat(),
+                "analysis_date": analysis_date,
                 "last_updated": datetime.now().isoformat()
             }
+            
     except Exception as e:
-        logger.error("数据库查询失败: %s", str(e))
-        raise Exception(f"数据库查询失败: {str(e)}") from e
+        logger.error(f"查询品牌提及率数据失败: {str(e)}")
+        raise
+
+def query_post_citation_rate(
+    user_id: str,
+    job_id: str,
+    brand: str,
+    timeframe: str,
+    specific_date: Optional[str] = None
+) -> Dict[str, Any]:
+    """
+    查询品牌发文引用率数据
+    
+    Args:
+        brand: 品牌名称
+        timeframe: 时间范围
+        specific_date: 指定日期
+    
+    Returns:
+        包含发文引用率数据的字典
+    """
+    start_date, end_date = get_date_range(timeframe, specific_date)
+
+    # 转换为datetime以匹配created_at字段
+    start_datetime = datetime.combine(start_date, datetime.min.time())
+    end_datetime = datetime.combine(end_date, datetime.max.time())
+
+    query = """
+    SELECT
+        COUNT(DISTINCT qr.domain) AS citation_source_count,
+        COALESCE(
+            (
+                SELECT AVG(has_published_link)
+                FROM (
+                    SELECT
+                        conversation_id,
+                        MAX(is_published_link) AS has_published_link
+                    FROM qa_reference
+                    WHERE user_id = :user_id
+                    AND job_id = :job_id
+                    AND brand = :brand
+                    AND created_at BETWEEN :start_date AND :end_date
+                    GROUP BY conversation_id
+                ) AS conv_stats
+            ),
+            0
+        ) AS citation_rate_by_post
+    FROM qa_reference qr
+    WHERE qr.user_id = :user_id
+    AND qr.job_id = :job_id
+    AND qr.brand = :brand
+    AND qr.created_at BETWEEN :start_date AND :end_date
+    """
+
+    try:
+        with engine.connect() as conn:
+            result = conn.execute(
+                text(query),
+                {
+                    "user_id": user_id,
+                    "job_id": job_id,
+                    "brand": brand,
+                    "start_date": start_datetime,
+                    "end_date": end_datetime
+                }
+            )
+
+            row = result.fetchone()
+
+            if not row:
+                return {
+                    "brand": brand,
+                    "citation_source_count": 0,
+                    "citation_rate_by_post": 0.0
+                }
+
+            return {
+                "brand": brand,
+                "citation_source_count": int(row[0]) if row[0] else 0,
+                "citation_rate_by_post": float(row[1]) if row[1] else 0.0
+            }
+
+    except Exception as e:
+        logger.error("查询发文引用率数据失败: %s", str(e))
+        raise
 
 def query_reference_url_stats(
     timeframe: str,
@@ -456,3 +561,186 @@ def query_brand_platform_mention_data(
     except Exception as e:
         logger.error("数据库查询失败: %s", str(e))
         raise Exception(f"数据库查询失败: {str(e)}") from e
+
+def query_brand_metrics(
+    user_id: str,
+    job_id: str,
+    timeframe: str,
+    specific_date: Optional[str] = None,
+    brand: Optional[str] = None
+) -> List[Dict[str, Any]]:
+    start_date, end_date = get_date_range(timeframe, specific_date)
+
+    try:
+        with engine.connect() as conn:
+            columns_result = conn.execute(text("SHOW COLUMNS FROM qa_brand_state")).fetchall()
+            columns = {row[0] for row in columns_result}
+
+            id_column = (
+                "conversation_id"
+                if "conversation_id" in columns
+                else "question_id"
+                if "question_id" in columns
+                else "id"
+            )
+
+            if "is_mentioned" not in columns:
+                raise Exception("qa_brand_state 表缺少 is_mentioned 字段")
+
+            first_mention_column = (
+                "is_first_mentioned"
+                if "is_first_mentioned" in columns
+                else "is_first_mention"
+                if "is_first_mention" in columns
+                else "is_first_mentioned"
+            )
+
+            keyword_column = "keyword" if "keyword" in columns else None
+
+            where_clauses = [
+                "user_id = :user_id",
+                "job_id = :job_id",
+                "date BETWEEN :start_date AND :end_date",
+            ]
+            params: Dict[str, Any] = {
+                "user_id": user_id,
+                "job_id": job_id,
+                "start_date": start_date,
+                "end_date": end_date,
+            }
+
+            if brand:
+                where_clauses.append("brand = :brand")
+                params["brand"] = brand
+
+            where_sql = " AND ".join(where_clauses)
+
+            keyword_coverage_expr = (
+                "COUNT(DISTINCT CASE WHEN is_mentioned = 1 THEN keyword END)"
+                if keyword_column
+                else "0"
+            )
+
+            query = f"""
+            SELECT
+                brand,
+                COUNT(DISTINCT {id_column}) AS prompt_count,
+                SUM(is_mentioned) AS mention_count,
+                SUM({first_mention_column}) AS first_mention_count,
+                {keyword_coverage_expr} AS keyword_coverage
+            FROM qa_brand_state
+            WHERE {where_sql}
+            GROUP BY brand
+            ORDER BY
+                CASE
+                    WHEN COUNT(DISTINCT {id_column}) = 0 THEN 0
+                    ELSE SUM(is_mentioned) / COUNT(DISTINCT {id_column})
+                END DESC,
+                brand ASC
+            """
+
+            result = conn.execute(text(query), params)
+            rows = result.fetchall()
+
+            if not rows:
+                return []
+
+            metrics: List[Dict[str, Any]] = []
+            for row in rows:
+                prompt_count = int(row[1]) if row[1] else 0
+                mention_count = int(row[2]) if row[2] else 0
+                first_mention_count = int(row[3]) if row[3] else 0
+                keyword_coverage = int(row[4]) if row[4] else 0
+
+                mention_rate = (
+                    round(mention_count / prompt_count, 4) if prompt_count > 0 else 0.0
+                )
+                first_mention_rate = (
+                    round(first_mention_count / prompt_count, 4)
+                    if prompt_count > 0
+                    else 0.0
+                )
+
+                metrics.append(
+                    {
+                        "brand": row[0],
+                        "platform": "deepseek",
+                        "mention_rate": mention_rate,
+                        "first_mention_rate": first_mention_rate,
+                        "citation_rate_by_post": 0.0,
+                        "prompt_count": prompt_count,
+                        "citation_source_count": 0,
+                        "keyword_coverage": keyword_coverage,
+                    }
+                )
+
+            return metrics
+    except Exception as e:
+        logger.error("查询品牌总指标数据失败: %s", str(e))
+        raise Exception(f"查询品牌总指标数据失败: {str(e)}") from e
+
+
+def query_platform_metrics_by_brand(
+    user_id: str,
+    job_id: str,
+    brand: str,
+    timeframe: str,
+    specific_date: Optional[str] = None,
+) -> List[Dict[str, Any]]:
+    start_date, end_date = get_date_range(timeframe, specific_date)
+
+    try:
+        with engine.connect() as conn:
+            columns_result = conn.execute(text("SHOW COLUMNS FROM qa_brand_state")).fetchall()
+            columns = {row[0] for row in columns_result}
+
+            if "is_mentioned" not in columns:
+                raise Exception("qa_brand_state 表缺少 is_mentioned 字段")
+
+            if "platform" not in columns:
+                raise Exception("qa_brand_state 表缺少 platform 字段")
+
+            where_sql = " AND ".join(
+                [
+                    "user_id = :user_id",
+                    "job_id = :job_id",
+                    "brand = :brand",
+                    "date BETWEEN :start_date AND :end_date",
+                ]
+            )
+            params: Dict[str, Any] = {
+                "user_id": user_id,
+                "job_id": job_id,
+                "brand": brand,
+                "start_date": start_date,
+                "end_date": end_date,
+            }
+
+            query = f"""
+            SELECT
+                platform,
+                SUM(is_mentioned) AS mention_count,
+                COUNT(*) AS total_count
+            FROM qa_brand_state
+            WHERE {where_sql}
+            GROUP BY platform
+            ORDER BY platform ASC
+            """
+
+            rows = conn.execute(text(query), params).fetchall()
+            if not rows:
+                return []
+
+            result: List[Dict[str, Any]] = []
+            for platform, mention_count, total_count in rows:
+                mention_count_int = int(mention_count) if mention_count else 0
+                total_count_int = int(total_count) if total_count else 0
+                mention_rate = (
+                    round(mention_count_int / total_count_int, 4) if total_count_int > 0 else 0.0
+                )
+                result.append({"platform": platform, "mention_rate": mention_rate})
+
+            return result
+    except Exception as e:
+        logger.error("查询平台指标数据失败: %s", str(e))
+        raise Exception(f"查询平台指标数据失败: {str(e)}") from e

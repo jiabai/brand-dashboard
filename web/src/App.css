@@ -112,7 +112,7 @@
   grid-template-rows: auto auto;
   gap: var(--spacing-xl);
   grid-template-areas:
-    "brand model"
+    "brand platform"
     "references references";
   min-width: 0;
 }
@@ -122,8 +122,8 @@
   min-width: 0;
 }
 
-.model-section {
-  grid-area: model;
+.platform-section {
+  grid-area: platform;
   min-width: 0;
 }
 
@@ -267,7 +267,7 @@
 
 /* Common Component Layout */
 .brand-mention-rate,
-.model-mention-rates,
+.platform-mention-rates,
 .references-table {
   height: 100%;
   display: flex;
@@ -383,22 +383,22 @@
 }
 
 /* ========================================
-   MODEL MENTION RATES COMPONENT
+   PLATFORM MENTION RATES COMPONENT
    ======================================== */
 
-.models-container {
+.platforms-container {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-lg);
 }
 
-.model-item {
+.platform-item {
   display: flex;
   align-items: center;
   gap: var(--spacing-md);
 }
 
-.model-name {
+.platform-name {
   min-width: 80px;
   text-align: right;
   font-weight: var(--font-weight-medium);
@@ -425,7 +425,7 @@
     grid-template-columns: 1fr;
     grid-template-areas:
       "brand"
-      "model"
+      "platform"
       "references";
   }
 
@@ -478,11 +478,11 @@
     gap: var(--spacing-md);
   }
 
-  .model-item {
+  .platform-item {
     flex-wrap: wrap;
   }
 
-  .model-name {
+  .platform-name {
     width: 100%;
     text-align: left;
   }

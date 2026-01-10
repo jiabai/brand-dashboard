@@ -17,7 +17,7 @@ const Sidebar = ({ collapsed, onCollapse }) => {
   const menuItems = [
     { key: 'home', icon: <HomeOutlined />, label: '首页' },
     { key: 'trend', icon: <LineChartOutlined />, label: '趋势分析' },
-    { key: 'models', icon: <BarChartOutlined />, label: '分模型分析' },
+    { key: 'platforms', icon: <BarChartOutlined />, label: '分平台分析' },
     { key: 'sources', icon: <MessageOutlined />, label: '信源分析' },
     { key: 'snapshots', icon: <PictureOutlined />, label: '问答快照' },
     { key: 'settings', icon: <SettingOutlined />, label: '品牌设置' },

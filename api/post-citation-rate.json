@@ -1,0 +1,113 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Brand Dashboard API",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/api/dashboard/post-citation-rate": {
+      "get": {
+        "summary": "获取品牌发文引用率信息",
+        "description": "获取品牌参考引用信息，基于`qa_reference`表计算",
+        "operationId": "get_post_citation_rate",
+        "parameters": [
+          {
+            "name": "brand",
+            "in": "query",
+            "description": "品牌名称",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "timeframe",
+            "in": "query",
+            "description": "时间范围，可选值: `yesterday`, `7days`, `30days`",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "yesterday",
+                "7days",
+                "30days"
+              ]
+            }
+          },
+          {
+            "name": "date",
+            "in": "query",
+            "description": "具体日期，格式: `YYYYMMDD`",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PostCitationRateResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "PostCitationRateResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "description": "响应状态"
+          },
+          "data": {
+            "type": "array",
+            "description": "数据列表",
+            "items": {
+              "$ref": "#/components/schemas/PostCitationRateData"
+            }
+          },
+          "metadata": {
+            "type": "object",
+            "description": "元数据"
+          }
+        },
+        "required": [
+          "status",
+          "data",
+          "metadata"
+        ]
+      },
+      "PostCitationRateData": {
+        "type": "object",
+        "properties": {
+          "brand": {
+            "type": "string",
+            "description": "品牌名称"
+          },
+          "citation_source_count": {
+            "type": "integer",
+            "description": "引用来源数量"
+          },
+          "citation_rate_by_post": {
+            "type": "number",
+            "description": "发文引用率"
+          }
+        },
+        "required": [
+          "brand",
+          "citation_source_count",
+          "citation_rate_by_post"
+        ]
+      }
+    }
+  }
+}

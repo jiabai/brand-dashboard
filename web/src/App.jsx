@@ -3,8 +3,9 @@ import { Badge, ConfigProvider, Layout, Segmented, Space, Spin, Typography, them
 
 // Components
 import BrandMentionRate from './components/BrandMentionRate.jsx';
-import ModelMentionRates from './components/ModelMentionRates.jsx';
+import PlatformMentionRates from './components/PlatformMentionRates.jsx';
 import ReferencesTable from './components/ReferencesTable.jsx';
+import PlatformDetail from './components/PlatformDetail.jsx';
 import ErrorBoundary from './components/ErrorBoundary';
 import TaskName from './components/TaskName.jsx';
 import Sidebar from './components/Sidebar.jsx';
@@ -21,6 +22,7 @@ function Dashboard() {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isLoading, setIsLoading] = useState(false);
   const [siderCollapsed, setSiderCollapsed] = useState(false);
+  const [selectedPlatform, setSelectedPlatform] = useState(null);
   const loadingTimerRef = React.useRef(null);
 
   const timeOptions = [
@@ -103,23 +105,30 @@ function Dashboard() {
         <Content style={{ padding: 24 }}>
           <ErrorBoundary>
             <Spin spinning={isLoading} tip="正在加载数据...">
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'minmax(0, 1.2fr) minmax(0, 1.8fr)',
-                  gap: 16
-                }}
-              >
-                <div style={{ minWidth: 0 }}>
-                  <BrandMentionRate />
+              {selectedPlatform ? (
+                <PlatformDetail 
+                  platformName={selectedPlatform.name} 
+                  onBack={() => setSelectedPlatform(null)} 
+                />
+              ) : (
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'minmax(0, 1.2fr) minmax(0, 1.8fr)',
+                    gap: 16
+                  }}
+                >
+                  <div style={{ minWidth: 0 }}>
+                    <BrandMentionRate />
+                  </div>
+                  <div style={{ minWidth: 0 }}>
+                    <PlatformMentionRates onPlatformClick={setSelectedPlatform} />
+                  </div>
+                  <div style={{ minWidth: 0, gridColumn: '1 / -1' }}>
+                    <ReferencesTable />
+                  </div>
                 </div>
-                <div style={{ minWidth: 0 }}>
-                  <ModelMentionRates />
-                </div>
-                <div style={{ minWidth: 0, gridColumn: '1 / -1' }}>
-                  <ReferencesTable />
-                </div>
-              </div>
+              )}
             </Spin>
           </ErrorBoundary>
         </Content>

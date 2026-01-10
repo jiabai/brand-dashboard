@@ -10,13 +10,13 @@ export const DEFAULT_BRAND_DATA = {
   totalBrands: 10
 };
 
-export const DEFAULT_MODEL_DATA = [
-  { model: 'GPT-4', rate: 22.5 },
-  { model: 'Claude', rate: 18.3 },
-  { model: 'Gemini', rate: 15.7 },
-  { model: 'Ernie Bot', rate: 12.8 },
-  { model: 'Qwen', rate: 10.2 },
-  { model: 'LLaMA', rate: 8.9 }
+export const DEFAULT_PLATFORM_DATA = [
+  { name: 'GPT-4', rate: 22.5 },
+  { name: 'Claude', rate: 18.3 },
+  { name: 'Gemini', rate: 15.7 },
+  { name: 'Ernie Bot', rate: 12.8 },
+  { name: 'Qwen', rate: 10.2 },
+  { name: 'LLaMA', rate: 8.9 }
 ];
 
 export const DEFAULT_REFERENCES_DATA = [
@@ -44,9 +44,9 @@ export const validateBrandData = (data) => {
     typeof data.change === 'number';
 };
 
-export const validateModelData = (data) => {
+export const validatePlatformData = (data) => {
   return Array.isArray(data) && data.every(item => 
-    item.model && typeof item.rate === 'number'
+    item.name && typeof item.rate === 'number'
   );
 };
 

@@ -1,5 +1,360 @@
 # Dashboard API 文档
 
+## 品牌总指标 API
+
+---------------------
+
+### 接口信息
+- **路径**: `/api/dashboard/brand-metrics`
+- **方法**: `GET`
+- **描述**: 获取品牌总指标，基于`qa_brand_state`表计算
+
+### 请求参数
+
+| 参数名 | 类型 | 必填 | 描述 |
+|--------|------|------|------|
+| user_id | string | 是 | 用户ID |
+| job_id | string | 是 | 任务ID |
+| timeframe | string | 是 | 时间范围，可选值: `yesterday`, `7days`, `30days` |
+| date | string | 否 | 具体日期，格式: `YYYYMMDD` |
+| brand | string | 否 | 品牌名称 |
+
+### 响应格式
+
+```json
+{
+  "status": "success",
+  "data": [
+    {
+      "brand": "学而思",
+      "platform": "deepseek",
+      "mention_rate": 0.3333,
+      "first_mention_rate": 0.0000,
+      "citation_rate_by_post": 0,
+      "prompt_count": 15,
+      "citation_source_count": 0,
+      "keyword_coverage": 3
+    },
+    {
+      "brand": "新东方",
+      "platform": "deepseek",
+      "mention_rate": 0.2667,
+      "first_mention_rate": 0.1333,
+      "citation_rate_by_post": 0,
+      "prompt_count": 15,
+      "citation_source_count": 0,
+      "keyword_coverage": 2
+    },
+    {
+      "brand": "作业帮",
+      "platform": "deepseek",
+      "mention_rate": 0.2000,
+      "first_mention_rate": 0.0000,
+      "citation_rate_by_post": 0,
+      "prompt_count": 15,
+      "citation_source_count": 0,
+      "keyword_coverage": 3
+    },
+    ......
+  ],
+  "metadata": {
+    "timeframe": "7days",
+    "calculation_method": "mention_count_ratio"
+  }
+}
+```
+
+### 响应字段说明
+
+| 字段名 | 类型 | 描述 |
+|--------|------|------|
+| status | string | 响应状态，"success" 或 "error" |
+| brand | string | 品牌名称 |
+| platform | string | 平台名称（如：DeepSeek、豆包、千问 等） |
+| mention_rate | float | 品牌总提及率（百分比） |
+| first_mention_rate | float | 首次提及品牌率（百分比） |
+| citation_rate_by_post | float | 引用率（每个帖子的引用次数占总引用次数的比例） |
+| prompt_count | int | 问题总数 |
+| citation_source_count | int | 引用来源数量 |
+| keyword_coverage | int | 问题的答案提及品牌时，问题所属关键词的个数 |
+
+### 数据计算逻辑
+
+当请求参数不带brand='xxx'时，返回所有品牌的指标：
+```sql
+SELECT 
+    brand,
+    COUNT(DISTINCT conversation_id) AS prompt_count,
+    SUM(is_mentioned) / COUNT(DISTINCT conversation_id) AS mention_rate,
+    SUM(is_first_mention) / COUNT(DISTINCT conversation_id) AS first_mention_rate,
+    0 AS citation_rate_by_post,
+    0 AS citation_source_count,
+    COUNT(DISTINCT CASE WHEN is_mentioned = 1 THEN keyword END) AS keyword_coverage
+FROM qa_brand_state
+WHERE 
+    user_id = <user_id>
+    AND job_id = <job_id>
+    AND date >= CURDATE() - INTERVAL 6 DAY   -- 过去7天（含今天）
+    AND date <= CURDATE()
+GROUP BY brand
+ORDER BY mention_rate DESC, brand ASC;
+```
+
+当请求参数带brand='xxx'时，返回指定品牌的指标：
+```sql
+SELECT 
+    brand,
+    COUNT(DISTINCT conversation_id) AS prompt_count,
+    SUM(is_mentioned) / COUNT(DISTINCT conversation_id) AS mention_rate,
+    SUM(is_first_mention) / COUNT(DISTINCT conversation_id) AS first_mention_rate,
+    0 AS citation_rate_by_post,
+    0 AS citation_source_count,
+    COUNT(DISTINCT CASE WHEN is_mentioned = 1 THEN keyword END) AS keyword_coverage
+FROM qa_brand_state
+WHERE 
+    user_id = <user_id>
+    AND job_id = <job_id>
+    AND brand = <brand>
+    AND date >= CURDATE() - INTERVAL 6 DAY   -- 过去7天（含今天）
+    AND date <= CURDATE();
+```
+`
+
+--------------------------
+
+### 接口信息
+- **路径**: `/api/dashboard/platform-metrics-by-brand`
+- **方法**: `GET`
+- **描述**: 获取品牌总指标，基于`qa_brand_state`表计算
+
+### 请求参数
+
+| 参数名 | 类型 | 必填 | 描述 |
+|--------|------|------|------|
+| user_id | string | 是 | 用户ID |
+| job_id | string | 是 | 任务ID |
+| brand | string | 是 | 品牌名称 |
+| timeframe | string | 是 | 时间范围，可选值: `yesterday`, `7days`, `30days` |
+| date | string | 否 | 具体日期，格式: `YYYYMMDD` |
+
+### 响应格式
+
+```json
+{
+  "status": "success",
+  "data": {
+      "brand": "学而思",
+      "platforms": [
+        {
+          "platform": "deepseek",
+          "mention_rate": 0.3333,
+        },
+        {
+          "platform": "豆包",
+          "mention_rate": 0.4667,
+        },
+        {
+          "platform": "千问",
+          "mention_rate": 0.2465,
+        },
+      ]
+  },
+  "metadata": {
+    "timeframe": "7days",
+    "calculation_method": "platform_metrics_by_brand"
+  }
+}
+```
+
+### 响应字段说明
+
+| 字段名 | 类型 | 描述 |
+|--------|------|------|
+| status | string | 响应状态，"success" 或 "error" |
+| brand | string | 品牌名称 |
+| platforms | array | 平台指标列表 |
+| platform | string | 平台名称 |
+| mention_rate | float | 平台提及率（百分比） |
+
+### 数据计算逻辑
+
+```sql
+SELECT 
+    platform,
+    SUM(is_mentioned) / COUNT(*) AS mention_rate
+FROM qa_brand_state
+WHERE 
+    user_id = <user_id>
+    AND job_id = <job_id>
+    AND brand = <brand>
+    AND date >= CURDATE() - INTERVAL 6 DAY
+    AND date <= CURDATE()
+GROUP BY platform
+ORDER BY platform ASC;
+```
+
+---------------------
+
+### 接口信息
+- **路径**: `/api/dashboard/post-citation-rate`
+- **方法**: `GET`
+- **描述**: 获取品牌参考引用信息，基于`qa_reference`表计算
+
+### 请求参数
+
+| 参数名 | 类型 | 必填 | 描述 |
+|--------|------|------|------|
+| user_id | string | 是 | 用户ID |
+| job_id | string | 是 | 任务ID |
+| brand | string | 是 | 品牌名称 |
+| timeframe | string | 是 | 时间范围，可选值: `yesterday`, `7days`, `30days` |
+| date | string | 否 | 具体日期，格式: `YYYYMMDD` |
+
+### 响应格式
+
+```json
+{
+  "status": "success",
+  "data": [
+    {
+      "brand": "xxx",
+      "citation_source_count": 104,
+      "citation_rate_by_post": 0.0
+    }
+  ],
+  "metadata": {
+    "timeframe": "7days",
+    "calculation_method": "post_citation_rate"
+  }
+}
+```
+
+### 响应字段说明
+
+| 字段名 | 类型 | 描述 |
+|--------|------|------|
+| brand | string | 品牌名称 |
+| citation_source_count | int | 引用来源数量 |
+| citation_rate_by_post | float | 发文引用率（发文的引用次数占总引用次数的比例） |
+
+### 数据计算逻辑
+
+```sql
+SELECT
+    brand,
+    COUNT(DISTINCT qr.domain) AS 引用信源数值,
+    COALESCE(
+        (
+            SELECT AVG(has_published_link)
+            FROM (
+                SELECT
+                    conversation_id,
+                    MAX(is_published_link) AS has_published_link
+                FROM qa_reference
+                WHERE 
+                    user_id = <user_id>
+                    AND job_id = <job_id>
+                    AND brand = <brand>
+                    AND date >= CURDATE() - INTERVAL 6 DAY
+                    AND date <= CURDATE()
+                GROUP BY conversation_id
+            ) AS conv_stats
+        ),
+        0
+    ) AS 发文引用率
+FROM qa_reference qr
+WHERE
+    qr.user_id = <user_id>
+    AND qr.job_id = <job_id>
+    AND qr.brand = <brand>
+    AND qr.date >= CURDATE() - INTERVAL 6 DAY
+    AND qr.date <= CURDATE()
+GROUP BY brand;
+```
+---------------------
+
+### 接口信息
+- **路径**: `/api/dashboard/domain-citation-rate`
+- **方法**: `GET`
+- **描述**: 获取品牌参考引用信息，基于`qa_reference`表计算
+
+### 请求参数
+
+| 参数名 | 类型 | 必填 | 描述 |
+|--------|------|------|------|
+| user_id | string | 是 | 用户ID |
+| job_id | string | 是 | 任务ID |
+| brand | string | 是 | 品牌名称 |
+| timeframe | string | 是 | 时间范围，可选值: `yesterday`, `7days`, `30days` |
+| date | string | 否 | 具体日期，格式: `YYYYMMDD` |
+
+### 响应格式
+
+```json
+{
+  "status": "success",
+  "domain_distribution": [
+    {
+      "domain": "www.baidu.com",
+      "domain-citation-rate": 8.96
+    },
+    {
+      "domain": "www.google.com",
+      "domain-citation-rate": 3.73
+    },
+    {
+      "domain": "www.zhihu.com",
+      "domain-citation-rate": 2.34
+    },
+    ......
+  ],
+  "metadata": {
+    "timeframe": "7days",
+    "calculation_method": "domain_citation_rate"
+  }
+}
+```
+
+### 响应字段说明
+
+| 字段名 | 类型 | 描述 |
+|--------|------|------|
+| status | string | 响应状态，"success" 或 "error" |
+| domain_distribution | array | 域名引用率分布 |
+| domain | string | 域名 |
+| domain-citation-rate | float | 域名引用率 |
+| metadata | object | 元数据 |
+| timeframe | string | 时间范围 |
+| calculation_method | string | 计算方法 |
+
+### 数据计算逻辑
+
+```sql
+SELECT 
+    domain,
+    ROUND(
+        COUNT(*) * 100.0 / (
+            SELECT COUNT(*)
+            FROM qa_reference
+            WHERE brand = <brand>
+              AND domain IS NOT NULL
+              AND date >= CURDATE() - INTERVAL 6 DAY
+        ),
+        2
+    ) AS percentage
+FROM qa_reference
+WHERE
+    user_id = <user_id>
+    AND job_id = <job_id>
+    AND brand = <brand>
+    AND domain IS NOT NULL
+    AND date >= CURDATE() - INTERVAL 6 DAY
+GROUP BY domain
+ORDER BY percentage DESC;
+```
+
+---------------------------
+
 ## 📊 品牌总提及率 API
 
 ### 接口信息
