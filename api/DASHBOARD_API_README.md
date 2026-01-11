@@ -27,7 +27,6 @@
   "data": [
     {
       "brand": "学而思",
-      "platform": "deepseek",
       "mention_rate": 0.3333,
       "first_mention_rate": 0.0000,
       "citation_rate_by_post": 0,
@@ -37,7 +36,6 @@
     },
     {
       "brand": "新东方",
-      "platform": "deepseek",
       "mention_rate": 0.2667,
       "first_mention_rate": 0.1333,
       "citation_rate_by_post": 0,
@@ -47,7 +45,6 @@
     },
     {
       "brand": "作业帮",
-      "platform": "deepseek",
       "mention_rate": 0.2000,
       "first_mention_rate": 0.0000,
       "citation_rate_by_post": 0,
@@ -70,10 +67,9 @@
 |--------|------|------|
 | status | string | 响应状态，"success" 或 "error" |
 | brand | string | 品牌名称 |
-| platform | string | 平台名称（如：DeepSeek、豆包、千问 等） |
 | mention_rate | float | 品牌总提及率（百分比） |
 | first_mention_rate | float | 首次提及品牌率（百分比） |
-| citation_rate_by_post | float | 引用率（每个帖子的引用次数占总引用次数的比例） |
+| citation_rate_by_post | float | 发文引用率（发文的引用次数占总引用次数的比例） |
 | prompt_count | int | 问题总数 |
 | citation_source_count | int | 引用来源数量 |
 | keyword_coverage | int | 问题的答案提及品牌时，问题所属关键词的个数 |
@@ -94,8 +90,8 @@ FROM qa_brand_state
 WHERE 
     user_id = <user_id>
     AND job_id = <job_id>
-    AND date >= CURDATE() - INTERVAL 6 DAY   -- 过去7天（含今天）
-    AND date <= CURDATE()
+    AND `date` >= CURDATE() - INTERVAL <timeframe> DAY
+    AND `date` <= CURDATE()
 GROUP BY brand
 ORDER BY mention_rate DESC, brand ASC;
 ```
@@ -115,10 +111,9 @@ WHERE
     user_id = <user_id>
     AND job_id = <job_id>
     AND brand = <brand>
-    AND date >= CURDATE() - INTERVAL 6 DAY   -- 过去7天（含今天）
-    AND date <= CURDATE();
+    AND `date` >= CURDATE() - INTERVAL <timeframe> DAY
+    AND `date` <= CURDATE();
 ```
-`
 
 --------------------------
 
@@ -187,12 +182,11 @@ WHERE
     user_id = <user_id>
     AND job_id = <job_id>
     AND brand = <brand>
-    AND date >= CURDATE() - INTERVAL 6 DAY
+    AND date >= CURDATE() - INTERVAL <timeframe> DAY
     AND date <= CURDATE()
 GROUP BY platform
 ORDER BY platform ASC;
 ```
-
 ---------------------
 
 ### 接口信息
@@ -255,7 +249,7 @@ SELECT
                     user_id = <user_id>
                     AND job_id = <job_id>
                     AND brand = <brand>
-                    AND date >= CURDATE() - INTERVAL 6 DAY
+                    AND date >= CURDATE() - INTERVAL <timeframe> DAY
                     AND date <= CURDATE()
                 GROUP BY conversation_id
             ) AS conv_stats
@@ -267,7 +261,7 @@ WHERE
     qr.user_id = <user_id>
     AND qr.job_id = <job_id>
     AND qr.brand = <brand>
-    AND qr.date >= CURDATE() - INTERVAL 6 DAY
+    AND qr.date >= CURDATE() - INTERVAL <timeframe> DAY
     AND qr.date <= CURDATE()
 GROUP BY brand;
 ```
@@ -336,9 +330,12 @@ SELECT
         COUNT(*) * 100.0 / (
             SELECT COUNT(*)
             FROM qa_reference
-            WHERE brand = <brand>
+            WHERE 
+              user_id = <user_id>
+              AND job_id = <job_id>
+              AND brand = <brand>
               AND domain IS NOT NULL
-              AND date >= CURDATE() - INTERVAL 6 DAY
+              AND date >= CURDATE() - INTERVAL <timeframe> DAY
         ),
         2
     ) AS percentage
@@ -348,11 +345,10 @@ WHERE
     AND job_id = <job_id>
     AND brand = <brand>
     AND domain IS NOT NULL
-    AND date >= CURDATE() - INTERVAL 6 DAY
+    AND date >= CURDATE() - INTERVAL <timeframe> DAY
 GROUP BY domain
 ORDER BY percentage DESC;
 ```
-
 ---------------------------
 
 ## 📊 品牌总提及率 API

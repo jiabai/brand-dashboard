@@ -347,6 +347,67 @@ def query_post_citation_rate(
         logger.error("查询发文引用率数据失败: %s", str(e))
         raise
 
+
+def query_domain_citation_rate(
+    user_id: str,
+    job_id: str,
+    brand: str,
+    timeframe: str,
+    specific_date: Optional[str] = None,
+) -> List[Dict[str, Any]]:
+    start_date, end_date = get_date_range(timeframe, specific_date)
+    start_datetime = datetime.combine(start_date, datetime.min.time())
+    end_datetime = datetime.combine(end_date, datetime.max.time())
+
+    total_query = """
+    SELECT COUNT(*)
+    FROM qa_reference
+    WHERE user_id = :user_id
+    AND job_id = :job_id
+    AND brand = :brand
+    AND domain IS NOT NULL
+    AND created_at BETWEEN :start_date AND :end_date
+    """
+
+    domain_query = """
+    SELECT domain, COUNT(*) AS domain_count
+    FROM qa_reference
+    WHERE user_id = :user_id
+    AND job_id = :job_id
+    AND brand = :brand
+    AND domain IS NOT NULL
+    AND created_at BETWEEN :start_date AND :end_date
+    GROUP BY domain
+    ORDER BY domain_count DESC
+    """
+
+    params: Dict[str, Any] = {
+        "user_id": user_id,
+        "job_id": job_id,
+        "brand": brand,
+        "start_date": start_datetime,
+        "end_date": end_datetime,
+    }
+
+    try:
+        with engine.connect() as conn:
+            total_count = conn.execute(text(total_query), params).scalar() or 0
+            total_count_int = int(total_count)
+            if total_count_int <= 0:
+                return []
+
+            rows = conn.execute(text(domain_query), params).fetchall()
+            result: List[Dict[str, Any]] = []
+            for domain, domain_count in rows:
+                domain_count_int = int(domain_count) if domain_count else 0
+                percentage = round(domain_count_int * 100.0 / total_count_int, 2)
+                result.append({"domain": domain, "domain_citation_rate": percentage})
+
+            return result
+    except Exception as e:
+        logger.error("查询域名引用率数据失败: %s", str(e))
+        raise
+
 def query_reference_url_stats(
     timeframe: str,
     specific_date: Optional[str] = None
@@ -664,10 +725,9 @@ def query_brand_metrics(
                 metrics.append(
                     {
                         "brand": row[0],
-                        "platform": "deepseek",
                         "mention_rate": mention_rate,
                         "first_mention_rate": first_mention_rate,
-                        "citation_rate_by_post": 0.0,
+                        "citation_rate_by_post": 0,
                         "prompt_count": prompt_count,
                         "citation_source_count": 0,
                         "keyword_coverage": keyword_coverage,

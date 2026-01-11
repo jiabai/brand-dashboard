@@ -1,0 +1,164 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Brand Analysis API",
+    "description": "品牌分析API服务，为dashboard提供数据接口",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/api/dashboard/domain-citation-rate": {
+      "get": {
+        "tags": [
+          "dashboard"
+        ],
+        "summary": "Get Domain Citation Rate",
+        "description": "获取品牌参考引用信息，基于qa_reference表计算",
+        "operationId": "get_domain_citation_rate_api_dashboard_domain_citation_rate_get",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "User Id"
+            },
+            "description": "用户ID"
+          },
+          {
+            "name": "job_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Job Id"
+            },
+            "description": "任务ID"
+          },
+          {
+            "name": "brand",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Brand"
+            },
+            "description": "品牌名称"
+          },
+          {
+            "name": "timeframe",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "yesterday",
+                "7days",
+                "30days"
+              ],
+              "title": "Timeframe"
+            },
+            "description": "时间范围，可选值: yesterday, 7days, 30days"
+          },
+          {
+            "name": "date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "pattern": "^\\d{8}$",
+              "title": "Date"
+            },
+            "description": "具体日期，格式: YYYYMMDD"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "status",
+                    "domain_distribution",
+                    "metadata"
+                  ],
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "success",
+                        "error"
+                      ]
+                    },
+                    "domain_distribution": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "domain",
+                          "domain-citation-rate"
+                        ],
+                        "properties": {
+                          "domain": {
+                            "type": "string"
+                          },
+                          "domain-citation-rate": {
+                            "type": "number",
+                            "format": "float"
+                          }
+                        },
+                        "additionalProperties": false
+                      }
+                    },
+                    "metadata": {
+                      "type": "object",
+                      "required": [
+                        "timeframe",
+                        "calculation_method"
+                      ],
+                      "properties": {
+                        "timeframe": {
+                          "type": "string"
+                        },
+                        "calculation_method": {
+                          "type": "string",
+                          "const": "domain_citation_rate"
+                        }
+                      },
+                      "additionalProperties": true
+                    }
+                  },
+                  "additionalProperties": true
+                },
+                "example": {
+                  "status": "success",
+                  "domain_distribution": [
+                    {
+                      "domain": "www.baidu.com",
+                      "domain-citation-rate": 8.96
+                    },
+                    {
+                      "domain": "www.google.com",
+                      "domain-citation-rate": 3.73
+                    },
+                    {
+                      "domain": "www.zhihu.com",
+                      "domain-citation-rate": 2.34
+                    }
+                  ],
+                  "metadata": {
+                    "timeframe": "7days",
+                    "calculation_method": "domain_citation_rate"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+

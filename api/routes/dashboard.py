@@ -3,12 +3,13 @@ from enum import Enum
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, HTTPException, Query
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from api.repositories.database import (
     query_brand_mention_data,
     query_brand_metrics,
     query_brand_platform_mention_data,
+    query_domain_citation_rate,
     query_platform_metrics_by_brand,
     query_post_citation_rate,
     query_reference_url_stats,
@@ -72,7 +73,6 @@ class ReferenceUrlResponse(BaseModel):
 
 class BrandMetricsItem(BaseModel):
     brand: str = Field(..., description="品牌名称")
-    platform: str = Field(..., description="平台名称")
     mention_rate: float = Field(..., description="品牌总提及率")
     first_mention_rate: float = Field(..., description="首次提及品牌率")
     citation_rate_by_post: float = Field(..., description="引用率")
@@ -100,6 +100,23 @@ class PlatformMetricsByBrandData(BaseModel):
 class PlatformMetricsByBrandResponse(BaseModel):
     status: str = Field(..., description="响应状态")
     data: PlatformMetricsByBrandData = Field(..., description="品牌平台指标数据")
+    metadata: Dict[str, Any] = Field(..., description="元数据")
+
+
+class DomainCitationRateItem(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    domain: str = Field(..., description="域名")
+    domain_citation_rate: float = Field(
+        ...,
+        alias="domain-citation-rate",
+        description="域名引用率",
+    )
+
+
+class DomainCitationRateResponse(BaseModel):
+    status: str = Field(..., description="响应状态")
+    domain_distribution: List[DomainCitationRateItem] = Field(..., description="域名引用率分布")
     metadata: Dict[str, Any] = Field(..., description="元数据")
 
 
@@ -295,7 +312,6 @@ async def get_brand_metrics(
         data = [
             BrandMetricsItem(
                 brand=item["brand"],
-                platform=item["platform"],
                 mention_rate=item["mention_rate"],
                 first_mention_rate=item["first_mention_rate"],
                 citation_rate_by_post=item["citation_rate_by_post"],
@@ -358,6 +374,43 @@ async def get_platform_metrics_by_brand(
         raise HTTPException(status_code=400, detail=str(e)) from e
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"获取平台指标失败: {str(e)}") from e
+
+
+@router.get("/domain-citation-rate", response_model=DomainCitationRateResponse)
+async def get_domain_citation_rate(
+    user_id: str = Query(..., description="用户ID"),
+    job_id: str = Query(..., description="任务ID"),
+    brand: str = Query(..., description="品牌名称"),
+    timeframe: TimeFrame = Query(..., description="时间范围"),
+    date: Optional[str] = Query(None, description="具体日期(格式: YYYYMMDD)"),
+):
+    try:
+        domain_distribution = query_domain_citation_rate(
+            user_id=user_id,
+            job_id=job_id,
+            brand=brand,
+            timeframe=timeframe.value,
+            specific_date=date,
+        )
+
+        return DomainCitationRateResponse(
+            status="success",
+            domain_distribution=[
+                DomainCitationRateItem(
+                    domain=item["domain"],
+                    domain_citation_rate=item["domain_citation_rate"],
+                )
+                for item in domain_distribution
+            ],
+            metadata={
+                "timeframe": timeframe.value,
+                "calculation_method": "domain_citation_rate",
+            },
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"获取域名引用率失败: {str(e)}") from e
 
 
 @router.get("/post-citation-rate", response_model=PostCitationRateResponse)

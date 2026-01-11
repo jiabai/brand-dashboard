@@ -15,28 +15,43 @@
         "operationId": "get_brand_metrics_api_dashboard_brand_metrics_get",
         "parameters": [
           {
-            "name": "timeframe",
+            "name": "user_id",
             "in": "query",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/TimeFrame",
-              "description": "时间范围"
+              "type": "string"
             },
-            "description": "时间范围"
+            "description": "用户ID"
+          },
+          {
+            "name": "job_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "任务ID"
+          },
+          {
+            "name": "timeframe",
+            "in": "query",
+            "description": "时间范围，可选值: `yesterday`, `7days`, `30days`",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "yesterday",
+                "7days",
+                "30days"
+              ]
+            }
           },
           {
             "name": "date",
             "in": "query",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
+              "type": "string",
               "description": "具体日期(格式: YYYYMMDD)",
               "title": "Date"
             },
@@ -47,14 +62,7 @@
             "in": "query",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
+              "type": "string",
               "description": "品牌名称",
               "title": "Brand"
             },

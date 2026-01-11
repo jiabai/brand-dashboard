@@ -5,11 +5,11 @@
     "version": "1.0.0"
   },
   "paths": {
-    "/api/dashboard/post-citation-rate": {
+    "/api/dashboard/platform-metrics-by-brand": {
       "get": {
-        "summary": "获取品牌发文引用率信息",
-        "description": "获取品牌参考引用信息，基于`qa_reference`表计算",
-        "operationId": "get_post_citation_rate",
+        "summary": "获取品牌平台指标",
+        "description": "获取品牌总指标，基于`qa_brand_state`表计算",
+        "operationId": "get_platform_metrics_by_brand",
         "parameters": [
           {
             "name": "user_id",
@@ -55,11 +55,11 @@
           {
             "name": "date",
             "in": "query",
-            "description": "具体日期，格式: `YYYYMMDD`",
             "required": false,
             "schema": {
               "type": "string"
-            }
+            },
+            "description": "具体日期(格式: YYYYMMDD)"
           }
         ],
         "responses": {
@@ -68,7 +68,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PostCitationRateResponse"
+                  "$ref": "#/components/schemas/PlatformMetricsByBrandResponse"
                 }
               }
             }
@@ -79,7 +79,7 @@
   },
   "components": {
     "schemas": {
-      "PostCitationRateResponse": {
+      "PlatformMetricsByBrandResponse": {
         "type": "object",
         "properties": {
           "status": {
@@ -87,14 +87,10 @@
             "description": "响应状态"
           },
           "data": {
-            "type": "array",
-            "description": "数据列表",
-            "items": {
-              "$ref": "#/components/schemas/PostCitationRateData"
-            }
+            "$ref": "#/components/schemas/PlatformMetricsByBrandData"
           },
           "metadata": {
-            "$ref": "#/components/schemas/PostCitationRateMetadata"
+            "$ref": "#/components/schemas/PlatformMetricsByBrandMetadata"
           }
         },
         "required": [
@@ -103,7 +99,44 @@
           "metadata"
         ]
       },
-      "PostCitationRateMetadata": {
+      "PlatformMetricsByBrandData": {
+        "type": "object",
+        "properties": {
+          "brand": {
+            "type": "string",
+            "description": "品牌名称"
+          },
+          "platforms": {
+            "type": "array",
+            "description": "平台指标列表",
+            "items": {
+              "$ref": "#/components/schemas/PlatformMetricsByBrandItem"
+            }
+          }
+        },
+        "required": [
+          "brand",
+          "platforms"
+        ]
+      },
+      "PlatformMetricsByBrandItem": {
+        "type": "object",
+        "properties": {
+          "platform": {
+            "type": "string",
+            "description": "平台名称"
+          },
+          "mention_rate": {
+            "type": "number",
+            "description": "平台提及率"
+          }
+        },
+        "required": [
+          "platform",
+          "mention_rate"
+        ]
+      },
+      "PlatformMetricsByBrandMetadata": {
         "type": "object",
         "properties": {
           "timeframe": {
@@ -119,29 +152,8 @@
           "timeframe",
           "calculation_method"
         ]
-      },
-      "PostCitationRateData": {
-        "type": "object",
-        "properties": {
-          "brand": {
-            "type": "string",
-            "description": "品牌名称"
-          },
-          "citation_source_count": {
-            "type": "integer",
-            "description": "引用来源数量"
-          },
-          "citation_rate_by_post": {
-            "type": "number",
-            "description": "发文引用率"
-          }
-        },
-        "required": [
-          "brand",
-          "citation_source_count",
-          "citation_rate_by_post"
-        ]
       }
     }
   }
 }
+
