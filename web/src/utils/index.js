@@ -32,7 +32,11 @@ export const DEFAULT_REFERENCES_DATA = [
 
 // 工具函数
 export const formatPercentage = (value) => {
-  return `${value}%`;
+  const num = Number(value);
+  if (!Number.isFinite(num)) return '0%';
+  // 处理浮点数精度问题并保留两位小数
+  const rounded = Math.round(num * 100) / 100;
+  return `${rounded.toFixed(2)}%`;
 };
 
 

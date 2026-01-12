@@ -11,18 +11,18 @@ import {
   SettingOutlined
 } from '@ant-design/icons';
 
+const MENU_ITEMS = [
+  { key: 'home', icon: <HomeOutlined />, label: '首页' },
+  { key: 'trend', icon: <LineChartOutlined />, label: '趋势分析' },
+  { key: 'platforms', icon: <BarChartOutlined />, label: '分平台分析' },
+  { key: 'sources', icon: <MessageOutlined />, label: '信源分析' },
+  { key: 'snapshots', icon: <PictureOutlined />, label: '问答快照' },
+  { key: 'settings', icon: <SettingOutlined />, label: '品牌设置' },
+  { key: 'subscribe', icon: <BookOutlined />, label: '订阅' }
+];
+
 const Sidebar = ({ collapsed, onCollapse }) => {
   const { token } = theme.useToken();
-
-  const menuItems = [
-    { key: 'home', icon: <HomeOutlined />, label: '首页' },
-    { key: 'trend', icon: <LineChartOutlined />, label: '趋势分析' },
-    { key: 'platforms', icon: <BarChartOutlined />, label: '分平台分析' },
-    { key: 'sources', icon: <MessageOutlined />, label: '信源分析' },
-    { key: 'snapshots', icon: <PictureOutlined />, label: '问答快照' },
-    { key: 'settings', icon: <SettingOutlined />, label: '品牌设置' },
-    { key: 'subscribe', icon: <BookOutlined />, label: '订阅' }
-  ];
 
   return (
     <Layout.Sider
@@ -65,11 +65,11 @@ const Sidebar = ({ collapsed, onCollapse }) => {
       <Menu
         mode="inline"
         defaultSelectedKeys={['home']}
-        items={menuItems}
+        items={MENU_ITEMS}
         style={{ border: 'none' }}
       />
     </Layout.Sider>
   );
 };
 
-export default Sidebar;
+export default React.memo(Sidebar);

@@ -1,39 +1,146 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Card, List, Progress, Typography, Statistic, Tag, theme } from 'antd';
 import { TrophyOutlined, ArrowUpOutlined, ArrowDownOutlined } from '@ant-design/icons';
 
-const PlatformMentionRates = ({ onPlatformClick }) => {
+const DEFAULT_USER_ID = '522ebe1d-49d3-435c-a1f9-03e659786cf6';
+const DEFAULT_JOB_ID = 'job_20260102_125104_7fad76ad';
+const DEFAULT_BRAND = '新东方';
+
+const buildQueryString = (params) => {
+  const searchParams = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value === undefined || value === null) return;
+    searchParams.set(key, String(value));
+  });
+  return searchParams.toString();
+};
+
+const fetchJson = async (url, { signal } = {}) => {
+  const response = await fetch(url, { method: 'GET', signal });
+  if (!response.ok) {
+    throw new Error(`请求失败(${response.status})`);
+  }
+  return response.json();
+};
+
+const toPercent = (value) => {
+  const num = Number(value);
+  if (!Number.isFinite(num)) return 0;
+  if (num > 0 && num <= 1) return num * 100;
+  return num;
+};
+
+const clampPercent = (value) => {
+  const num = Number(value);
+  if (!Number.isFinite(num)) return 0;
+  return Math.max(0, Math.min(100, num));
+};
+
+const roundTwoDecimals = (value) => {
+  const num = Number(value);
+  if (!Number.isFinite(num)) return 0;
+  return Math.round(num * 100) / 100;
+};
+
+const PLATFORM_COLORS = {
+  chatgpt: '#10b981',
+  gemini: '#3b82f6',
+  claude: '#f59e0b',
+  '通义千问': '#ef4444',
+  qwen: '#ef4444',
+  豆包: '#8b5cf6',
+  deepseek: '#06b6d4',
+  kimi: '#a855f7',
+  元宝: '#f97316',
+  夸克: '#ec4899',
+  文心一言: '#6b7280',
+};
+
+const getPlatformColor = (name) => {
+  const raw = String(name || '').trim();
+  if (!raw) return '#6b7280';
+  const keyLower = raw.toLowerCase();
+  return PLATFORM_COLORS[keyLower] || PLATFORM_COLORS[raw] || '#6b7280';
+};
+
+const PlatformMentionRates = ({
+  onPlatformClick,
+  timeframe = '7days',
+  date = '',
+  userId = DEFAULT_USER_ID,
+  jobId = DEFAULT_JOB_ID,
+  brand = DEFAULT_BRAND,
+}) => {
   const { token } = theme.useToken();
+  const abortControllerRef = useRef(null);
   const [platforms, setPlatforms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  const queryString = useMemo(
+    () =>
+      buildQueryString({
+        user_id: userId,
+        job_id: jobId,
+        brand,
+        timeframe,
+        date,
+      }),
+    [userId, jobId, brand, timeframe, date],
+  );
+
   useEffect(() => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     const fetchPlatformData = async () => {
       try {
-        // 模拟API调用
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        
-        const mockData = [
-          { name: '豆包', rate: 45, color: '#9254de', change: +4 },
-          { name: 'DeepSeek', rate: 38, color: '#13c2c2', change: 0 },
-          { name: '千问', rate: 35, color: token.colorError, change: -1 },
-          { name: '夸克', rate: 32, color: '#eb2f96', change: 0 },
-          { name: 'Kimi', rate: 28, color: '#531dab', change: -3 },
-          { name: '元宝', rate: 25, color: token.colorPrimary, change: +2 },
-          { name: 'AI抖音', rate: 22, color: token.colorWarning, change: +5 }
-        ];
-        
-        setPlatforms(mockData);
+        setLoading(true);
+        setError(null);
+
+        const data = await fetchJson(
+          `/api/dashboard/platform-metrics-by-brand?${queryString}`,
+          { signal: controller.signal },
+        );
+
+        if (data?.status && data.status !== 'success') {
+          throw new Error('接口返回错误状态');
+        }
+
+        const list = Array.isArray(data?.data?.platforms) ? data.data.platforms : [];
+
+        const nextPlatforms = list
+          .map((item) => {
+            const name = item?.platform;
+            const rate = roundTwoDecimals(clampPercent(toPercent(item?.mention_rate ?? 0)));
+            return {
+              name,
+              rate,
+              color: getPlatformColor(name) || token.colorPrimary,
+              change: 0,
+            };
+          })
+          .filter((item) => item.name)
+          .sort((a, b) => (b.rate || 0) - (a.rate || 0));
+
+        setPlatforms(nextPlatforms);
         setLoading(false);
       } catch (err) {
-        setError('数据加载失败');
+        if (controller.signal.aborted) return;
+        if (err?.name === 'AbortError') return;
+        setError(err?.message || '数据加载失败');
         setLoading(false);
       }
     };
 
     fetchPlatformData();
-  }, [token]);
+    return () => {
+      controller.abort();
+    };
+  }, [queryString, token.colorPrimary]);
 
   if (loading) {
     return (
@@ -72,7 +179,6 @@ const PlatformMentionRates = ({ onPlatformClick }) => {
               transition: 'all 0.3s ease',
               cursor: 'pointer'
             }}
-            hoverable
             onClick={() => {
               if (onPlatformClick) {
                 onPlatformClick(platform);
@@ -94,6 +200,7 @@ const PlatformMentionRates = ({ onPlatformClick }) => {
                 <Statistic
                   value={platform.rate}
                   suffix="%"
+                  precision={2}
                   valueStyle={{ color: platform.color, fontSize: token.fontSizeXL, fontWeight: 'bold' }}
                 />
               </div>
@@ -101,8 +208,7 @@ const PlatformMentionRates = ({ onPlatformClick }) => {
                 percent={platform.rate}
                 showInfo={false}
                 strokeColor={platform.color}
-                size="small"
-                strokeWidth={8}
+                size={['100%', 8]}
               />
               {platform.change !== 0 && (
                 <div style={{ marginTop: token.marginXS, display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -124,4 +230,4 @@ const PlatformMentionRates = ({ onPlatformClick }) => {
   );
 };
 
-export default PlatformMentionRates;
+export default React.memo(PlatformMentionRates);

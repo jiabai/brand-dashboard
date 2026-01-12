@@ -9,13 +9,9 @@ const TaskName = () => {
   const [taskName, setTaskName] = useState('加载中...');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [retryCount, setRetryCount] = useState(0);
   const [hasStopped, setHasStopped] = useState(false);
   const timeoutRef = useRef(null);
   const abortControllerRef = useRef(null);
-
-  const MAX_RETRIES = 3;
-  const RETRY_DELAY = 1000; // 1秒
 
   const fetchTaskName = useCallback(async (isRetry = false) => {
     // 取消之前的请求
@@ -37,7 +33,6 @@ const TaskName = () => {
       if (data.success && data.taskName) {
         setTaskName(data.taskName);
         setError(null);
-        setRetryCount(0);
         setHasStopped(false);
       } else {
         // 如果没有任务名称，显示默认值
@@ -54,7 +49,7 @@ const TaskName = () => {
         setLoading(false);
       }
     }
-  }, [retryCount]);
+  }, []);
 
   useEffect(() => {
     // 初始加载
@@ -73,7 +68,6 @@ const TaskName = () => {
 
   // 手动重试函数
   const handleRetry = () => {
-    setRetryCount(0);
     setHasStopped(false);
     setError(null);
     fetchTaskName();
@@ -102,4 +96,4 @@ const TaskName = () => {
   );
 };
 
-export default TaskName;
+export default React.memo(TaskName);

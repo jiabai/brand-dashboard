@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Badge, ConfigProvider, Layout, Segmented, Space, Spin, Typography, theme } from 'antd';
 
 // Components
@@ -12,26 +12,15 @@ import Sidebar from './components/Sidebar.jsx';
 
 const { Header, Content } = Layout;
 
-/**
- * Dashboard content component
- */
-function Dashboard() {
-  const { token } = theme.useToken();
-  // State management
-  const [selectedFilter, setSelectedFilter] = useState('7days');
-  const [currentTime, setCurrentTime] = useState(new Date());
-  const [isLoading, setIsLoading] = useState(false);
-  const [siderCollapsed, setSiderCollapsed] = useState(false);
-  const [selectedPlatform, setSelectedPlatform] = useState(null);
-  const loadingTimerRef = React.useRef(null);
+const TIME_OPTIONS = [
+  { label: '昨天', value: 'yesterday' },
+  { label: '过去7天', value: '7days' },
+  { label: '过去30天', value: '30days' }
+];
 
-  const timeOptions = [
-    { label: '昨天', value: 'yesterday' },
-    { label: '过去7天', value: '7days' },
-    { label: '过去30天', value: '30days' }
-  ];
+const LiveClock = React.memo(function LiveClock() {
+  const [currentTime, setCurrentTime] = useState(() => new Date());
 
-  // Update current time every second
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentTime(new Date());
@@ -39,6 +28,27 @@ function Dashboard() {
 
     return () => clearInterval(timer);
   }, []);
+
+  return (
+    <Typography.Text type="secondary">
+      更新: {currentTime.toLocaleTimeString()}
+    </Typography.Text>
+  );
+});
+
+/**
+ * Dashboard content component
+ */
+function Dashboard() {
+  const { token } = theme.useToken();
+  // State management
+  const [selectedFilter, setSelectedFilter] = useState('7days');
+  const [isLoading, setIsLoading] = useState(false);
+  const [siderCollapsed, setSiderCollapsed] = useState(false);
+  const [selectedPlatform, setSelectedPlatform] = useState(null);
+  const loadingTimerRef = useRef(null);
+
+  const timeOptions = useMemo(() => TIME_OPTIONS, []);
 
   // Cleanup loading timer on unmount
   useEffect(() => {
@@ -53,7 +63,7 @@ function Dashboard() {
    * Handle filter change with loading state
    * @param {string} filter - The selected time filter
    */
-  const handleFilterChange = (filter) => {
+  const handleFilterChange = useCallback((filter) => {
     setSelectedFilter(filter);
     // Clear any existing timer
     if (loadingTimerRef.current) {
@@ -62,7 +72,11 @@ function Dashboard() {
     // Simulate loading state for better UX
     setIsLoading(true);
     loadingTimerRef.current = setTimeout(() => setIsLoading(false), 800);
-  };
+  }, []);
+
+  const handleBackFromPlatform = useCallback(() => {
+    setSelectedPlatform(null);
+  }, []);
 
   return (
     <Layout style={{ minHeight: '100vh', position: 'relative', zIndex: 1 }}>
@@ -90,9 +104,7 @@ function Dashboard() {
             <TaskName />
             <Space size="middle" wrap>
               <Badge status="processing" text="实时数据" />
-              <Typography.Text type="secondary">
-                更新: {currentTime.toLocaleTimeString()}
-              </Typography.Text>
+              <LiveClock />
               <Segmented
                 options={timeOptions}
                 value={selectedFilter}
@@ -104,11 +116,11 @@ function Dashboard() {
 
         <Content style={{ padding: 24 }}>
           <ErrorBoundary>
-            <Spin spinning={isLoading} tip="正在加载数据...">
+            <Spin spinning={isLoading}>
               {selectedPlatform ? (
                 <PlatformDetail 
                   platformName={selectedPlatform.name} 
-                  onBack={() => setSelectedPlatform(null)} 
+                  onBack={handleBackFromPlatform} 
                 />
               ) : (
                 <div
@@ -119,13 +131,13 @@ function Dashboard() {
                   }}
                 >
                   <div style={{ minWidth: 0 }}>
-                    <BrandMentionRate />
+                    <BrandMentionRate timeframe={selectedFilter} />
                   </div>
                   <div style={{ minWidth: 0 }}>
-                    <PlatformMentionRates onPlatformClick={setSelectedPlatform} />
+                    <PlatformMentionRates timeframe={selectedFilter} onPlatformClick={setSelectedPlatform} />
                   </div>
                   <div style={{ minWidth: 0, gridColumn: '1 / -1' }}>
-                    <ReferencesTable />
+                    <ReferencesTable timeframe={selectedFilter} />
                   </div>
                 </div>
               )}

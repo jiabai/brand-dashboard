@@ -13,12 +13,10 @@
  * );
  */
 
-import React from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Card, Table, Typography, Statistic, Row, Col, Divider, Tag, Progress, Space, theme } from 'antd';
 import { 
   TrophyOutlined, 
-  RiseOutlined, 
-  FileTextOutlined, 
   MessageOutlined, 
   LinkOutlined, 
   TagsOutlined 
@@ -31,53 +29,101 @@ import { formatPercentage } from '@/utils';
 import LoadingSpinner from './LoadingSpinner';
 import EmptyState from './EmptyState';
 
-// Mock data
-const TARGET_BRAND_DATA = {
-  name: "海尔",
-  rank: 1,
-  mentionRate: 85.5,
-  firstMentionRate: 45.2,
-  articleCitationRate: 30.5,
-  promptValue: 95,
-  citationSourceValue: 120,
-  coveredKeywordsCount: 350
+const DEFAULT_USER_ID = '522ebe1d-49d3-435c-a1f9-03e659786cf6';
+const DEFAULT_JOB_ID = 'job_20260102_125104_7fad76ad';
+const DEFAULT_BRAND = '新东方';
+
+const buildQueryString = (params) => {
+  const searchParams = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value === undefined || value === null) return;
+    searchParams.set(key, String(value));
+  });
+  return searchParams.toString();
 };
 
-const OTHER_BRANDS_DATA = [
-  { rank: 2, name: "美的", mentionRate: 78.3, firstMentionRate: 40.1 },
-  { rank: 3, name: "格力", mentionRate: 72.1, firstMentionRate: 35.5 },
-  { rank: 4, name: "西门子", mentionRate: 65.8, firstMentionRate: 32.0 },
-  { rank: 5, name: "松下", mentionRate: 58.2, firstMentionRate: 28.5 },
-];
+const fetchJson = async (url, { signal } = {}) => {
+  const response = await fetch(url, { method: 'GET', signal });
+  if (!response.ok) {
+    throw new Error(`请求失败(${response.status})`);
+  }
+  return response.json();
+};
+
+const toPercent = (value) => {
+  const num = Number(value);
+  if (!Number.isFinite(num)) return 0;
+  // 统一处理：如果是小数形式（<1）则乘以100，否则直接返回
+  return num < 1 ? num * 100 : num;
+};
+
+const clampPercent = (value) => {
+  const num = Number(value);
+  if (!Number.isFinite(num)) return 0;
+  return Math.max(0, Math.min(100, num));
+};
+
+const roundTwoDecimals = (value) => {
+  const num = Number(value);
+  if (!Number.isFinite(num)) return 0;
+  return Math.round(num * 100) / 100;
+};
 
 /**
  * BrandMentionRate component
  */
-const BrandMentionRate = ({ isLoading, error }) => {
+const BrandMentionRate = ({
+  timeframe = '7days',
+  date = '',
+  userId = DEFAULT_USER_ID,
+  jobId = DEFAULT_JOB_ID,
+  brand = DEFAULT_BRAND,
+}) => {
   const { token } = theme.useToken();
+  const abortControllerRef = useRef(null);
 
-  // Loading state
-  if (isLoading) {
-    return (
-      <Card title="品牌提及排名">
-        <LoadingSpinner text="正在加载品牌数据..." />
-      </Card>
-    );
-  }
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [sortedInfo, setSortedInfo] = useState({
+    columnKey: 'mentionRate',
+    order: 'descend',
+  });
+  const [targetBrandData, setTargetBrandData] = useState(null);
+  const [brandList, setBrandList] = useState([]);
 
-  // Error state
-  if (error) {
-    return (
-      <Card title="品牌提及排名">
-        <EmptyState
-          title="数据加载失败"
-          description={error}
-          actionText="重试"
-          onAction={() => window.location.reload()}
-        />
-      </Card>
-    );
-  }
+  const brandMetricsQueryString = useMemo(
+    () =>
+      buildQueryString({
+        user_id: userId,
+        job_id: jobId,
+        timeframe,
+        date,
+      }),
+    [userId, jobId, timeframe, date],
+  );
+
+  const targetBrandQueryString = useMemo(
+    () =>
+      buildQueryString({
+        user_id: userId,
+        job_id: jobId,
+        timeframe,
+        date,
+        brand,
+      }),
+    [userId, jobId, timeframe, date, brand],
+  );
+
+  const handleTableChange = (_, __, sorter) => {
+    const nextSorter = Array.isArray(sorter) ? sorter[0] : sorter;
+    if (!nextSorter || !nextSorter.columnKey) {
+      return;
+    }
+    setSortedInfo({
+      columnKey: nextSorter.columnKey,
+      order: nextSorter.order || 'descend',
+    });
+  };
 
   const columns = [
     {
@@ -109,6 +155,8 @@ const BrandMentionRate = ({ isLoading, error }) => {
         </div>
       ),
       sorter: (a, b) => a.mentionRate - b.mentionRate,
+      defaultSortOrder: 'descend',
+      sortOrder: sortedInfo.columnKey === 'mentionRate' ? sortedInfo.order : null,
     },
     {
       title: '首次提及率',
@@ -121,8 +169,172 @@ const BrandMentionRate = ({ isLoading, error }) => {
         </div>
       ),
       sorter: (a, b) => a.firstMentionRate - b.firstMentionRate,
+      sortOrder: sortedInfo.columnKey === 'firstMentionRate' ? sortedInfo.order : null,
     },
   ];
+
+  const targetBrandName = targetBrandData?.name ?? brand;
+
+  const { otherBrandsData, targetBrandRank } = useMemo(() => {
+    if (!brandList.length) {
+      return { otherBrandsData: [], targetBrandRank: null };
+    }
+
+    const metricKey =
+      sortedInfo.columnKey === 'firstMentionRate' ? 'firstMentionRate' : 'mentionRate';
+    const order = sortedInfo.order || 'descend';
+
+    const listWithMetric = brandList.filter(
+      (item) => typeof item[metricKey] === 'number',
+    );
+
+    const sorted = [...listWithMetric].sort((a, b) => {
+      const diff = (a[metricKey] || 0) - (b[metricKey] || 0);
+      return order === 'ascend' ? diff : -diff;
+    });
+
+    const ranked = sorted.map((item, index) => ({
+      ...item,
+      rank: index + 1,
+    }));
+
+    const targetIndex = ranked.findIndex((item) => item.name === targetBrandName);
+    const rankValue = targetIndex === -1 ? null : ranked[targetIndex].rank;
+
+    const others = ranked.filter((item) => item.name !== targetBrandName);
+
+    return { otherBrandsData: others, targetBrandRank: rankValue };
+  }, [brandList, sortedInfo, targetBrandName]);
+
+  useEffect(() => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
+    const run = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+
+        const [brandMetrics, postCitationRate] = await Promise.all([
+          fetchJson(`/api/dashboard/brand-metrics?${brandMetricsQueryString}`, {
+            signal: controller.signal,
+          }),
+          fetchJson(`/api/dashboard/post-citation-rate?${targetBrandQueryString}`, {
+            signal: controller.signal,
+          }),
+        ]);
+
+        if (brandMetrics?.status && brandMetrics.status !== 'success') {
+          throw new Error('接口返回错误状态');
+        }
+        if (postCitationRate?.status && postCitationRate.status !== 'success') {
+          throw new Error('接口返回错误状态');
+        }
+
+        const brandMetricsList = Array.isArray(brandMetrics?.data)
+          ? brandMetrics.data
+          : Array.isArray(brandMetrics)
+          ? brandMetrics
+          : [];
+        const postCitationRateData = postCitationRate?.data?.[0] ?? postCitationRate;
+
+        const normalizedBrandItems = brandMetricsList.map((item) => ({
+          name: item?.brand,
+          mentionRate: roundTwoDecimals(clampPercent(toPercent(item?.mention_rate ?? 0))),
+          firstMentionRate: roundTwoDecimals(clampPercent(toPercent(item?.first_mention_rate ?? 0))),
+          articleCitationRate: clampPercent(
+            toPercent(item?.citation_rate_by_post ?? 0),
+          ),
+          promptValue: Number(item?.prompt_count ?? 0),
+          citationSourceValue: Number(item?.citation_source_count ?? 0),
+          coveredKeywordsCount: Number(item?.keyword_coverage ?? 0),
+        }));
+
+        setBrandList(normalizedBrandItems);
+
+        const effectiveTargetName = brand || DEFAULT_BRAND;
+        const targetItem =
+          normalizedBrandItems.find((item) => item.name === effectiveTargetName) ??
+          normalizedBrandItems[0];
+
+        const nextTargetBrandData = targetItem
+          ? {
+              name: targetItem.name ?? effectiveTargetName,
+              mentionRate: roundTwoDecimals(targetItem.mentionRate),
+              firstMentionRate: roundTwoDecimals(targetItem.firstMentionRate),
+              articleCitationRate: roundTwoDecimals(clampPercent(
+                toPercent(
+                  postCitationRateData?.citation_rate_by_post ??
+                    targetItem.articleCitationRate ??
+                    0,
+                ),
+              )),
+              promptValue: targetItem.promptValue,
+              citationSourceValue: Number(
+                postCitationRateData?.citation_source_count ??
+                  targetItem.citationSourceValue ??
+                  0,
+              ),
+              coveredKeywordsCount: targetItem.coveredKeywordsCount,
+            }
+          : null;
+
+        setTargetBrandData(nextTargetBrandData);
+        setIsLoading(false);
+      } catch (err) {
+        if (controller.signal.aborted) return;
+        if (err?.name === 'AbortError') return;
+        setError(err?.message || '数据加载失败');
+        setIsLoading(false);
+      }
+    };
+
+    run();
+
+    return () => {
+      controller.abort();
+    };
+  }, [brandMetricsQueryString, targetBrandQueryString]);
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <Card title="品牌提及排名">
+        <LoadingSpinner text="正在加载品牌数据..." />
+      </Card>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <Card title="品牌提及排名">
+        <EmptyState
+          title="数据加载失败"
+          description={error}
+          actionText="重试"
+          onAction={() => window.location.reload()}
+        />
+      </Card>
+    );
+  }
+
+  if (!targetBrandData) {
+    return (
+      <Card title="品牌提及排名">
+        <EmptyState
+          title="暂无数据"
+          description="接口未返回可展示的数据"
+          actionText="重试"
+          onAction={() => window.location.reload()}
+        />
+      </Card>
+    );
+  }
 
   return (
     <Card title="品牌提及排名" className="h-full">
@@ -147,16 +359,16 @@ const BrandMentionRate = ({ isLoading, error }) => {
                 }}>
                   <TrophyOutlined style={{ fontSize: 32, color: token.colorWarning }} />
                   <Typography.Title level={2} style={{ margin: 0, color: token.colorWarning }}>
-                    #{TARGET_BRAND_DATA.rank}
+                    {typeof targetBrandRank === 'number' ? `#${targetBrandRank}` : '--'}
                   </Typography.Title>
                 </div>
                 <div>
                   <Typography.Title level={4} style={{ margin: 0 }}>
-                    目标品牌: {TARGET_BRAND_DATA.name}
+                    目标品牌: {targetBrandData.name}
                   </Typography.Title>
                   <Space size="small" style={{ marginTop: 4 }}>
                     <Tag icon={<TagsOutlined />} color="processing">
-                       {TARGET_BRAND_DATA.coveredKeywordsCount} 覆盖关键词
+                       {targetBrandData.coveredKeywordsCount} 覆盖关键词
                     </Tag>
                   </Space>
                 </div>
@@ -166,19 +378,19 @@ const BrandMentionRate = ({ isLoading, error }) => {
           {/* Key Rates - Circular Progress */}
           <Col span={8} style={{ display: 'flex', justifyContent: 'center' }}>
             <div style={{ textAlign: 'center' }}>
-              <Progress type="circle" percent={TARGET_BRAND_DATA.mentionRate} width={80} strokeColor={token.colorPrimary} />
+              <Progress type="circle" percent={targetBrandData.mentionRate} size={80} strokeColor={token.colorPrimary} />
               <div style={{ marginTop: 8, fontWeight: 500 }}>提及率</div>
             </div>
           </Col>
           <Col span={8} style={{ display: 'flex', justifyContent: 'center' }}>
             <div style={{ textAlign: 'center' }}>
-              <Progress type="circle" percent={TARGET_BRAND_DATA.firstMentionRate} width={80} strokeColor={token.colorInfo} />
+              <Progress type="circle" percent={targetBrandData.firstMentionRate} size={80} strokeColor={token.colorInfo} />
               <div style={{ marginTop: 8, fontWeight: 500 }}>首次提及率</div>
             </div>
           </Col>
           <Col span={8} style={{ display: 'flex', justifyContent: 'center' }}>
             <div style={{ textAlign: 'center' }}>
-              <Progress type="circle" percent={TARGET_BRAND_DATA.articleCitationRate} width={80} strokeColor={token.colorSuccess} />
+              <Progress type="circle" percent={targetBrandData.articleCitationRate} size={80} strokeColor={token.colorSuccess} />
               <div style={{ marginTop: 8, fontWeight: 500 }}>发文引用率</div>
             </div>
           </Col>
@@ -187,20 +399,20 @@ const BrandMentionRate = ({ isLoading, error }) => {
           <Col span={24}>
             <Row gutter={[16, 16]}>
               <Col span={12}>
-                <Card size="small" bordered={false} style={{ background: token.colorFillQuaternary }}>
+                <Card size="small" variant="borderless" style={{ background: token.colorFillQuaternary }}>
                   <Statistic 
                     title="Prompt 数值" 
-                    value={TARGET_BRAND_DATA.promptValue} 
+                    value={targetBrandData.promptValue} 
                     prefix={<MessageOutlined />} 
                     valueStyle={{ fontSize: 18 }}
                   />
                 </Card>
               </Col>
               <Col span={12}>
-                <Card size="small" bordered={false} style={{ background: token.colorFillQuaternary }}>
+                <Card size="small" variant="borderless" style={{ background: token.colorFillQuaternary }}>
                   <Statistic 
                     title="引用信源数值" 
-                    value={TARGET_BRAND_DATA.citationSourceValue} 
+                    value={targetBrandData.citationSourceValue} 
                     prefix={<LinkOutlined />} 
                     valueStyle={{ fontSize: 18 }}
                   />
@@ -214,15 +426,16 @@ const BrandMentionRate = ({ isLoading, error }) => {
       <Divider orientation="left" style={{ margin: '12px 0' }}>其他品牌对比</Divider>
       
       <Table 
-        dataSource={OTHER_BRANDS_DATA} 
+        dataSource={otherBrandsData} 
         columns={columns} 
         pagination={false} 
         size="small"
         rowKey="name"
         scroll={{ x: 'max-content' }}
+        onChange={handleTableChange}
       />
     </Card>
   );
 }
 
-export default BrandMentionRate;
+export default React.memo(BrandMentionRate);

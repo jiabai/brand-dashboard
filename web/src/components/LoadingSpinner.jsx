@@ -16,7 +16,10 @@ const LoadingSpinner = ({ size = 'medium', text = '加载中...' }) => {
   const spinnerSize = sizeMap[size] || sizeMap.medium;
 
   return (
-    <Spin size={spinnerSize} tip={text} />
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      <Spin size={spinnerSize} />
+      <span>{text}</span>
+    </div>
   );
 };
 
