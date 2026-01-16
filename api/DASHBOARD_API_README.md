@@ -236,7 +236,7 @@ ORDER BY platform ASC;
 ```sql
 SELECT
     brand,
-    COUNT(DISTINCT qr.domain) AS 引用信源数值,
+    COUNT(DISTINCT qr.domain) AS citation_source_count,
     COALESCE(
         (
             SELECT AVG(has_published_link)
@@ -255,7 +255,7 @@ SELECT
             ) AS conv_stats
         ),
         0
-    ) AS 发文引用率
+    ) AS citation_rate_by_post
 FROM qa_reference qr
 WHERE
     qr.user_id = <user_id>
@@ -483,7 +483,7 @@ curl -X GET "http://localhost:8000/api/dashboard/brand-mention-rate?brand=Apple&
 | data | array | 各平台提及率数据列表 |
 | name | string | 平台名称（如：DeepSeek、Claude、ChatGPT 等） |
 | mention_rate | float | 该平台上的品牌提及率（百分比） |
-| first_mention_rate | float | 该平台上的品牌首次提及率（百分比） |
+| first_mention_rate | float | 该平台上的品牌首位提及率（百分比） |
 | color | string | 平台颜色编码（用于前端图表展示） |
 | metadata | object | 元数据 |
 | metadata.category | string | 请求的商品大类 |

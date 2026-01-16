@@ -52,8 +52,9 @@ const fetchJson = async (url, { signal } = {}) => {
 const toPercent = (value) => {
   const num = Number(value);
   if (!Number.isFinite(num)) return 0;
-  // 统一处理：如果是小数形式（<1）则乘以100，否则直接返回
-  return num < 1 ? num * 100 : num;
+  // 统一处理：如果是小数形式（<=1）则乘以100，否则直接返回
+  // 注意：1.0 也是 100%
+  return num <= 1 ? num * 100 : num;
 };
 
 const clampPercent = (value) => {
@@ -144,7 +145,7 @@ const BrandMentionRate = ({
       render: (text) => <Typography.Text strong>{text}</Typography.Text>,
     },
     {
-      title: '提及率',
+      title: '总提及率',
       dataIndex: 'mentionRate',
       key: 'mentionRate',
       render: (val) => (
@@ -158,7 +159,7 @@ const BrandMentionRate = ({
       sortOrder: sortedInfo.columnKey === 'mentionRate' ? sortedInfo.order : null,
     },
     {
-      title: '首次提及率',
+      title: '首位提及率',
       dataIndex: 'firstMentionRate',
       key: 'firstMentionRate',
       render: (val) => (
@@ -378,13 +379,13 @@ const BrandMentionRate = ({
           <Col span={8} style={{ display: 'flex', justifyContent: 'center' }}>
             <div style={{ textAlign: 'center' }}>
               <Progress type="circle" percent={targetBrandData.mentionRate} size={80} strokeColor={token.colorPrimary} />
-              <div style={{ marginTop: 8, fontWeight: 500 }}>提及率</div>
+              <div style={{ marginTop: 8, fontWeight: 500 }}>总提及率</div>
             </div>
           </Col>
           <Col span={8} style={{ display: 'flex', justifyContent: 'center' }}>
             <div style={{ textAlign: 'center' }}>
               <Progress type="circle" percent={targetBrandData.firstMentionRate} size={80} strokeColor={token.colorInfo} />
-              <div style={{ marginTop: 8, fontWeight: 500 }}>首次提及率</div>
+              <div style={{ marginTop: 8, fontWeight: 500 }}>首位提及率</div>
             </div>
           </Col>
           <Col span={8} style={{ display: 'flex', justifyContent: 'center' }}>
@@ -400,7 +401,7 @@ const BrandMentionRate = ({
               <Col span={12}>
                 <Card size="small" variant="borderless" style={{ background: token.colorFillQuaternary }}>
                   <Statistic 
-                    title="Prompt 数值" 
+                    title="问题总数" 
                     value={targetBrandData.promptValue} 
                     prefix={<MessageOutlined />} 
                     valueStyle={{ fontSize: 18 }}
@@ -410,7 +411,7 @@ const BrandMentionRate = ({
               <Col span={12}>
                 <Card size="small" variant="borderless" style={{ background: token.colorFillQuaternary }}>
                   <Statistic 
-                    title="引用信源数值" 
+                    title="引用信源数量" 
                     value={targetBrandData.citationSourceValue} 
                     prefix={<LinkOutlined />} 
                     valueStyle={{ fontSize: 18 }}

@@ -45,7 +45,7 @@ class PlatformMentionRateData(BaseModel):
     """各平台提及率数据模型."""
     name: str = Field(..., description="平台名称")
     mention_rate: float = Field(..., description="该平台上的品牌提及率(百分比)")
-    first_mention_rate: float = Field(..., description="该平台上的品牌首次提及率(百分比)")
+    first_mention_rate: float = Field(..., description="该平台上的品牌首位提及率(百分比)")
     color: str = Field(..., description="颜色")
 
 class PlatformMentionRateResponse(BaseModel):

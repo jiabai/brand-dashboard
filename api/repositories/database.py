@@ -356,8 +356,6 @@ def query_domain_citation_rate(
     specific_date: Optional[str] = None,
 ) -> List[Dict[str, Any]]:
     start_date, end_date = get_date_range(timeframe, specific_date)
-    start_datetime = datetime.combine(start_date, datetime.min.time())
-    end_datetime = datetime.combine(end_date, datetime.max.time())
 
     total_query = """
     SELECT COUNT(*)
@@ -366,7 +364,7 @@ def query_domain_citation_rate(
     AND job_id = :job_id
     AND brand = :brand
     AND domain IS NOT NULL
-    AND created_at BETWEEN :start_date AND :end_date
+    AND date BETWEEN :start_date AND :end_date
     """
 
     domain_query = """
@@ -376,7 +374,7 @@ def query_domain_citation_rate(
     AND job_id = :job_id
     AND brand = :brand
     AND domain IS NOT NULL
-    AND created_at BETWEEN :start_date AND :end_date
+    AND date BETWEEN :start_date AND :end_date
     GROUP BY domain
     ORDER BY domain_count DESC
     """
@@ -385,8 +383,8 @@ def query_domain_citation_rate(
         "user_id": user_id,
         "job_id": job_id,
         "brand": brand,
-        "start_date": start_datetime,
-        "end_date": end_datetime,
+        "start_date": start_date,
+        "end_date": end_date,
     }
 
     try:

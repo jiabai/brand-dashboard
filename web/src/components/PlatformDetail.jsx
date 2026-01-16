@@ -51,7 +51,7 @@ const PlatformDetail = ({ platformName, onBack }) => {
         sorter: (a, b) => a.mentionRate - b.mentionRate,
       },
       {
-        title: '首次提及率',
+        title: '首位提及率',
         dataIndex: 'firstMentionRate',
         key: 'firstMentionRate',
         render: (val) => (

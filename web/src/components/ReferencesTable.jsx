@@ -26,13 +26,6 @@ const fetchJson = async (url, { signal } = {}) => {
   return response.json();
 };
 
-const toPercent = (value) => {
-  const num = Number(value);
-  if (!Number.isFinite(num)) return 0;
-  if (num > 0 && num <= 1) return num * 100;
-  return num;
-};
-
 const clampPercent = (value) => {
   const num = Number(value);
   if (!Number.isFinite(num)) return 0;
@@ -96,7 +89,7 @@ const ReferencesTable = ({
               item?.domain_citation_rate ??
               item?.domainCitationRate ??
               0;
-            const rate = roundTwoDecimals(clampPercent(toPercent(rawRate)));
+            const rate = roundTwoDecimals(clampPercent(rawRate));
             return { rank: index + 1, domain, rate };
           })
           .filter((item) => item.domain);
@@ -141,7 +134,7 @@ const ReferencesTable = ({
         )
       },
       {
-        title: '引用率',
+        title: '域名引用率',
         dataIndex: 'rate',
         key: 'rate',
         width: 120,
@@ -153,14 +146,14 @@ const ReferencesTable = ({
   // 加载状态
   if (loading) {
     return (
-      <Card title="引用链接详情" loading />
+      <Card title="引用媒介详情" loading />
     );
   }
 
   // 错误状态
   if (errorMsg) {
     return (
-      <Card title="引用链接详情">
+      <Card title="引用媒介详情">
         <Typography.Paragraph type="danger">{errorMsg}</Typography.Paragraph>
         <Button type="primary" onClick={() => window.location.reload()}>
           重试
@@ -172,14 +165,14 @@ const ReferencesTable = ({
   // 空状态
   if (!displayData || displayData.length === 0) {
     return (
-      <Card title="引用链接详情">
+      <Card title="引用媒介详情">
         <Empty description="当前时间范围内没有可用的引用链接数据" />
       </Card>
     );
   }
 
   return (
-    <Card title="引用链接详情">
+    <Card title="引用媒介详情">
       <Table
         rowKey={(record) => record.domain ?? String(record.rank)}
         size="middle"

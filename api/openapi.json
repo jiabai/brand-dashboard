@@ -1239,7 +1239,7 @@
           "first_mention_rate": {
             "type": "number",
             "title": "First Mention Rate",
-            "description": "该平台上的品牌首次提及率(百分比)"
+            "description": "该平台上的品牌首位提及率(百分比)"
           },
           "color": {
             "type": "string",
