@@ -24,14 +24,13 @@ import {
 
 // Utilities
 import { formatPercentage } from '@/utils';
+import { CONFIG } from '@/config';
 
 // Components
 import LoadingSpinner from './LoadingSpinner';
 import EmptyState from './EmptyState';
 
-const DEFAULT_USER_ID = '522ebe1d-49d3-435c-a1f9-03e659786cf6';
-const DEFAULT_JOB_ID = 'job_20260102_125104_7fad76ad';
-const DEFAULT_BRAND = '新东方';
+const { DEFAULT_USER_ID, DEFAULT_JOB_ID, DEFAULT_BRAND } = CONFIG;
 
 const buildQueryString = (params) => {
   const searchParams = new URLSearchParams();
