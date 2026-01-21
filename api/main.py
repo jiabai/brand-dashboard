@@ -5,17 +5,17 @@ from typing import Dict
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
-from api.models.schemas import HealthResponse
-from api.routes import analysis, brand_strategy, config, dashboard, query_records
+from api.v1.models.schemas import HealthResponse
+from api.v1.routes import analysis, brand_strategy, config, dashboard, query_records
 
 # 创建FastAPI应用
 app = FastAPI(
     title="Brand Analysis API",
     description="品牌分析API服务，为dashboard提供数据接口",
     version="0.1.0",
-    docs_url="/api/docs",
-    redoc_url="/api/redoc",
-    openapi_url="/api/openapi.json"
+    docs_url="/api/v1/docs",
+    redoc_url="/api/v1/redoc",
+    openapi_url="/api/v1/openapi.json"
 )
 
 # 配置CORS
@@ -28,11 +28,11 @@ app.add_middleware(
 )
 
 # 包含路由
-app.include_router(analysis.router, prefix="/api/analysis", tags=["analysis"])
-app.include_router(config.router, prefix="/api/config", tags=["config"])
-app.include_router(dashboard.router, prefix="/api/dashboard", tags=["dashboard"])
-app.include_router(brand_strategy.router, prefix="/api/analysis", tags=["analysis"])
-app.include_router(query_records.router, prefix="/api/query-records", tags=["query-records"])
+app.include_router(analysis.router, prefix="/api/v1/analysis", tags=["analysis"])
+app.include_router(config.router, prefix="/api/v1/config", tags=["config"])
+app.include_router(dashboard.router, prefix="/api/v1/dashboard", tags=["dashboard"])
+app.include_router(brand_strategy.router, prefix="/api/v1/analysis", tags=["analysis"])
+app.include_router(query_records.router, prefix="/api/v1/query-records", tags=["query-records"])
 
 @app.get("/", response_model=Dict[str, str])
 async def root():
@@ -40,10 +40,10 @@ async def root():
     return {
         "message": "Brand Analysis API",
         "version": "0.1.0",
-        "docs": "/api/docs"
+        "docs": "/api/v1/docs"
     }
 
-@app.get("/health", response_model=HealthResponse)
+@app.get("/api/v1/health", response_model=HealthResponse)
 async def health_check():
     """健康检查接口."""
     return HealthResponse(

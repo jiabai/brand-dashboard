@@ -8,8 +8,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from api.models.schemas import LoadQueryRecordsRequest, LoadQueryRecordsResponse
-from api.repositories.database import get_db
+from api.v1.models.schemas import LoadQueryRecordsRequest, LoadQueryRecordsResponse
+from api.v1.repositories.database import get_db
 
 router = APIRouter()
 

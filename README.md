@@ -53,26 +53,24 @@ docker build -t brand-analysis-api .
 docker run -p 8000:8000 brand-analysis-api
 ```
 
-### Docker Compose（本地开发）
+### Docker Compose
 
-在本地启动：
-
-- 开发模式（dev 前端 + 后端）：
+- 开发模式（前端开发服，支持热更新）：
   ```bash
-  docker compose up --build api web
-  # 前端开发服: http://localhost:3000  （web 服务，热更新）
+  docker compose -f docker-compose.dev.yml up --build
+  # 前端: http://localhost:3000
   # 后端: http://localhost:8000
   ```
-- 生产风格前端 + 后端（Nginx + 构建产物）：
+- 生产模式（前端使用 Nginx 托管构建产物）：
   ```bash
-  docker compose up --build api web-prod
-  # 前端生产版: http://localhost:8080 （web-prod 服务，Nginx + 构建产物）
-  # 后端: http://localhost:8000
+  docker compose -f docker-compose.prod.yml up --build
   ```
+  - 前端生产版：`http://localhost:8080`
+  - 后端接口：`http://localhost:8091`
 
 > 说明：本项目默认连接局域网内的 MySQL 数据库。
 > - `api` 通过环境变量 `DB_HOST`、`DB_PORT`、`DB_USER`、`DB_PASSWORD`、`DB_NAME` 进行配置。
-> - **配置方式**：请在 `docker-compose.yml` 中将 `DB_HOST` 修改为局域网内数据库服务器的实际 IP 地址（例如 `192.168.1.x`）。
+> - **配置方式**：请在 `docker-compose.dev.yml` 或 `docker-compose.prod.yml` 中将 `DB_HOST` 修改为局域网内数据库服务器的实际 IP 地址（例如 `192.168.1.x`）。
 > - 确保该远程数据库已开启远程访问权限，并允许来自本机的连接。
 
 ## 开发与规范

@@ -7,7 +7,7 @@ from typing import Any, Dict, List, Optional
 
 # 导入 LLM Operator 相关组件
 try:
-    from api.utils.llm_operator import LLMResponse, create_enhanced_llm_operator
+    from api.v1.utils.llm_operator import LLMResponse, create_enhanced_llm_operator
 except ImportError:
     # 允许在某些环境下导入失败（如缺少依赖），后续通过 try-except 处理
     create_enhanced_llm_operator = None
@@ -16,7 +16,7 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 def _load_llm_settings() -> dict:
-    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     cfg_path = os.path.join(base_dir, "config", "llm_settings.json")
     if not os.path.exists(cfg_path):
         return {

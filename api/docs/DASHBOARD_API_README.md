@@ -5,7 +5,7 @@
 ---------------------
 
 ### 接口信息
-- **路径**: `/api/dashboard/brand-metrics`
+- **路径**: `/api/v1/dashboard/brand-metrics`
 - **方法**: `GET`
 - **描述**: 获取品牌总指标，基于`qa_brand_state`表计算
 
@@ -118,7 +118,7 @@ WHERE
 --------------------------
 
 ### 接口信息
-- **路径**: `/api/dashboard/platform-metrics-by-brand`
+- **路径**: `/api/v1/dashboard/platform-metrics-by-brand`
 - **方法**: `GET`
 - **描述**: 获取平台指标，基于`qa_brand_state`表计算
 
@@ -190,7 +190,7 @@ ORDER BY platform ASC;
 ---------------------
 
 ### 接口信息
-- **路径**: `/api/dashboard/post-citation-rate`
+- **路径**: `/api/v1/dashboard/post-citation-rate`
 - **方法**: `GET`
 - **描述**: 获取品牌参考引用信息，基于`qa_reference`表计算
 
@@ -268,7 +268,7 @@ GROUP BY brand;
 ---------------------
 
 ### 接口信息
-- **路径**: `/api/dashboard/domain-citation-rate`
+- **路径**: `/api/v1/dashboard/domain-citation-rate`
 - **方法**: `GET`
 - **描述**: 获取品牌参考引用信息，基于`qa_reference`表计算
 
@@ -354,7 +354,7 @@ ORDER BY percentage DESC;
 ## 📊 品牌总提及率 API
 
 ### 接口信息
-- **路径**: `/api/dashboard/brand-mention-rate`
+- **路径**: `/api/v1/dashboard/brand-mention-rate`
 - **方法**: `GET`
 - **描述**: 获取品牌总提及率数据，基于`qa_brand_summary`表计算
 - **实现状态**: ✅ 已完成
@@ -407,7 +407,7 @@ ORDER BY percentage DESC;
 ### 使用示例
 
 ```bash
-curl -X GET "http://localhost:8000/api/dashboard/brand-mention-rate?brand=Apple&timeframe=7days" \
+curl -X GET "http://localhost:8000/api/v1/dashboard/brand-mention-rate?brand=Apple&timeframe=7days" \
   -H "accept: application/json"
 ```
 
@@ -422,7 +422,7 @@ curl -X GET "http://localhost:8000/api/dashboard/brand-mention-rate?brand=Apple&
 ## 📈 各平台品牌提及率对比 API
 
 ### 接口信息
-- **路径**: `/api/dashboard/platform-mention-rates`
+- **路径**: `/api/v1/dashboard/platform-mention-rates`
 - **方法**: `GET`
 - **描述**: 获取单个品牌在各平台的提及率对比数据，基于`qa_brand_summary`表计算
 - **实现状态**: ✅ 已完成
@@ -512,7 +512,7 @@ curl -X GET "http://localhost:8000/api/dashboard/brand-mention-rate?brand=Apple&
 ### 全局引用URL统计
 
 ### 接口信息
-- **路径**: `/api/dashboard/reference-url-stats`
+- **路径**: `/api/v1/dashboard/reference-url-stats`
 - **方法**: `GET`
 - **描述**: 获取全局引用 URL 的统计数据，包括各站点的引用次数和引用率。
 - **实现状态**: ✅ 已完成

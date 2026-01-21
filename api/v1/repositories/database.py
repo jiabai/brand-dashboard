@@ -10,10 +10,10 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import QueuePool
 
 # 加载.env文件
-# 获取当前文件所在的目录 (api/repositories)
+# 获取当前文件所在的目录 (api/v1/repositories)
 current_dir = Path(__file__).resolve().parent
 # 获取api目录 (api/.env)
-env_path = current_dir.parent / '.env'
+env_path = current_dir.parent.parent / '.env'
 load_dotenv(dotenv_path=env_path)
 
 logger = logging.getLogger(__name__)

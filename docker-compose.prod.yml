@@ -1,0 +1,33 @@
+version: "3.9"
+
+services:
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile.prod
+    container_name: brand-analysis-api
+    restart: unless-stopped
+    ports:
+      - "8091:8000"
+    environment:
+      - DB_HOST=192.168.1.100
+      - DB_PORT=3306
+      - DB_USER=root
+      - DB_PASSWORD=devpassword
+      - DB_NAME=geo
+      - DB_CHARSET=utf8mb4
+
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile.prod
+    container_name: brand-analysis-web
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    depends_on:
+      - api
+
+networks:
+  default:
+    name: brand-analysis-prod-network

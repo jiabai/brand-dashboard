@@ -4,7 +4,8 @@
 
 ## 📋 文档索引
 
-- [Dashboard API详细文档](./DASHBOARD_API_README.md) - 包含所有Dashboard API的详细说明
+- [Dashboard API详细文档](./docs/DASHBOARD_API_README.md) - 包含所有Dashboard API的详细说明
+- [指标计算算法说明](./docs/METRICS_ALGORITHMS.md) - Dashboard指标计算口径说明
 
 ## 功能特性
 
@@ -41,57 +42,55 @@ uvicorn api.main:app --reload --host 0.0.0.0 --port 8000
 ### API文档
 
 启动服务后，访问：
-- Swagger文档: http://localhost:8000/api/docs
-- ReDoc文档: http://localhost:8000/api/redoc
+- Swagger文档: http://localhost:8000/api/v1/docs
+- ReDoc文档: http://localhost:8000/api/v1/redoc
 
 ### 代码检查
 
-开发时推荐安装开发依赖并运行 Ruff 进行静态检查：
+开发时推荐使用 Ruff 进行静态检查：
 
 ```bash
-pip install -r requirements-dev.txt
+pip install ruff  # 如果尚未安装
 ruff check api
 ```
 
 ## API端点
 
 ### 健康检查
-- `GET /health` - 服务健康检查
+- `GET /api/v1/health` - 服务健康检查
 
 ### 分析相关
-- `POST /api/analysis/analyze` - 执行品牌分析
-- `POST /api/analysis/recognize-brand` - 品牌识别
-- `GET /api/analysis/results/{result_id}` - 获取分析结果
-- `GET /api/analysis/history` - 获取分析历史
+- `POST /api/v1/analysis/analyze` - 执行品牌分析
+- `POST /api/v1/analysis/recognize-brand` - 品牌识别
+- `GET /api/v1/analysis/results/{result_id}` - 获取分析结果
+- `GET /api/v1/analysis/history` - 获取分析历史
 
 ### 配置相关
-- `GET /api/config/providers` - 获取LLM提供商列表
-- `GET /api/config/analysis-types` - 获取分析类型
-- `GET /api/config/settings` - 获取当前配置
-- `POST /api/config/settings` - 更新配置
+- `GET /api/v1/config/providers` - 获取LLM提供商列表
+- `GET /api/v1/config/analysis-types` - 获取分析类型
+- `GET /api/v1/config/settings` - 获取当前配置
+- `POST /api/v1/config/settings` - 更新配置
 
 ### Dashboard相关
-- `GET /api/dashboard/brand-mention-rate` - 获取品牌总提及率数据
-- `GET /api/dashboard/platform-mention-rates` - 获取品牌在各平台的提及率数据
-- `GET /api/dashboard/reference-url-stats` - 获取全局引用URL统计数据
-- `GET /api/dashboard/brand-metrics` - 获取品牌核心指标列表
-- `GET /api/dashboard/platform-metrics-by-brand` - 获取指定品牌在各平台的详细指标
-- `GET /api/dashboard/domain-citation-rate` - 获取域名引用率分布
-- `GET /api/dashboard/post-citation-rate` - 获取发文引用率数据
+- `GET /api/v1/dashboard/brand-mention-rate` - 获取品牌总提及率数据
+- `GET /api/v1/dashboard/platform-mention-rates` - 获取品牌在各平台的提及率数据
+- `GET /api/v1/dashboard/reference-url-stats` - 获取全局引用URL统计数据
+- `GET /api/v1/dashboard/brand-metrics` - 获取品牌核心指标列表
+- `GET /api/v1/dashboard/platform-metrics-by-brand` - 获取指定品牌在各平台的详细指标
+- `GET /api/v1/dashboard/domain-citation-rate` - 获取域名引用率分布
+- `GET /api/v1/dashboard/post-citation-rate` - 获取发文引用率数据
 
 ### 查询记录相关
-- `POST /api/query-records/load` - 批量加载LLM查询记录到数据库
+- `POST /api/v1/query-records/load` - 批量加载LLM查询记录到数据库
 
 ### 品牌策略相关 (分析子项)
-- `POST /api/analysis/positioning-keywords` - 生成品牌定位关键词
-- `POST /api/analysis/consumer-questions` - 生成消费者常见问题
+- `POST /api/v1/analysis/positioning-keywords` - 生成品牌定位关键词
+- `POST /api/v1/analysis/consumer-questions` - 生成消费者常见问题
 
 ## 项目结构
 
 ```
 api/
-├── __init__.py              # 模块初始化
-├── main.py                  # FastAPI应用主文件
 ├── config/                  # 配置文件
 │   ├── README.md
 │   └── llm_settings.json
@@ -99,29 +98,34 @@ api/
 │   ├── README.md           # 数据库文档
 │   ├── database_schema.sql  # 核心数据库模式
 │   └── schema_tenants_and_users.sql # 租户与用户模式
-├── repositories/            # 数据访问层
-│   ├── __init__.py
-│   └── database.py         # 数据库查询函数
-├── routes/                  # API路由
-│   ├── __init__.py
-│   ├── analysis.py          # 分析相关API
-│   ├── brand_strategy.py    # 品牌策略API
-│   ├── config.py            # 配置相关API
-│   ├── dashboard.py         # Dashboard相关API
-│   └── query_records.py     # LLM查询记录相关API
-├── models/                  # 数据模型
-│   ├── __init__.py
-│   └── schemas.py           # Pydantic模型
-├── services/                # 服务层
-│   ├── __init__.py
-│   └── llm_client.py        # LLM客户端服务
-├── utils/                   # 工具函数
-│   ├── __init__.py
-│   ├── llm_adapters.py      # LLM适配器
-│   ├── llm_operator.py      # LLM操作器
-│   └── url_domain_resolver.py  # URL域名解析工具
-├── DASHBOARD_API_README.md  # Dashboard API 详细文档
-├── METRICS_ALGORITHMS.md    # 指标计算算法说明
+├── docs/                    # 文档与示例
+│   ├── DASHBOARD_API_README.md
+│   ├── METRICS_ALGORITHMS.md
+│   ├── openapi.json
+│   └── ...
+├── v1/                      # API v1 版本 (核心逻辑)
+│   ├── models/              # 数据模型 (Pydantic)
+│   │   └── schemas.py
+│   ├── repositories/        # 数据访问层 (SQLAlchemy)
+│   │   └── database.py
+│   ├── routes/              # API 路由处理
+│   │   ├── analysis.py
+│   │   ├── brand_strategy.py
+│   │   ├── config.py
+│   │   ├── dashboard.py
+│   │   └── query_records.py
+│   ├── services/            # 业务逻辑服务
+│   │   └── llm_client.py
+│   ├── utils/               # 工具类
+│   │   ├── llm_adapters.py
+│   │   ├── llm_operator.py
+│   │   └── url_domain_resolver.py
+│   └── __init__.py
+├── Dockerfile.dev           # 本地开发镜像
+├── Dockerfile.prod          # 生产环境镜像
+├── __init__.py              # 模块初始化
+├── generate_openapi.py      # 生成OpenAPI文档
+├── main.py                  # FastAPI应用主文件
 ├── requirements.txt         # 运行时依赖
 └── pyproject.toml           # 项目配置
 ```
@@ -132,7 +136,7 @@ api/
 
 ```javascript
 // 执行品牌分析
-const response = await fetch('http://localhost:8000/api/analysis/analyze', {
+const response = await fetch('http://localhost:8000/api/v1/analysis/analyze', {
   method: 'POST',
   headers: {
     'Content-Type': 'application/json',
@@ -147,7 +151,7 @@ const response = await fetch('http://localhost:8000/api/analysis/analyze', {
 const result = await response.json();
 
 // 获取品牌提及率数据
-const mentionRateResponse = await fetch('http://localhost:8000/api/dashboard/brand-mention-rate?brand=Apple&timeframe=7days', {
+const mentionRateResponse = await fetch('http://localhost:8000/api/v1/dashboard/brand-mention-rate?brand=Apple&timeframe=7days', {
   method: 'GET',
   headers: {
     'Accept': 'application/json',
@@ -157,7 +161,7 @@ const mentionRateResponse = await fetch('http://localhost:8000/api/dashboard/bra
 const mentionRateData = await mentionRateResponse.json();
 
 // 获取品牌在各平台的提及率数据（单个品牌）
-const platformResponse = await fetch('http://localhost:8000/api/dashboard/platform-mention-rates?brand=Apple&timeframe=7days', {
+const platformResponse = await fetch('http://localhost:8000/api/v1/dashboard/platform-mention-rates?brand=Apple&timeframe=7days', {
   method: 'GET',
   headers: {
     'Accept': 'application/json',
@@ -167,7 +171,7 @@ const platformResponse = await fetch('http://localhost:8000/api/dashboard/platfo
 const platformData = await platformResponse.json();
 
 // 获取引用URL统计数据
-const referenceResponse = await fetch('http://localhost:8000/api/dashboard/reference-url-stats?timeframe=7days', {
+const referenceResponse = await fetch('http://localhost:8000/api/v1/dashboard/reference-url-stats?timeframe=7days', {
   method: 'GET',
   headers: {
     'Accept': 'application/json',
@@ -177,7 +181,7 @@ const referenceResponse = await fetch('http://localhost:8000/api/dashboard/refer
 const referenceData = await referenceResponse.json();
 
 // 批量加载LLM查询记录
-const loadResponse = await fetch('http://localhost:8000/api/query-records/load', {
+const loadResponse = await fetch('http://localhost:8000/api/v1/query-records/load', {
   method: 'POST',
   headers: {
     'Content-Type': 'application/json',
@@ -192,7 +196,7 @@ const loadResponse = await fetch('http://localhost:8000/api/query-records/load',
 const loadResult = await loadResponse.json();
 
 // 获取品牌定位关键词
-const positioningResponse = await fetch('http://localhost:8000/api/analysis/positioning-keywords', {
+const positioningResponse = await fetch('http://localhost:8000/api/v1/analysis/positioning-keywords', {
   method: 'POST',
   headers: {
     'Content-Type': 'application/json',
@@ -210,10 +214,10 @@ const keywords = await positioningResponse.json();
 
 ### 添加新的API端点
 
-1. 在相应的路由文件中添加路由函数
-2. 在`models/schemas.py`中定义请求/响应模型
-3. 在`repositories/database.py`中添加数据库查询函数
-4. 在`routes/__init__.py`中导出新的路由模块
+1. 在`v1/routes`中添加路由函数
+2. 在`v1/models/schemas.py`中定义请求/响应模型
+3. 在`v1/repositories/database.py`中添加数据库查询函数
+4. 在`v1/routes/__init__.py`中导出新的路由模块
 5. 在`main.py`中注册新的路由
 6. 更新API文档和README.md
 

@@ -71,7 +71,7 @@ const ReferencesTable = ({
         });
 
         const result = await fetchJson(
-          `/api/dashboard/domain-citation-rate?${queryString}`,
+          `/api/v1/dashboard/domain-citation-rate?${queryString}`,
           { signal: controller.signal },
         );
 

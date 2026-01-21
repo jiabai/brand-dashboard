@@ -1,0 +1,40 @@
+version: "3.9"
+
+services:
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile.dev
+    container_name: brand-analysis-api-dev
+    restart: unless-stopped
+    volumes:
+      - ./api:/app/api
+    ports:
+      - "8000:8000"
+    environment:
+      - DB_HOST=192.168.1.100
+      - DB_PORT=3306
+      - DB_USER=root
+      - DB_PASSWORD=devpassword
+      - DB_NAME=geo
+      - DB_CHARSET=utf8mb4
+
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile.dev
+    container_name: brand-analysis-web-dev
+    restart: unless-stopped
+    volumes:
+      - ./web:/app
+      - /app/node_modules
+    ports:
+      - "3000:3000"
+    environment:
+      - VITE_API_TARGET=http://api:8000
+    depends_on:
+      - api
+
+networks:
+  default:
+    name: brand-analysis-dev-network

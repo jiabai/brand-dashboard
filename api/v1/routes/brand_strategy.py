@@ -2,8 +2,8 @@ from typing import Dict, List
 
 from fastapi import APIRouter, HTTPException
 
-from api.models.schemas import ConsumerQuestionsRequest, PositioningRequest
-from api.services.llm_client import generate_consumer_questions, generate_positioning_keywords
+from api.v1.models.schemas import ConsumerQuestionsRequest, PositioningRequest
+from api.v1.services.llm_client import generate_consumer_questions, generate_positioning_keywords
 
 router = APIRouter()
 

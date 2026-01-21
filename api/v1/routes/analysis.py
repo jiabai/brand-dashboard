@@ -5,7 +5,7 @@ from typing import Any, Dict
 
 from fastapi import APIRouter, HTTPException
 
-from api.models.schemas import (
+from api.v1.models.schemas import (
     AnalysisRequest,
     AnalysisResponse,
     BrandRecognitionRequest,

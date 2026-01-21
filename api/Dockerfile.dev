@@ -1,0 +1,18 @@
+FROM python:3.13.5-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
+WORKDIR /app
+
+# 安装依赖
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# 开发环境通常会挂载代码，但这里复制一份作为基础
+COPY . ./api
+
+EXPOSE 8000
+
+# 开发环境开启 --reload
+CMD ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]

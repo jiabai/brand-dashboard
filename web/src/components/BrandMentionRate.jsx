@@ -220,10 +220,10 @@ const BrandMentionRate = ({
         setError(null);
 
         const [brandMetrics, postCitationRate] = await Promise.all([
-          fetchJson(`/api/dashboard/brand-metrics?${brandMetricsQueryString}`, {
+          fetchJson(`/api/v1/dashboard/brand-metrics?${brandMetricsQueryString}`, {
             signal: controller.signal,
           }),
-          fetchJson(`/api/dashboard/post-citation-rate?${targetBrandQueryString}`, {
+          fetchJson(`/api/v1/dashboard/post-citation-rate?${targetBrandQueryString}`, {
             signal: controller.signal,
           }),
         ]);

@@ -101,7 +101,7 @@ const PlatformMentionRates = ({
         setError(null);
 
         const data = await fetchJson(
-          `/api/dashboard/platform-metrics-by-brand?${queryString}`,
+          `/api/v1/dashboard/platform-metrics-by-brand?${queryString}`,
           { signal: controller.signal },
         );
 

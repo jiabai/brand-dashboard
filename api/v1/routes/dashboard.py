@@ -5,7 +5,7 @@ from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, ConfigDict, Field
 
-from api.repositories.database import (
+from api.v1.repositories.database import (
     query_brand_mention_data,
     query_brand_metrics,
     query_brand_platform_mention_data,
@@ -14,7 +14,7 @@ from api.repositories.database import (
     query_post_citation_rate,
     query_reference_url_stats,
 )
-from api.utils.url_domain_resolver import resolve_url_domain
+from api.v1.utils.url_domain_resolver import resolve_url_domain
 
 router = APIRouter()
 
