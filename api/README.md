@@ -74,10 +74,17 @@ ruff check api
 - `GET /api/dashboard/brand-mention-rate` - 获取品牌总提及率数据
 - `GET /api/dashboard/platform-mention-rates` - 获取品牌在各平台的提及率数据
 - `GET /api/dashboard/reference-url-stats` - 获取全局引用URL统计数据
+- `GET /api/dashboard/brand-metrics` - 获取品牌核心指标列表
+- `GET /api/dashboard/platform-metrics-by-brand` - 获取指定品牌在各平台的详细指标
+- `GET /api/dashboard/domain-citation-rate` - 获取域名引用率分布
+- `GET /api/dashboard/post-citation-rate` - 获取发文引用率数据
 
-### 品牌策略相关
-- `GET /api/analysis/brand-strategy/advice` - 获取品牌策略建议
-- `GET /api/analysis/brand-strategy/compare` - 品牌对比分析
+### 查询记录相关
+- `POST /api/query-records/load` - 批量加载LLM查询记录到数据库
+
+### 品牌策略相关 (分析子项)
+- `POST /api/analysis/positioning-keywords` - 生成品牌定位关键词
+- `POST /api/analysis/consumer-questions` - 生成消费者常见问题
 
 ## 项目结构
 
@@ -85,9 +92,13 @@ ruff check api
 api/
 ├── __init__.py              # 模块初始化
 ├── main.py                  # FastAPI应用主文件
+├── config/                  # 配置文件
+│   ├── README.md
+│   └── llm_settings.json
 ├── database/                # 数据库相关文件
 │   ├── README.md           # 数据库文档
-│   └── schema.sql          # 数据库模式
+│   ├── database_schema.sql  # 核心数据库模式
+│   └── schema_tenants_and_users.sql # 租户与用户模式
 ├── repositories/            # 数据访问层
 │   ├── __init__.py
 │   └── database.py         # 数据库查询函数
@@ -96,7 +107,8 @@ api/
 │   ├── analysis.py          # 分析相关API
 │   ├── brand_strategy.py    # 品牌策略API
 │   ├── config.py            # 配置相关API
-│   └── dashboard.py         # Dashboard相关API
+│   ├── dashboard.py         # Dashboard相关API
+│   └── query_records.py     # LLM查询记录相关API
 ├── models/                  # 数据模型
 │   ├── __init__.py
 │   └── schemas.py           # Pydantic模型
@@ -106,11 +118,12 @@ api/
 ├── utils/                   # 工具函数
 │   ├── __init__.py
 │   ├── llm_adapters.py      # LLM适配器
-│   ├── llm_client.py        # LLM客户端工具
 │   ├── llm_operator.py      # LLM操作器
 │   └── url_domain_resolver.py  # URL域名解析工具
+├── DASHBOARD_API_README.md  # Dashboard API 详细文档
+├── METRICS_ALGORITHMS.md    # 指标计算算法说明
 ├── requirements.txt         # 运行时依赖
-└── requirements-dev.txt     # 开发/检查依赖
+└── pyproject.toml           # 项目配置
 ```
 
 ## 与前端集成
@@ -163,15 +176,34 @@ const referenceResponse = await fetch('http://localhost:8000/api/dashboard/refer
 
 const referenceData = await referenceResponse.json();
 
-// 获取品牌策略建议
-const strategyResponse = await fetch('http://localhost:8000/api/brand-strategy/advice?brand=Apple', {
-  method: 'GET',
+// 批量加载LLM查询记录
+const loadResponse = await fetch('http://localhost:8000/api/query-records/load', {
+  method: 'POST',
   headers: {
-    'Accept': 'application/json',
-  }
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    tenant_key: 'default',
+    job_id: 'job_123456',
+    data: { /* 原始查询记录数据 */ }
+  })
 });
 
-const strategyData = await strategyResponse.json();
+const loadResult = await loadResponse.json();
+
+// 获取品牌定位关键词
+const positioningResponse = await fetch('http://localhost:8000/api/analysis/positioning-keywords', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    industry: '教育',
+    brand: '学而思'
+  })
+});
+
+const keywords = await positioningResponse.json();
 ```
 
 ## 开发指南

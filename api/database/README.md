@@ -4,78 +4,77 @@
 
 ## 📁 文件说明
 
-- **`schema.sql`** - 核心数据库表结构定义
+- **`database_schema.sql`** - 核心业务表结构定义（对话、指标、统计）
+- **`schema_tenants_and_users.sql`** - 租户与用户管理表结构
 - **`migrations/`** - 数据库迁移脚本（待创建）
 - **`seeds/`** - 测试数据种子文件（待创建）
 
 ## 🗂️ 核心表结构
 
-### 1. qa_brand_state - Q&A品牌状态记录表
-记录品牌在问答平台上的提及情况和情感分析结果。
+### 1. llm_conversations - LLM 对话内容主表
+存储从 AI 平台抓取的原始对话内容。
 
 **主要字段：**
-- `id` - 自增主键
-- `date` - 记录日期
-- `question_id` - 问题唯一标识
+- `tenant_key` - 租户唯一标识
+- `job_id` - 任务 ID
+- `conversation_id` - 对话唯一标识
+- `platform` - 平台（deepseek, doubao 等）
 - `brand` - 品牌名称
-- `product` - 产品名称（可选）
-- `platform` - 问答平台（如Qwen、Deepseek等）
-- `question` - 用户原始问题
-- `answer` - 提供的答案
-- `is_mentioned` - 品牌是否在答案中被提及
-- `is_first_mention` - 品牌是否为答案中首次提及
-- `sentiment_status` - 情感状态（positive/negative/neutral）
-- `brands_found` - JSON格式存储的所有发现品牌
+- `category` - 商品大类
+- `keyword` - 核心关键词
+- `query_content` - 用户提问内容
+- `answer_content` - AI 回答内容
+- `extracted_at` - 文件原始生成时间
 
-**索引：**
-- `idx_date` - 日期索引
-- `idx_question_id` - 问题ID索引
-- `idx_brand` - 品牌索引
-- `idx_platform` - 平台索引
-- `idx_sentiment_status` - 情感状态索引
-
-### 2. qa_brand_summary - Q&A品牌汇总统计表
-存储品牌情感和提及统计的每日摘要数据。
+### 2. llm_conversation_references - 对话引用链接表
+存储对话中提到的参考链接和元数据。
 
 **主要字段：**
-- `id` - 自增主键
-- `date` - 汇总日期
-- `brand` - 品牌名称
-- `product` - 产品名称（可选）
-- `platform` - 平台名称
-- `question_count` - 问题总数
-- `mention_count` - 品牌提及总数
-- `first_mention_count` - 首次提及数量
-- `mention_rate` - 提及率（百分比）
-- `first_mention_rate` - 首位提及率（百分比）
-- `positive_count` - 正面情感问题数
-- `negative_count` - 负面情感问题数
+- `url` - 引用链接 URL
+- `domain` - 提取的域名
+- `site_name` - 站点名称
+- `content_type` - 内容类型（news, tech_review 等）
+
+### 3. llm_query_record - 用户咨询问题记录表
+存储用户提交的待查询问题模板。
+
+**主要字段：**
+- `category` - 商品大类
+- `brand` - 目标品牌
+- `competitor` - 竞品品牌 (JSON)
+- `keyword` - 核心关键词
+- `query_content` - 具体咨询内容
+- `query_status` - 生效状态
+
+### 4. qa_brand_state - 品牌问答状态详情表
+记录品牌在每个问答中的具体表现。
+
+**主要字段：**
+- `is_mentioned` - 是否提及
+- `is_first_mention` - 是否首位提及
+- `sentiment_status` - 情感状态
+- `brands_found` - 发现的所有品牌 (JSON)
+
+### 5. qa_brand_summary - 品牌汇总统计表
+存储按日、按品牌、按平台的统计摘要。
+
+**主要字段：**
+- `mention_rate` - 提及率
+- `first_mention_rate` - 首位提及率
 - `positive_ratio` - 正面情感比例
-- `negative_ratio` - 负面情感比例
 
-**索引：**
-- `idx_date_brand` - 日期+品牌组合索引
-- `idx_platform` - 平台索引
-- `idx_brand_product` - 品牌+产品组合索引
-
-### 3. qa_reference - Q&A参考链接表
-存储问答中的参考链接和相关元数据。
+### 6. qa_reference - 问答引用详情表（分析用）
+专门用于分析的引用链接表，包含发稿链接校验。
 
 **主要字段：**
-- `id` - 自增主键
-- `date` - 问题日期
-- `question_id` - 问题唯一标识
-- `brand` - 品牌名称
-- `product` - 产品名称或描述
-- `platform` - 平台（如淘宝、京东等）
-- `answer_reference_url` - 答案中引用的URL
-- `search_url` - 用于获取问题的原始搜索URL
+- `is_published_link` - 是否为发稿链接
 
-**索引：**
-- `idx_date` - 日期索引
-- `idx_question_id` - 问题ID索引
-- `idx_brand` - 品牌索引
-- `idx_platform` - 平台索引
+## 👥 租户与用户管理
+
+- **`tenants`**: 存储租户（企业/客户）基本信息、订阅计划及状态。
+- **`users`**: 存储用户信息及登录凭证。
+- **`user_tenants`**: 管理用户与租户的多对多关系及角色（admin/member）。
+- **`invitation_codes`**: 租户邀请码管理。
 
 ## 🔧 数据库初始化
 
@@ -86,7 +85,11 @@ mysql -u root -p -e "CREATE DATABASE IF NOT EXISTS geo CHARACTER SET utf8mb4 COL
 
 ### 执行建表语句
 ```bash
-mysql -u root -p geo < schema.sql
+# 1. 基础架构（租户与用户）
+mysql -u root -p geo < schema_tenants_and_users.sql
+
+# 2. 业务表（对话与指标）
+mysql -u root -p geo < database_schema.sql
 ```
 
 ### 验证表结构
