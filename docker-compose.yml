@@ -9,14 +9,12 @@ services:
     ports:
       - "8091:8000"
     environment:
-      - DB_HOST=mysql
+      - DB_HOST=192.168.1.100  # 请替换为局域网内 MySQL 机器的实际 IP
       - DB_PORT=3306
       - DB_USER=root
       - DB_PASSWORD=devpassword
       - DB_NAME=geo
       - DB_CHARSET=utf8mb4
-    depends_on:
-      - mysql
 
   web:
     image: node:20-alpine
@@ -30,7 +28,6 @@ services:
       - VITE_API_TARGET=http://api:8000
     depends_on:
       - api
-      - mysql
 
   web-prod:
     build:
@@ -41,19 +38,7 @@ services:
       - "8080:80"
     depends_on:
       - api
-      - mysql
 
-  mysql:
-    image: mysql:8.0
-    container_name: brand-analysis-mysql
-    restart: unless-stopped
-    environment:
-      - MYSQL_ROOT_PASSWORD=devpassword
-      - MYSQL_DATABASE=geo
-    ports:
-      - "3306:3306"
-    volumes:
-      - mysql_data:/var/lib/mysql
-
-volumes:
-  mysql_data:
+networks:
+  default:
+    name: brand-analysis-network

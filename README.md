@@ -55,7 +55,7 @@ docker run -p 8000:8000 brand-analysis-api
 
 ### Docker Compose（本地开发）
 
-在本地启动不同模式：
+在本地启动：
 
 - 开发模式（dev 前端 + 后端）：
   ```bash
@@ -70,10 +70,10 @@ docker run -p 8000:8000 brand-analysis-api
   # 后端: http://localhost:8000
   ```
 
-> 说明：`docker-compose.yml` 中还会同时启动一个 `mysql` 容器：
-> - 服务名：`mysql`，对外端口 `3306`。
-> - 默认数据库：`geo`，root 用户密码：`devpassword`（仅用于本地开发）。
-> - `api` 通过环境变量 `DB_HOST=mysql`、`DB_PORT=3306`、`DB_USER=root`、`DB_PASSWORD=devpassword`、`DB_NAME=geo` 连接该实例。
+> 说明：本项目默认连接局域网内的 MySQL 数据库。
+> - `api` 通过环境变量 `DB_HOST`、`DB_PORT`、`DB_USER`、`DB_PASSWORD`、`DB_NAME` 进行配置。
+> - **配置方式**：请在 `docker-compose.yml` 中将 `DB_HOST` 修改为局域网内数据库服务器的实际 IP 地址（例如 `192.168.1.x`）。
+> - 确保该远程数据库已开启远程访问权限，并允许来自本机的连接。
 
 ## 开发与规范
 
