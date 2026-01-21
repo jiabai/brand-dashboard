@@ -83,3 +83,23 @@ class ConsumerQuestionsRequest(BaseModel):
     industry: str = Field(..., description="行业")
     brand: str = Field(..., description="品牌")
     keywords: List[str] = Field(..., description="关键词列表")
+
+class QueryContentItem(BaseModel):
+    keyword: str = Field(..., min_length=1, description="关键词")
+    query_content: List[str] = Field(..., min_items=1, description="查询内容列表")
+
+class QueryRecordData(BaseModel):
+    category: str = Field(..., min_length=1, description="分类")
+    brand: Optional[str] = Field(None, min_length=1, description="品牌")
+    competitor: Optional[List[str]] = Field(None, description="竞品列表")
+    content: List[QueryContentItem] = Field(..., min_items=1, description="内容列表")
+
+class LoadQueryRecordsRequest(BaseModel):
+    tenant_key: str = Field(..., min_length=1, description="租户Key")
+    job_id: str = Field(..., min_length=1, description="任务ID")
+    data: QueryRecordData = Field(..., description="要加载的查询记录JSON数据")
+
+class LoadQueryRecordsResponse(BaseModel):
+    success: bool = Field(..., description="是否成功")
+    inserted_rows: int = Field(..., description="插入行数")
+    message: str = Field(..., description="响应消息")

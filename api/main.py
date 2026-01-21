@@ -6,7 +6,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
 from api.models.schemas import HealthResponse
-from api.routes import analysis, brand_strategy, config, dashboard
+from api.routes import analysis, brand_strategy, config, dashboard, query_records
 
 # 创建FastAPI应用
 app = FastAPI(
@@ -32,7 +32,7 @@ app.include_router(analysis.router, prefix="/api/analysis", tags=["analysis"])
 app.include_router(config.router, prefix="/api/config", tags=["config"])
 app.include_router(dashboard.router, prefix="/api/dashboard", tags=["dashboard"])
 app.include_router(brand_strategy.router, prefix="/api/analysis", tags=["analysis"])
-
+app.include_router(query_records.router, prefix="/api/query-records", tags=["query-records"])
 
 @app.get("/", response_model=Dict[str, str])
 async def root():
@@ -52,7 +52,6 @@ async def health_check():
         version="0.1.0"
     )
 
-
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request, exc):
     """全局异常处理."""
@@ -60,7 +59,6 @@ async def http_exception_handler(request, exc):
         "error": exc.detail,
         "status_code": exc.status_code
     }
-
 
 if __name__ == "__main__":
     import uvicorn
