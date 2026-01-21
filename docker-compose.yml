@@ -6,6 +6,7 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: brand-analysis-api
+    restart: unless-stopped
     ports:
       - "8091:8000"
     environment:
@@ -18,6 +19,8 @@ services:
 
   web:
     image: node:20-alpine
+    container_name: brand-analysis-web-dev
+    restart: unless-stopped
     working_dir: /app
     volumes:
       - ./web:/app
@@ -34,6 +37,7 @@ services:
       context: ./web
       dockerfile: Dockerfile
     container_name: brand-analysis-web
+    restart: unless-stopped
     ports:
       - "8080:80"
     depends_on:
