@@ -1,22 +1,29 @@
 # 品牌分析仪表板
 
-React + FastAPI 组成的品牌分析仪表板。前端提供沉浸式的可视化体验，后端提供品牌分析与仪表板数据接口。
+React + FastAPI 的品牌分析仪表板，前端聚焦沉浸式可视化体验，后端提供品牌分析与仪表板数据接口。
 
-## 仓库结构
+## 目录结构
 
-- `web/`：React 18 + Vite + Tailwind 前端应用，所有 UI/样式与前端依赖都在此目录。
-- `api/`：FastAPI 服务，提供品牌分析、配置和仪表板数据接口。
-- `Dockerfile`：后端容器配置（uvicorn 运行 `api.main:app`）。
-- 其他：`agents_chat/` 记录、`tasks.md` 任务清单、`AGENTS.md` 仓库规范。
+- `web/`：React 18 + Vite + Tailwind CSS 前端应用
+- `api/`：FastAPI 服务，提供分析与仪表板数据接口
+- `docker-compose.dev.yml` / `docker-compose.prod.yml`：本地开发与生产部署
+- `agents_chat/`：变更记录
+- `tasks.md`：任务清单
+- `AGENTS.md`：仓库规范
 
-## 核心特性（前端）
+## 技术栈概览
 
-- 📊 实时数据展示：品牌提及率、模型使用率等关键指标。
-- ⏱️ 时间筛选：支持昨天、近7天、近30天。
-- 📈 可视化图表：环形进度、进度条等多种展示方式。
-- 🎨 现代化设计：渐变与毛玻璃效果，动态网格背景。
-- 📱 响应式布局与错误处理：涵盖加载、空状态与错误边界。
-- 🌟 丰富微交互：Gooey 粘性导航、Spotlight 卡片等动效。
+### 前端
+- React 18 + Vite 5
+- Tailwind CSS 4 + tailwindcss-animate
+- Ant Design 5 + @ant-design/icons
+- Radix UI + shadcn/ui 组件组合
+- Lucide React 图标
+
+### 后端
+- FastAPI + Uvicorn
+- Pydantic v2
+- SQLAlchemy 2 + PyMySQL
 
 ## 快速开始
 
@@ -33,56 +40,77 @@ npm run preview
 ### 后端（api）
 
 ```bash
-python -m venv .venv && source .venv/bin/activate  # Windows 使用 .venv\\Scripts\\activate
+python -m venv .venv
+# Windows 使用 .venv\Scripts\activate
+# macOS/Linux 使用 source .venv/bin/activate
 pip install -r api/requirements.txt
 uvicorn api.main:app --reload --host 0.0.0.0 --port 8000
-# API 文档: http://localhost:8000/api/docs
 ```
 
-开发检查（推荐在提交前执行）：
+API 文档：
+- Swagger：http://localhost:8000/api/v1/docs
+- ReDoc：http://localhost:8000/api/v1/redoc
+
+### 代码检查
 
 ```bash
-pip install -r api/requirements-dev.txt
 ruff check api
 ```
 
-### Docker（后端）
+## 环境变量
+
+### 前端（web/.env.local）
 
 ```bash
-docker build -t brand-analysis-api .
-docker run -p 8000:8000 brand-analysis-api
+VITE_API_TARGET=http://localhost:8000
+VITE_USE_MOCK=true
+VITE_DEFAULT_USER_ID=522ebe1d-49d3-435c-a1f9-03e659786cf6
+VITE_DEFAULT_JOB_ID=job_20260102_125104_7fad76ad
+VITE_DEFAULT_BRAND=新东方
 ```
 
-### Docker Compose
+### 后端（api/.env 或系统环境变量）
 
-- 开发模式（前端开发服，支持热更新）：
+```bash
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_USER=root
+DB_PASSWORD=devpassword
+DB_NAME=geo
+DB_CHARSET=utf8mb4
+```
+
+## Docker 与 Compose
+
+### Docker Compose（推荐）
+
+- 开发模式（前端热更新 + 后端服务）：
   ```bash
   docker compose -f docker-compose.dev.yml up --build
-  # 前端: http://localhost:3000
-  # 后端: http://localhost:8000
   ```
-- 生产模式（前端使用 Nginx 托管构建产物）：
+  - 前端：http://localhost:3000
+  - 后端：http://localhost:8000
+- 生产模式（前端 Nginx 托管构建产物）：
   ```bash
   docker compose -f docker-compose.prod.yml up --build
   ```
-  - 前端生产版：`http://localhost:8080`
-  - 后端接口：`http://localhost:8091`
+  - 前端生产版：http://localhost:8080
+  - 后端接口：http://localhost:8091
 
-> 说明：本项目默认连接局域网内的 MySQL 数据库。
-> - `api` 通过环境变量 `DB_HOST`、`DB_PORT`、`DB_USER`、`DB_PASSWORD`、`DB_NAME` 进行配置。
-> - **配置方式**：请在 `docker-compose.dev.yml` 或 `docker-compose.prod.yml` 中将 `DB_HOST` 修改为局域网内数据库服务器的实际 IP 地址（例如 `192.168.1.x`）。
-> - 确保该远程数据库已开启远程访问权限，并允许来自本机的连接。
+### 单独构建镜像
 
-## 开发与规范
+- 后端：`api/Dockerfile.dev`、`api/Dockerfile.prod`
+- 前端：`web/Dockerfile.dev`、`web/Dockerfile.prod`
 
-- Git Hooks：`husky` 会检查 `agents_chat/` 记录，并调用 `ruff check api` 和 `npm --prefix web run lint/test --if-present`。
-- 提交信息：使用 Conventional Commits；代码改动需同时更新一条新的 `agents_chat/YYYYMMDD-HHMMSS-*.md`（中文）。
-- 路径别名：前端使用 `@` 指向 `web/src`，`@/components`、`@/lib` 等在 `web/vite.config.js` 中定义。
+## 文档索引
 
-## 组件与样式索引（web/src）
+- [api/README.md](./api/README.md)
+- [api/docs/DASHBOARD_API_README.md](./api/docs/DASHBOARD_API_README.md)
+- [api/docs/METRICS_ALGORITHMS.md](./api/docs/METRICS_ALGORITHMS.md)
 
-- 主要组件：`components/BrandMentionRate.jsx`、`components/ModelMentionRates.jsx`、`components/ReferencesTable.jsx`、`components/Sidebar.jsx` 等。
-- UI 基础：`components/ui/`；工具方法：`lib/cn.js`、`utils/index.js`。
-- 样式文件：`styles/*.css`、`index.css`（全局变量）、`App.css`。
+## 开发规范
 
-更多部署细节请参考 `DEPLOYMENT.md`。后端接口与数据模型说明见 `api/README.md` 与 `api/DASHBOARD_API_README.md`。
+- Git Hooks：提交前执行 `ruff check api` 与 `npm --prefix web run lint/test --if-present`
+- 提交信息：Conventional Commits
+- 变更记录：新增 `agents_chat/YYYYMMDD-HHMMSS-*.md`（中文）
+- 路径别名：`@` 指向 `web/src`，`@/components`、`@/lib` 等见 `web/vite.config.js`
