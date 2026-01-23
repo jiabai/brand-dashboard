@@ -35,8 +35,8 @@
 - `site_name` - 站点名称
 - `content_type` - 内容类型（news, tech_review 等）
 
-### 3. llm_query_record - 用户咨询问题记录表
-存储用户提交的待查询问题模板。
+### 3. llm_query_jobs - 用户咨询任务记录表
+存储用户提交的任务配置和待查询问题模板。
 
 **主要字段：**
 - `category` - 商品大类
@@ -45,6 +45,8 @@
 - `keyword` - 核心关键词
 - `query_content` - 具体咨询内容
 - `query_status` - 生效状态
+- `total_runs` - 总执行次数
+- `executed_runs` - 已执行次数
 
 ### 4. qa_brand_state - 品牌问答状态详情表
 记录品牌在每个问答中的具体表现。

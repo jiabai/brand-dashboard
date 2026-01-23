@@ -605,12 +605,12 @@ curl -X GET "http://localhost:8000/api/v1/dashboard/brand-mention-rate?brand=App
 
 ## 📥 数据加载 API
 
-### LLM查询记录加载接口
+### LLM查询任务加载接口
 
 ### 接口信息
 - **路径**: `/api/query-records/load`
 - **方法**: `POST`
-- **描述**: 接收原始 JSON 数据并批量加载到 `llm_query_record` 数据库表中。
+- **描述**: 接收原始 JSON 数据并批量加载到 `llm_query_jobs` 数据库表中。
 
 ### 请求参数 (JSON Body)
 
@@ -618,7 +618,13 @@ curl -X GET "http://localhost:8000/api/v1/dashboard/brand-mention-rate?brand=App
 |--------|------|------|------|
 | tenant_key | string | 是 | 租户标识 Key |
 | job_id | string | 是 | 任务 ID |
-| data | object | 是 | 查询记录数据对象 |
+| effective_from | string | 是 | 生效开始时间 (ISO 8601 格式) |
+| effective_to | string | 否 | 生效结束时间 (ISO 8601 格式) |
+| executor_id | string | 是 | 执行器 ID |
+| total_runs | integer | 是 | 总执行次数 (默认: 15) |
+| executed_runs | integer | 否 | 已执行次数 (默认: 0) |
+| last_executed_date | string | 是 | 最近执行日期 (YYYY-MM-DD，默认: 当前日期) |
+| data | object | 是 | 任务相关的查询配置数据对象 |
 
 #### data 对象结构
 
@@ -642,6 +648,12 @@ curl -X GET "http://localhost:8000/api/v1/dashboard/brand-mention-rate?brand=App
 {
   "tenant_key": "test_tenant",
   "job_id": "job_123456",
+  "effective_from": "2024-01-01T00:00:00",
+  "effective_to": null,
+  "executor_id": "executor_001",
+  "total_runs": 10,
+  "executed_runs": 2,
+  "last_executed_date": "2024-01-23",
   "data": {
     "category": "教育",
     "brand": "学而思",
@@ -665,7 +677,7 @@ curl -X GET "http://localhost:8000/api/v1/dashboard/brand-mention-rate?brand=App
 {
   "success": true,
   "inserted_rows": 2,
-  "message": "LLM查询记录加载成功"
+  "message": "LLM查询任务加载成功"
 }
 ```
 
@@ -676,6 +688,107 @@ curl -X GET "http://localhost:8000/api/v1/dashboard/brand-mention-rate?brand=App
 | success | boolean | 是否处理成功 |
 | inserted_rows | int | 实际插入数据库的行数 |
 | message | string | 提示消息 |
+
+---
+
+## 🛠️ 执行器管理 API (Executors)
+
+系统采用 **"先预设 IP，后注册取回凭据"** 的安全流程：
+1. **预设**: 管理员在系统中手动创建执行器记录，并指定其固定的 `ip_address`。
+2. **注册**: 执行器从预设的 IP 发起请求，通过 `/register` 接口取回自己的 `executor_id` 和 `api_key`。
+3. **调用**: 执行器使用取回的凭据调用数据加载等业务接口。
+
+### 1. 预设执行器 (Admin: Create Executor)
+
+**接口地址**: `POST /api/v1/executors/`
+
+**请求参数 (JSON Body)**:
+
+| 参数名 | 类型 | 必填 | 描述 |
+|--------|------|------|------|
+| name | string | 是 | 执行器名称（全局唯一，注册时使用） |
+| ip_address | string | 是 | 执行器的固定 IP 地址 |
+| type | string | 否 | 执行器类型（如: `crawler`） |
+
+**请求示例**:
+```json
+{
+  "name": "laptop PC-query01",
+  "ip_address": "192.168.31.112",
+  "type": "crawler"
+}
+```
+
+**响应示例**:
+```json
+{
+  "executor_id": "exec_3f2a1b9c",
+  "name": "laptop PC-query01",
+  "ip_address": "192.168.31.112",
+  "type": "crawler",
+  "status": "active",
+  "created_at": "2024-01-23T10:00:00"
+}
+```
+
+### 2. 执行器注册 (Executor: Register)
+
+**接口地址**: `POST /api/v1/executors/register`
+
+**描述**: 执行器启动时调用此接口。身份验证完全基于请求的 **来源 IP**。
+
+**请求参数**: 无。
+
+**请求示例**:
+```bash
+# 执行器只需发起一个空 Body 的 POST 请求
+curl -X POST "http://your-api.com/api/v1/executors/register" \
+     -H "Content-Type: application/json" \
+     -d "{}"
+```
+
+**响应示例**:
+```json
+{
+  "executor_id": "exec_3f2a1b9c",
+  "api_key": "ek_7d9e2f4a5b6c8d9e0f1a2b3c4d5e6f7a"
+}
+```
+
+### 3. 获取执行器列表 (List)
+
+**接口地址**: `GET /api/v1/executors/`
+
+**描述**: 获取系统中所有执行器的列表。出于安全考虑，该接口不返回 `api_key`。
+
+**响应示例**:
+
+```json
+[
+  {
+    "executor_id": "exec_3f2a1b9c",
+    "name": "爬虫集群-A",
+    "type": "crawler",
+    "status": "active",
+    "created_at": "2024-01-23T10:00:00"
+  }
+]
+```
+
+### 3. 禁用执行器 (Deactivate Executor)
+
+**接口地址**: `DELETE /api/v1/executors/{executor_id}`
+
+**描述**: 将指定执行器的状态设置为 `inactive`，禁用其访问权限。
+
+**响应示例**:
+
+```json
+{
+  "success": true,
+  "message": "执行器 exec_3f2a1b9c 已禁用"
+}
+```
 
 ---
 

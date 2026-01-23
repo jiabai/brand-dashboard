@@ -1,4 +1,3 @@
-import logging
 import os
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -9,6 +8,8 @@ from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import QueuePool
 
+from api.v1.utils import get_logger
+
 # 加载.env文件
 # 获取当前文件所在的目录 (api/v1/repositories)
 current_dir = Path(__file__).resolve().parent
@@ -16,7 +17,7 @@ current_dir = Path(__file__).resolve().parent
 env_path = current_dir.parent.parent / '.env'
 load_dotenv(dotenv_path=env_path)
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 # 数据库配置
 DATABASE_CONFIG = {
@@ -261,7 +262,7 @@ def query_brand_mention_data(
             }
             
     except Exception as e:
-        logger.error(f"查询品牌提及率数据失败: {str(e)}")
+        logger.error("查询品牌提及率数据失败", error=str(e))
         raise
 
 def query_post_citation_rate(
@@ -344,7 +345,7 @@ def query_post_citation_rate(
             }
 
     except Exception as e:
-        logger.error("查询发文引用率数据失败: %s", str(e))
+        logger.error("查询发文引用率数据失败", error=str(e))
         raise
 
 
@@ -485,7 +486,7 @@ def query_reference_url_stats(
 
             return reference_data
     except Exception as e:
-        logger.error("查询引用URL统计数据失败: %s", str(e))
+        logger.error("查询引用URL统计数据失败", error=str(e))
         raise Exception(f"查询引用URL统计数据失败: {str(e)}") from e
 
 def query_brand_platform_mention_data(
@@ -618,7 +619,7 @@ def query_brand_platform_mention_data(
             platform_data.sort(key=lambda x: x["mention_rate"], reverse=True)
             return platform_data
     except Exception as e:
-        logger.error("数据库查询失败: %s", str(e))
+        logger.error("数据库查询失败", error=str(e))
         raise Exception(f"数据库查询失败: {str(e)}") from e
 
 def query_brand_metrics(
@@ -734,7 +735,7 @@ def query_brand_metrics(
 
             return metrics
     except Exception as e:
-        logger.error("查询品牌总指标数据失败: %s", str(e))
+        logger.error("查询品牌总指标数据失败", error=str(e))
         raise Exception(f"查询品牌总指标数据失败: {str(e)}") from e
 
 
@@ -800,5 +801,5 @@ def query_platform_metrics_by_brand(
 
             return result
     except Exception as e:
-        logger.error("查询平台指标数据失败: %s", str(e))
+        logger.error("查询平台指标数据失败", error=str(e))
         raise Exception(f"查询平台指标数据失败: {str(e)}") from e

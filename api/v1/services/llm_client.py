@@ -1,7 +1,8 @@
 import json
-import logging
 import os
 from typing import Any, Dict, List, Optional
+
+from api.v1.utils import get_logger
 
 # ruff: noqa: E501
 
@@ -13,7 +14,7 @@ except ImportError:
     create_enhanced_llm_operator = None
     LLMResponse = None
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 def _load_llm_settings() -> dict:
     base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -137,7 +138,7 @@ async def generate_positioning_keywords(industry: str, brand: str) -> List[str]:
                     return result
 
         except Exception as e:
-            logger.warning("Failed to generate keywords using LLM: %s", e)
+            logger.warning("Failed to generate keywords using LLM", error=str(e))
             # 继续执行回退逻辑
 
     # 回退方案：基于输入返回通用占位关键词，保持顺序与规格
@@ -197,7 +198,7 @@ async def generate_consumer_questions(
                     return result
 
         except Exception as e:
-            logger.warning("Failed to generate consumer questions using LLM: %s", e)
+            logger.warning("Failed to generate consumer questions using LLM", error=str(e))
             # 继续执行回退逻辑
 
     # 回退方案

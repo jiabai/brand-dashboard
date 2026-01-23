@@ -61,17 +61,38 @@ CREATE TABLE `llm_conversation_references` (
   CONSTRAINT `llm_conversation_references_ibfk_conversation` FOREIGN KEY (`tenant_key`,`conversation_id`) REFERENCES `llm_conversations` (`tenant_key`,`conversation_id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='存储对话中引用链接的关联表';
 
-CREATE TABLE `llm_query_record` (
-  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '问题记录唯一主键ID，自增',
+-- 执行器信息表
+CREATE TABLE `executors` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '执行器内部主键ID，自增',
+  `executor_id` varchar(128) NOT NULL COMMENT '执行器唯一字符串标识',
+  `name` varchar(255) NOT NULL COMMENT '执行器名称',
+  `type` varchar(64) DEFAULT NULL COMMENT '执行器类型',
+  `status` varchar(20) DEFAULT 'active' COMMENT '执行器状态',
+  `ip_address` varchar(45) NOT NULL COMMENT '预设的执行器IP地址，用于注册验证',
+  `api_key` varchar(255) DEFAULT NULL COMMENT '执行器身份验证密钥',
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_executor_id` (`executor_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='执行器信息表';
+
+CREATE TABLE `llm_query_jobs` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '任务记录唯一主键ID，自增',
   `tenant_key` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '租户唯一字符串标识（tenants.tenant_key）',
-  `job_id` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '任务ID',
+  `job_id` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '作业ID',
   `category` varchar(64) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '商品大类（比如“汽车”）',
   `brand` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '目标品牌（如“蔚来”，可为NULL表示未指定具体品牌）',
   `competitor` json DEFAULT NULL COMMENT '竞品品牌（如“小鹏”“理想”，可为NULL表示未指定竞品）',
   `keyword` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '核心关键词（如“换电补能”“高端豪华”）',
   `query_content` text COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '用户具体咨询问题内容',
-  `query_status` tinyint(4) NOT NULL DEFAULT '1' COMMENT '问题生效状态：0-失效，1-生效（关键字段，标记问题是否处于使用状态）',
-  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '问题记录创建时间',
+  `query_status` tinyint(4) NOT NULL DEFAULT '0' COMMENT '问题生效状态：0-失效，1-生效（关键字段，标记问题是否处于使用状态）',
+  `executor_id` varchar(128) DEFAULT NULL COMMENT '执行器唯一标识',
+  `total_runs` int(11) NOT NULL DEFAULT '15' COMMENT '总执行次数',
+  `executed_runs` int(11) NOT NULL DEFAULT '0' COMMENT '已发生过的 attempt 数（成功 + 失败）',
+  `last_executed_date` date DEFAULT NULL COMMENT '最近一次执行日期（仅记录年月日）',
+  `effective_from` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '生效开始时间（所属JOB生命周期起点）',
+  `effective_to` timestamp NULL DEFAULT NULL COMMENT '生效结束时间（所属JOB生命周期终点，NULL表示未结束）',
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '任务记录创建时间',
   `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '记录最后更新时间，自动同步修改时间',
   `is_deleted` tinyint(4) NOT NULL DEFAULT '0' COMMENT '软删除标识：0-未删除，1-已删除',
   PRIMARY KEY (`id`),
@@ -81,8 +102,10 @@ CREATE TABLE `llm_query_record` (
   KEY `idx_keyword` (`keyword`),
   KEY `idx_query_status` (`query_status`),
   KEY `idx_created_at` (`created_at`),
-  CONSTRAINT `llm_query_record_ibfk_tenant` FOREIGN KEY (`tenant_key`) REFERENCES `tenants` (`tenant_key`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户咨询问题记录表';
+  KEY `idx_executor_id` (`executor_id`),
+  CONSTRAINT `llm_query_jobs_ibfk_tenant` FOREIGN KEY (`tenant_key`) REFERENCES `tenants` (`tenant_key`) ON DELETE CASCADE,
+  CONSTRAINT `fk_tasks_executor` FOREIGN KEY (`executor_id`) REFERENCES `executors` (`executor_id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户监测任务记录表';
 
 -- 
 -- 品牌分析相关表结构
@@ -107,9 +130,9 @@ CREATE TABLE `qa_brand_summary` (
   `negative_ratio` DECIMAL(5,2) NOT NULL COMMENT 'Negative sentiment ratio (e.g., 0.25 for 25%)', 
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-  INDEX `idx_tenant_date_brand` (`tenant_key`, `date`, `brand`), 
-  INDEX `idx_tenant_platform` (`tenant_key`, `platform`), 
-  INDEX `idx_tenant_brand_product` (`tenant_key`, `brand`, `product`),
+  KEY `idx_tenant_date_brand` (`tenant_key`, `date`, `brand`), 
+  KEY `idx_tenant_platform` (`tenant_key`, `platform`), 
+  KEY `idx_tenant_brand_product` (`tenant_key`, `brand`, `product`),
   CONSTRAINT `qa_brand_summary_ibfk_tenant` FOREIGN KEY (`tenant_key`) REFERENCES `tenants` (`tenant_key`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Daily brand sentiment and mention statistics summary'; 
 

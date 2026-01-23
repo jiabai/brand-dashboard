@@ -1,0 +1,179 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Brand Dashboard API",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/api/v1/query-records/load": {
+      "post": {
+        "summary": "加载LLM查询任务",
+        "description": "接收原始JSON数据并加载到llm_query_jobs数据库表中",
+        "operationId": "load_query_jobs",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoadQueryJobsRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoadQueryJobsResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "QueryContentItem": {
+        "type": "object",
+        "properties": {
+          "keyword": {
+            "type": "string",
+            "description": "关键词",
+            "minLength": 1
+          },
+          "query_content": {
+            "type": "array",
+            "description": "查询内容列表",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "keyword",
+          "query_content"
+        ]
+      },
+      "QueryJobData": {
+        "type": "object",
+        "properties": {
+          "category": {
+            "type": "string",
+            "description": "分类",
+            "minLength": 1
+          },
+          "brand": {
+            "type": "string",
+            "description": "品牌",
+            "minLength": 1,
+            "nullable": true
+          },
+          "competitor": {
+            "type": "array",
+            "description": "竞品列表",
+            "nullable": true,
+            "items": {
+              "type": "string"
+            }
+          },
+          "content": {
+            "type": "array",
+            "description": "内容列表",
+            "minItems": 1,
+            "items": {
+              "$ref": "#/components/schemas/QueryContentItem"
+            }
+          }
+        },
+        "required": [
+          "category",
+          "content"
+        ]
+      },
+      "LoadQueryJobsRequest": {
+        "type": "object",
+        "properties": {
+          "tenant_key": {
+            "type": "string",
+            "description": "租户Key",
+            "minLength": 1
+          },
+          "job_id": {
+            "type": "string",
+            "description": "任务ID",
+            "minLength": 1
+          },
+          "effective_from": {
+            "type": "string",
+            "format": "date-time",
+            "description": "生效开始时间"
+          },
+          "effective_to": {
+            "type": "string",
+            "format": "date-time",
+            "description": "生效结束时间（NULL表示未结束）",
+            "nullable": true
+          },
+          "executor_id": {
+            "type": "string",
+            "description": "执行器ID",
+            "minLength": 1
+          },
+          "total_runs": {
+            "type": "integer",
+            "default": 15,
+            "description": "总执行次数"
+          },
+          "executed_runs": {
+            "type": "integer",
+            "default": 0,
+            "description": "已执行次数"
+          },
+          "last_executed_date": {
+            "type": "string",
+            "format": "date",
+            "description": "最近执行日期"
+          },
+          "data": {
+            "$ref": "#/components/schemas/QueryJobData"
+          }
+        },
+        "required": [
+          "tenant_key",
+          "job_id",
+          "effective_from",
+          "executor_id",
+          "last_executed_date",
+          "data"
+        ]
+      },
+      "LoadQueryJobsResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "是否成功"
+          },
+          "inserted_rows": {
+            "type": "integer",
+            "description": "插入行数"
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息"
+          }
+        },
+        "required": [
+          "success",
+          "inserted_rows",
+          "message"
+        ]
+      }
+    }
+  }
+}

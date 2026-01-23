@@ -2,13 +2,23 @@
 
 from typing import Dict
 
+from asgi_correlation_id import CorrelationIdMiddleware
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi_structlog import LogSettings, setup_logger
+from fastapi_structlog.middleware import AccessLogMiddleware, StructlogMiddleware
 
 from api.v1.models.schemas import HealthResponse
-from api.v1.routes import analysis, brand_strategy, config, dashboard, query_records
+from api.v1.routes import analysis, brand_strategy, config, dashboard, query_records, executors
 
-# 创建FastAPI应用
+log_settings = LogSettings(
+    logger="brand-analysis-api",
+    json_logs=False,
+    debug=True,
+    types=["console"],
+)
+setup_logger(log_settings)
+
 app = FastAPI(
     title="Brand Analysis API",
     description="品牌分析API服务，为dashboard提供数据接口",
@@ -18,7 +28,10 @@ app = FastAPI(
     openapi_url="/api/v1/openapi.json"
 )
 
-# 配置CORS
+app.add_middleware(AccessLogMiddleware)
+app.add_middleware(StructlogMiddleware)
+app.add_middleware(CorrelationIdMiddleware)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:3000", "http://localhost:5173"],  # dashboard开发服务器
@@ -33,6 +46,7 @@ app.include_router(config.router, prefix="/api/v1/config", tags=["config"])
 app.include_router(dashboard.router, prefix="/api/v1/dashboard", tags=["dashboard"])
 app.include_router(brand_strategy.router, prefix="/api/v1/analysis", tags=["analysis"])
 app.include_router(query_records.router, prefix="/api/v1/query-records", tags=["query-records"])
+app.include_router(executors.router, prefix="/api/v1/executors", tags=["executors"])
 
 @app.get("/", response_model=Dict[str, str])
 async def root():
