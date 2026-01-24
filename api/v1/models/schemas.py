@@ -158,3 +158,25 @@ class ExecutorListItem(ExecutorBase):
 class ExecutorRegistrationResponse(BaseModel):
     executor_id: str = Field(..., description="分发的执行器唯一标识符")
     api_key: str = Field(..., description="分发的执行器 API Key")
+
+
+class QueryJobDetail(BaseModel):
+    id: int = Field(..., description="任务记录唯一主键ID")
+    job_id: str = Field(..., description="任务组ID")
+    tenant_key: str = Field(..., description="租户Key")
+    category: str = Field(..., description="分类")
+    brand: Optional[str] = Field(None, description="品牌")
+    competitor: Optional[List[str]] = Field(None, description="竞品列表")
+    keyword: str = Field(..., description="关键词")
+    query_content: str = Field(..., description="查询内容")
+
+
+class FetchQueryJobResponse(BaseModel):
+    success: bool = Field(..., description="是否成功")
+    count: int = Field(..., description="任务数量")
+    jobs: Optional[QueryJobDetail] = Field(None, description="任务详情")
+
+
+class ReportQueryJobResponse(BaseModel):
+    success: bool = Field(..., description="是否成功")
+    message: str = Field(..., description="响应消息")

@@ -608,7 +608,7 @@ curl -X GET "http://localhost:8000/api/v1/dashboard/brand-mention-rate?brand=App
 ### LLM查询任务加载接口
 
 ### 接口信息
-- **路径**: `/api/query-records/load`
+- **路径**: `/api/v1/query-jobs/load`
 - **方法**: `POST`
 - **描述**: 接收原始 JSON 数据并批量加载到 `llm_query_jobs` 数据库表中。
 
@@ -646,26 +646,50 @@ curl -X GET "http://localhost:8000/api/v1/dashboard/brand-mention-rate?brand=App
 
 ```json
 {
-  "tenant_key": "test_tenant",
-  "job_id": "job_123456",
-  "effective_from": "2024-01-01T00:00:00",
-  "effective_to": null,
-  "executor_id": "executor_001",
+  "tenant_key": "tn_1b02b3ef4fbd",
+  "job_id": "job_20260123_172515_f38024e2",
+  "effective_from": "2026-01-23T00:00:00",
+  "effective_to": "2026-02-01T00:00:00",
+  "executor_id": "exec_bbda021a",
   "total_runs": 10,
-  "executed_runs": 2,
-  "last_executed_date": "2024-01-23",
+  "executed_runs": 0,
+  "last_executed_date": "2026-01-23",
   "data": {
-    "category": "教育",
-    "brand": "学而思",
-    "competitor": ["新东方", "作业帮"],
+    "category": "游戏",
+    "brand": "哈基桃电竞",
+    "competitor": [
+        "河马电竞俱乐部",
+        "五九电竞俱乐部",
+        "知悦电竞俱乐部",
+        "黛玉电竞俱乐部"
+    ],
     "content": [
-      {
-        "keyword": "数学网课",
-        "query_content": [
-          "推荐几个好的数学网课",
-          "学而思的数学网课怎么样"
-        ]
-      }
+        {
+            "keyword": "三角洲陪玩",
+            "query_content":  [
+                "三角洲陪玩有什么推荐？",
+                "三角洲陪玩哪家好？",
+                "三角洲陪玩哪家靠谱？",
+                "三角洲陪玩哪家专业？",
+                "三角洲陪玩哪家服务好？",
+                "三角洲陪玩哪家口碑好？",
+                "三角洲陪玩哪家性价比高？",
+                "三角洲陪玩哪家打手实力强？"
+            ]
+        },
+        {
+            "keyword": "三角洲陪玩俱乐部",
+            "query_content":  [
+                "三角洲陪玩俱乐部有什么推荐？",
+                "三角洲陪玩俱乐部哪家好？",
+                "三角洲陪玩俱乐部哪家靠谱？",
+                "三角洲陪玩俱乐部哪家专业？",
+                "三角洲陪玩俱乐部哪家服务好？",
+                "三角洲陪玩俱乐部哪家口碑好？",
+                "三角洲陪玩俱乐部哪家性价比高？",
+                "三角洲陪玩俱乐部售后服务好？"
+            ]
+        }
     ]
   }
 }
@@ -688,6 +712,81 @@ curl -X GET "http://localhost:8000/api/v1/dashboard/brand-mention-rate?brand=App
 | success | boolean | 是否处理成功 |
 | inserted_rows | int | 实际插入数据库的行数 |
 | message | string | 提示消息 |
+
+---
+
+### LLM查询任务获取接口
+
+### 接口信息
+- **路径**: `/api/v1/query-jobs/fetch`
+- **方法**: `GET`
+- **描述**: 执行器获取待执行任务。采用 Round-Robin 策略：优先选取已执行次数最少的任务，且按物理顺序排列。
+
+### 请求参数 (Query & Header)
+
+| 参数名 | 类型 | 必填 | 位置 | 描述 |
+|--------|------|------|------|------|
+| executor_id | string | 是 | Query | 执行器唯一 ID |
+| X-Executor-Key | string | 是 | Header | 执行器 API Key |
+
+### 响应示例
+
+```json
+{
+    "success": true,
+    "count": 1,
+    "jobs": {
+        "id": 1,
+        "job_id": "job_20260123_172515_f38024e2",
+        "tenant_key": "tn_1b02b3ef4fbd",
+        "category": "游戏",
+        "brand": "哈基桃电竞",
+        "competitor": [
+            "河马电竞俱乐部",
+            "五九电竞俱乐部",
+            "知悦电竞俱乐部",
+            "黛玉电竞俱乐部"
+        ],
+        "keyword": "三角洲陪玩",
+        "query_content": "三角洲陪玩有什么推荐？"
+    }
+}
+```
+
+---
+
+### LLM查询任务上报接口
+
+### 接口信息
+- **路径**: `/api/v1/query-jobs/report`
+- **方法**: `POST`
+- **描述**: 执行器上报任务执行结果，系统将增加该任务的已执行次数，并更新最近执行日期。
+
+### 请求参数 (Query, Header & Body)
+
+| 参数名 | 类型 | 必填 | 位置 | 描述 |
+|--------|------|------|------|------|
+| executor_id | string | 是 | Query | 执行器唯一 ID |
+| X-Executor-Key | string | 是 | Header | 执行器 API Key |
+| id | integer | 是 | Body (JSON) | 任务记录唯一主键 ID |
+
+### 请求示例
+
+```bash
+curl -X POST "http://localhost:8000/api/v1/query-jobs/report?executor_id=exec_bbda021a" \
+     -H "X-Executor-Key: ek_d7c2a651c2b40a3f97f3642cb628844c" \
+     -H "Content-Type: application/json" \
+     -d "{\"id\": 1}"
+```
+
+### 响应示例
+
+```json
+{
+  "success": true,
+  "message": "上报成功"
+}
+```
 
 ---
 
@@ -804,7 +903,7 @@ api/
 │   ├── analysis.py           # 分析相关API
 │   ├── brand_strategy.py     # 品牌策略API
 │   ├── config.py             # 配置相关API
-│   └── query_records.py      # LLM查询记录相关API
+│   └── query_jobs.py         # LLM查询任务相关API
 ├── repositories/
 │   └── database.py           # 数据库查询函数
 ├── models/

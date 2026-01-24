@@ -5,19 +5,19 @@ from typing import Dict
 from asgi_correlation_id import CorrelationIdMiddleware
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi_structlog import LogSettings, setup_logger
-from fastapi_structlog.middleware import AccessLogMiddleware, StructlogMiddleware
+# from fastapi_structlog import LogSettings, setup_logger
+# from fastapi_structlog.middleware import AccessLogMiddleware, StructlogMiddleware
 
 from api.v1.models.schemas import HealthResponse
-from api.v1.routes import analysis, brand_strategy, config, dashboard, query_records, executors
+from api.v1.routes import analysis, brand_strategy, config, dashboard, query_jobs, executors
 
-log_settings = LogSettings(
-    logger="brand-analysis-api",
-    json_logs=False,
-    debug=True,
-    types=["console"],
-)
-setup_logger(log_settings)
+# log_settings = LogSettings(
+#     logger="brand-analysis-api",
+#     json_logs=False,
+#     debug=False,
+#     types=["console"],
+# )
+# setup_logger(log_settings)
 
 app = FastAPI(
     title="Brand Analysis API",
@@ -28,8 +28,8 @@ app = FastAPI(
     openapi_url="/api/v1/openapi.json"
 )
 
-app.add_middleware(AccessLogMiddleware)
-app.add_middleware(StructlogMiddleware)
+# app.add_middleware(AccessLogMiddleware)
+# app.add_middleware(StructlogMiddleware)
 app.add_middleware(CorrelationIdMiddleware)
 
 app.add_middleware(
@@ -45,7 +45,7 @@ app.include_router(analysis.router, prefix="/api/v1/analysis", tags=["analysis"]
 app.include_router(config.router, prefix="/api/v1/config", tags=["config"])
 app.include_router(dashboard.router, prefix="/api/v1/dashboard", tags=["dashboard"])
 app.include_router(brand_strategy.router, prefix="/api/v1/analysis", tags=["analysis"])
-app.include_router(query_records.router, prefix="/api/v1/query-records", tags=["query-records"])
+app.include_router(query_jobs.router, prefix="/api/v1/query-jobs", tags=["query-jobs"])
 app.include_router(executors.router, prefix="/api/v1/executors", tags=["executors"])
 
 @app.get("/", response_model=Dict[str, str])
@@ -66,13 +66,18 @@ async def health_check():
         version="0.1.0"
     )
 
+from fastapi.responses import JSONResponse
+
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request, exc):
     """全局异常处理."""
-    return {
-        "error": exc.detail,
-        "status_code": exc.status_code
-    }
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={
+            "error": exc.detail,
+            "status_code": exc.status_code
+        }
+    )
 
 if __name__ == "__main__":
     import uvicorn

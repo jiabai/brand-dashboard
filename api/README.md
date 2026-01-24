@@ -81,7 +81,7 @@ ruff check api
 - `GET /api/v1/dashboard/post-citation-rate` - 获取发文引用率数据
 
 ### 查询记录相关
-- `POST /api/v1/query-records/load` - 批量加载LLM查询记录到数据库
+- `POST /api/v1/query-jobs/load` - 批量加载LLM查询记录到数据库
 
 ### 品牌策略相关 (分析子项)
 - `POST /api/v1/analysis/positioning-keywords` - 生成品牌定位关键词
@@ -113,7 +113,7 @@ api/
 │   │   ├── brand_strategy.py
 │   │   ├── config.py
 │   │   ├── dashboard.py
-│   │   └── query_records.py
+│   │   └── query_jobs.py
 │   ├── services/            # 业务逻辑服务
 │   │   └── llm_client.py
 │   ├── utils/               # 工具类
@@ -181,7 +181,7 @@ const referenceResponse = await fetch('http://localhost:8000/api/v1/dashboard/re
 const referenceData = await referenceResponse.json();
 
 // 批量加载LLM查询记录
-const loadResponse = await fetch('http://localhost:8000/api/v1/query-records/load', {
+const loadResponse = await fetch('http://localhost:8000/api/v1/query-jobs/load', {
   method: 'POST',
   headers: {
     'Content-Type': 'application/json',
