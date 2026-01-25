@@ -4,7 +4,7 @@ import datetime
 import json
 from typing import Any, Dict, Iterable, Optional
 
-from fastapi import APIRouter, Body, Depends, HTTPException, Header, Query
+from fastapi import APIRouter, Body, Depends, Header, HTTPException, Query
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
@@ -66,7 +66,10 @@ async def fetch_query_job(
           AND executed_runs < total_runs -- 3. 简单数值比较
           AND CURRENT_TIMESTAMP >= effective_from -- 4. 时间范围开始
           AND (effective_to IS NULL OR CURRENT_TIMESTAMP <= effective_to) -- 5. 时间范围结束
-          AND (last_executed_date IS NULL OR last_executed_date <= CURRENT_DATE) -- 6. 复杂 OR/日期逻辑放最后
+          AND (
+            last_executed_date IS NULL
+            OR last_executed_date <= CURRENT_DATE
+          ) -- 6. 复杂 OR/日期逻辑放最后
         ORDER BY 
           executed_runs ASC,             -- 优先级1：跑得最少的轮次优先
           id ASC                         -- 优先级2：物理顺序优先
@@ -112,8 +115,14 @@ async def report_query_job(
     """
     # 1. 查找对应的任务记录，并校验执行器及执行次数
     query_job = db.execute(
-        text("SELECT executed_runs, total_runs FROM llm_query_jobs WHERE id = :id AND executor_id = :executor_id"),
-        {"id": id, "executor_id": executor_id}
+        text(
+            """
+            SELECT executed_runs, total_runs
+            FROM llm_query_jobs
+            WHERE id = :id AND executor_id = :executor_id
+            """
+        ),
+        {"id": id, "executor_id": executor_id},
     ).first()
 
     if not query_job:
@@ -139,7 +148,10 @@ async def report_query_job(
 
         if result.rowcount == 0:
             db.rollback()
-            return ReportQueryJobResponse(success=False, message="上报失败：任务执行次数已满或状态已变更")
+            return ReportQueryJobResponse(
+                success=False,
+                message="上报失败：任务执行次数已满或状态已变更",
+            )
 
         db.commit()
         return ReportQueryJobResponse(success=True, message="上报成功")

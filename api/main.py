@@ -5,11 +5,20 @@ from typing import Dict
 from asgi_correlation_id import CorrelationIdMiddleware
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+
 # from fastapi_structlog import LogSettings, setup_logger
 # from fastapi_structlog.middleware import AccessLogMiddleware, StructlogMiddleware
-
 from api.v1.models.schemas import HealthResponse
-from api.v1.routes import analysis, brand_strategy, config, dashboard, query_jobs, executors
+from api.v1.routes import (
+    analysis,
+    brand_strategy,
+    config,
+    conversation,
+    dashboard,
+    executors,
+    query_jobs,
+)
 
 # log_settings = LogSettings(
 #     logger="brand-analysis-api",
@@ -47,6 +56,7 @@ app.include_router(dashboard.router, prefix="/api/v1/dashboard", tags=["dashboar
 app.include_router(brand_strategy.router, prefix="/api/v1/analysis", tags=["analysis"])
 app.include_router(query_jobs.router, prefix="/api/v1/query-jobs", tags=["query-jobs"])
 app.include_router(executors.router, prefix="/api/v1/executors", tags=["executors"])
+app.include_router(conversation.router, prefix="/api/v1/conversation", tags=["conversation"])
 
 @app.get("/", response_model=Dict[str, str])
 async def root():
@@ -65,8 +75,6 @@ async def health_check():
         service="brand-analysis-api",
         version="0.1.0"
     )
-
-from fastapi.responses import JSONResponse
 
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request, exc):

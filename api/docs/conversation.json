@@ -1,0 +1,307 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Conversation API",
+    "description": "LLM对话与引用数据上报与管理API",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/api/v1/conversation/load": {
+      "post": {
+        "tags": [
+          "conversation"
+        ],
+        "summary": "LLM对话入库",
+        "description": "执行器批量上报对话与引用数据，写入 llm_conversations 与 llm_conversation_references 表。",
+        "operationId": "load_conversations_api_v1_conversation_load_post",
+        "parameters": [
+          {
+            "name": "executor_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Executor Id"
+            },
+            "description": "执行器唯一 ID"
+          },
+          {
+            "name": "X-Executor-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "X-Executor-Key"
+            },
+            "description": "执行器 API Key"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConversationLoadRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConversationLoadResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ConversationReference": {
+        "properties": {
+          "url": {
+            "type": "string",
+            "title": "Url",
+            "description": "引用链接"
+          },
+          "site_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Site Name",
+            "description": "站点名称"
+          },
+          "cite_index": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cite Index",
+            "description": "引用序号"
+          }
+        },
+        "type": "object",
+        "required": [
+          "url"
+        ],
+        "title": "ConversationReference"
+      },
+      "ConversationItem": {
+        "properties": {
+          "conversation_id": {
+            "type": "string",
+            "title": "Conversation Id",
+            "description": "对话 ID（幂等主键）"
+          },
+          "keyword": {
+            "type": "string",
+            "title": "Keyword",
+            "description": "关键词"
+          },
+          "brand": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Brand",
+            "description": "品牌名称"
+          },
+          "category": {
+            "type": "string",
+            "title": "Category",
+            "description": "商品大类"
+          },
+          "query_content": {
+            "type": "string",
+            "title": "Query Content",
+            "description": "用户提问内容"
+          },
+          "answer_content": {
+            "type": "string",
+            "title": "Answer Content",
+            "description": "平台回复内容"
+          },
+          "extracted_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Extracted At",
+            "description": "抽取时间 (ISO 8601)"
+          },
+          "references": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ConversationReference"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "References",
+            "description": "引用列表"
+          }
+        },
+        "type": "object",
+        "required": [
+          "conversation_id",
+          "keyword",
+          "category",
+          "query_content",
+          "answer_content"
+        ],
+        "title": "ConversationItem"
+      },
+      "ConversationLoadRequest": {
+        "properties": {
+          "tenant_key": {
+            "type": "string",
+            "title": "Tenant Key",
+            "description": "租户标识 Key"
+          },
+          "job_id": {
+            "type": "string",
+            "title": "Job Id",
+            "description": "任务 ID"
+          },
+          "platform": {
+            "type": "string",
+            "title": "Platform",
+            "description": "平台名称"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ConversationItem"
+            },
+            "type": "array",
+            "title": "Items",
+            "description": "对话批量数据"
+          }
+        },
+        "type": "object",
+        "required": [
+          "tenant_key",
+          "job_id",
+          "platform",
+          "items"
+        ],
+        "title": "ConversationLoadRequest"
+      },
+      "ConversationLoadResponse": {
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "title": "Success",
+            "description": "是否处理成功"
+          },
+          "inserted_conversations": {
+            "type": "integer",
+            "title": "Inserted Conversations",
+            "description": "新增对话数"
+          },
+          "inserted_references": {
+            "type": "integer",
+            "title": "Inserted References",
+            "description": "新增引用数"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "提示消息"
+          }
+        },
+        "type": "object",
+        "required": [
+          "success",
+          "inserted_conversations",
+          "inserted_references",
+          "message"
+        ],
+        "title": "ConversationLoadResponse"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  }
+}

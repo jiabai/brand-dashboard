@@ -1,17 +1,18 @@
+from datetime import datetime
 from typing import List
+
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy import text
 from sqlalchemy.orm import Session
-from datetime import datetime
 
 from api.v1.models.schemas import (
-    ExecutorCreate, 
-    ExecutorResponse, 
+    ExecutorCreate,
     ExecutorListItem,
-    ExecutorRegistrationResponse
+    ExecutorRegistrationResponse,
+    ExecutorResponse,
 )
 from api.v1.repositories.database import get_db
-from api.v1.utils.security import generate_executor_id, generate_api_key
+from api.v1.utils.security import generate_api_key, generate_executor_id
 
 router = APIRouter()
 
@@ -27,10 +28,21 @@ async def create_executor(
     api_key = generate_api_key()
 
     now = datetime.now()
-    query = text("""
-        INSERT INTO executors (executor_id, name, type, status, ip_address, api_key, created_at, updated_at)
+    query = text(
+        """
+        INSERT INTO executors (
+            executor_id,
+            name,
+            type,
+            status,
+            ip_address,
+            api_key,
+            created_at,
+            updated_at
+        )
         VALUES (:executor_id, :name, :type, 'active', :ip_address, :api_key, :now, :now)
-    """)
+        """
+    )
 
     try:
         db.execute(query, {

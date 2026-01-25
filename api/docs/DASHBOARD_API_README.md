@@ -790,6 +790,160 @@ curl -X POST "http://localhost:8000/api/v1/query-jobs/report?executor_id=exec_bb
 
 ---
 
+### LLM对话入库接口
+
+### 接口信息
+- **路径**: `/api/v1/conversation/load`
+- **方法**: `POST`
+- **描述**: 执行器批量上报对话与引用数据，写入 `llm_conversations` 与 `llm_conversation_references` 表。
+
+### 请求参数 (Query, Header & Body)
+
+| 参数名 | 类型 | 必填 | 位置 | 描述 |
+|--------|------|------|------|------|
+| executor_id | string | 是 | Query | 执行器唯一 ID |
+| X-Executor-Key | string | 是 | Header | 执行器 API Key |
+| tenant_key | string | 是 | Body (JSON) | 租户标识 Key |
+| job_id | string | 是 | Body (JSON) | 任务 ID |
+| platform | string | 是 | Body (JSON) | 平台名称 |
+| items | array | 是 | Body (JSON) | 对话批量数据 |
+
+#### items 数组项结构
+
+| 参数名 | 类型 | 必填 | 描述 |
+|--------|------|------|------|
+| conversation_id | string | 是 | 对话 ID（幂等主键） |
+| keyword | string | 是 | 关键词 |
+| brand | string | 否 | 品牌名称 |
+| category | string | 是 | 商品大类 |
+| query_content | string | 是 | 用户提问内容 |
+| answer_content | string | 是 | 平台回复内容 |
+| extracted_at | string | 否 | 抽取时间 (ISO 8601) |
+| references | array | 否 | 引用列表 |
+
+#### references 数组项结构
+
+| 参数名 | 类型 | 必填 | 描述 |
+|--------|------|------|------|
+| url | string | 是 | 引用链接 |
+| site_name | string | 否 | 站点名称 |
+| cite_index | integer | 否 | 引用序号 |
+
+### 请求示例
+
+```json
+{
+  "tenant_key": "tn_1b02b3ef4fbd",
+  "job_id": "job_20260123_172515_f38024e2",
+  "platform": "deepseek",
+  "items": [
+    {
+      "conversation_id": "conversation_9f3c1a7b",
+      "keyword": "三角洲陪玩",
+      "brand": "哈基桃电竞",
+      "category": "游戏",
+      "query_content": "三角洲陪玩有什么推荐？",
+      "answer_content": "……",
+      "extracted_at": "2026-01-25T12:34:56Z",
+      "references": [
+        {
+          "url": "https://www.zhihu.com/question/xxx",
+          "site_name": "知乎",
+          "cite_index": 1
+        }
+      ]
+    }
+  ]
+}
+```
+
+### 响应格式
+
+```json
+{
+  "success": true,
+  "inserted_conversations": 1,
+  "inserted_references": 1,
+  "message": "对话入库成功"
+}
+```
+
+### 响应字段说明
+
+| 字段名 | 类型 | 描述 |
+|--------|------|------|
+| success | boolean | 是否处理成功 |
+| inserted_conversations | int | 新增对话数 |
+| inserted_references | int | 新增引用数 |
+| message | string | 提示消息 |
+
+---
+
+### LLM对话获取接口
+
+### 接口信息
+- **路径**: `/api/v1/conversation/fetch`
+- **方法**: `GET`
+- **描述**: 获取对话与引用列表，支持分页。
+
+### 请求参数 (Query & Header)
+
+| 参数名 | 类型 | 必填 | 位置 | 描述 |
+|--------|------|------|------|------|
+| executor_id | string | 是 | Query | 执行器唯一 ID |
+| X-Executor-Key | string | 是 | Header | 执行器 API Key |
+| tenant_key | string | 否 | Query | 租户标识 Key |
+| job_id | string | 否 | Query | 任务 ID |
+| platform | string | 否 | Query | 平台名称 |
+| limit | integer | 否 | Query | 返回条数，默认 50 |
+| cursor | string | 否 | Query | 分页游标 |
+
+### 响应示例
+
+```json
+{
+  "success": true,
+  "count": 1,
+  "items": [
+    {
+      "conversation_id": "conversation_9f3c1a7b",
+      "tenant_key": "tn_1b02b3ef4fbd",
+      "job_id": "job_20260123_172515_f38024e2",
+      "platform": "deepseek",
+      "keyword": "三角洲陪玩",
+      "brand": "哈基桃电竞",
+      "category": "游戏",
+      "query_content": "三角洲陪玩有什么推荐？",
+      "answer_content": "……",
+      "model_name": "deepseek-chat",
+      "token_usage": 1234,
+      "extracted_at": "2026-01-25T12:34:56Z",
+      "references": [
+        {
+          "url": "https://www.zhihu.com/question/xxx",
+          "domain": "zhihu.com",
+          "site_name": "知乎",
+          "cite_index": 1,
+          "content_type": "ugc"
+        }
+      ]
+    }
+  ],
+  "next_cursor": "eyJpZCI6MTIzfQ=="
+}
+```
+
+### 响应字段说明
+
+| 字段名 | 类型 | 描述 |
+|--------|------|------|
+| success | boolean | 是否处理成功 |
+| count | int | 返回对话数量 |
+| items | array | 对话数据列表 |
+| next_cursor | string | 下一页游标 |
+
+---
+
 ## 🛠️ 执行器管理 API (Executors)
 
 系统采用 **"先预设 IP，后注册取回凭据"** 的安全流程：

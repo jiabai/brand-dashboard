@@ -125,6 +125,37 @@ class LoadQueryJobsResponse(BaseModel):
     message: str = Field(..., description="响应消息")
 
 
+class ConversationReferenceItem(BaseModel):
+    url: str = Field(..., min_length=1, description="引用链接")
+    site_name: Optional[str] = Field(None, description="站点名称")
+    cite_index: Optional[int] = Field(None, description="引用序号")
+
+
+class ConversationItem(BaseModel):
+    conversation_id: str = Field(..., min_length=1, description="对话ID")
+    keyword: str = Field(..., min_length=1, description="关键词")
+    brand: Optional[str] = Field(None, description="品牌名称")
+    category: str = Field(..., min_length=1, description="商品大类")
+    query_content: str = Field(..., min_length=1, description="用户提问内容")
+    answer_content: str = Field(..., min_length=1, description="平台回复内容")
+    extracted_at: Optional[datetime] = Field(None, description="抽取时间")
+    references: Optional[List[ConversationReferenceItem]] = Field(None, description="引用列表")
+
+
+class ConversationLoadRequest(BaseModel):
+    tenant_key: str = Field(..., min_length=1, description="租户标识Key")
+    job_id: str = Field(..., min_length=1, description="任务ID")
+    platform: str = Field(..., min_length=1, description="平台名称")
+    items: List[ConversationItem] = Field(..., min_items=1, description="对话批量数据")
+
+
+class ConversationLoadResponse(BaseModel):
+    success: bool = Field(..., description="是否处理成功")
+    inserted_conversations: int = Field(..., description="新增对话数")
+    inserted_references: int = Field(..., description="新增引用数")
+    message: str = Field(..., description="提示消息")
+
+
 class ExecutorBase(BaseModel):
     name: str = Field(..., description="执行器名称", example="香港机房-爬虫01")
     type: Optional[str] = Field(None, description="执行器类型", example="crawler")

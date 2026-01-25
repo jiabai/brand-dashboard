@@ -16,8 +16,6 @@ CREATE TABLE `llm_conversations` (
   `keyword` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '生成question的关键词，用户提交job时系统会根据关键词生成question',
   `query_content` text COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '用户查询内容，完整的用户提问内容',
   `answer_content` text COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'AI回答内容，AI生成的完整回答',
-  `model_name` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '抓取AI平台内容时使用的模型名称，如Kwaipilot/KAT-Dev，记录生成回答使用的具体模型',
-  `token_usage` int(11) DEFAULT NULL COMMENT 'token使用量，记录这次对话消耗的token数量，用于成本分析',
   `extracted_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '文件生成时间（来自文件的Generated at），原始文件创建时间，保持数据时序一致性',
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '数据库记录创建时间，数据入库时间，用于数据管理',
   `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '记录更新时间，记录最后修改时间，支持数据审计',
