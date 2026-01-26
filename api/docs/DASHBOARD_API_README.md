@@ -19,6 +19,12 @@
 | date | string | 否 | 具体日期，格式: `YYYYMMDD` |
 | brand | string | 否 | 品牌名称 |
 
+### 请求示例
+
+```bash
+curl -X GET "http://your-api.com/api/v1/dashboard/brand-metrics?user_id=usr_123&job_id=job_456&timeframe=7days"
+```
+
 ### 响应格式
 
 ```json
@@ -132,6 +138,12 @@ WHERE
 | timeframe | string | 是 | 时间范围，可选值: `yesterday`, `7days`, `30days` |
 | date | string | 否 | 具体日期，格式: `YYYYMMDD` |
 
+### 请求示例
+
+```bash
+curl -X GET "http://your-api.com/api/v1/dashboard/platform-metrics-by-brand?user_id=usr_123&job_id=job_456&brand=学而思&timeframe=7days"
+```
+
 ### 响应格式
 
 ```json
@@ -203,6 +215,12 @@ ORDER BY platform ASC;
 | brand | string | 是 | 品牌名称 |
 | timeframe | string | 是 | 时间范围，可选值: `yesterday`, `7days`, `30days` |
 | date | string | 否 | 具体日期，格式: `YYYYMMDD` |
+
+### 请求示例
+
+```bash
+curl -X GET "http://your-api.com/api/v1/dashboard/post-citation-rate?user_id=usr_123&job_id=job_456&brand=学而思&timeframe=7days"
+```
 
 ### 响应格式
 
@@ -281,6 +299,12 @@ GROUP BY brand;
 | brand | string | 是 | 品牌名称 |
 | timeframe | string | 是 | 时间范围，可选值: `yesterday`, `7days`, `30days` |
 | date | string | 否 | 具体日期，格式: `YYYYMMDD` |
+
+### 请求示例
+
+```bash
+curl -X GET "http://your-api.com/api/v1/dashboard/domain-citation-rate?user_id=usr_123&job_id=job_456&brand=学而思&timeframe=7days"
+```
 
 ### 响应格式
 
@@ -367,6 +391,12 @@ ORDER BY percentage DESC;
 | timeframe | string | 是 | 时间范围，可选值: `yesterday`, `7days`, `30days` |
 | date | string | 否 | 具体日期，格式: `YYYYMMDD` |
 
+### 请求示例
+
+```bash
+curl -X GET "http://your-api.com/api/v1/dashboard/platform-mention-rates?category=手机&brand=Apple&keyword=iPhone&timeframe=7days"
+```
+
 ### 响应格式
 
 ```json
@@ -436,6 +466,12 @@ curl -X GET "http://localhost:8000/api/v1/dashboard/brand-mention-rate?brand=App
 | keyword | string | 是 | 品牌关键词，或"全部" |
 | timeframe | string | 是 | 时间范围，可选值: `yesterday`, `7days`, `30days` |
 | date | string | 否 | 具体日期，格式: `YYYYMMDD` |
+
+### 请求示例
+
+```bash
+curl -X GET "http://your-api.com/api/v1/dashboard/reference-url-stats?timeframe=7days"
+```
 
 ### 响应格式
 
@@ -554,7 +590,7 @@ curl -X GET "http://localhost:8000/api/v1/dashboard/brand-mention-rate?brand=App
 ### 品牌定位关键词生成
 
 ### 接口信息
-- **路径**: `/api/analysis/positioning-keywords`
+- **路径**: `/api/v1/analysis/positioning-keywords`
 - **方法**: `POST`
 - **描述**: 基于行业和品牌名称，利用 LLM 生成品牌定位关键词。
 
@@ -564,6 +600,17 @@ curl -X GET "http://localhost:8000/api/v1/dashboard/brand-mention-rate?brand=App
 |--------|------|------|------|
 | industry | string | 是 | 行业名称（如：教育、汽车） |
 | brand | string | 是 | 品牌名称（如：学而思、蔚来） |
+
+### 请求示例
+
+```bash
+curl -X POST "http://your-api.com/api/v1/analysis/positioning-keywords" \
+     -H "Content-Type: application/json" \
+     -d '{
+  "industry": "教育",
+  "brand": "学而思"
+}'
+```
 
 ### 响应格式
 
@@ -580,7 +627,7 @@ curl -X GET "http://localhost:8000/api/v1/dashboard/brand-mention-rate?brand=App
 ### 消费者常见问题生成
 
 ### 接口信息
-- **路径**: `/api/analysis/consumer-questions`
+- **路径**: `/api/v1/analysis/consumer-questions`
 - **方法**: `POST`
 - **描述**: 基于行业、品牌和核心关键词，生成消费者可能会问的问题。
 
@@ -591,6 +638,18 @@ curl -X GET "http://localhost:8000/api/v1/dashboard/brand-mention-rate?brand=App
 | industry | string | 是 | 行业名称 |
 | brand | string | 是 | 品牌名称 |
 | keywords | array | 是 | 关键词列表 |
+
+### 请求示例
+
+```bash
+curl -X POST "http://your-api.com/api/v1/analysis/consumer-questions" \
+     -H "Content-Type: application/json" \
+     -d '{
+  "industry": "教育",
+  "brand": "学而思",
+  "keywords": ["奥数", "网课", "培优"]
+}'
+```
 
 ### 响应格式
 
@@ -644,8 +703,10 @@ curl -X GET "http://localhost:8000/api/v1/dashboard/brand-mention-rate?brand=App
 
 ### 请求示例
 
-```json
-{
+```bash
+curl -X POST "http://your-api.com/api/v1/query-jobs/load" \
+     -H "Content-Type: application/json" \
+     -d '{
   "tenant_key": "tn_1b02b3ef4fbd",
   "job_id": "job_20260123_172515_f38024e2",
   "effective_from": "2026-01-23T00:00:00",
@@ -692,7 +753,7 @@ curl -X GET "http://localhost:8000/api/v1/dashboard/brand-mention-rate?brand=App
         }
     ]
   }
-}
+}'
 ```
 
 ### 响应格式
@@ -728,6 +789,13 @@ curl -X GET "http://localhost:8000/api/v1/dashboard/brand-mention-rate?brand=App
 |--------|------|------|------|------|
 | executor_id | string | 是 | Query | 执行器唯一 ID |
 | X-Executor-Key | string | 是 | Header | 执行器 API Key |
+
+### 请求示例
+
+```bash
+curl -X GET "http://your-api.com/api/v1/query-jobs/fetch?executor_id=exec_bbda021a" \
+     -H "X-Executor-Key: sk-xxxx-your-api-key"
+```
 
 ### 响应示例
 
@@ -831,8 +899,11 @@ curl -X POST "http://localhost:8000/api/v1/query-jobs/report?executor_id=exec_bb
 
 ### 请求示例
 
-```json
-{
+```bash
+curl -X POST "http://your-api.com/api/v1/conversation/load?executor_id=exec_3f2a1b9c" \
+     -H "X-Executor-Key: sk-xxxx-your-api-key" \
+     -H "Content-Type: application/json" \
+     -d '{
   "tenant_key": "tn_1b02b3ef4fbd",
   "job_id": "job_20260123_172515_f38024e2",
   "platform": "deepseek",
@@ -854,7 +925,7 @@ curl -X POST "http://localhost:8000/api/v1/query-jobs/report?executor_id=exec_bb
       ]
     }
   ]
-}
+}'
 ```
 
 ### 响应格式
@@ -897,6 +968,13 @@ curl -X POST "http://localhost:8000/api/v1/query-jobs/report?executor_id=exec_bb
 | platform | string | 否 | Query | 平台名称 |
 | limit | integer | 否 | Query | 返回条数，默认 50 |
 | cursor | string | 否 | Query | 分页游标 |
+
+### 请求示例
+
+```bash
+curl -X GET "http://your-api.com/api/v1/conversation/fetch?executor_id=exec_3f2a1b9c&platform=deepseek&limit=10" \
+     -H "X-Executor-Key: sk-xxxx-your-api-key"
+```
 
 ### 响应示例
 
@@ -964,12 +1042,14 @@ curl -X POST "http://localhost:8000/api/v1/query-jobs/report?executor_id=exec_bb
 | type | string | 否 | 执行器类型（如: `crawler`） |
 
 **请求示例**:
-```json
-{
+```bash
+curl -X POST "http://your-api.com/api/v1/executors/" \
+     -H "Content-Type: application/json" \
+     -d '{
   "name": "laptop PC-query01",
   "ip_address": "192.168.31.112",
   "type": "crawler"
-}
+}'
 ```
 
 **响应示例**:
@@ -1014,6 +1094,12 @@ curl -X POST "http://your-api.com/api/v1/executors/register" \
 
 **描述**: 获取系统中所有执行器的列表。出于安全考虑，该接口不返回 `api_key`。
 
+**请求示例**:
+
+```bash
+curl -X GET "http://your-api.com/api/v1/executors/"
+```
+
 **响应示例**:
 
 ```json
@@ -1028,11 +1114,17 @@ curl -X POST "http://your-api.com/api/v1/executors/register" \
 ]
 ```
 
-### 3. 禁用执行器 (Deactivate Executor)
+### 4. 禁用执行器 (Deactivate Executor)
 
 **接口地址**: `DELETE /api/v1/executors/{executor_id}`
 
 **描述**: 将指定执行器的状态设置为 `inactive`，禁用其访问权限。
+
+**请求示例**:
+
+```bash
+curl -X DELETE "http://your-api.com/api/v1/executors/exec_3f2a1b9c"
+```
 
 **响应示例**:
 
