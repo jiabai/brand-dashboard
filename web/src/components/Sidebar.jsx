@@ -39,12 +39,21 @@ const Sidebar = ({ collapsed, onCollapse, onMenuClick, selectedKey }) => {
       }}
     >
       <div style={{ padding: token.padding }}>
-        <Typography.Title level={5} style={{ margin: 0 }}>
-          Brand Dashboard
-        </Typography.Title>
-        {!collapsed ? (
-          <Typography.Text type="secondary">监控 · 分析 · 报告</Typography.Text>
-        ) : null}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+            <Typography.Text style={{ fontSize: 16, fontWeight: 700, color: token.colorText }}>
+              明察
+            </Typography.Text>
+            <Typography.Text style={{ fontSize: 15, fontWeight: 500, color: token.colorPrimary }}>
+              InsightFlow
+            </Typography.Text>
+          </div>
+          {!collapsed ? (
+            <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+              监控 · 分析 · 报告
+            </Typography.Text>
+          ) : null}
+        </div>
       </div>
 
       <div style={{ paddingInline: token.paddingSM, paddingBottom: token.paddingSM }}>
