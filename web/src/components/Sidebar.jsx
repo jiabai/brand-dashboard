@@ -21,7 +21,7 @@ const MENU_ITEMS = [
   { key: 'subscribe', icon: <BookOutlined />, label: '订阅' }
 ];
 
-const Sidebar = ({ collapsed, onCollapse }) => {
+const Sidebar = ({ collapsed, onCollapse, onMenuClick, selectedKey }) => {
   const { token } = theme.useToken();
 
   return (
@@ -50,12 +50,13 @@ const Sidebar = ({ collapsed, onCollapse }) => {
       <div style={{ paddingInline: token.paddingSM, paddingBottom: token.paddingSM }}>
         <Menu
           mode="inline"
-          defaultSelectedKeys={['home']}
+          selectedKeys={[selectedKey]}
+          onClick={({ key }) => onMenuClick && onMenuClick(key)}
           items={[
             {
-              key: 'task',
+              key: 'task-load',
               icon: <PlusOutlined />,
-              label: '任务'
+              label: '加载任务'
             }
           ]}
           style={{ border: 'none' }}
@@ -64,7 +65,8 @@ const Sidebar = ({ collapsed, onCollapse }) => {
 
       <Menu
         mode="inline"
-        defaultSelectedKeys={['home']}
+        selectedKeys={[selectedKey]}
+        onClick={({ key }) => onMenuClick && onMenuClick(key)}
         items={MENU_ITEMS}
         style={{ border: 'none' }}
       />

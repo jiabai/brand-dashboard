@@ -7,6 +7,7 @@ import PlatformMentionRates from './components/PlatformMentionRates.jsx';
 import ReferencesTable from './components/ReferencesTable.jsx';
 import PlatformDetail from './components/PlatformDetail.jsx';
 import ErrorBoundary from './components/ErrorBoundary';
+import CreateQueryJob from './components/CreateQueryJob.jsx';
 import TaskName from './components/TaskName.jsx';
 import Sidebar from './components/Sidebar.jsx';
 
@@ -42,6 +43,7 @@ const LiveClock = React.memo(function LiveClock() {
 function Dashboard() {
   const { token } = theme.useToken();
   // State management
+  const [currentView, setCurrentView] = useState('home');
   const [selectedFilter, setSelectedFilter] = useState('7days');
   const [isLoading, setIsLoading] = useState(false);
   const [siderCollapsed, setSiderCollapsed] = useState(false);
@@ -78,9 +80,52 @@ function Dashboard() {
     setSelectedPlatform(null);
   }, []);
 
+  const renderContent = () => {
+    if (currentView === 'task-load') {
+      return <CreateQueryJob />;
+    }
+
+    // Default Home View
+    return (
+      <ErrorBoundary>
+        <Spin spinning={isLoading}>
+          {selectedPlatform ? (
+            <PlatformDetail 
+              platformName={selectedPlatform.name} 
+              onBack={handleBackFromPlatform} 
+            />
+          ) : (
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'minmax(0, 1.2fr) minmax(0, 1.8fr)',
+                gap: 16
+              }}
+            >
+              <div style={{ minWidth: 0 }}>
+                <BrandMentionRate timeframe={selectedFilter} />
+              </div>
+              <div style={{ minWidth: 0 }}>
+                <PlatformMentionRates timeframe={selectedFilter} onPlatformClick={setSelectedPlatform} />
+              </div>
+              <div style={{ minWidth: 0, gridColumn: '1 / -1' }}>
+                <ReferencesTable timeframe={selectedFilter} />
+              </div>
+            </div>
+          )}
+        </Spin>
+      </ErrorBoundary>
+    );
+  };
+
   return (
     <Layout style={{ minHeight: '100vh', position: 'relative', zIndex: 1 }}>
-      <Sidebar collapsed={siderCollapsed} onCollapse={setSiderCollapsed} />
+      <Sidebar 
+        collapsed={siderCollapsed} 
+        onCollapse={setSiderCollapsed} 
+        selectedKey={currentView}
+        onMenuClick={setCurrentView}
+      />
       <Layout>
         <Header
           style={{
@@ -115,34 +160,7 @@ function Dashboard() {
         </Header>
 
         <Content style={{ padding: 24 }}>
-          <ErrorBoundary>
-            <Spin spinning={isLoading}>
-              {selectedPlatform ? (
-                <PlatformDetail 
-                  platformName={selectedPlatform.name} 
-                  onBack={handleBackFromPlatform} 
-                />
-              ) : (
-                <div
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'minmax(0, 1.2fr) minmax(0, 1.8fr)',
-                    gap: 16
-                  }}
-                >
-                  <div style={{ minWidth: 0 }}>
-                    <BrandMentionRate timeframe={selectedFilter} />
-                  </div>
-                  <div style={{ minWidth: 0 }}>
-                    <PlatformMentionRates timeframe={selectedFilter} onPlatformClick={setSelectedPlatform} />
-                  </div>
-                  <div style={{ minWidth: 0, gridColumn: '1 / -1' }}>
-                    <ReferencesTable timeframe={selectedFilter} />
-                  </div>
-                </div>
-              )}
-            </Spin>
-          </ErrorBoundary>
+          {renderContent()}
         </Content>
       </Layout>
     </Layout>
