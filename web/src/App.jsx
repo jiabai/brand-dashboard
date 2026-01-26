@@ -1,15 +1,15 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Badge, ConfigProvider, Layout, Segmented, Space, Spin, Typography, theme } from 'antd';
 
-// Components
-import BrandMentionRate from './components/BrandMentionRate.jsx';
-import PlatformMentionRates from './components/PlatformMentionRates.jsx';
-import ReferencesTable from './components/ReferencesTable.jsx';
-import PlatformDetail from './components/PlatformDetail.jsx';
 import ErrorBoundary from './components/ErrorBoundary';
-import CreateQueryJob from './components/CreateQueryJob.jsx';
 import TaskName from './components/TaskName.jsx';
 import Sidebar from './components/Sidebar.jsx';
+
+const BrandMentionRate = React.lazy(() => import('./components/BrandMentionRate.jsx'));
+const PlatformMentionRates = React.lazy(() => import('./components/PlatformMentionRates.jsx'));
+const ReferencesTable = React.lazy(() => import('./components/ReferencesTable.jsx'));
+const PlatformDetail = React.lazy(() => import('./components/PlatformDetail.jsx'));
+const CreateQueryJob = React.lazy(() => import('./components/CreateQueryJob.jsx'));
 
 const { Header, Content } = Layout;
 
@@ -81,39 +81,40 @@ function Dashboard() {
   }, []);
 
   const renderContent = () => {
-    if (currentView === 'task-load') {
-      return <CreateQueryJob />;
-    }
-
-    // Default Home View
     return (
       <ErrorBoundary>
-        <Spin spinning={isLoading}>
-          {selectedPlatform ? (
-            <PlatformDetail 
-              platformName={selectedPlatform.name} 
-              onBack={handleBackFromPlatform} 
-            />
+        <Suspense fallback={<Spin />}>
+          {currentView === 'task-load' ? (
+            <CreateQueryJob />
           ) : (
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'minmax(0, 1.2fr) minmax(0, 1.8fr)',
-                gap: 16
-              }}
-            >
-              <div style={{ minWidth: 0 }}>
-                <BrandMentionRate timeframe={selectedFilter} />
-              </div>
-              <div style={{ minWidth: 0 }}>
-                <PlatformMentionRates timeframe={selectedFilter} onPlatformClick={setSelectedPlatform} />
-              </div>
-              <div style={{ minWidth: 0, gridColumn: '1 / -1' }}>
-                <ReferencesTable timeframe={selectedFilter} />
-              </div>
-            </div>
+            <Spin spinning={isLoading}>
+              {selectedPlatform ? (
+                <PlatformDetail 
+                  platformName={selectedPlatform.name} 
+                  onBack={handleBackFromPlatform} 
+                />
+              ) : (
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'minmax(0, 1.2fr) minmax(0, 1.8fr)',
+                    gap: 16
+                  }}
+                >
+                  <div style={{ minWidth: 0 }}>
+                    <BrandMentionRate timeframe={selectedFilter} />
+                  </div>
+                  <div style={{ minWidth: 0 }}>
+                    <PlatformMentionRates timeframe={selectedFilter} onPlatformClick={setSelectedPlatform} />
+                  </div>
+                  <div style={{ minWidth: 0, gridColumn: '1 / -1' }}>
+                    <ReferencesTable timeframe={selectedFilter} />
+                  </div>
+                </div>
+              )}
+            </Spin>
           )}
-        </Spin>
+        </Suspense>
       </ErrorBoundary>
     );
   };

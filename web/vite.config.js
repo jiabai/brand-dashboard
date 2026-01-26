@@ -26,10 +26,23 @@ export default defineConfig(({ mode, command }) => {
       chunkSizeWarningLimit: 1000,
       rollupOptions: {
         output: {
-          manualChunks: {
-            'react-vendor': ['react', 'react-dom'],
-            'antd-vendor': ['antd', '@ant-design/icons'],
-            'lucide-vendor': ['lucide-react']
+          manualChunks: (id) => {
+            if (!id.includes('node_modules')) return
+            if (id.includes('/node_modules/react') || id.includes('/node_modules/react-dom')) {
+              return 'react-vendor'
+            }
+            if (id.includes('/node_modules/lucide-react')) {
+              return 'lucide-vendor'
+            }
+            if (id.includes('/node_modules/@ant-design/icons')) {
+              return 'antd-icons'
+            }
+            if (id.includes('/node_modules/@rc-component') || id.includes('/node_modules/rc-')) {
+              return 'rc-vendor'
+            }
+            if (id.includes('/node_modules/antd')) {
+              return 'antd-vendor'
+            }
           }
         }
       }

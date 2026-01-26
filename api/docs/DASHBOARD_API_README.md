@@ -662,6 +662,92 @@ curl -X POST "http://your-api.com/api/v1/analysis/consumer-questions" \
 
 ---
 
+## 🏢 平台租户管理 API
+
+### 平台操作员创建租户
+
+### 接口信息
+- **路径**: `/api/v1/platform/tenants`
+- **方法**: `POST`
+- **描述**: 平台操作员创建租户并生成管理员账号与邀请码。
+
+### 请求参数 (JSON Body)
+
+| 参数名 | 类型 | 必填 | 描述 |
+|--------|------|------|------|
+| tenantName | string | 是 | 租户显示名称 |
+| companyLegalName | string | 是 | 企业法定名称 |
+| registrationNo | string | 否 | 企业注册号/统一社会信用代码 |
+| industry | string | 是 | 行业 |
+| companyType | string | 否 | 企业类型 |
+| adminName | string | 是 | 管理员姓名 |
+| adminEmail | string | 是 | 管理员邮箱 |
+| adminPhone | string | 否 | 管理员电话 |
+| planType | string | 否 | 订阅计划类型 |
+| billingCycle | string | 否 | 计费周期（monthly/yearly） |
+| contractStartDate | string | 否 | 合同开始日期（YYYY-MM-DD） |
+| contractEndDate | string | 否 | 合同结束日期（YYYY-MM-DD） |
+| maxUsers | integer | 否 | 最大用户数 |
+| preferredSubdomain | string | 否 | 首选子域名 |
+| salesPersonId | string | 否 | 销售负责人ID |
+
+### 请求示例
+
+```bash
+curl -X POST "http://your-api.com/api/v1/platform/tenants" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <platform-admin-token>" \
+  -d '{
+    "tenantName": "阿里巴巴集团",
+    "companyLegalName": "阿里巴巴（中国）网络技术有限公司",
+    "registrationNo": "91330000748833471G",
+    "industry": "互联网/电子商务",
+    "companyType": "有限责任公司",
+    "adminName": "张三",
+    "adminEmail": "zhangsan@alibaba.com",
+    "adminPhone": "13800138000",
+    "planType": "enterprise",
+    "billingCycle": "yearly",
+    "contractStartDate": "2025-01-20",
+    "contractEndDate": "2026-01-19",
+    "maxUsers": 200,
+    "preferredSubdomain": "alibaba",
+    "salesPersonId": "SALES_001"
+  }'
+```
+
+### 响应格式
+
+```json
+{
+  "success": true,
+  "message": "租户创建成功",
+  "data": {
+    "tenantId": 100,
+    "tenantKey": "tn_a8f3k9m2x7p1",
+    "tenantName": "阿里巴巴集团",
+    "adminUserKey": "usr_b9g4l0n3y8q2",
+    "inviteCode": "AB3K9M",
+    "activationUrl": "https://alibaba.yourplatform.com/activate?token=eyJ..."
+  }
+}
+```
+
+### 响应字段说明
+
+| 字段名 | 类型 | 描述 |
+|--------|------|------|
+| success | boolean | 是否创建成功 |
+| message | string | 提示消息 |
+| data.tenantId | integer | 租户ID |
+| data.tenantKey | string | 租户标识 Key |
+| data.tenantName | string | 租户名称 |
+| data.adminUserKey | string | 管理员用户标识 |
+| data.inviteCode | string | 企业邀请码 |
+| data.activationUrl | string | 管理员激活链接 |
+
+---
+
 ## 📥 数据加载 API
 
 ### LLM查询任务加载接口
@@ -690,8 +776,8 @@ curl -X POST "http://your-api.com/api/v1/analysis/consumer-questions" \
 | 参数名 | 类型 | 必填 | 描述 |
 |--------|------|------|------|
 | category | string | 是 | 分类名称 |
-| brand | string | 否 | 品牌名称 |
-| competitor | array | 否 | 竞品名称列表 |
+| brand | string | 是 | 品牌名称 |
+| competitor | array | 是 | 竞品名称列表 |
 | content | array | 是 | 内容列表，包含关键词和查询内容 |
 
 #### content 数组项结构

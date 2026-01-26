@@ -69,9 +69,9 @@ const CreateQueryJob = () => {
     const today = dayjs().format('YYYYMMDD_HHmmss');
     
     form.setFieldsValue({
-      tenant_key: `tn_${randomHex(12)}`,
+      tenant_key: 'tn_1b02b3ef4fbd',
       job_id: `job_${today}_${randomHex(8)}`,
-      executor_id: `exec_${randomHex(8)}`,
+      executor_id: 'exec_bbda021a',
       last_executed_date: dayjs(),
       effective_from: dayjs().startOf('day'),
     });
@@ -97,6 +97,8 @@ const CreateQueryJob = () => {
           layout="vertical"
           onFinish={onFinish}
           initialValues={{
+            tenant_key: 'tn_1b02b3ef4fbd',
+            executor_id: 'exec_bbda021a',
             total_runs: 15,
             executed_runs: 0,
             last_executed_date: dayjs(),
@@ -110,7 +112,7 @@ const CreateQueryJob = () => {
               label="租户标识 Key"
               rules={[{ required: true, message: '请输入租户标识 Key' }]}
             >
-              <Input placeholder="tn_..." />
+              <Input placeholder="tn_..." disabled />
             </Form.Item>
             <Form.Item
               name="job_id"
@@ -124,7 +126,7 @@ const CreateQueryJob = () => {
               label="执行器 ID"
               rules={[{ required: true, message: '请输入执行器 ID' }]}
             >
-              <Input placeholder="exec_..." />
+              <Input placeholder="exec_..." disabled />
             </Form.Item>
             <Form.Item
               name="last_executed_date"
@@ -174,15 +176,32 @@ const CreateQueryJob = () => {
             <Form.Item
               name={['data', 'brand']}
               label="品牌名称"
+              rules={[{ required: true, message: '请输入品牌名称' }]}
             >
               <Input placeholder="例如：哈基桃电竞" />
             </Form.Item>
           </div>
 
-          <Form.List name={['data', 'competitor']}>
-            {(fields, { add, remove }) => (
+          <Form.List 
+            name={['data', 'competitor']}
+            rules={[
+              {
+                validator: async (_, names) => {
+                  if (!names || names.length < 1) {
+                    return Promise.reject(new Error('至少需要一个竞品名称'));
+                  }
+                },
+              },
+            ]}
+          >
+            {(fields, { add, remove }, { errors }) => (
               <>
-                <Form.Item label="竞品名称列表">
+                <Form.Item 
+                  label="竞品名称列表"
+                  required
+                  validateStatus={errors.length > 0 ? 'error' : ''}
+                  help={errors[0]}
+                >
                   {fields.map((field, index) => (
                     <div key={field.key} className="flex gap-2 mb-2">
                       <Form.Item
