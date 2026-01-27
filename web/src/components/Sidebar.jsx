@@ -8,7 +8,8 @@ import {
   MessageOutlined,
   PictureOutlined,
   PlusOutlined,
-  SettingOutlined
+  SettingOutlined,
+  UnorderedListOutlined
 } from '@ant-design/icons';
 
 const MENU_ITEMS = [
@@ -66,6 +67,11 @@ const Sidebar = ({ collapsed, onCollapse, onMenuClick, selectedKey }) => {
               key: 'task-load',
               icon: <PlusOutlined />,
               label: '加载任务'
+            },
+            {
+              key: 'task-status',
+              icon: <UnorderedListOutlined />,
+              label: '任务状态'
             }
           ]}
           style={{ border: 'none' }}

@@ -329,7 +329,7 @@ async def load_conversations(
                         """
                         INSERT INTO llm_conversations
                           (tenant_key, job_id, conversation_id, platform, keyword, brand, category,
-                           query_content, answer_content, extracted_at)
+                           query_content, answer_content, generated_date, extracted_at)
                         VALUES
                           (
                             :tenant_key,
@@ -341,6 +341,7 @@ async def load_conversations(
                             :category,
                             :query_content,
                             :answer_content,
+                            :generated_date,
                             :extracted_at
                           )
                         """
@@ -355,6 +356,7 @@ async def load_conversations(
                         "category": item.category,
                         "query_content": item.query_content,
                         "answer_content": item.answer_content,
+                        "generated_date": extracted_at.date(),
                         "extracted_at": extracted_at,
                     },
                 )
@@ -402,7 +404,8 @@ async def load_conversations(
                                     domain,
                                     cite_index,
                                     site_name,
-                                    content_type
+                                    content_type,
+                                    generated_date
                                   )
                                 VALUES
                                   (
@@ -418,7 +421,8 @@ async def load_conversations(
                                     :domain,
                                     :cite_index,
                                     :site_name,
-                                    :content_type
+                                    :content_type,
+                                    :generated_date
                                   )
                                 """
                             ),
@@ -436,6 +440,7 @@ async def load_conversations(
                                 "cite_index": ref.cite_index,
                                 "site_name": ref.site_name,
                                 "content_type": content_type,
+                                "generated_date": extracted_at.date(),
                             },
                         )
                         inserted_references += 1

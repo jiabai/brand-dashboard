@@ -10,6 +10,7 @@ const PlatformMentionRates = React.lazy(() => import('./components/PlatformMenti
 const ReferencesTable = React.lazy(() => import('./components/ReferencesTable.jsx'));
 const PlatformDetail = React.lazy(() => import('./components/PlatformDetail.jsx'));
 const CreateQueryJob = React.lazy(() => import('./components/CreateQueryJob.jsx'));
+const QueryJobStatus = React.lazy(() => import('./components/QueryJobStatus.jsx'));
 
 const { Header, Content } = Layout;
 
@@ -86,6 +87,8 @@ function Dashboard() {
         <Suspense fallback={<Spin />}>
           {currentView === 'task-load' ? (
             <CreateQueryJob />
+          ) : currentView === 'task-status' ? (
+            <QueryJobStatus />
           ) : (
             <Spin spinning={isLoading}>
               {selectedPlatform ? (
