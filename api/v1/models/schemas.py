@@ -202,10 +202,27 @@ class QueryJobDetail(BaseModel):
     query_content: str = Field(..., description="查询内容")
 
 
+class QueryJobStatusItem(BaseModel):
+    tenant_key: str = Field(..., description="租户Key")
+    brand: Optional[str] = Field(None, description="品牌")
+    competitor: Optional[List[str]] = Field(None, description="竞品列表")
+    query_content: str = Field(..., description="查询内容")
+    query_status: int = Field(..., description="问题生效状态")
+    effective_from: datetime = Field(..., description="生效开始时间")
+    effective_to: Optional[datetime] = Field(None, description="生效结束时间")
+
+
 class FetchQueryJobResponse(BaseModel):
     success: bool = Field(..., description="是否成功")
     count: int = Field(..., description="任务数量")
     jobs: Optional[QueryJobDetail] = Field(None, description="任务详情")
+
+
+class QueryJobStatusResponse(BaseModel):
+    success: bool = Field(..., description="是否成功")
+    count: int = Field(..., description="任务数量")
+    jobs: List[QueryJobStatusItem] = Field(default_factory=list, description="任务状态列表")
+
 
 
 class ReportQueryJobResponse(BaseModel):

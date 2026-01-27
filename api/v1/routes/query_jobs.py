@@ -13,6 +13,8 @@ from api.v1.models.schemas import (
     LoadQueryJobsRequest,
     LoadQueryJobsResponse,
     QueryJobDetail,
+    QueryJobStatusItem,
+    QueryJobStatusResponse,
     ReportQueryJobResponse,
 )
 from api.v1.repositories.database import get_db
@@ -159,6 +161,56 @@ async def report_query_job(
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"上报失败: {str(e)}") from e
+
+
+@router.get("/status", response_model=QueryJobStatusResponse)
+async def list_query_jobs_status(
+    tenant_key: str = Query(..., description="租户Key"),
+    include_deleted: bool = Query(False, description="是否包含已删除任务"),
+    db: Session = Depends(get_db),
+):
+    tenant_check = db.execute(
+        text("SELECT 1 FROM tenants WHERE tenant_key = :tenant_key"),
+        {"tenant_key": tenant_key},
+    ).first()
+
+    if not tenant_check:
+        raise HTTPException(status_code=400, detail=f"租户不存在: {tenant_key}")
+
+    status_filter = "" if include_deleted else "AND is_deleted = 0"
+    sql = text(
+        f"""
+        SELECT
+          tenant_key,
+          brand,
+          competitor,
+          query_content,
+          query_status,
+          effective_from,
+          effective_to
+        FROM llm_query_jobs
+        WHERE tenant_key = :tenant_key
+          {status_filter}
+        ORDER BY id DESC
+        """
+    )
+
+    rows = db.execute(sql, {"tenant_key": tenant_key}).fetchall()
+
+    jobs = [
+        QueryJobStatusItem(
+            tenant_key=row.tenant_key,
+            brand=row.brand,
+            competitor=json.loads(row.competitor) if row.competitor else None,
+            query_content=row.query_content,
+            query_status=row.query_status,
+            effective_from=row.effective_from,
+            effective_to=row.effective_to,
+        )
+        for row in rows
+    ]
+
+    return QueryJobStatusResponse(success=True, count=len(jobs), jobs=jobs)
 
 
 def iter_query_jobs(

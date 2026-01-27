@@ -130,6 +130,46 @@
           }
         }
       }
+    },
+    "/api/v1/query-jobs/status": {
+      "get": {
+        "summary": "查询任务状态列表",
+        "description": "按租户查询任务的 query_content 与状态信息",
+        "operationId": "list_query_jobs_status",
+        "parameters": [
+          {
+            "name": "tenant_key",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "租户Key"
+          },
+          {
+            "name": "include_deleted",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "description": "是否包含已删除任务"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueryJobStatusResponse"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -340,6 +380,78 @@
         "required": [
           "success",
           "count"
+        ]
+      },
+      "QueryJobStatusItem": {
+        "type": "object",
+        "properties": {
+          "tenant_key": {
+            "type": "string",
+            "description": "租户Key"
+          },
+          "brand": {
+            "type": "string",
+            "description": "品牌",
+            "nullable": true
+          },
+          "competitor": {
+            "type": "array",
+            "description": "竞品列表",
+            "nullable": true,
+            "items": {
+              "type": "string"
+            }
+          },
+          "query_content": {
+            "type": "string",
+            "description": "查询内容"
+          },
+          "query_status": {
+            "type": "integer",
+            "description": "问题生效状态"
+          },
+          "effective_from": {
+            "type": "string",
+            "format": "date-time",
+            "description": "生效开始时间"
+          },
+          "effective_to": {
+            "type": "string",
+            "format": "date-time",
+            "description": "生效结束时间",
+            "nullable": true
+          }
+        },
+        "required": [
+          "tenant_key",
+          "query_content",
+          "query_status",
+          "effective_from"
+        ]
+      },
+      "QueryJobStatusResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "是否成功"
+          },
+          "count": {
+            "type": "integer",
+            "description": "任务数量"
+          },
+          "jobs": {
+            "type": "array",
+            "description": "任务状态列表",
+            "items": {
+              "$ref": "#/components/schemas/QueryJobStatusItem"
+            }
+          }
+        },
+        "required": [
+          "success",
+          "count",
+          "jobs"
         ]
       },
       "ReportQueryJobResponse": {

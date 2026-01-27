@@ -909,6 +909,63 @@ curl -X GET "http://your-api.com/api/v1/query-jobs/fetch?executor_id=exec_bbda02
 
 ---
 
+### LLM查询任务状态查询接口
+
+### 接口信息
+- **路径**: `/api/v1/query-jobs/status`
+- **方法**: `GET`
+- **描述**: 按租户查询任务的 query_content 与状态信息。
+
+### 请求参数 (Query)
+
+| 参数名 | 类型 | 必填 | 描述 |
+|--------|------|------|------|
+| tenant_key | string | 是 | 租户标识 Key |
+| include_deleted | boolean | 否 | 是否包含已删除任务（默认 false） |
+
+### 请求示例
+
+```bash
+curl -X GET "http://your-api.com/api/v1/query-jobs/status?tenant_key=tn_1b02b3ef4fbd&include_deleted=false"
+```
+
+### 响应示例
+
+```json
+{
+  "success": true,
+  "count": 2,
+  "jobs": [
+    {
+      "tenant_key": "tn_1b02b3ef4fbd",
+      "brand": "哈基桃电竞",
+      "competitor": ["河马电竞俱乐部", "五九电竞俱乐部"],
+      "query_content": "三角洲陪玩有什么推荐？",
+      "query_status": 1,
+      "effective_from": "2026-01-23T00:00:00",
+      "effective_to": "2026-02-01T00:00:00"
+    }
+  ]
+}
+```
+
+### 响应字段说明
+
+| 字段名 | 类型 | 描述 |
+|--------|------|------|
+| success | boolean | 是否成功 |
+| count | int | 任务数量 |
+| jobs | array | 任务状态列表 |
+| jobs.tenant_key | string | 租户标识 Key |
+| jobs.brand | string | 品牌名称 |
+| jobs.competitor | array | 竞品名称列表 |
+| jobs.query_content | string | 查询内容 |
+| jobs.query_status | int | 问题生效状态 |
+| jobs.effective_from | string | 生效开始时间 (ISO 8601 格式) |
+| jobs.effective_to | string | 生效结束时间 (ISO 8601 格式，可为空) |
+
+---
+
 ### LLM查询任务上报接口
 
 ### 接口信息
