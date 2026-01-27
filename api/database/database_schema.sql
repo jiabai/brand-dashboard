@@ -98,10 +98,10 @@ CREATE TABLE `llm_query_jobs` (
   KEY `idx_brand` (`brand`),
   KEY `idx_category` (`category`),
   KEY `idx_keyword` (`keyword`),
-  KEY `idx_query_status` (`query_status`),
   KEY `idx_created_at` (`created_at`),
-  KEY `idx_executor_id` (`executor_id`),
   KEY `idx_executor_fetch_v2` (`executor_id`, `query_status`, `is_deleted`, `executed_runs`, `id`),
+  KEY `idx_jobs_daily_reset` (`query_status`, `is_deleted`, `last_executed_date`, `executed_runs`),
+  KEY `idx_executor_fetch_date` (`executor_id`, `query_status`, `is_deleted`, `last_executed_date`, `id`),
   CONSTRAINT `llm_query_jobs_ibfk_tenant` FOREIGN KEY (`tenant_key`) REFERENCES `tenants` (`tenant_key`) ON DELETE CASCADE,
   CONSTRAINT `fk_tasks_executor` FOREIGN KEY (`executor_id`) REFERENCES `executors` (`executor_id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户监测任务记录表';
