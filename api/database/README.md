@@ -1,13 +1,18 @@
 # 品牌分析API数据库架构
 
-本目录包含品牌分析API的数据库架构文件和相关文档。
+本目录包含品牌分析API的数据库架构文件与初始化说明。
 
 ## 📁 文件说明
 
 - **`database_schema.sql`** - 核心业务表结构定义（对话、指标、统计）
 - **`schema_tenants_and_users.sql`** - 租户与用户管理表结构
-- **`migrations/`** - 数据库迁移脚本（待创建）
-- **`seeds/`** - 测试数据种子文件（待创建）
+- **`migrations/`** - 数据库迁移脚本（预留）
+- **`seeds/`** - 测试数据种子文件（预留）
+
+## ✅ 环境要求
+
+- MySQL 8.0+
+- 数据库字符集：utf8mb4
 
 ## 🗂️ 核心表结构
 
@@ -80,12 +85,12 @@
 
 ## 🔧 数据库初始化
 
-### 创建数据库
+### 1. 创建数据库
 ```bash
 mysql -u root -p -e "CREATE DATABASE IF NOT EXISTS geo CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
 ```
 
-### 执行建表语句
+### 2. 执行建表语句
 ```bash
 # 1. 基础架构（租户与用户）
 mysql -u root -p geo < schema_tenants_and_users.sql
@@ -94,9 +99,15 @@ mysql -u root -p geo < schema_tenants_and_users.sql
 mysql -u root -p geo < database_schema.sql
 ```
 
-### 验证表结构
+### 3. 验证表结构
 ```bash
 mysql -u root -p geo -e "SHOW TABLES;"
+```
+
+### 4. 初始化数据（可选）
+```bash
+# 预留种子脚本目录：seeds/
+# 建议按业务模块拆分并在此处补充执行命令
 ```
 
 ## 📊 使用场景
