@@ -52,7 +52,7 @@ const QueryJobStatus = () => {
         include_deleted: includeDeleted ? 'true' : 'false',
       });
 
-      const response = await fetch(`${CONFIG.API_TARGET}/api/v1/query-jobs/status?${params}`);
+      const response = await fetch(`/api/v1/query-jobs/status?${params}`);
       if (!response.ok) {
         message.error('查询失败');
         return;

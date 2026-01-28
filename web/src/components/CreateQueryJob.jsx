@@ -39,7 +39,7 @@ const CreateQueryJob = () => {
         executed_runs: values.executed_runs || 0,
       };
 
-      const response = await fetch(`${CONFIG.API_TARGET}/api/v1/query-jobs/load`, {
+      const response = await fetch(`/api/v1/query-jobs/load`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
