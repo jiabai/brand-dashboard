@@ -259,18 +259,18 @@ async def get_reference_url_stats(
             reference_count = reference_data["reference_count"]
             total_questions = reference_data["total_questions"]
             # 解析URL获取中文名称
-            domain_info = resolve_url_domain(reference_data["answer_reference_url"])
+            domain_info = resolve_url_domain(reference_data["url"])
             chinese_name = domain_info["chinese_name"]
-            
+
             # 计算引用率
             reference_rate = (
                 round(reference_count / total_questions * 100, 2)
                 if total_questions > 0
                 else 0.0
             )
-            
+
             response_data.append(ReferenceUrlData(
-                answer_reference_url=reference_data["answer_reference_url"],
+                answer_reference_url=reference_data["url"],
                 reference_count=reference_count,
                 total_questions=total_questions,
                 chinese_name=chinese_name,
@@ -294,7 +294,7 @@ async def get_reference_url_stats(
 
 @router.get("/brand-metrics", response_model=BrandMetricsResponse)
 async def get_brand_metrics(
-    user_id: str = Query(..., description="用户ID"),
+    tenant_key: str = Query(..., description="租户唯一字符串标识（tenants.tenant_key）"),
     job_id: str = Query(..., description="任务ID"),
     timeframe: TimeFrame = Query(..., description="时间范围"),
     date: Optional[str] = Query(None, description="具体日期(格式: YYYYMMDD)"),
@@ -302,7 +302,7 @@ async def get_brand_metrics(
 ):
     try:
         metrics = query_brand_metrics(
-            user_id=user_id,
+            tenant_key=tenant_key,
             job_id=job_id,
             timeframe=timeframe.value,
             specific_date=date,
@@ -415,7 +415,7 @@ async def get_domain_citation_rate(
 
 @router.get("/post-citation-rate", response_model=PostCitationRateResponse)
 async def get_post_citation_rate(
-    user_id: str = Query(..., description="用户ID"),
+    tenant_key: str = Query(..., description="租户唯一字符串标识"),
     job_id: str = Query(..., description="任务ID"),
     brand: str = Query(..., description="品牌名称"),
     timeframe: TimeFrame = Query(..., description="时间范围"),
@@ -424,7 +424,7 @@ async def get_post_citation_rate(
     """获取品牌发文引用率信息."""
     try:
         data = query_post_citation_rate(
-            user_id=user_id,
+            tenant_key=tenant_key,
             job_id=job_id,
             brand=brand,
             timeframe=timeframe.value,

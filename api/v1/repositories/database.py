@@ -266,7 +266,7 @@ def query_brand_mention_data(
         raise
 
 def query_post_citation_rate(
-    user_id: str,
+    tenant_key: str,
     job_id: str,
     brand: str,
     timeframe: str,
@@ -300,7 +300,7 @@ def query_post_citation_rate(
                         conversation_id,
                         MAX(is_published_link) AS has_published_link
                     FROM qa_reference
-                    WHERE user_id = :user_id
+                    WHERE tenant_key = :tenant_key
                     AND job_id = :job_id
                     AND brand = :brand
                     AND created_at BETWEEN :start_date AND :end_date
@@ -310,7 +310,7 @@ def query_post_citation_rate(
             0
         ) AS citation_rate_by_post
     FROM qa_reference qr
-    WHERE qr.user_id = :user_id
+    WHERE qr.tenant_key = :tenant_key
     AND qr.job_id = :job_id
     AND qr.brand = :brand
     AND qr.created_at BETWEEN :start_date AND :end_date
@@ -321,7 +321,7 @@ def query_post_citation_rate(
             result = conn.execute(
                 text(query),
                 {
-                    "user_id": user_id,
+                    "tenant_key": tenant_key,
                     "job_id": job_id,
                     "brand": brand,
                     "start_date": start_datetime,
@@ -426,12 +426,12 @@ def query_reference_url_stats(
     # 查询引用URL统计
     url_query = """
     SELECT 
-        answer_reference_url, 
+        url, 
         COUNT(*) AS reference_count 
     FROM qa_reference 
-    WHERE answer_reference_url IS NOT NULL 
+    WHERE url IS NOT NULL 
     AND date BETWEEN :start_date AND :end_date 
-    GROUP BY answer_reference_url 
+    GROUP BY url 
     ORDER BY reference_count DESC
     """
 
@@ -479,7 +479,7 @@ def query_reference_url_stats(
                 reference_count = int(row[1]) if row[1] else 0
 
                 reference_data.append({
-                    "answer_reference_url": reference_url,
+                    "url": reference_url,
                     "reference_count": reference_count,
                     "total_questions": total_questions
                 })
@@ -623,7 +623,7 @@ def query_brand_platform_mention_data(
         raise Exception(f"数据库查询失败: {str(e)}") from e
 
 def query_brand_metrics(
-    user_id: str,
+    tenant_key: str,
     job_id: str,
     timeframe: str,
     specific_date: Optional[str] = None,
@@ -658,12 +658,12 @@ def query_brand_metrics(
             keyword_column = "keyword" if "keyword" in columns else None
 
             where_clauses = [
-                "user_id = :user_id",
+                "tenant_key = :tenant_key",
                 "job_id = :job_id",
                 "date BETWEEN :start_date AND :end_date",
             ]
             params: Dict[str, Any] = {
-                "user_id": user_id,
+                "tenant_key": tenant_key,
                 "job_id": job_id,
                 "start_date": start_date,
                 "end_date": end_date,

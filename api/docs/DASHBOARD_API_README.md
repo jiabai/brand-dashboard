@@ -13,7 +13,7 @@
 
 | 参数名 | 类型 | 必填 | 描述 |
 |--------|------|------|------|
-| user_id | string | 是 | 用户ID |
+| tenant_key | string | 是 | 租户标识 tenant_key |
 | job_id | string | 是 | 任务ID |
 | timeframe | string | 是 | 时间范围，可选值: `yesterday`, `7days`, `30days` |
 | date | string | 否 | 具体日期，格式: `YYYYMMDD` |
@@ -22,7 +22,7 @@
 ### 请求示例
 
 ```bash
-curl -X GET "http://your-api.com/api/v1/dashboard/brand-metrics?user_id=usr_123&job_id=job_456&timeframe=7days"
+curl -X GET "http://your-api.com/api/v1/dashboard/brand-metrics?tenant_key=tn_xxx&job_id=job_456&timeframe=7days"
 ```
 
 ### 响应格式
@@ -73,8 +73,8 @@ curl -X GET "http://your-api.com/api/v1/dashboard/brand-metrics?user_id=usr_123&
 |--------|------|------|
 | status | string | 响应状态，"success" 或 "error" |
 | brand | string | 品牌名称 |
-| mention_rate | float | 品牌总提及率（百分比） |
-| first_mention_rate | float | 首次提及 brand 率（百分比） |
+| mention_rate | float | 品牌总提及率（比例，0~1） |
+| first_mention_rate | float | 首次提及 brand 率（比例，0~1） |
 | citation_rate_by_post | float | 发文引用率（发文的引用次数占总引用次数的比例） |
 | prompt_count | int | 问题总数 |
 | citation_source_count | int | 引用来源数量 |
@@ -94,7 +94,7 @@ SELECT
     COUNT(DISTINCT CASE WHEN is_mentioned = 1 THEN keyword END) AS keyword_coverage
 FROM qa_brand_state
 WHERE 
-    user_id = <user_id>
+    tenant_key = <tenant_key>
     AND job_id = <job_id>
     AND `date` >= CURDATE() - INTERVAL <timeframe> DAY
     AND `date` <= CURDATE()
@@ -114,7 +114,7 @@ SELECT
     COUNT(DISTINCT CASE WHEN is_mentioned = 1 THEN keyword END) AS keyword_coverage
 FROM qa_brand_state
 WHERE 
-    user_id = <user_id>
+    tenant_key = <tenant_key>
     AND job_id = <job_id>
     AND brand = <brand>
     AND `date` >= CURDATE() - INTERVAL <timeframe> DAY
@@ -132,7 +132,7 @@ WHERE
 
 | 参数名 | 类型 | 必填 | 描述 |
 |--------|------|------|------|
-| user_id | string | 是 | 用户ID |
+| tenant_key | string | 是 | 租户标识 tenant_key |
 | job_id | string | 是 | 任务ID |
 | brand | string | 是 | 品牌名称 |
 | timeframe | string | 是 | 时间范围，可选值: `yesterday`, `7days`, `30days` |
@@ -141,7 +141,7 @@ WHERE
 ### 请求示例
 
 ```bash
-curl -X GET "http://your-api.com/api/v1/dashboard/platform-metrics-by-brand?user_id=usr_123&job_id=job_456&brand=学而思&timeframe=7days"
+curl -X GET "http://your-api.com/api/v1/dashboard/platform-metrics-by-brand?tenant_key=tn_xxx&job_id=job_456&brand=学而思&timeframe=7days"
 ```
 
 ### 响应格式
@@ -179,9 +179,9 @@ curl -X GET "http://your-api.com/api/v1/dashboard/platform-metrics-by-brand?user
 |--------|------|------|
 | status | string | 响应状态，"success" 或 "error" |
 | brand | string | 品牌名称 |
-| platforms | array | 平台指标列表 |
+| platforms | array | platform 指标列表 |
 | platform | string | 平台名称 |
-| mention_rate | float | 平台提及率（百分比） |
+| mention_rate | float | 平台提及率（比例，0~1） |
 
 ### 数据计算逻辑
 
@@ -191,7 +191,7 @@ SELECT
     SUM(is_mentioned) / COUNT(*) AS mention_rate
 FROM qa_brand_state
 WHERE 
-    user_id = <user_id>
+    tenant_key = <tenant_key>
     AND job_id = <job_id>
     AND brand = <brand>
     AND date >= CURDATE() - INTERVAL <timeframe> DAY
@@ -210,7 +210,7 @@ ORDER BY platform ASC;
 
 | 参数名 | 类型 | 必填 | 描述 |
 |--------|------|------|------|
-| user_id | string | 是 | 用户ID |
+| tenant_key | string | 是 | 租户标识 tenant_key |
 | job_id | string | 是 | 任务ID |
 | brand | string | 是 | 品牌名称 |
 | timeframe | string | 是 | 时间范围，可选值: `yesterday`, `7days`, `30days` |
@@ -219,7 +219,7 @@ ORDER BY platform ASC;
 ### 请求示例
 
 ```bash
-curl -X GET "http://your-api.com/api/v1/dashboard/post-citation-rate?user_id=usr_123&job_id=job_456&brand=学而思&timeframe=7days"
+curl -X GET "http://your-api.com/api/v1/dashboard/post-citation-rate?tenant_key=tn_xxx&job_id=job_456&brand=学而思&timeframe=7days"
 ```
 
 ### 响应格式
@@ -264,11 +264,11 @@ SELECT
                     MAX(is_published_link) AS has_published_link
                 FROM qa_reference
                 WHERE 
-                    user_id = <user_id>
+                    tenant_key = <tenant_key>
                     AND job_id = <job_id>
                     AND brand = <brand>
-                    AND date >= CURDATE() - INTERVAL <timeframe> DAY
-                    AND date <= CURDATE()
+                    AND created_at >= CURDATE() - INTERVAL <timeframe> DAY
+                    AND created_at <= CURDATE()
                 GROUP BY conversation_id
             ) AS conv_stats
         ),
@@ -276,11 +276,11 @@ SELECT
     ) AS citation_rate_by_post
 FROM qa_reference qr
 WHERE
-    qr.user_id = <user_id>
+    qr.tenant_key = <tenant_key>
     AND qr.job_id = <job_id>
     AND qr.brand = <brand>
-    AND qr.date >= CURDATE() - INTERVAL <timeframe> DAY
-    AND qr.date <= CURDATE()
+    AND qr.created_at >= CURDATE() - INTERVAL <timeframe> DAY
+    AND qr.created_at <= CURDATE()
 GROUP BY brand;
 ```
 ---------------------
@@ -294,7 +294,7 @@ GROUP BY brand;
 
 | 参数名 | 类型 | 必填 | 描述 |
 |--------|------|------|------|
-| user_id | string | 是 | 用户ID |
+| tenant_key | string | 是 | 租户标识 tenant_key |
 | job_id | string | 是 | 任务ID |
 | brand | string | 是 | 品牌名称 |
 | timeframe | string | 是 | 时间范围，可选值: `yesterday`, `7days`, `30days` |
@@ -303,7 +303,7 @@ GROUP BY brand;
 ### 请求示例
 
 ```bash
-curl -X GET "http://your-api.com/api/v1/dashboard/domain-citation-rate?user_id=usr_123&job_id=job_456&brand=学而思&timeframe=7days"
+curl -X GET "http://your-api.com/api/v1/dashboard/domain-citation-rate?tenant_key=tn_xxx&job_id=job_456&brand=学而思&timeframe=7days"
 ```
 
 ### 响应格式
@@ -355,21 +355,23 @@ SELECT
             SELECT COUNT(*)
             FROM qa_reference
             WHERE 
-              user_id = <user_id>
+              tenant_key = <tenant_key>
               AND job_id = <job_id>
               AND brand = <brand>
               AND domain IS NOT NULL
               AND date >= CURDATE() - INTERVAL <timeframe> DAY
+              AND date <= CURDATE()
         ),
         2
     ) AS percentage
 FROM qa_reference
 WHERE
-    user_id = <user_id>
+    tenant_key = <tenant_key>
     AND job_id = <job_id>
     AND brand = <brand>
     AND domain IS NOT NULL
     AND date >= CURDATE() - INTERVAL <timeframe> DAY
+    AND date <= CURDATE()
 GROUP BY domain
 ORDER BY percentage DESC;
 ```
@@ -387,6 +389,8 @@ ORDER BY percentage DESC;
 
 | 参数名 | 类型 | 必填 | 描述 |
 |--------|------|------|------|
+| tenant_key | string | 是 | 租户标识 tenant_key |
+| job_id | string | 是 | 任务ID |
 | brand | string | 是 | 品牌名称 |
 | timeframe | string | 是 | 时间范围，可选值: `yesterday`, `7days`, `30days` |
 | date | string | 否 | 具体日期，格式: `YYYYMMDD` |
@@ -394,7 +398,7 @@ ORDER BY percentage DESC;
 ### 请求示例
 
 ```bash
-curl -X GET "http://your-api.com/api/v1/dashboard/platform-mention-rates?category=手机&brand=Apple&keyword=iPhone&timeframe=7days"
+curl -X GET "http://your-api.com/api/v1/dashboard/brand-mention-rate?tenant_key=tn_xxx&job_id=job_456&brand=Apple&timeframe=7days"
 ```
 
 ### 响应格式
@@ -437,15 +441,58 @@ curl -X GET "http://your-api.com/api/v1/dashboard/platform-mention-rates?categor
 ### 使用示例
 
 ```bash
-curl -X GET "http://localhost:8000/api/v1/dashboard/brand-mention-rate?brand=Apple&timeframe=7days" \
+curl -X GET "http://localhost:8000/api/v1/dashboard/brand-mention-rate?tenant_key=tn_xxx&job_id=job_456&brand=Apple&timeframe=7days" \
   -H "accept: application/json"
 ```
 
 ### 数据计算逻辑
 
-基于`qa_brand_summary`表的字段计算：
-- **mention_rate**: `AVG(mention_rate)` 在指定时间范围内的平均值
-- **change**: 当前周期与上一周期提及率的百分比变化
+基于代码实际执行的 SQL（参数以 SQLAlchemy 命名参数形式展示）：
+
+```sql
+SELECT 1
+FROM qa_brand_summary
+WHERE tenant_key = :tenant_key
+  AND job_id = :job_id
+  AND brand = :brand
+LIMIT 1
+```
+
+```sql
+SELECT
+    SUM(question_count) as total_questions,
+    SUM(mention_count) as total_mentions,
+    SUM(first_mention_count) as total_first_mentions,
+    MAX(date) as latest_date,
+    AVG(mention_rate) as avg_mention_rate
+FROM qa_brand_summary
+WHERE tenant_key = :tenant_key
+  AND job_id = :job_id
+  AND brand = :brand
+  AND date BETWEEN :start_date AND :end_date
+```
+
+```sql
+SELECT COUNT(*) + 1
+FROM (
+    SELECT brand, AVG(mention_rate) as rate
+    FROM qa_brand_summary
+    WHERE tenant_key = :tenant_key
+      AND job_id = :job_id
+      AND date BETWEEN :start_date AND :end_date
+    GROUP BY brand
+    HAVING rate > :my_rate
+) as ranks
+```
+
+```sql
+SELECT AVG(mention_rate)
+FROM qa_brand_summary
+WHERE tenant_key = :tenant_key
+  AND job_id = :job_id
+  AND brand = :brand
+  AND date BETWEEN :prev_start AND :prev_end
+```
 
 ---
 
@@ -454,13 +501,15 @@ curl -X GET "http://localhost:8000/api/v1/dashboard/brand-mention-rate?brand=App
 ### 接口信息
 - **路径**: `/api/v1/dashboard/platform-mention-rates`
 - **方法**: `GET`
-- **描述**: 获取单个品牌在各平台的提及率对比数据，基于`qa_brand_summary`表计算
+- **描述**: 获取单个品牌在各平台的提及率对比数据，基于`qa_brand_state`表计算
 - **实现状态**: ✅ 已完成
 
 ### 请求参数
 
 | 参数名 | 类型 | 必填 | 描述 |
 |--------|------|------|------|
+| tenant_key | string | 是 | 租户标识 tenant_key |
+| job_id | string | 是 | 任务ID |
 | category | string | 是 | 商品大类 |
 | brand | string | 是 | 品牌名称 |
 | keyword | string | 是 | 品牌关键词，或"全部" |
@@ -470,7 +519,7 @@ curl -X GET "http://localhost:8000/api/v1/dashboard/brand-mention-rate?brand=App
 ### 请求示例
 
 ```bash
-curl -X GET "http://your-api.com/api/v1/dashboard/reference-url-stats?timeframe=7days"
+curl -X GET "http://your-api.com/api/v1/dashboard/platform-mention-rates?tenant_key=tn_xxx&job_id=job_456&category=手机&brand=Apple&keyword=iPhone&timeframe=7days"
 ```
 
 ### 响应格式
@@ -538,8 +587,37 @@ curl -X GET "http://your-api.com/api/v1/dashboard/reference-url-stats?timeframe=
 | DeepSeek | `#06b6d4` |
 | Claude   | `#f59e0b` |
 | ChatGPT  | `#10b981` |
-| 豆包      | `#3b82f6` |
-| 千问      | `#8b5cf6` |
+| Gemini   | `#3b82f6` |
+| 豆包      | `#8b5cf6` |
+| 通义千问   | `#ef4444` |
+
+### 数据计算逻辑
+
+基于代码实际执行的 SQL（参数以 SQLAlchemy 命名参数形式展示）：
+
+```sql
+SELECT
+    platform,
+    COUNT(DISTINCT conversation_id) AS query_count,
+    COUNT(
+        DISTINCT CASE WHEN is_mentioned = 1 THEN conversation_id END
+    ) AS mention_count,
+    COUNT(
+        DISTINCT CASE WHEN is_first_mentioned = 1 THEN conversation_id END
+    ) AS first_mention_count
+FROM qa_brand_state
+WHERE tenant_key = :tenant_key
+  AND job_id = :job_id
+  AND brand = :brand
+  AND date BETWEEN :start_date AND :end_date
+  AND category = :category
+  AND keyword = :keyword -- 仅在 keyword != "全部" 时添加此过滤条件
+GROUP BY platform
+ORDER BY mention_rate DESC; -- 在代码中进行排序
+```
+
+- **mention_rate**: `(mention_count / query_count) * 100`
+- **first_mention_rate**: `(first_mention_count / query_count) * 100`
 
 ---
 
@@ -557,8 +635,16 @@ curl -X GET "http://your-api.com/api/v1/dashboard/reference-url-stats?timeframe=
 
 | 参数名 | 类型 | 必填 | 描述 |
 |--------|------|------|------|
+| tenant_key | string | 是 | 租户标识 tenant_key |
+| job_id | string | 是 | 任务ID |
 | timeframe | string | 是 | 时间范围，可选值: `yesterday`, `7days`, `30days` |
 | date | string | 否 | 具体日期，格式: `YYYYMMDD` |
+
+### 请求示例
+
+```bash
+curl -X GET "http://your-api.com/api/v1/dashboard/reference-url-stats?tenant_key=tn_xxx&job_id=job_456&timeframe=7days"
+```
 
 ### 响应格式
 
@@ -583,6 +669,33 @@ curl -X GET "http://your-api.com/api/v1/dashboard/reference-url-stats?timeframe=
 }
 ```
 
+### 数据计算逻辑
+
+基于代码实际执行的 SQL（参数以 SQLAlchemy 命名参数形式展示）：
+
+```sql
+-- 1. 获取引用 URL 统计数据
+SELECT 
+    url, 
+    COUNT(*) AS reference_count 
+FROM qa_reference 
+WHERE tenant_key = :tenant_key
+  AND job_id = :job_id
+  AND url IS NOT NULL 
+  AND date BETWEEN :start_date AND :end_date 
+GROUP BY url 
+ORDER BY reference_count DESC;
+
+-- 2. 获取总提问数（用于计算引用率）
+SELECT COUNT(DISTINCT question_id) AS total_questions 
+FROM qa_reference 
+WHERE tenant_key = :tenant_key
+  AND job_id = :job_id
+  AND date BETWEEN :start_date AND :end_date;
+```
+
+- **reference_rate**: `(reference_count / total_questions) * 100`
+
 ---
 
 ## 🧠 品牌策略与分析 API (LLM)
@@ -598,6 +711,8 @@ curl -X GET "http://your-api.com/api/v1/dashboard/reference-url-stats?timeframe=
 
 | 参数名 | 类型 | 必填 | 描述 |
 |--------|------|------|------|
+| tenant_key | string | 是 | 租户标识 Key |
+| job_id | string | 是 | 任务 ID |
 | industry | string | 是 | 行业名称（如：教育、汽车） |
 | brand | string | 是 | 品牌名称（如：学而思、蔚来） |
 
@@ -607,6 +722,8 @@ curl -X GET "http://your-api.com/api/v1/dashboard/reference-url-stats?timeframe=
 curl -X POST "http://your-api.com/api/v1/analysis/positioning-keywords" \
      -H "Content-Type: application/json" \
      -d '{
+  "tenant_key": "tn_xxx",
+  "job_id": "job_456",
   "industry": "教育",
   "brand": "学而思"
 }'
@@ -622,6 +739,26 @@ curl -X POST "http://your-api.com/api/v1/analysis/positioning-keywords" \
 ]
 ```
 
+### 实现逻辑 (LLM)
+该接口目前直接调用 LLM 生成，不涉及 SQL 数据库查询。
+
+**Prompt 模板**:
+```text
+你是一个品牌策略顾问。请基于品牌或产品的公开信息，直接输出一个包含5个标准化定位关键词的 JSON 数组。
+
+要求检索品牌或产品的典型产品特征、用户评价和市场定位（可以通过搜索互联网信息进行检索），从检索结果中提取5个最核心的产品关键词
+确保这些关键词：
+- 精准反映产品核心优势
+- 与竞品形成差异化
+- 直接关联用户真实需求
+- 适用于品牌营销和定位
+- 仅输出 JSON 数组，不要任何解释、标注、注释或额外文本；
+- 使用双引号，符合标准 JSON 格式。
+
+现在为以下品牌或产品输出定位关键词：
+{brand}
+```
+
 ---
 
 ### 消费者常见问题生成
@@ -635,6 +772,8 @@ curl -X POST "http://your-api.com/api/v1/analysis/positioning-keywords" \
 
 | 参数名 | 类型 | 必填 | 描述 |
 |--------|------|------|------|
+| tenant_key | string | 是 | 租户标识 Key |
+| job_id | string | 是 | 任务 ID |
 | industry | string | 是 | 行业名称 |
 | brand | string | 是 | 品牌名称 |
 | keywords | array | 是 | 关键词列表 |
@@ -645,6 +784,8 @@ curl -X POST "http://your-api.com/api/v1/analysis/positioning-keywords" \
 curl -X POST "http://your-api.com/api/v1/analysis/consumer-questions" \
      -H "Content-Type: application/json" \
      -d '{
+  "tenant_key": "tn_xxx",
+  "job_id": "job_456",
   "industry": "教育",
   "brand": "学而思",
   "keywords": ["奥数", "网课", "培优"]
@@ -658,6 +799,27 @@ curl -X POST "http://your-api.com/api/v1/analysis/consumer-questions" \
   "关键词1": ["问题1", "问题2"],
   "关键词2": ["问题3", "问题4"]
 }
+```
+
+### 实现逻辑 (LLM)
+该接口目前直接调用 LLM 生成，不涉及 SQL 数据库查询。
+
+**Prompt 模板**:
+```text
+请根据{industry}行业{brand}的以下5个关键词，为每个关键词生成3个消费者在购买前可能提出的问题。
+
+要求：
+1. 每个关键词对应3个问题；
+2. 每个问题应从不同角度切入（例如价格、质量、售后服务、使用体验、环保性、兼容性、安全性、品牌信誉等）；
+3. 同一关键词下的3个问题之间应尽量避免内容重叠或逻辑关联；
+4. 问题需贴近真实消费者的语言习惯，具有实际参考价值。
+
+输出格式：
+- 严格使用 JSON 格式，键为关键词，值为包含3个问题的数组；
+- 不包含任何额外说明、注释或解释性文字。
+
+关键词列表：
+{keywords}
 ```
 
 ---
@@ -875,11 +1037,13 @@ curl -X POST "http://your-api.com/api/v1/query-jobs/load" \
 |--------|------|------|------|------|
 | executor_id | string | 是 | Query | 执行器唯一 ID |
 | X-Executor-Key | string | 是 | Header | 执行器 API Key |
+| tenant_key | string | 否 | Query | 租户标识 Key (可选，用于过滤) |
+| job_id | string | 否 | Query | 任务 ID (可选，用于过滤) |
 
 ### 请求示例
 
 ```bash
-curl -X GET "http://your-api.com/api/v1/query-jobs/fetch?executor_id=exec_bbda021a" \
+curl -X GET "http://your-api.com/api/v1/query-jobs/fetch?executor_id=exec_bbda021a&tenant_key=tn_xxx" \
      -H "X-Executor-Key: sk-xxxx-your-api-key"
 ```
 
@@ -921,12 +1085,13 @@ curl -X GET "http://your-api.com/api/v1/query-jobs/fetch?executor_id=exec_bbda02
 | 参数名 | 类型 | 必填 | 描述 |
 |--------|------|------|------|
 | tenant_key | string | 是 | 租户标识 Key |
+| job_id | string | 否 | 任务 ID |
 | include_deleted | boolean | 否 | 是否包含已删除任务（默认 false） |
 
 ### 请求示例
 
 ```bash
-curl -X GET "http://your-api.com/api/v1/query-jobs/status?tenant_key=tn_1b02b3ef4fbd&include_deleted=false"
+curl -X GET "http://your-api.com/api/v1/query-jobs/status?tenant_key=tn_1b02b3ef4fbd&job_id=job_456&include_deleted=false"
 ```
 
 ### 响应示例
@@ -979,6 +1144,8 @@ curl -X GET "http://your-api.com/api/v1/query-jobs/status?tenant_key=tn_1b02b3ef
 |--------|------|------|------|------|
 | executor_id | string | 是 | Query | 执行器唯一 ID |
 | X-Executor-Key | string | 是 | Header | 执行器 API Key |
+| tenant_key | string | 是 | Body (JSON) | 租户标识 Key |
+| job_id | string | 是 | Body (JSON) | 任务 ID |
 | id | integer | 是 | Body (JSON) | 任务记录唯一主键 ID |
 
 ### 请求示例
@@ -987,7 +1154,7 @@ curl -X GET "http://your-api.com/api/v1/query-jobs/status?tenant_key=tn_1b02b3ef
 curl -X POST "http://localhost:8000/api/v1/query-jobs/report?executor_id=exec_bbda021a" \
      -H "X-Executor-Key: ek_d7c2a651c2b40a3f97f3642cb628844c" \
      -H "Content-Type: application/json" \
-     -d "{\"id\": 1}"
+     -d "{\"tenant_key\": \"tn_xxx\", \"job_id\": \"job_456\", \"id\": 1}"
 ```
 
 ### 响应示例
@@ -1106,8 +1273,8 @@ curl -X POST "http://your-api.com/api/v1/conversation/load?executor_id=exec_3f2a
 |--------|------|------|------|------|
 | executor_id | string | 是 | Query | 执行器唯一 ID |
 | X-Executor-Key | string | 是 | Header | 执行器 API Key |
-| tenant_key | string | 否 | Query | 租户标识 Key |
-| job_id | string | 否 | Query | 任务 ID |
+| tenant_key | string | 是 | Query | 租户标识 Key |
+| job_id | string | 是 | Query | 任务 ID |
 | platform | string | 否 | Query | 平台名称 |
 | limit | integer | 否 | Query | 返回条数，默认 50 |
 | cursor | string | 否 | Query | 分页游标 |
@@ -1115,7 +1282,7 @@ curl -X POST "http://your-api.com/api/v1/conversation/load?executor_id=exec_3f2a
 ### 请求示例
 
 ```bash
-curl -X GET "http://your-api.com/api/v1/conversation/fetch?executor_id=exec_3f2a1b9c&platform=deepseek&limit=10" \
+curl -X GET "http://your-api.com/api/v1/conversation/fetch?executor_id=exec_3f2a1b9c&tenant_key=tn_xxx&job_id=job_456&platform=deepseek&limit=10" \
      -H "X-Executor-Key: sk-xxxx-your-api-key"
 ```
 
@@ -1311,25 +1478,31 @@ api/
 
 ### 核心查询函数（位于 `repositories/database.py`）
 
-#### `query_brand_mention_data(brand, timeframe, specific_date)`
+#### `query_brand_mention_data(tenant_key, job_id, brand, timeframe, specific_date)`
 - **功能**: 查询品牌提及率数据
 - **参数**:
+  - `tenant_key`: 租户标识
+  - `job_id`: 任务ID
   - `brand`: 品牌名称
   - `timeframe`: 时间范围（yesterday, 7days, 30days）
   - `specific_date`: 指定日期（可选，格式: YYYYMMDD）
 - **返回**: 包含提及率数据的字典
 
-#### `query_brand_platform_mention_data(brand, timeframe, specific_date)`
+#### `query_brand_platform_mention_data(tenant_key, job_id, brand, timeframe, specific_date)`
 - **功能**: 查询品牌在各平台的提及率数据
 - **参数**:
+  - `tenant_key`: 租户标识
+  - `job_id`: 任务ID
   - `brand`: 品牌名称
   - `timeframe`: 时间范围
   - `specific_date`: 指定日期（可选）
 - **返回**: 包含各平台提及率数据的列表
 
-#### `query_reference_url_stats(timeframe, specific_date)`
+#### `query_reference_url_stats(tenant_key, job_id, timeframe, specific_date)`
 - **功能**: 查询引用URL统计数据
 - **参数**:
+  - `tenant_key`: 租户标识
+  - `job_id`: 任务ID
   - `timeframe`: 时间范围
   - `specific_date`: 指定日期（可选）
 - **返回**: 包含引用URL统计数据的列表

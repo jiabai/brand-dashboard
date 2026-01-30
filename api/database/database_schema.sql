@@ -142,6 +142,7 @@ CREATE TABLE `qa_brand_summary` (
 -- 品牌在问答中的具体状态记录表
 CREATE TABLE `qa_brand_state` (
   `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT 'Auto-increment primary key',
+  `job_id` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '任务唯一标识（llm_query_jobs.job_id）',
   `tenant_key` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '租户唯一字符串标识（tenants.tenant_key）',
   `date` date NOT NULL COMMENT 'Date of the record',
   `conversation_id` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '对话唯一标识，通常是文件名中的唯一标识符，确保每个对话的唯一性',
@@ -167,6 +168,7 @@ CREATE TABLE `qa_brand_state` (
 -- 问答引用详情表
 CREATE TABLE `qa_reference` (
   `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '主键ID，数据库自增，唯一标识每条引用记录',
+  `job_id` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '任务唯一标识（llm_query_jobs.job_id）',
   `tenant_key` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '租户唯一字符串标识（tenants.tenant_key）',
   `date` date NOT NULL COMMENT 'Date of the record',
   `conversation_id` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '对话ID，标识单次AI对话的唯一ID，一个conversation_id对应一条对话的引用链接',
