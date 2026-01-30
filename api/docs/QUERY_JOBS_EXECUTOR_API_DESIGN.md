@@ -32,6 +32,7 @@
 3. 周期未结束:
  - 当前时间在 effective_from 和 effective_to (如果非空) 之间。
 4. 次数未达上限: executed_runs < total_runs。
+5. **执行频率控制**: 支持同一天内多次执行。`last_executed_date <= CURRENT_DATE` 确保了即使今天已经执行过，只要总次数未满，仍可继续领取。
 
 ```sql
 SELECT 
@@ -41,6 +42,7 @@ WHERE executor_id = :executor_id
   AND query_status = 1           -- 仅生效任务
   AND is_deleted = 0             -- 未删除
   AND executed_runs < total_runs -- 还没跑满次数
+  AND (last_executed_date IS NULL OR last_executed_date <= CURRENT_DATE) -- 支持单日多次执行
 ORDER BY 
   executed_runs ASC,             -- 优先级1：跑得最少的轮次优先（实现多轮次循环）
   id ASC                         -- 优先级2：物理顺序优先（实现圈内 Q1->Q16 顺序）

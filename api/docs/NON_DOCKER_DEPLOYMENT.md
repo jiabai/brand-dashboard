@@ -68,8 +68,7 @@ pip install python-dotenv asgi-correlation-id
 
 ```bash
 mysql -u root -p -e "CREATE DATABASE IF NOT EXISTS geo CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
-mysql -u root -p geo < database/schema_tenants_and_users.sql
-mysql -u root -p geo < database/database_schema.sql
+mysql -u root -p geo < database/schema.sql
 mysql -u root -p geo -e "SHOW TABLES;"
 ```
 

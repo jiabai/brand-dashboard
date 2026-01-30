@@ -128,8 +128,8 @@ def load_output_metadata(conn: pymysql.connections.Connection, query_id: str) ->
     从数据库llm_query_record表获取metadata信息
     """
     sql = """
-    SELECT user_id, job_id, category, brand, keyword, query_content, created_at
-    FROM llm_query_record
+    SELECT tenant_key, job_id, category, brand, keyword, query_content, created_at
+    FROM llm_query_jobs
     WHERE id = %s
     """
 
@@ -138,7 +138,7 @@ def load_output_metadata(conn: pymysql.connections.Connection, query_id: str) ->
         result = cursor.fetchone()
 
         if not result:
-            raise ValueError(f"query_id {query_id} not found in llm_query_record table")
+            raise ValueError(f"query_id {query_id} not found in llm_query_jobs table")
 
         return result
 
@@ -505,8 +505,7 @@ ON DUPLICATE KEY UPDATE
   query_content = VALUES(query_content),
   answer_content = VALUES(answer_content),
   model_name = VALUES(model_name),
-  token_usage = VALUES(token_usage),
-  extracted_at = VALUES(extracted_at)
+  token_usage = VALUES(token_usage)
 """
 
     with conn.cursor() as cursor:

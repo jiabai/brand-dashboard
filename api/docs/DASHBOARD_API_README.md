@@ -75,7 +75,7 @@ curl -X GET "http://your-api.com/api/v1/dashboard/brand-metrics?tenant_key=tn_xx
 | brand | string | 品牌名称 |
 | mention_rate | float | 品牌总提及率（比例，0~1） |
 | first_mention_rate | float | 首次提及 brand 率（比例，0~1） |
-| citation_rate_by_post | float | 发文引用率（发文的引用次数占总引用次数的比例） |
+| citation_rate_by_post | float | 发文引用率（有发文引用的对话占总对话的比例） |
 | prompt_count | int | 问题总数 |
 | citation_source_count | int | 引用来源数量 |
 | keyword_coverage | int | 问题的答案提及品牌时，问题所属关键词的个数 |
@@ -88,7 +88,7 @@ SELECT
     brand,
     COUNT(DISTINCT conversation_id) AS prompt_count,
     SUM(is_mentioned) / COUNT(DISTINCT conversation_id) AS mention_rate,
-    SUM(is_first_mention) / COUNT(DISTINCT conversation_id) AS first_mention_rate,
+    SUM(is_first_mentioned) / COUNT(DISTINCT conversation_id) AS first_mention_rate,
     0 AS citation_rate_by_post,
     0 AS citation_source_count,
     COUNT(DISTINCT CASE WHEN is_mentioned = 1 THEN keyword END) AS keyword_coverage
@@ -108,7 +108,7 @@ SELECT
     brand,
     COUNT(DISTINCT conversation_id) AS prompt_count,
     SUM(is_mentioned) / COUNT(DISTINCT conversation_id) AS mention_rate,
-    SUM(is_first_mention) / COUNT(DISTINCT conversation_id) AS first_mention_rate,
+    SUM(is_first_mentioned) / COUNT(DISTINCT conversation_id) AS first_mention_rate,
     0 AS citation_rate_by_post,
     0 AS citation_source_count,
     COUNT(DISTINCT CASE WHEN is_mentioned = 1 THEN keyword END) AS keyword_coverage
@@ -247,7 +247,7 @@ curl -X GET "http://your-api.com/api/v1/dashboard/post-citation-rate?tenant_key=
 |--------|------|------|
 | brand | string | 品牌名称 |
 | citation_source_count | int | 引用来源数量 |
-| citation_rate_by_post | float | 发文引用率（发文的引用次数占总引用次数的比例） |
+| citation_rate_by_post | float | 发文引用率（有发文引用的对话占总对话的比例） |
 
 ### 数据计算逻辑
 
@@ -407,7 +407,7 @@ curl -X GET "http://your-api.com/api/v1/dashboard/brand-mention-rate?tenant_key=
 {
   "status": "success",
   "data": {
-    "mention_rate": 50.0,
+    "mention_rate": 0.5,
     "rank": 1,
     "change": 5.2,
     "question_count": 12,
@@ -687,7 +687,7 @@ GROUP BY url
 ORDER BY reference_count DESC;
 
 -- 2. 获取总提问数（用于计算引用率）
-SELECT COUNT(DISTINCT question_id) AS total_questions 
+SELECT COUNT(DISTINCT conversation_id) AS total_questions 
 FROM qa_reference 
 WHERE tenant_key = :tenant_key
   AND job_id = :job_id
@@ -1078,7 +1078,7 @@ curl -X GET "http://your-api.com/api/v1/query-jobs/fetch?executor_id=exec_bbda02
 ### 接口信息
 - **路径**: `/api/v1/query-jobs/status`
 - **方法**: `GET`
-- **描述**: 按租户查询任务的 query_content 与状态信息。
+- **描述**: 追踪 LLM 查询 query 的执行与生效情况。该接口允许租户管理员或系统监控人员查看query的当前状态、生效生命周期（开始/结束时间）以及对应的查询内容。支持通过任务状态码识别任务是处于“等待中”、“执行中”还是“已完成/失效”状态。
 
 ### 请求参数 (Query)
 
@@ -1125,7 +1125,7 @@ curl -X GET "http://your-api.com/api/v1/query-jobs/status?tenant_key=tn_1b02b3ef
 | jobs.brand | string | 品牌名称 |
 | jobs.competitor | array | 竞品名称列表 |
 | jobs.query_content | string | 查询内容 |
-| jobs.query_status | int | 问题生效状态 |
+| jobs.query_status | int | 问题生效状态：<br>0: **未生效** (等待开始或手动禁用)<br>1: **生效中** (执行器正在抓取)<br>2: **已完成** (已达总执行次数)<br>3: **已失效** (超过生效结束时间) |
 | jobs.effective_from | string | 生效开始时间 (ISO 8601 格式) |
 | jobs.effective_to | string | 生效结束时间 (ISO 8601 格式，可为空) |
 
@@ -1144,8 +1144,6 @@ curl -X GET "http://your-api.com/api/v1/query-jobs/status?tenant_key=tn_1b02b3ef
 |--------|------|------|------|------|
 | executor_id | string | 是 | Query | 执行器唯一 ID |
 | X-Executor-Key | string | 是 | Header | 执行器 API Key |
-| tenant_key | string | 是 | Body (JSON) | 租户标识 Key |
-| job_id | string | 是 | Body (JSON) | 任务 ID |
 | id | integer | 是 | Body (JSON) | 任务记录唯一主键 ID |
 
 ### 请求示例
@@ -1154,7 +1152,7 @@ curl -X GET "http://your-api.com/api/v1/query-jobs/status?tenant_key=tn_1b02b3ef
 curl -X POST "http://localhost:8000/api/v1/query-jobs/report?executor_id=exec_bbda021a" \
      -H "X-Executor-Key: ek_d7c2a651c2b40a3f97f3642cb628844c" \
      -H "Content-Type: application/json" \
-     -d "{\"tenant_key\": \"tn_xxx\", \"job_id\": \"job_456\", \"id\": 1}"
+     -d "{\"id\": 1}"
 ```
 
 ### 响应示例
@@ -1303,8 +1301,6 @@ curl -X GET "http://your-api.com/api/v1/conversation/fetch?executor_id=exec_3f2a
       "category": "游戏",
       "query_content": "三角洲陪玩有什么推荐？",
       "answer_content": "……",
-      "model_name": "deepseek-chat",
-      "token_usage": 1234,
       "extracted_at": "2026-01-25T12:34:56Z",
       "references": [
         {
@@ -1532,4 +1528,4 @@ api/
 | 品牌总提及率 | `qa_brand_summary` | `query_brand_mention_data` | ✅ 已完成 |
 | 各平台提及率 | `qa_brand_summary` | `query_brand_platform_mention_data` | ✅ 已完成 |
 | 引用URL统计 | `qa_reference` | `query_reference_url_stats` | ✅ 已完成（全局统计） |
-| LLM查询记录加载 | `llm_query_record` | N/A (Direct Insert) | ✅ 已完成 |
+| LLM查询记录加载 | `llm_query_jobs` | N/A (Direct Insert) | ✅ 已完成 |

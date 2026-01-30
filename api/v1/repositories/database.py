@@ -118,6 +118,8 @@ def get_previous_date_range(timeframe: str, specific_date: Optional[str] = None)
     return prev_start, prev_end
 
 def query_brand_mention_data(
+    tenant_key: str,
+    job_id: str,
     brand: str,
     timeframe: str,
     specific_date: Optional[str] = None
@@ -126,6 +128,8 @@ def query_brand_mention_data(
     查询品牌提及率数据
     
     Args:
+        tenant_key: 租户键
+        job_id: 任务ID
         brand: 品牌名称
         timeframe: 时间范围
         specific_date: 指定日期
@@ -143,18 +147,31 @@ def query_brand_mention_data(
         SUM(question_count) as total_questions,
         SUM(mention_count) as total_mentions,
         SUM(first_mention_count) as total_first_mentions,
-        MAX(date) as latest_date,
-        AVG(mention_rate) as avg_mention_rate
+        MAX(date) as latest_date
     FROM qa_brand_summary 
-    WHERE brand = :brand 
+    WHERE tenant_key = :tenant_key
+    AND job_id = :job_id
+    AND brand = :brand 
     AND date BETWEEN :start_date AND :end_date
     """
 
     try:
         with engine.connect() as conn:
             # 检查品牌是否存在
-            check_brand_query = text("SELECT 1 FROM qa_brand_summary WHERE brand = :brand LIMIT 1")
-            brand_exists = conn.execute(check_brand_query, {"brand": brand}).fetchone()
+            check_brand_query = text(
+                """
+                SELECT 1
+                FROM qa_brand_summary
+                WHERE tenant_key = :tenant_key
+                  AND job_id = :job_id
+                  AND brand = :brand
+                LIMIT 1
+                """
+            )
+            brand_exists = conn.execute(
+                check_brand_query,
+                {"tenant_key": tenant_key, "job_id": job_id, "brand": brand},
+            ).fetchone()
 
             # 如果品牌不存在，返回空数据
             if not brand_exists:
@@ -172,6 +189,8 @@ def query_brand_mention_data(
             result = conn.execute(
                 text(query),
                 {
+                    "tenant_key": tenant_key,
+                    "job_id": job_id,
                     "brand": brand,
                     "start_date": start_date,
                     "end_date": end_date
@@ -198,24 +217,29 @@ def query_brand_mention_data(
             mention_count = int(row[1]) if row[1] else 0
             first_mention_count = int(row[2]) if row[2] else 0
             latest_date = row[3] or end_date
-            mention_rate = float(row[4]) if row[4] else 0.0
+
+            mention_rate = (mention_count / question_count) if question_count > 0 else 0.0
 
             # 计算排名
             # 这里简单处理，实际上可能需要更复杂的排名逻辑
             rank_query = """
             SELECT COUNT(*) + 1
             FROM (
-                SELECT brand, AVG(mention_rate) as rate
+                SELECT brand, SUM(mention_count) / SUM(question_count) as rate
                 FROM qa_brand_summary
-                WHERE date BETWEEN :start_date AND :end_date
+                WHERE tenant_key = :tenant_key
+                AND job_id = :job_id
+                AND date BETWEEN :start_date AND :end_date
                 GROUP BY brand
                 HAVING rate > :my_rate
             ) as ranks
             """
-            
+
             rank_result = conn.execute(
                 text(rank_query),
                 {
+                    "tenant_key": tenant_key,
+                    "job_id": job_id,
                     "start_date": start_date,
                     "end_date": end_date,
                     "my_rate": mention_rate
@@ -227,23 +251,32 @@ def query_brand_mention_data(
             prev_start, prev_end = get_previous_date_range(timeframe, specific_date)
             
             prev_query = """
-            SELECT AVG(mention_rate)
+            SELECT SUM(mention_count), SUM(question_count)
             FROM qa_brand_summary
-            WHERE brand = :brand
+            WHERE tenant_key = :tenant_key
+            AND job_id = :job_id
+            AND brand = :brand
             AND date BETWEEN :prev_start AND :prev_end
             """
             
             prev_result = conn.execute(
                 text(prev_query),
                 {
+                    "tenant_key": tenant_key,
+                    "job_id": job_id,
                     "brand": brand,
                     "prev_start": prev_start,
                     "prev_end": prev_end
                 }
             )
-            prev_rate = prev_result.scalar() or 0.0
+            prev_row = prev_result.fetchone()
+            if prev_row and prev_row[1] and prev_row[1] > 0:
+                prev_rate = float(prev_row[0]) / float(prev_row[1])
+            else:
+                prev_rate = 0.0
             
-            change = mention_rate - prev_rate
+            change = (mention_rate - prev_rate) * 100
+
 
             analysis_date = (
                 latest_date.isoformat()
@@ -350,7 +383,7 @@ def query_post_citation_rate(
 
 
 def query_domain_citation_rate(
-    user_id: str,
+    tenant_key: str,
     job_id: str,
     brand: str,
     timeframe: str,
@@ -361,7 +394,7 @@ def query_domain_citation_rate(
     total_query = """
     SELECT COUNT(*)
     FROM qa_reference
-    WHERE user_id = :user_id
+    WHERE tenant_key = :tenant_key
     AND job_id = :job_id
     AND brand = :brand
     AND domain IS NOT NULL
@@ -371,7 +404,7 @@ def query_domain_citation_rate(
     domain_query = """
     SELECT domain, COUNT(*) AS domain_count
     FROM qa_reference
-    WHERE user_id = :user_id
+    WHERE tenant_key = :tenant_key
     AND job_id = :job_id
     AND brand = :brand
     AND domain IS NOT NULL
@@ -381,7 +414,7 @@ def query_domain_citation_rate(
     """
 
     params: Dict[str, Any] = {
-        "user_id": user_id,
+        "tenant_key": tenant_key,
         "job_id": job_id,
         "brand": brand,
         "start_date": start_date,
@@ -408,6 +441,8 @@ def query_domain_citation_rate(
         raise
 
 def query_reference_url_stats(
+    tenant_key: str,
+    job_id: str,
     timeframe: str,
     specific_date: Optional[str] = None
 ) -> List[Dict[str, Any]]:
@@ -415,6 +450,8 @@ def query_reference_url_stats(
     查询引用URL的统计数据
     
     Args:
+        tenant_key: 租户键
+        job_id: 任务ID
         timeframe: 时间范围 ('yesterday', '7days', '30days')
         specific_date: 指定日期 (格式: YYYYMMDD)
     
@@ -429,7 +466,9 @@ def query_reference_url_stats(
         url, 
         COUNT(*) AS reference_count 
     FROM qa_reference 
-    WHERE url IS NOT NULL 
+    WHERE tenant_key = :tenant_key
+    AND job_id = :job_id
+    AND url IS NOT NULL 
     AND date BETWEEN :start_date AND :end_date 
     GROUP BY url 
     ORDER BY reference_count DESC
@@ -437,9 +476,11 @@ def query_reference_url_stats(
 
     # 查询总提问数
     total_questions_query = """
-    SELECT COUNT(DISTINCT question_id) AS total_questions 
+    SELECT COUNT(DISTINCT conversation_id) AS total_questions 
     FROM qa_reference 
-    WHERE date BETWEEN :start_date AND :end_date
+    WHERE tenant_key = :tenant_key
+    AND job_id = :job_id
+    AND date BETWEEN :start_date AND :end_date
     """
 
     try:
@@ -448,6 +489,8 @@ def query_reference_url_stats(
             url_result = conn.execute(
                 text(url_query),
                 {
+                    "tenant_key": tenant_key,
+                    "job_id": job_id,
                     "start_date": start_date,
                     "end_date": end_date
                 }
@@ -458,6 +501,8 @@ def query_reference_url_stats(
             total_result = conn.execute(
                 text(total_questions_query),
                 {
+                    "tenant_key": tenant_key,
+                    "job_id": job_id,
                     "start_date": start_date,
                     "end_date": end_date
                 }
@@ -490,6 +535,8 @@ def query_reference_url_stats(
         raise Exception(f"查询引用URL统计数据失败: {str(e)}") from e
 
 def query_brand_platform_mention_data(
+    tenant_key: str,
+    job_id: str,
     brand: str,
     category: str,
     keyword: str,
@@ -500,6 +547,8 @@ def query_brand_platform_mention_data(
     查询品牌在各平台的提及率数据
     
     Args:
+        tenant_key: 租户键
+        job_id: 任务ID
         brand: 品牌名称
         category: 商品大类
         keyword: 品牌关键词（或"全部"）
@@ -530,13 +579,9 @@ def query_brand_platform_mention_data(
             if "is_mentioned" not in columns:
                 raise Exception("qa_brand_state 表缺少 is_mentioned 字段")
 
-            first_mention_column = (
-                "is_first_mentioned"
-                if "is_first_mentioned" in columns
-                else "is_first_mention"
-                if "is_first_mention" in columns
-                else "is_first_mentioned"
-            )
+            if "is_first_mentioned" not in columns:
+                raise Exception("qa_brand_state 表缺少 is_first_mentioned 字段")
+            first_mention_column = "is_first_mentioned"
 
             category_column = (
                 "category"
@@ -553,11 +598,15 @@ def query_brand_platform_mention_data(
                 raise ValueError("qa_brand_state 表缺少 keyword 字段，无法按 keyword 筛选")
 
             where_clauses = [
+                "tenant_key = :tenant_key",
+                "job_id = :job_id",
                 "brand = :brand",
                 "date BETWEEN :start_date AND :end_date",
                 f"{category_column} = :category",
             ]
             params: Dict[str, Any] = {
+                "tenant_key": tenant_key,
+                "job_id": job_id,
                 "brand": brand,
                 "category": category,
                 "start_date": start_date,
@@ -647,13 +696,9 @@ def query_brand_metrics(
             if "is_mentioned" not in columns:
                 raise Exception("qa_brand_state 表缺少 is_mentioned 字段")
 
-            first_mention_column = (
-                "is_first_mentioned"
-                if "is_first_mentioned" in columns
-                else "is_first_mention"
-                if "is_first_mention" in columns
-                else "is_first_mentioned"
-            )
+            if "is_first_mentioned" not in columns:
+                raise Exception("qa_brand_state 表缺少 is_first_mentioned 字段")
+            first_mention_column = "is_first_mentioned"
 
             keyword_column = "keyword" if "keyword" in columns else None
 
@@ -740,7 +785,7 @@ def query_brand_metrics(
 
 
 def query_platform_metrics_by_brand(
-    user_id: str,
+    tenant_key: str,
     job_id: str,
     brand: str,
     timeframe: str,
@@ -761,14 +806,14 @@ def query_platform_metrics_by_brand(
 
             where_sql = " AND ".join(
                 [
-                    "user_id = :user_id",
+                    "tenant_key = :tenant_key",
                     "job_id = :job_id",
                     "brand = :brand",
                     "date BETWEEN :start_date AND :end_date",
                 ]
             )
             params: Dict[str, Any] = {
-                "user_id": user_id,
+                "tenant_key": tenant_key,
                 "job_id": job_id,
                 "brand": brand,
                 "start_date": start_date,

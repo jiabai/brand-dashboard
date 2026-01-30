@@ -1,3 +1,9 @@
+-- MySQL Database Initialization and Events (Sub-schema)
+-- 用于配置数据库事件调度和额外索引
+-- 
+-- ⚠️ 注意：本文件是初始化子集。
+-- 建议直接执行 schema.sql 以获得完整的数据库结构。
+
 -- 1) 开启事件调度器（只需执行一次）
 SET GLOBAL event_scheduler = ON;
 

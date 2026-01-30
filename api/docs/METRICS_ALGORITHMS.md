@@ -17,7 +17,7 @@
 - `conversation_id` 表示一次对话/一次回答记录的唯一标识；在当前库表定义中，它通常对应某个平台的一次 AI 对话，因此不同 AI 平台一般会是不同的 `conversation_id`。
 - `qa_brand_state` 属于“品牌状态明细表”，通常是一条对话/回答会对应多条品牌记录（同一 `conversation_id` 下按 `brand` 拆分成多行）。
 - `prompt_count` 使用 `COUNT(DISTINCT conversation_id)` 统计，对同一 `conversation_id` 的多行品牌记录去重后计数。
-- `SUM(is_mentioned)` / `SUM(is_first_mention)` 使用记录级别求和；在 `qa_brand_state` 按品牌拆分的前提下，它等价于“某品牌在多少个对话/回答中被提及/首提”的计数，再除以 `prompt_count` 得到该品牌在对话/回答维度的提及/首提比例。
+- `SUM(is_mentioned)` / `SUM(is_first_mentioned)`使用记录级别求和；在 `qa_brand_state` 按品牌拆分的前提下，它等价于“某品牌在多少个对话/回答中被提及/首提”的计数，再除以 `prompt_count` 得到该品牌在对话/回答维度的提及/首提比例。
 
 ## 1. 品牌总指标（/api/dashboard/brand-metrics）
 
@@ -40,8 +40,8 @@
 ### 指标：first_mention_rate（首位提及率）
 
 - 定义：品牌作为“首个被提及品牌”的强度，按“记录级首提次数 / 问题总数”计算。
-- 算法：`SUM(is_first_mention) / COUNT(DISTINCT conversation_id)`
-- 解释：`is_first_mention` 通常为 0/1，表示该条记录对应的回答中该品牌是否为首次提及品牌；口径与 `mention_rate` 相同，只是事件从“提及”替换为“首提”。
+- 算法：`SUM(is_first_mentioned) / COUNT(DISTINCT conversation_id)`
+- 解释：`is_first_mentioned` 通常为 0/1，表示该条记录对应的回答中该品牌是否为首次提及品牌；口径与 `mention_rate` 相同，只是事件从“提及”替换为“首提”。
 
 ### 指标：keyword_coverage（关键词覆盖数）
 

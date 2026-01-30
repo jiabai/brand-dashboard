@@ -1,3 +1,9 @@
+-- MySQL Database Schema for Auth and Tenants (Sub-schema)
+-- 用于存储租户、用户及权限管理的表结构
+-- 
+-- ⚠️ 注意：本文件是认证/租户表子集。
+-- 建议直接执行 schema.sql 以获得完整的数据库结构。
+
 -- 1. 租户表（tenants）
 CREATE TABLE tenants (
     id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '租户ID',

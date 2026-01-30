@@ -1,5 +1,8 @@
--- MySQL Database Schema for LLM Conversation Storage
--- 用于存储LLM对话和引用链接的数据库表结构
+-- MySQL Database Schema for LLM Business Logic (Sub-schema)
+-- 用于存储LLM对话和指标的业务表结构
+-- 
+-- ⚠️ 注意：本文件是业务表子集，依赖 tenants 表（定义在 schema_auth.sql 中）。
+-- 建议直接执行 schema.sql 以获得完整的数据库结构。
 -- 
 -- 数据库设计说明：
 -- 本数据库用于存储从AI平台抓取的QA对话内容，支持多平台、多任务、多对话的管理
@@ -17,7 +20,7 @@ CREATE TABLE `llm_conversations` (
   `query_content` text COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '用户查询内容，完整的用户提问内容',
   `answer_content` text COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'AI回答内容，AI生成的完整回答',
   `generated_date` date DEFAULT NULL COMMENT '对话生成的日期（YYYY-MM-DD），用于按日期分析计算',
-  `extracted_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '文件生成时间（来自文件的Generated at），原始文件创建时间，保持数据时序一致性',
+  `extracted_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '文件生成时间（来自文件的Generated at），原始文件创建时间，保持数据时序一致性',
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '数据库记录创建时间，数据入库时间，用于数据管理',
   `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '记录更新时间，记录最后修改时间，支持数据审计',
   PRIMARY KEY (`id`),
@@ -50,7 +53,7 @@ CREATE TABLE `llm_conversation_references` (
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间，记录引用链接入库时间，用于数据管理',
   `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间，记录引用信息最后修改时间',
   PRIMARY KEY (`id`),
-  UNIQUE KEY `uk_tenant_conversation_url` (`tenant_key`,`conversation_id`,`url`(255)),
+  UNIQUE KEY `uk_tenant_conversation_url` (`tenant_key`,`conversation_id`,`url`(191)),
   KEY `idx_tenant_job` (`tenant_key`,`job_id`),
   KEY `idx_tenant_generated_date` (`tenant_key`,`generated_date`),
   KEY `idx_platform` (`platform`),
@@ -87,11 +90,11 @@ CREATE TABLE `llm_query_jobs` (
   `competitor` json DEFAULT NULL COMMENT '竞品品牌（如“小鹏”“理想”，可为NULL表示未指定竞品）',
   `keyword` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '核心关键词（如“换电补能”“高端豪华”）',
   `query_content` text COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '用户具体咨询问题内容',
-  `query_status` tinyint(4) NOT NULL DEFAULT '0' COMMENT '问题生效状态：0-失效，1-生效（关键字段，标记问题是否处于使用状态）',
+  `query_status` tinyint(4) NOT NULL DEFAULT '0' COMMENT '问题生效状态：0: 未生效 (等待开始或手动禁用), 1: 生效中 (执行器正在抓取), 2: 已完成 (已达总执行次数), 3: 已失效 (超过生效结束时间)',
   `executor_id` varchar(128) DEFAULT NULL COMMENT '执行器唯一标识',
   `total_runs` int(11) NOT NULL DEFAULT '15' COMMENT '总执行次数',
   `executed_runs` int(11) NOT NULL DEFAULT '0' COMMENT '已发生过的 attempt 数（成功 + 失败）',
-  `last_executed_date` date DEFAULT NULL COMMENT '最近一次执行日期（仅记录年月日）',
+  `last_executed_date` date DEFAULT NULL COMMENT '最近一次执行日期，配合 <= 逻辑支持单日多次领取直至跑满 total_runs',
   `effective_from` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '生效开始时间（所属JOB生命周期起点）',
   `effective_to` timestamp NULL DEFAULT NULL COMMENT '生效结束时间（所属JOB生命周期终点，NULL表示未结束）',
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '任务记录创建时间',
@@ -118,6 +121,7 @@ CREATE TABLE `llm_query_jobs` (
 CREATE TABLE `qa_brand_summary` ( 
   `id` BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT 'Auto-increment ID', 
   `tenant_key` VARCHAR(255) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '租户唯一字符串标识（tenants.tenant_key）',
+  `job_id` VARCHAR(255) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '作业ID',
   `date` DATE NOT NULL COMMENT 'Summary date, means analysis_date', 
   `brand` VARCHAR(50) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Brand name', 
   `product` VARCHAR(255) COLLATE utf8mb4_unicode_ci COMMENT 'Product name (optional)', 
@@ -145,13 +149,13 @@ CREATE TABLE `qa_brand_state` (
   `job_id` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '任务唯一标识（llm_query_jobs.job_id）',
   `tenant_key` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '租户唯一字符串标识（tenants.tenant_key）',
   `date` date NOT NULL COMMENT 'Date of the record',
-  `conversation_id` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '对话唯一标识，通常是文件名中的唯一标识符，确保每个对话的唯一性',
+  `conversation_id` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '对话唯一标识，通常是文件名中的唯一标识符，确保每个对话的唯一性',
   `brand` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Brand name mentioned',
   `category` varchar(64) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '商品大类',
   `platform` varchar(64) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Platform where the question was posted (e.g., Qwen, Deepseek, etc.)',
   `keyword` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '生成question的关键词，用户提交job时系统会根据关键词生成question',
   `is_mentioned` tinyint(1) NOT NULL DEFAULT '0' COMMENT 'Whether the brand is mentioned in the answer (0 = no, 1 = yes)',
-  `is_first_mention` tinyint(1) NOT NULL DEFAULT '0' COMMENT 'Whether the brand is the first mentioned in the answer',
+  `is_first_mentioned` tinyint(1) NOT NULL DEFAULT '0' COMMENT 'Whether the brand is the first mentioned in the answer',
   `sentiment_status` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Sentiment/emotion status (e.g., positive, negative, neutral)',
   `brands_found` json DEFAULT NULL COMMENT 'All brands found in the text (e.g., ["海尔 (Haier)", ...])',
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
@@ -171,7 +175,7 @@ CREATE TABLE `qa_reference` (
   `job_id` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '任务唯一标识（llm_query_jobs.job_id）',
   `tenant_key` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '租户唯一字符串标识（tenants.tenant_key）',
   `date` date NOT NULL COMMENT 'Date of the record',
-  `conversation_id` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '对话ID，标识单次AI对话的唯一ID，一个conversation_id对应一条对话的引用链接',
+  `conversation_id` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '对话ID，标识单次AI对话的唯一ID，一个conversation_id对应一条对话的引用链接',
   `platform` varchar(64) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '平台名称',
   `brand` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '品牌，例如：阿里巴巴、腾讯、字节跳动等',
   `category` varchar(64) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '商品大类',

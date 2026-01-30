@@ -4,8 +4,10 @@
 
 ## 📁 文件说明
 
-- **`database_schema.sql`** - 核心业务表结构定义（对话、指标、统计）
-- **`schema_tenants_and_users.sql`** - 租户与用户管理表结构
+- **`schema.sql`** - 完整数据库架构（包含租户、用户、业务表及初始化配置）
+- **`schema_auth.sql`** - 租户与用户管理表结构（子集）
+- **`schema_business.sql`** - 核心业务表结构定义（对话、指标、统计）（子集）
+- **`schema_init.sql`** - 数据库初始化配置与事件调度（子集）
 - **`migrations/`** - 数据库迁移脚本（预留）
 - **`seeds/`** - 测试数据种子文件（预留）
 
@@ -58,7 +60,7 @@
 
 **主要字段：**
 - `is_mentioned` - 是否提及
-- `is_first_mention` - 是否首位提及
+- `is_first_mentioned` - 是否首位提及
 - `sentiment_status` - 情感状态
 - `brands_found` - 发现的所有品牌 (JSON)
 
@@ -91,12 +93,18 @@ mysql -u root -p -e "CREATE DATABASE IF NOT EXISTS geo CHARACTER SET utf8mb4 COL
 ```
 
 ### 2. 执行建表语句
+建议直接使用 `schema.sql` 一键完成初始化：
+```bash
+mysql -u root -p geo < schema.sql
+```
+
+或者按顺序执行子脚本：
 ```bash
 # 1. 基础架构（租户与用户）
-mysql -u root -p geo < schema_tenants_and_users.sql
+mysql -u root -p geo < schema_auth.sql
 
 # 2. 业务表（对话与指标）
-mysql -u root -p geo < database_schema.sql
+mysql -u root -p geo < schema_business.sql
 ```
 
 ### 3. 验证表结构

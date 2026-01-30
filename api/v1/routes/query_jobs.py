@@ -21,6 +21,38 @@ from api.v1.repositories.database import get_db
 
 router = APIRouter()
 
+
+def sync_query_jobs_status(db: Session):
+    """
+    同步任务状态逻辑：
+    1. 0 (未生效) -> 1 (生效中): 当当前时间 >= effective_from 时。
+    2. 1 (生效中) -> 3 (已失效): 当 effective_to 不为空且当前时间 > effective_to 时。
+    """
+    now = datetime.datetime.now()
+    try:
+        db.execute(
+            text(
+                """
+                UPDATE llm_query_jobs 
+                SET query_status = CASE 
+                    WHEN query_status = 0 AND effective_from <= :now THEN 1
+                    WHEN query_status = 1 AND effective_to IS NOT NULL 
+                         AND effective_to < :now THEN 3
+                    ELSE query_status
+                END,
+                updated_at = :now
+                WHERE (query_status = 0 AND effective_from <= :now)
+                   OR (query_status = 1 AND effective_to IS NOT NULL AND effective_to < :now)
+                """
+            ),
+            {"now": now}
+        )
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        # 记录日志但不抛出异常，以免影响主流程
+        print(f"Error syncing query job statuses: {e}")
+
 async def verify_executor(
     executor_id: str = Query(..., description="执行器唯一ID"),
     x_executor_key: Optional[str] = Header(None, alias="X-Executor-Key"),
@@ -50,6 +82,8 @@ async def verify_executor(
 
 @router.get("/fetch", response_model=FetchQueryJobResponse)
 async def fetch_query_job(
+    tenant_key: Optional[str] = Query(None, description="可选：仅拉取指定租户的任务"),
+    job_id: Optional[str] = Query(None, description="可选：仅拉取指定 job_id 的任务"),
     executor_id: str = Depends(verify_executor),
     db: Session = Depends(get_db),
 ):
@@ -57,29 +91,56 @@ async def fetch_query_job(
     执行器获取待执行任务。
     采用 Round-Robin 策略：优先选取已执行次数最少的任务，且按物理顺序排列。
     """
+    # 同步任务状态
+    sync_query_jobs_status(db)
+
+    normalized_tenant_key = tenant_key.strip() if tenant_key else None
+    if not normalized_tenant_key:
+        normalized_tenant_key = None
+
+    normalized_job_id = job_id.strip() if job_id else None
+    if not normalized_job_id:
+        normalized_job_id = None
+
+    params: Dict[str, Any] = {"executor_id": executor_id}
+
+    where_clauses = ["executor_id = :executor_id"]
+
+    if normalized_tenant_key is not None:
+        where_clauses.append("tenant_key = :tenant_key")
+        params["tenant_key"] = normalized_tenant_key
+
+    if normalized_job_id is not None:
+        where_clauses.append("job_id = :job_id")
+        params["job_id"] = normalized_job_id
+
+    where_clauses.extend(
+        [
+            "query_status = 1",
+            "is_deleted = 0",
+            "executed_runs < total_runs",
+            "CURRENT_TIMESTAMP >= effective_from",
+            "(effective_to IS NULL OR CURRENT_TIMESTAMP <= effective_to)",
+            # 此处使用 <= CURRENT_DATE 是为了允许同一个任务在同一天内被多次拉取并执行，
+            # 只要总执行次数 executed_runs 未达到 total_runs 即可。
+            "(last_executed_date IS NULL OR last_executed_date <= CURRENT_DATE)",
+        ]
+    )
+
     sql = text(
-        """
-        SELECT 
-            id, job_id, tenant_key, category, brand, competitor, keyword, query_content 
+        f"""
+        SELECT
+          id, job_id, tenant_key, category, brand, competitor, keyword, query_content
         FROM llm_query_jobs
-        WHERE executor_id = :executor_id
-          AND query_status = 1           -- 1. 索引等值过滤
-          AND is_deleted = 0             -- 2. 简单状态过滤
-          AND executed_runs < total_runs -- 3. 简单数值比较
-          AND CURRENT_TIMESTAMP >= effective_from -- 4. 时间范围开始
-          AND (effective_to IS NULL OR CURRENT_TIMESTAMP <= effective_to) -- 5. 时间范围结束
-          AND (
-            last_executed_date IS NULL
-            OR last_executed_date <= CURRENT_DATE
-          ) -- 6. 复杂 OR/日期逻辑放最后
-        ORDER BY 
-          executed_runs ASC,             -- 优先级1：跑得最少的轮次优先
-          id ASC                         -- 优先级2：物理顺序优先
+        WHERE {" AND ".join(where_clauses)}
+        ORDER BY
+          executed_runs ASC,
+          id ASC
         LIMIT 1;
         """
     )
 
-    result = db.execute(sql, {"executor_id": executor_id}).first()
+    result = db.execute(sql, params).first()
 
     if not result:
         return FetchQueryJobResponse(success=True, count=0, jobs=None)
@@ -134,12 +195,20 @@ async def report_query_job(
         return ReportQueryJobResponse(success=False, message="任务执行次数已达上限")
 
     try:
-        # 2. 更新任务执行次数，增加条件确保并发安全
+        # 2. 更新任务执行次数，并根据次数自动更新状态为 2 (已完成)
         result = db.execute(
             text(
-                "UPDATE llm_query_jobs SET executed_runs = executed_runs + 1, "
-                "last_executed_date = :today, updated_at = :now "
-                "WHERE id = :id AND executed_runs < total_runs"
+                """
+                UPDATE llm_query_jobs 
+                SET executed_runs = executed_runs + 1,
+                    query_status = CASE 
+                        WHEN executed_runs + 1 >= total_runs THEN 2 
+                        ELSE query_status 
+                    END,
+                    last_executed_date = :today, 
+                    updated_at = :now 
+                WHERE id = :id AND executed_runs < total_runs
+                """
             ),
             {
                 "today": datetime.date.today(),
@@ -166,9 +235,13 @@ async def report_query_job(
 @router.get("/status", response_model=QueryJobStatusResponse)
 async def list_query_jobs_status(
     tenant_key: str = Query(..., description="租户Key"),
+    job_id: Optional[str] = Query(None, description="可选：仅查询指定 job_id 的任务"),
     include_deleted: bool = Query(False, description="是否包含已删除任务"),
     db: Session = Depends(get_db),
 ):
+    # 同步任务状态
+    sync_query_jobs_status(db)
+
     tenant_check = db.execute(
         text("SELECT 1 FROM tenants WHERE tenant_key = :tenant_key"),
         {"tenant_key": tenant_key},
@@ -177,7 +250,20 @@ async def list_query_jobs_status(
     if not tenant_check:
         raise HTTPException(status_code=400, detail=f"租户不存在: {tenant_key}")
 
-    status_filter = "" if include_deleted else "AND is_deleted = 0"
+    normalized_job_id = job_id.strip() if job_id else None
+    if not normalized_job_id:
+        normalized_job_id = None
+
+    params: Dict[str, Any] = {"tenant_key": tenant_key}
+
+    where_clauses = ["tenant_key = :tenant_key"]
+    if normalized_job_id is not None:
+        where_clauses.append("job_id = :job_id")
+        params["job_id"] = normalized_job_id
+
+    if not include_deleted:
+        where_clauses.append("is_deleted = 0")
+
     sql = text(
         f"""
         SELECT
@@ -189,13 +275,12 @@ async def list_query_jobs_status(
           effective_from,
           effective_to
         FROM llm_query_jobs
-        WHERE tenant_key = :tenant_key
-          {status_filter}
+        WHERE {" AND ".join(where_clauses)}
         ORDER BY id DESC
         """
     )
 
-    rows = db.execute(sql, {"tenant_key": tenant_key}).fetchall()
+    rows = db.execute(sql, params).fetchall()
 
     jobs = [
         QueryJobStatusItem(
@@ -237,6 +322,10 @@ def iter_query_jobs(
         # 将 Python 列表序列化为 JSON 字符串，以适配数据库的 JSON 字段类型
         competitor_str = json.dumps(competitor, ensure_ascii=False)
 
+    # 根据生效开始时间设置初始状态：如果开始时间在未来，则为 0 (未生效)，否则为 1 (生效中)
+    now = datetime.datetime.now()
+    initial_status = 1 if effective_from <= now else 0
+
     for item in content:
         keyword = item.get("keyword")
         queries = item.get("query_content")
@@ -249,7 +338,7 @@ def iter_query_jobs(
                 "competitor": competitor_str,
                 "keyword": keyword,
                 "query_content": q,
-                "query_status": 1,
+                "query_status": initial_status,
                 "executor_id": executor_id,
                 "total_runs": total_runs,
                 "executed_runs": executed_runs,

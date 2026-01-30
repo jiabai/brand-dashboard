@@ -96,8 +96,10 @@ api/
 │   └── llm_settings.json
 ├── database/                # 数据库相关文件
 │   ├── README.md           # 数据库文档
-│   ├── database_schema.sql  # 核心数据库模式
-│   └── schema_tenants_and_users.sql # 租户与用户模式
+│   ├── schema.sql          # 完整数据库架构 (推荐)
+│   ├── schema_auth.sql     # 租户与用户架构 (子集)
+│   ├── schema_business.sql # 核心业务架构 (子集)
+│   └── schema_init.sql     # 初始化与事件 (子集)
 ├── docs/                    # 文档与示例
 │   ├── DASHBOARD_API_README.md
 │   ├── METRICS_ALGORITHMS.md

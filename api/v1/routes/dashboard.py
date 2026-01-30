@@ -123,7 +123,7 @@ class DomainCitationRateResponse(BaseModel):
 class PostCitationRateData(BaseModel):
     brand: str = Field(..., description="品牌名称")
     citation_source_count: int = Field(..., description="引用来源数量")
-    citation_rate_by_post: float = Field(..., description="发文引用率")
+    citation_rate_by_post: float = Field(..., description="发文引用率（有发文引用的对话占比）")
 
 
 class PostCitationRateResponse(BaseModel):
@@ -133,6 +133,8 @@ class PostCitationRateResponse(BaseModel):
 
 @router.get("/brand-mention-rate", response_model=BrandMentionRateResponse)
 async def get_brand_mention_rate(
+    tenant_key: str = Query(..., description="租户唯一字符串标识（tenants.tenant_key）"),
+    job_id: str = Query(..., description="任务ID"),
     brand: str = Query(..., description="品牌名称"),
     timeframe: TimeFrame = Query(..., description="时间范围"),
     date: Optional[str] = Query(None, description="具体日期(格式: YYYYMMDD)")
@@ -141,6 +143,8 @@ async def get_brand_mention_rate(
     try:
         # 从数据库查询真实数据
         db_data = query_brand_mention_data(
+            tenant_key=tenant_key,
+            job_id=job_id,
             brand=brand,
             timeframe=timeframe.value,
             specific_date=date
@@ -173,6 +177,8 @@ async def get_brand_mention_rate(
 
 @router.get("/platform-mention-rates", response_model=PlatformMentionRateResponse)
 async def get_platform_mention_rates(
+    tenant_key: str = Query(..., description="租户唯一字符串标识（tenants.tenant_key）"),
+    job_id: str = Query(..., description="任务ID"),
     category: str = Query(..., description="商品大类"),
     brand: str = Query(..., description="品牌名称"),
     keyword: str = Query(..., description='品牌关键词，或"全部"'),
@@ -183,6 +189,8 @@ async def get_platform_mention_rates(
     try:
         # 从数据库查询各平台数据
         platform_data_list = query_brand_platform_mention_data(
+            tenant_key=tenant_key,
+            job_id=job_id,
             brand=brand,
             category=category,
             keyword=keyword,
@@ -242,6 +250,8 @@ async def get_platform_mention_rates(
 
 @router.get("/reference-url-stats", response_model=ReferenceUrlResponse)
 async def get_reference_url_stats(
+    tenant_key: str = Query(..., description="租户唯一字符串标识（tenants.tenant_key）"),
+    job_id: str = Query(..., description="任务ID"),
     timeframe: TimeFrame = Query(..., description="时间范围"),
     date: Optional[str] = Query(None, description="具体日期(格式: YYYYMMDD)")
 ):
@@ -249,6 +259,8 @@ async def get_reference_url_stats(
     try:
         # 从数据库查询引用URL统计数据
         reference_data_list = query_reference_url_stats(
+            tenant_key=tenant_key,
+            job_id=job_id,
             timeframe=timeframe.value,
             specific_date=date
         )
@@ -338,7 +350,7 @@ async def get_brand_metrics(
 
 @router.get("/platform-metrics-by-brand", response_model=PlatformMetricsByBrandResponse)
 async def get_platform_metrics_by_brand(
-    user_id: str = Query(..., description="用户ID"),
+    tenant_key: str = Query(..., description="租户唯一字符串标识（tenants.tenant_key）"),
     job_id: str = Query(..., description="任务ID"),
     brand: str = Query(..., description="品牌名称"),
     timeframe: TimeFrame = Query(..., description="时间范围"),
@@ -346,7 +358,7 @@ async def get_platform_metrics_by_brand(
 ):
     try:
         platforms = query_platform_metrics_by_brand(
-            user_id=user_id,
+            tenant_key=tenant_key,
             job_id=job_id,
             brand=brand,
             timeframe=timeframe.value,
@@ -378,7 +390,7 @@ async def get_platform_metrics_by_brand(
 
 @router.get("/domain-citation-rate", response_model=DomainCitationRateResponse)
 async def get_domain_citation_rate(
-    user_id: str = Query(..., description="用户ID"),
+    tenant_key: str = Query(..., description="租户唯一字符串标识（tenants.tenant_key）"),
     job_id: str = Query(..., description="任务ID"),
     brand: str = Query(..., description="品牌名称"),
     timeframe: TimeFrame = Query(..., description="时间范围"),
@@ -386,7 +398,7 @@ async def get_domain_citation_rate(
 ):
     try:
         domain_distribution = query_domain_citation_rate(
-            user_id=user_id,
+            tenant_key=tenant_key,
             job_id=job_id,
             brand=brand,
             timeframe=timeframe.value,
