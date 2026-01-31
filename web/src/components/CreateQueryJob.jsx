@@ -105,6 +105,7 @@ const CreateQueryJob = ({ tenantKey: propTenantKey, onNavigate }) => {
           form={form}
           layout="vertical"
           onFinish={onFinish}
+          autoComplete="off"
           initialValues={{
             tenant_key: tenantKey,
             executor_id: executorId,

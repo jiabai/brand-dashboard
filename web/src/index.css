@@ -160,6 +160,37 @@
    RESET & BASE STYLES
    ======================================== */
 
+/* Ant Design Input Background Fix for Dark Mode */
+.dark .ant-input,
+.dark .ant-input-number-input,
+.dark .ant-input-affix-wrapper,
+.dark .ant-input-number,
+.dark .ant-picker,
+.dark .ant-input-status-success,
+.dark .ant-input-status-warning,
+.dark .ant-input-status-error,
+.dark .ant-input-status-validating {
+  background-color: var(--ant-color-bg-container) !important;
+  color: var(--ant-color-text) !important;
+}
+
+/* Ensure placeholder text is visible but muted */
+.dark .ant-input::placeholder {
+  color: var(--ant-color-text-tertiary) !important;
+  opacity: 1;
+}
+
+/* Chrome Autofill Fix - Forces the background to stay dark */
+.dark input:-webkit-autofill,
+.dark input:-webkit-autofill:hover,
+.dark input:-webkit-autofill:focus,
+.dark input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px var(--ant-color-bg-container) inset !important;
+  -webkit-text-fill-color: var(--ant-color-text) !important;
+  caret-color: var(--ant-color-text);
+  transition: background-color 5000s ease-in-out 0s;
+}
+
 *,
 *::before,
 *::after {
