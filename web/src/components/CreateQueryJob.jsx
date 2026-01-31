@@ -23,6 +23,7 @@ const { TextArea } = Input;
 
 const CreateQueryJob = ({ tenantKey: propTenantKey, onNavigate }) => {
   const [form] = Form.useForm();
+  const [messageApi, contextHolder] = message.useMessage();
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const executorId = getQueryParam('executor_id', 'exec_bbda021a');
@@ -58,16 +59,28 @@ const CreateQueryJob = ({ tenantKey: propTenantKey, onNavigate }) => {
       const data = await response.json();
 
       if (response.ok && data.success) {
-        message.success(data.message || '任务加载成功');
+        messageApi.success(data.message || '任务加载成功');
         setResult({ ...data, job_id: payload.job_id });
         form.resetFields();
         window.scrollTo({ top: 0, behavior: 'smooth' });
       } else {
-        message.error(data.message || '任务加载失败');
+        let errorMessage = data.message || '任务加载失败';
+        // Handle FastAPI error details (string or array of validation errors)
+        if (data.detail) {
+          if (typeof data.detail === 'string') {
+            errorMessage = data.detail;
+          } else if (Array.isArray(data.detail)) {
+            // Format validation errors: "body.data.brand: field required"
+            errorMessage = data.detail
+              .map(err => `${err.loc ? err.loc.join('.') : ''}: ${err.msg}`)
+              .join('; ');
+          }
+        }
+        messageApi.error(errorMessage);
       }
     } catch (error) {
       console.error('Error submitting form:', error);
-      message.error('请求发生错误: ' + error.message);
+      messageApi.error('请求发生错误: ' + error.message);
     } finally {
       setLoading(false);
     }
@@ -85,6 +98,7 @@ const CreateQueryJob = ({ tenantKey: propTenantKey, onNavigate }) => {
   if (result) {
     return (
       <div className="max-w-5xl mx-auto p-4">
+        {contextHolder}
         <SubmissionSuccess 
           result={result} 
           onReset={() => {
@@ -99,6 +113,7 @@ const CreateQueryJob = ({ tenantKey: propTenantKey, onNavigate }) => {
 
   return (
     <div className="max-w-5xl mx-auto p-4">
+      {contextHolder}
       <Card title={<Title level={3}>LLM 查询任务加载</Title>} extra={<Button onClick={generateRandomIds}>生成示例 ID</Button>}>
         
         <Form
@@ -212,10 +227,11 @@ const CreateQueryJob = ({ tenantKey: propTenantKey, onNavigate }) => {
                   validateStatus={errors.length > 0 ? 'error' : ''}
                   help={errors[0]}
                 >
-                  {fields.map((field, index) => (
-                    <div key={field.key} className="flex gap-2 mb-2">
+                  {fields.map(({ key, name, ...restField }) => (
+                    <div key={key} className="flex gap-2 mb-2">
                       <Form.Item
-                        {...field}
+                        {...restField}
+                        name={name}
                         noStyle
                         rules={[{ required: true, message: '请输入竞品名称' }]}
                       >
@@ -225,7 +241,7 @@ const CreateQueryJob = ({ tenantKey: propTenantKey, onNavigate }) => {
                         type="text"
                         danger
                         icon={<MinusCircleOutlined />}
-                        onClick={() => remove(field.name)}
+                        onClick={() => remove(name)}
                       />
                     </div>
                   ))}

@@ -67,7 +67,7 @@ function Dashboard() {
       view: currentView,
       timeframe: selectedFilter,
       tenant_key: tenantKey,
-      job_id: currentView === 'task-load' ? '' : jobId,
+      job_id: jobId,
       brand: brand,
       platform: selectedPlatform
     });
