@@ -76,6 +76,12 @@ curl -X GET "http://your-api.com/api/v1/dashboard/brand-metrics?tenant_key=tn_xx
 | mention_rate | float | 品牌总提及率（比例，0~1） |
 | first_mention_rate | float | 首次提及 brand 率（比例，0~1） |
 | citation_rate_by_post | float | 发文引用率（有发文引用的对话占总对话的比例） |
+
+> **💡 计算口径说明**：当前接口的“引用率”计算均基于“**已产生引用链接的对话**”作为分母。
+
+> **💡 计算口径说明**：当前接口的“引用率”计算均基于“**已产生引用链接的对话**”作为分母。
+> - **现状**：计算的是在 AI 给出链接的前提下，发文链接或域名的分布情况。
+> - **未来计划**：计划新增“全局引用率”指标，以“品牌总提及对话数”作为分母，用于评估 AI 给出链接的整体概率。
 | prompt_count | int | 问题总数 |
 | citation_source_count | int | 引用来源数量 |
 | keyword_coverage | int | 问题的答案提及品牌时，问题所属关键词的个数 |
@@ -249,6 +255,8 @@ curl -X GET "http://your-api.com/api/v1/dashboard/post-citation-rate?tenant_key=
 | citation_source_count | int | 引用来源数量 |
 | citation_rate_by_post | float | 发文引用率（有发文引用的对话占总对话的比例） |
 
+> **💡 计算口径说明**：当前“引用率”基于“**已产生引用链接的对话**”计算。未来将考虑新增以“品牌总提及对话数”为分母的全局指标。
+
 ### 数据计算逻辑
 
 ```sql
@@ -344,6 +352,8 @@ curl -X GET "http://your-api.com/api/v1/dashboard/domain-citation-rate?tenant_ke
 | metadata | object | 元数据 |
 | timeframe | string | 时间范围 |
 | calculation_method | string | 计算方法 |
+
+> **💡 计算口径说明**：当前“域名引用率”计算均基于“**已产生引用链接的对话**”作为分母。
 
 ### 数据计算逻辑
 
