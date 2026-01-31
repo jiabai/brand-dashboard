@@ -170,7 +170,7 @@
 .dark .ant-input-status-warning,
 .dark .ant-input-status-error,
 .dark .ant-input-status-validating {
-  background-color: var(--ant-color-bg-container) !important;
+  background-color: var(--ant-color-bg-layout) !important;
   color: var(--ant-color-text) !important;
 }
 
@@ -185,7 +185,7 @@
 .dark input:-webkit-autofill:hover,
 .dark input:-webkit-autofill:focus,
 .dark input:-webkit-autofill:active {
-  -webkit-box-shadow: 0 0 0 1000px var(--ant-color-bg-container) inset !important;
+  -webkit-box-shadow: 0 0 0 1000px var(--ant-color-bg-layout) inset !important;
   -webkit-text-fill-color: var(--ant-color-text) !important;
   caret-color: var(--ant-color-text);
   transition: background-color 5000s ease-in-out 0s;
