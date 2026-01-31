@@ -153,7 +153,7 @@ const response = await fetch('http://localhost:8000/api/v1/analysis/analyze', {
 const result = await response.json();
 
 // 获取品牌提及率数据
-const mentionRateResponse = await fetch('http://localhost:8000/api/v1/dashboard/brand-mention-rate?brand=Apple&timeframe=7days', {
+const mentionRateResponse = await fetch('http://localhost:8000/api/v1/dashboard/brand-mention-rate?tenant_key=tn_xxx&job_id=job_456&brand=Apple&timeframe=7days', {
   method: 'GET',
   headers: {
     'Accept': 'application/json',
@@ -163,7 +163,7 @@ const mentionRateResponse = await fetch('http://localhost:8000/api/v1/dashboard/
 const mentionRateData = await mentionRateResponse.json();
 
 // 获取品牌在各平台的提及率数据（单个品牌）
-const platformResponse = await fetch('http://localhost:8000/api/v1/dashboard/platform-mention-rates?brand=Apple&timeframe=7days', {
+const platformResponse = await fetch('http://localhost:8000/api/v1/dashboard/platform-mention-rates?tenant_key=tn_xxx&job_id=job_456&category=手机&brand=Apple&keyword=iPhone&timeframe=7days', {
   method: 'GET',
   headers: {
     'Accept': 'application/json',
@@ -173,7 +173,7 @@ const platformResponse = await fetch('http://localhost:8000/api/v1/dashboard/pla
 const platformData = await platformResponse.json();
 
 // 获取引用URL统计数据
-const referenceResponse = await fetch('http://localhost:8000/api/v1/dashboard/reference-url-stats?timeframe=7days', {
+const referenceResponse = await fetch('http://localhost:8000/api/v1/dashboard/reference-url-stats?tenant_key=tn_xxx&job_id=job_456&timeframe=7days', {
   method: 'GET',
   headers: {
     'Accept': 'application/json',
@@ -225,13 +225,19 @@ const keywords = await positioningResponse.json();
 
 ### Dashboard API使用
 
-品牌提及率API支持以下时间范围参数：
+Dashboard API支持以下时间范围参数：
 - `yesterday` - 昨日数据
 - `7days` - 近7天数据
 - `30days` - 近30天数据
 
 必需参数：
-- `brand` - 品牌名称 (如: Apple, Huawei)
+- `tenant_key` - 租户标识
+- `job_id` - 任务ID
+
+常见业务参数：
+- `brand` - 品牌名称 (品牌提及率等接口必填)
+- `category` - 商品大类 (平台提及率接口必填)
+- `keyword` - 品牌关键词 (平台提及率接口必填)
 
 可选参数：
 - `date` - 指定日期 (格式: YYYYMMDD)

@@ -19,13 +19,13 @@
 - `prompt_count` 使用 `COUNT(DISTINCT conversation_id)` 统计，对同一 `conversation_id` 的多行品牌记录去重后计数。
 - `SUM(is_mentioned)` / `SUM(is_first_mentioned)`使用记录级别求和；在 `qa_brand_state` 按品牌拆分的前提下，它等价于“某品牌在多少个对话/回答中被提及/首提”的计数，再除以 `prompt_count` 得到该品牌在对话/回答维度的提及/首提比例。
 
-## 1. 品牌总指标（/api/dashboard/brand-metrics）
+## 1. 品牌总指标（/api/v1/dashboard/brand-metrics）
 
 数据来源：`qa_brand_state`
 
 ### 指标：prompt_count（问题总数）
 
-- 定义：在指定 user_id、job_id、时间范围内，该品牌相关数据覆盖的“问题”数量。
+- 定义：在指定 tenant_key、job_id、时间范围内，该品牌相关数据覆盖的“问题”数量。
 - 算法：`COUNT(DISTINCT conversation_id)`
 - 说明：即使同一问题有多条明细记录，也只计 1 次。
 
@@ -58,7 +58,7 @@
 - 不传 `brand`：按 `brand` 分组返回所有品牌指标，并按 `mention_rate DESC, brand ASC` 排序。
 - 传 `brand=xxx`：只返回指定品牌的指标。
 
-## 2. 品牌分平台提及率（/api/dashboard/platform-metrics-by-brand）
+## 2. 品牌分平台提及率（/api/v1/dashboard/platform-metrics-by-brand）
 
 数据来源：`qa_brand_state`
 
@@ -70,7 +70,7 @@
   - 分母 `COUNT(*)` 是该品牌在该平台的记录条数（通常对应该平台回答覆盖的问题数/回答数）。
   - 分子 `SUM(is_mentioned)` 是该平台中提及该品牌的记录条数（或提及次数累计）。
 
-## 3. 发文引用率与引用信源数（/api/dashboard/post-citation-rate）
+## 3. 发文引用率与引用信源数（/api/v1/dashboard/post-citation-rate）
 
 数据来源：`qa_reference`
 
@@ -88,7 +88,7 @@
   - 再对所有问题取平均：`AVG(has_published_link)`，得到比例；若无数据则用 `COALESCE(..., 0)` 返回 0。
 - 解释：该指标反映“问题层面是否出现过发文链接”的覆盖率，而非引用条数占比。
 
-## 4. 域名引用率分布（/api/dashboard/domain-citation-rate）
+## 4. 域名引用率分布（/api/v1/dashboard/domain-citation-rate）
 
 数据来源：`qa_reference`
 
