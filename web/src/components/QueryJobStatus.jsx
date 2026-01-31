@@ -23,6 +23,7 @@ import {
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { CONFIG } from '../config';
+import { getQueryParam, updateQueryParams } from '../utils';
 
 const { Title, Text } = Typography;
 
@@ -35,11 +36,18 @@ const STATUS_MAP = {
   3: { text: '已失效', color: 'error', icon: <CloseCircleOutlined /> },
 };
 
-const QueryJobStatus = () => {
+const QueryJobStatus = ({ tenantKey: propTenantKey }) => {
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState([]);
-  const [tenantKey, setTenantKey] = useState('tn_1b02b3ef4fbd');
-  const [includeDeleted, setIncludeDeleted] = useState(false);
+  const [tenantKey] = useState(() => propTenantKey || getQueryParam('tenant_key', CONFIG.DEFAULT_TENANT_KEY));
+  const [includeDeleted, setIncludeDeleted] = useState(() => {
+    const raw = getQueryParam('include_deleted', 'false');
+    return raw === 'true' || raw === '1';
+  });
+
+  useEffect(() => {
+    updateQueryParams({ include_deleted: includeDeleted });
+  }, [includeDeleted]);
 
   const fetchData = useCallback(async () => {
     if (!tenantKey) {

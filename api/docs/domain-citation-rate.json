@@ -6,24 +6,24 @@
     "version": "0.1.0"
   },
   "paths": {
-    "/api/dashboard/domain-citation-rate": {
+    "/api/v1/dashboard/domain-citation-rate": {
       "get": {
         "tags": [
           "dashboard"
         ],
         "summary": "Get Domain Citation Rate",
-        "description": "获取品牌参考引用信息，基于qa_reference表计算",
-        "operationId": "get_domain_citation_rate_api_dashboard_domain_citation_rate_get",
+        "operationId": "get_domain_citation_rate_api_v1_dashboard_domain_citation_rate_get",
         "parameters": [
           {
-            "name": "user_id",
+            "name": "tenant_key",
             "in": "query",
             "required": true,
             "schema": {
               "type": "string",
-              "title": "User Id"
+              "description": "租户唯一字符串标识（tenants.tenant_key）",
+              "title": "Tenant Key"
             },
-            "description": "用户ID"
+            "description": "租户唯一字符串标识（tenants.tenant_key）"
           },
           {
             "name": "job_id",
@@ -31,6 +31,7 @@
             "required": true,
             "schema": {
               "type": "string",
+              "description": "任务ID",
               "title": "Job Id"
             },
             "description": "任务ID"
@@ -41,6 +42,7 @@
             "required": true,
             "schema": {
               "type": "string",
+              "description": "品牌名称",
               "title": "Brand"
             },
             "description": "品牌名称"
@@ -50,26 +52,28 @@
             "in": "query",
             "required": true,
             "schema": {
-              "type": "string",
-              "enum": [
-                "yesterday",
-                "7days",
-                "30days"
-              ],
-              "title": "Timeframe"
+              "$ref": "#/components/schemas/TimeFrame",
+              "description": "时间范围"
             },
-            "description": "时间范围，可选值: yesterday, 7days, 30days"
+            "description": "时间范围"
           },
           {
             "name": "date",
             "in": "query",
             "required": false,
             "schema": {
-              "type": "string",
-              "pattern": "^\\d{8}$",
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "具体日期(格式: YYYYMMDD)",
               "title": "Date"
             },
-            "description": "具体日期，格式: YYYYMMDD"
+            "description": "具体日期(格式: YYYYMMDD)"
           }
         ],
         "responses": {
@@ -78,80 +82,17 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "status",
-                    "domain_distribution",
-                    "metadata"
-                  ],
-                  "properties": {
-                    "status": {
-                      "type": "string",
-                      "enum": [
-                        "success",
-                        "error"
-                      ]
-                    },
-                    "domain_distribution": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "required": [
-                          "domain",
-                          "domain-citation-rate"
-                        ],
-                        "properties": {
-                          "domain": {
-                            "type": "string"
-                          },
-                          "domain-citation-rate": {
-                            "type": "number",
-                            "format": "float"
-                          }
-                        },
-                        "additionalProperties": false
-                      }
-                    },
-                    "metadata": {
-                      "type": "object",
-                      "required": [
-                        "timeframe",
-                        "calculation_method"
-                      ],
-                      "properties": {
-                        "timeframe": {
-                          "type": "string"
-                        },
-                        "calculation_method": {
-                          "type": "string",
-                          "const": "domain_citation_rate"
-                        }
-                      },
-                      "additionalProperties": true
-                    }
-                  },
-                  "additionalProperties": true
-                },
-                "example": {
-                  "status": "success",
-                  "domain_distribution": [
-                    {
-                      "domain": "www.baidu.com",
-                      "domain-citation-rate": 8.96
-                    },
-                    {
-                      "domain": "www.google.com",
-                      "domain-citation-rate": 3.73
-                    },
-                    {
-                      "domain": "www.zhihu.com",
-                      "domain-citation-rate": 2.34
-                    }
-                  ],
-                  "metadata": {
-                    "timeframe": "7days",
-                    "calculation_method": "domain_citation_rate"
-                  }
+                  "$ref": "#/components/schemas/DomainCitationRateResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -159,6 +100,115 @@
         }
       }
     }
+  },
+  "components": {
+    "schemas": {
+      "DomainCitationRateItem": {
+        "properties": {
+          "domain": {
+            "type": "string",
+            "title": "Domain",
+            "description": "域名"
+          },
+          "domain-citation-rate": {
+            "type": "number",
+            "title": "Domain-Citation-Rate",
+            "description": "域名引用率"
+          }
+        },
+        "type": "object",
+        "required": [
+          "domain",
+          "domain-citation-rate"
+        ],
+        "title": "DomainCitationRateItem"
+      },
+      "DomainCitationRateResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "响应状态"
+          },
+          "domain_distribution": {
+            "items": {
+              "$ref": "#/components/schemas/DomainCitationRateItem"
+            },
+            "type": "array",
+            "title": "Domain Distribution",
+            "description": "域名引用率分布"
+          },
+          "metadata": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Metadata",
+            "description": "元数据"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "domain_distribution",
+          "metadata"
+        ],
+        "title": "DomainCitationRateResponse"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "TimeFrame": {
+        "type": "string",
+        "enum": [
+          "yesterday",
+          "7days",
+          "30days"
+        ],
+        "title": "TimeFrame",
+        "description": "时间范围枚举."
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
   }
 }
-

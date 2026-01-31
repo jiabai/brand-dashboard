@@ -1,0 +1,1224 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Brand Analysis API",
+    "description": "品牌分析API服务，为dashboard提供数据接口",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/api/v1/dashboard/brand-mention-rate": {
+      "get": {
+        "tags": [
+          "dashboard"
+        ],
+        "summary": "Get Brand Mention Rate",
+        "description": "获取品牌总提及率数据.",
+        "operationId": "get_brand_mention_rate_api_v1_dashboard_brand_mention_rate_get",
+        "parameters": [
+          {
+            "name": "tenant_key",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "租户唯一字符串标识（tenants.tenant_key）",
+              "title": "Tenant Key"
+            },
+            "description": "租户唯一字符串标识（tenants.tenant_key）"
+          },
+          {
+            "name": "job_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "任务ID",
+              "title": "Job Id"
+            },
+            "description": "任务ID"
+          },
+          {
+            "name": "brand",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "品牌名称",
+              "title": "Brand"
+            },
+            "description": "品牌名称"
+          },
+          {
+            "name": "timeframe",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TimeFrame",
+              "description": "时间范围"
+            },
+            "description": "时间范围"
+          },
+          {
+            "name": "date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "具体日期(格式: YYYYMMDD)",
+              "title": "Date"
+            },
+            "description": "具体日期(格式: YYYYMMDD)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BrandMentionRateResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/dashboard/platform-mention-rates": {
+      "get": {
+        "tags": [
+          "dashboard"
+        ],
+        "summary": "Get Platform Mention Rates",
+        "description": "获取品牌在各平台的提及率数据.",
+        "operationId": "get_platform_mention_rates_api_v1_dashboard_platform_mention_rates_get",
+        "parameters": [
+          {
+            "name": "tenant_key",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "租户唯一字符串标识（tenants.tenant_key）",
+              "title": "Tenant Key"
+            },
+            "description": "租户唯一字符串标识（tenants.tenant_key）"
+          },
+          {
+            "name": "job_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "任务ID",
+              "title": "Job Id"
+            },
+            "description": "任务ID"
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "商品大类",
+              "title": "Category"
+            },
+            "description": "商品大类"
+          },
+          {
+            "name": "brand",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "品牌名称",
+              "title": "Brand"
+            },
+            "description": "品牌名称"
+          },
+          {
+            "name": "keyword",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "品牌关键词，或\"全部\"",
+              "title": "Keyword"
+            },
+            "description": "品牌关键词，或\"全部\""
+          },
+          {
+            "name": "timeframe",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TimeFrame",
+              "description": "时间范围"
+            },
+            "description": "时间范围"
+          },
+          {
+            "name": "date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "具体日期(格式: YYYYMMDD)",
+              "title": "Date"
+            },
+            "description": "具体日期(格式: YYYYMMDD)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlatformMentionRateResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/dashboard/reference-url-stats": {
+      "get": {
+        "tags": [
+          "dashboard"
+        ],
+        "summary": "Get Reference Url Stats",
+        "description": "获取引用URL统计数据.",
+        "operationId": "get_reference_url_stats_api_v1_dashboard_reference_url_stats_get",
+        "parameters": [
+          {
+            "name": "tenant_key",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "租户唯一字符串标识（tenants.tenant_key）",
+              "title": "Tenant Key"
+            },
+            "description": "租户唯一字符串标识（tenants.tenant_key）"
+          },
+          {
+            "name": "job_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "任务ID",
+              "title": "Job Id"
+            },
+            "description": "任务ID"
+          },
+          {
+            "name": "timeframe",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TimeFrame",
+              "description": "时间范围"
+            },
+            "description": "时间范围"
+          },
+          {
+            "name": "date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "具体日期(格式: YYYYMMDD)",
+              "title": "Date"
+            },
+            "description": "具体日期(格式: YYYYMMDD)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReferenceUrlResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/dashboard/brand-metrics": {
+      "get": {
+        "tags": [
+          "dashboard"
+        ],
+        "summary": "Get Brand Metrics",
+        "operationId": "get_brand_metrics_api_v1_dashboard_brand_metrics_get",
+        "parameters": [
+          {
+            "name": "tenant_key",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "租户唯一字符串标识（tenants.tenant_key）",
+              "title": "Tenant Key"
+            },
+            "description": "租户唯一字符串标识（tenants.tenant_key）"
+          },
+          {
+            "name": "job_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "任务ID",
+              "title": "Job Id"
+            },
+            "description": "任务ID"
+          },
+          {
+            "name": "timeframe",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TimeFrame",
+              "description": "时间范围"
+            },
+            "description": "时间范围"
+          },
+          {
+            "name": "date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "具体日期(格式: YYYYMMDD)",
+              "title": "Date"
+            },
+            "description": "具体日期(格式: YYYYMMDD)"
+          },
+          {
+            "name": "brand",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "品牌名称",
+              "title": "Brand"
+            },
+            "description": "品牌名称"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BrandMetricsResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/dashboard/platform-metrics-by-brand": {
+      "get": {
+        "tags": [
+          "dashboard"
+        ],
+        "summary": "Get Platform Metrics By Brand",
+        "operationId": "get_platform_metrics_by_brand_api_v1_dashboard_platform_metrics_by_brand_get",
+        "parameters": [
+          {
+            "name": "tenant_key",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "租户唯一字符串标识（tenants.tenant_key）",
+              "title": "Tenant Key"
+            },
+            "description": "租户唯一字符串标识（tenants.tenant_key）"
+          },
+          {
+            "name": "job_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "任务ID",
+              "title": "Job Id"
+            },
+            "description": "任务ID"
+          },
+          {
+            "name": "brand",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "品牌名称",
+              "title": "Brand"
+            },
+            "description": "品牌名称"
+          },
+          {
+            "name": "timeframe",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TimeFrame",
+              "description": "时间范围"
+            },
+            "description": "时间范围"
+          },
+          {
+            "name": "date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "具体日期(格式: YYYYMMDD)",
+              "title": "Date"
+            },
+            "description": "具体日期(格式: YYYYMMDD)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlatformMetricsByBrandResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/dashboard/domain-citation-rate": {
+      "get": {
+        "tags": [
+          "dashboard"
+        ],
+        "summary": "Get Domain Citation Rate",
+        "operationId": "get_domain_citation_rate_api_v1_dashboard_domain_citation_rate_get",
+        "parameters": [
+          {
+            "name": "tenant_key",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "租户唯一字符串标识（tenants.tenant_key）",
+              "title": "Tenant Key"
+            },
+            "description": "租户唯一字符串标识（tenants.tenant_key）"
+          },
+          {
+            "name": "job_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "任务ID",
+              "title": "Job Id"
+            },
+            "description": "任务ID"
+          },
+          {
+            "name": "brand",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "品牌名称",
+              "title": "Brand"
+            },
+            "description": "品牌名称"
+          },
+          {
+            "name": "timeframe",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TimeFrame",
+              "description": "时间范围"
+            },
+            "description": "时间范围"
+          },
+          {
+            "name": "date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "具体日期(格式: YYYYMMDD)",
+              "title": "Date"
+            },
+            "description": "具体日期(格式: YYYYMMDD)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DomainCitationRateResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/dashboard/post-citation-rate": {
+      "get": {
+        "tags": [
+          "dashboard"
+        ],
+        "summary": "Get Post Citation Rate",
+        "description": "获取品牌发文引用率信息.",
+        "operationId": "get_post_citation_rate_api_v1_dashboard_post_citation_rate_get",
+        "parameters": [
+          {
+            "name": "tenant_key",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "租户唯一字符串标识",
+              "title": "Tenant Key"
+            },
+            "description": "租户唯一字符串标识"
+          },
+          {
+            "name": "job_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "任务ID",
+              "title": "Job Id"
+            },
+            "description": "任务ID"
+          },
+          {
+            "name": "brand",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "品牌名称",
+              "title": "Brand"
+            },
+            "description": "品牌名称"
+          },
+          {
+            "name": "timeframe",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TimeFrame",
+              "description": "时间范围"
+            },
+            "description": "时间范围"
+          },
+          {
+            "name": "date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "具体日期(格式: YYYYMMDD)",
+              "title": "Date"
+            },
+            "description": "具体日期(格式: YYYYMMDD)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PostCitationRateResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "BrandMentionRateData": {
+        "properties": {
+          "mention_rate": {
+            "type": "number",
+            "title": "Mention Rate",
+            "description": "品牌总提及率(百分比)"
+          },
+          "rank": {
+            "type": "integer",
+            "title": "Rank",
+            "description": "品牌排名"
+          },
+          "change": {
+            "type": "number",
+            "title": "Change",
+            "description": "与上一周期对比的变化(百分比)"
+          },
+          "question_count": {
+            "type": "integer",
+            "title": "Question Count",
+            "description": "问题总数"
+          },
+          "mention_count": {
+            "type": "integer",
+            "title": "Mention Count",
+            "description": "品牌提及数量"
+          },
+          "first_mention_count": {
+            "type": "integer",
+            "title": "First Mention Count",
+            "description": "首次提及品牌数量"
+          },
+          "analysis_date": {
+            "type": "string",
+            "title": "Analysis Date",
+            "description": "分析日期"
+          },
+          "last_updated": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Last Updated",
+            "description": "最后更新时间"
+          }
+        },
+        "type": "object",
+        "required": [
+          "mention_rate",
+          "rank",
+          "change",
+          "question_count",
+          "mention_count",
+          "first_mention_count",
+          "analysis_date",
+          "last_updated"
+        ],
+        "title": "BrandMentionRateData",
+        "description": "品牌总提及率数据模型."
+      },
+      "BrandMentionRateResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "响应状态"
+          },
+          "data": {
+            "$ref": "#/components/schemas/BrandMentionRateData",
+            "description": "品牌总提及率数据"
+          },
+          "metadata": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Metadata",
+            "description": "元数据"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "data",
+          "metadata"
+        ],
+        "title": "BrandMentionRateResponse",
+        "description": "品牌总提及率响应模型."
+      },
+      "BrandMetricsItem": {
+        "properties": {
+          "brand": {
+            "type": "string",
+            "title": "Brand",
+            "description": "品牌名称"
+          },
+          "mention_rate": {
+            "type": "number",
+            "title": "Mention Rate",
+            "description": "品牌总提及率"
+          },
+          "first_mention_rate": {
+            "type": "number",
+            "title": "First Mention Rate",
+            "description": "首次提及品牌率"
+          },
+          "citation_rate_by_post": {
+            "type": "number",
+            "title": "Citation Rate By Post",
+            "description": "引用率"
+          },
+          "prompt_count": {
+            "type": "integer",
+            "title": "Prompt Count",
+            "description": "问题总数"
+          },
+          "citation_source_count": {
+            "type": "integer",
+            "title": "Citation Source Count",
+            "description": "引用来源数量"
+          },
+          "keyword_coverage": {
+            "type": "integer",
+            "title": "Keyword Coverage",
+            "description": "关键词覆盖数"
+          }
+        },
+        "type": "object",
+        "required": [
+          "brand",
+          "mention_rate",
+          "first_mention_rate",
+          "citation_rate_by_post",
+          "prompt_count",
+          "citation_source_count",
+          "keyword_coverage"
+        ],
+        "title": "BrandMetricsItem"
+      },
+      "BrandMetricsResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "响应状态"
+          },
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/BrandMetricsItem"
+            },
+            "type": "array",
+            "title": "Data",
+            "description": "品牌总指标列表"
+          },
+          "metadata": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Metadata",
+            "description": "元数据"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "data",
+          "metadata"
+        ],
+        "title": "BrandMetricsResponse"
+      },
+      "DomainCitationRateItem": {
+        "properties": {
+          "domain": {
+            "type": "string",
+            "title": "Domain",
+            "description": "域名"
+          },
+          "domain-citation-rate": {
+            "type": "number",
+            "title": "Domain-Citation-Rate",
+            "description": "域名引用率"
+          }
+        },
+        "type": "object",
+        "required": [
+          "domain",
+          "domain-citation-rate"
+        ],
+        "title": "DomainCitationRateItem"
+      },
+      "DomainCitationRateResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "响应状态"
+          },
+          "domain_distribution": {
+            "items": {
+              "$ref": "#/components/schemas/DomainCitationRateItem"
+            },
+            "type": "array",
+            "title": "Domain Distribution",
+            "description": "域名引用率分布"
+          },
+          "metadata": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Metadata",
+            "description": "元数据"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "domain_distribution",
+          "metadata"
+        ],
+        "title": "DomainCitationRateResponse"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "PlatformMentionRateData": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "平台名称"
+          },
+          "mention_rate": {
+            "type": "number",
+            "title": "Mention Rate",
+            "description": "该平台上的品牌提及率(百分比)"
+          },
+          "first_mention_rate": {
+            "type": "number",
+            "title": "First Mention Rate",
+            "description": "该平台上的品牌首位提及率(百分比)"
+          },
+          "color": {
+            "type": "string",
+            "title": "Color",
+            "description": "颜色"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "mention_rate",
+          "first_mention_rate",
+          "color"
+        ],
+        "title": "PlatformMentionRateData",
+        "description": "各平台提及率数据模型."
+      },
+      "PlatformMentionRateResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "响应状态"
+          },
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/PlatformMentionRateData"
+            },
+            "type": "array",
+            "title": "Data",
+            "description": "各平台提及率数据列表"
+          },
+          "metadata": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Metadata",
+            "description": "元数据"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "data",
+          "metadata"
+        ],
+        "title": "PlatformMentionRateResponse",
+        "description": "各平台提及率响应模型."
+      },
+      "PlatformMetricsByBrandData": {
+        "properties": {
+          "brand": {
+            "type": "string",
+            "title": "Brand",
+            "description": "品牌名称"
+          },
+          "platforms": {
+            "items": {
+              "$ref": "#/components/schemas/PlatformMetricsByBrandItem"
+            },
+            "type": "array",
+            "title": "Platforms",
+            "description": "平台指标列表"
+          }
+        },
+        "type": "object",
+        "required": [
+          "brand",
+          "platforms"
+        ],
+        "title": "PlatformMetricsByBrandData"
+      },
+      "PlatformMetricsByBrandItem": {
+        "properties": {
+          "platform": {
+            "type": "string",
+            "title": "Platform",
+            "description": "平台名称"
+          },
+          "mention_rate": {
+            "type": "number",
+            "title": "Mention Rate",
+            "description": "平台提及率"
+          }
+        },
+        "type": "object",
+        "required": [
+          "platform",
+          "mention_rate"
+        ],
+        "title": "PlatformMetricsByBrandItem"
+      },
+      "PlatformMetricsByBrandResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "响应状态"
+          },
+          "data": {
+            "$ref": "#/components/schemas/PlatformMetricsByBrandData",
+            "description": "品牌平台指标数据"
+          },
+          "metadata": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Metadata",
+            "description": "元数据"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "data",
+          "metadata"
+        ],
+        "title": "PlatformMetricsByBrandResponse"
+      },
+      "PostCitationRateData": {
+        "properties": {
+          "brand": {
+            "type": "string",
+            "title": "Brand",
+            "description": "品牌名称"
+          },
+          "citation_source_count": {
+            "type": "integer",
+            "title": "Citation Source Count",
+            "description": "引用来源数量"
+          },
+          "citation_rate_by_post": {
+            "type": "number",
+            "title": "Citation Rate By Post",
+            "description": "发文引用率（有发文引用的对话占比）"
+          }
+        },
+        "type": "object",
+        "required": [
+          "brand",
+          "citation_source_count",
+          "citation_rate_by_post"
+        ],
+        "title": "PostCitationRateData"
+      },
+      "PostCitationRateResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "响应状态"
+          },
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/PostCitationRateData"
+            },
+            "type": "array",
+            "title": "Data",
+            "description": "数据列表"
+          },
+          "metadata": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Metadata",
+            "description": "元数据"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "data",
+          "metadata"
+        ],
+        "title": "PostCitationRateResponse"
+      },
+      "ReferenceUrlData": {
+        "properties": {
+          "answer_reference_url": {
+            "type": "string",
+            "title": "Answer Reference Url",
+            "description": "引用URL"
+          },
+          "reference_count": {
+            "type": "integer",
+            "title": "Reference Count",
+            "description": "引用次数"
+          },
+          "total_questions": {
+            "type": "integer",
+            "title": "Total Questions",
+            "description": "总提问数"
+          },
+          "chinese_name": {
+            "type": "string",
+            "title": "Chinese Name",
+            "description": "中文名称"
+          },
+          "reference_rate": {
+            "type": "number",
+            "title": "Reference Rate",
+            "description": "引用率(引用次数/总提问数)"
+          }
+        },
+        "type": "object",
+        "required": [
+          "answer_reference_url",
+          "reference_count",
+          "total_questions",
+          "chinese_name",
+          "reference_rate"
+        ],
+        "title": "ReferenceUrlData",
+        "description": "引用URL统计数据模型."
+      },
+      "ReferenceUrlResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "响应状态"
+          },
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/ReferenceUrlData"
+            },
+            "type": "array",
+            "title": "Data",
+            "description": "引用URL统计数据列表"
+          },
+          "metadata": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Metadata",
+            "description": "元数据"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "data",
+          "metadata"
+        ],
+        "title": "ReferenceUrlResponse",
+        "description": "引用URL统计响应模型."
+      },
+      "TimeFrame": {
+        "type": "string",
+        "enum": [
+          "yesterday",
+          "7days",
+          "30days"
+        ],
+        "title": "TimeFrame",
+        "description": "时间范围枚举."
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  }
+}

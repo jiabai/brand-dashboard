@@ -11,8 +11,7 @@
         "tags": [
           "conversation"
         ],
-        "summary": "LLM对话入库",
-        "description": "执行器批量上报对话与引用数据，写入 llm_conversations 与 llm_conversation_references 表。",
+        "summary": "Load Conversations",
         "operationId": "load_conversations_api_v1_conversation_load_post",
         "parameters": [
           {
@@ -21,30 +20,37 @@
             "required": true,
             "schema": {
               "type": "string",
+              "description": "执行器唯一ID",
               "title": "Executor Id"
             },
-            "description": "执行器唯一 ID"
+            "description": "执行器唯一ID"
           },
           {
             "name": "X-Executor-Key",
             "in": "header",
-            "required": true,
+            "required": false,
             "schema": {
-              "type": "string",
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
               "title": "X-Executor-Key"
-            },
-            "description": "执行器 API Key"
+            }
           }
         ],
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/ConversationLoadRequest"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -73,53 +79,17 @@
   },
   "components": {
     "schemas": {
-      "ConversationReference": {
-        "properties": {
-          "url": {
-            "type": "string",
-            "title": "Url",
-            "description": "引用链接"
-          },
-          "site_name": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Site Name",
-            "description": "站点名称"
-          },
-          "cite_index": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Cite Index",
-            "description": "引用序号"
-          }
-        },
-        "type": "object",
-        "required": [
-          "url"
-        ],
-        "title": "ConversationReference"
-      },
       "ConversationItem": {
         "properties": {
           "conversation_id": {
             "type": "string",
+            "minLength": 1,
             "title": "Conversation Id",
-            "description": "对话 ID（幂等主键）"
+            "description": "对话ID"
           },
           "keyword": {
             "type": "string",
+            "minLength": 1,
             "title": "Keyword",
             "description": "关键词"
           },
@@ -137,16 +107,19 @@
           },
           "category": {
             "type": "string",
+            "minLength": 1,
             "title": "Category",
             "description": "商品大类"
           },
           "query_content": {
             "type": "string",
+            "minLength": 1,
             "title": "Query Content",
             "description": "用户提问内容"
           },
           "answer_content": {
             "type": "string",
+            "minLength": 1,
             "title": "Answer Content",
             "description": "平台回复内容"
           },
@@ -161,13 +134,13 @@
               }
             ],
             "title": "Extracted At",
-            "description": "抽取时间 (ISO 8601)"
+            "description": "抽取时间"
           },
           "references": {
             "anyOf": [
               {
                 "items": {
-                  "$ref": "#/components/schemas/ConversationReference"
+                  "$ref": "#/components/schemas/ConversationReferenceItem"
                 },
                 "type": "array"
               },
@@ -193,16 +166,19 @@
         "properties": {
           "tenant_key": {
             "type": "string",
+            "minLength": 1,
             "title": "Tenant Key",
-            "description": "租户标识 Key"
+            "description": "租户标识Key"
           },
           "job_id": {
             "type": "string",
+            "minLength": 1,
             "title": "Job Id",
-            "description": "任务 ID"
+            "description": "任务ID"
           },
           "platform": {
             "type": "string",
+            "minLength": 1,
             "title": "Platform",
             "description": "平台名称"
           },
@@ -211,6 +187,7 @@
               "$ref": "#/components/schemas/ConversationItem"
             },
             "type": "array",
+            "minItems": 1,
             "title": "Items",
             "description": "对话批量数据"
           }
@@ -255,6 +232,45 @@
           "message"
         ],
         "title": "ConversationLoadResponse"
+      },
+      "ConversationReferenceItem": {
+        "properties": {
+          "url": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Url",
+            "description": "引用链接"
+          },
+          "site_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Site Name",
+            "description": "站点名称"
+          },
+          "cite_index": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cite Index",
+            "description": "引用序号"
+          }
+        },
+        "type": "object",
+        "required": [
+          "url"
+        ],
+        "title": "ConversationReferenceItem"
       },
       "HTTPValidationError": {
         "properties": {

@@ -7,7 +7,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Button, Card, Empty, Table, Typography } from 'antd';
 import { CONFIG } from '@/config';
 
-const { DEFAULT_USER_ID, DEFAULT_JOB_ID, DEFAULT_BRAND } = CONFIG;
+const { DEFAULT_TENANT_KEY, DEFAULT_JOB_ID, DEFAULT_BRAND } = CONFIG;
 
 const buildQueryString = (params) => {
   const searchParams = new URLSearchParams();
@@ -41,7 +41,7 @@ const roundTwoDecimals = (value) => {
 const ReferencesTable = ({
   timeframe = '7days',
   date = '',
-  userId = DEFAULT_USER_ID,
+  tenantKey = DEFAULT_TENANT_KEY,
   jobId = DEFAULT_JOB_ID,
   brand = DEFAULT_BRAND,
   referencesData,
@@ -63,7 +63,7 @@ const ReferencesTable = ({
         setInternalError(null);
 
         const queryString = buildQueryString({
-          user_id: userId,
+          tenant_key: tenantKey,
           job_id: jobId,
           brand,
           timeframe,
@@ -109,7 +109,7 @@ const ReferencesTable = ({
     return () => {
       controller.abort();
     };
-  }, [hasExternalData, userId, jobId, brand, timeframe, date]);
+  }, [hasExternalData, tenantKey, jobId, brand, timeframe, date]);
 
   const displayData = hasExternalData ? referencesData : data;
   const loading = isLoading ?? internalLoading;

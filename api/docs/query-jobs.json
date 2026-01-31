@@ -1,62 +1,81 @@
 {
-  "openapi": "3.0.0",
+  "openapi": "3.1.0",
   "info": {
     "title": "Brand Dashboard API",
     "version": "1.0.0"
   },
   "paths": {
-    "/api/v1/query-jobs/load": {
-      "post": {
-        "summary": "加载LLM查询任务",
-        "description": "接收原始JSON数据并加载到llm_query_jobs数据库表中",
-        "operationId": "load_query_jobs",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/LoadQueryJobsRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/LoadQueryJobsResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/v1/query-jobs/fetch": {
       "get": {
-        "summary": "获取待执行任务",
-        "description": "执行器获取待执行任务，采用 Round-Robin 策略",
-        "operationId": "fetch_query_job",
+        "tags": [
+          "query-jobs"
+        ],
+        "summary": "Fetch Query Job",
+        "description": "执行器获取待执行任务。\n采用 Round-Robin 策略：优先选取已执行次数最少的任务，且按物理顺序排列。",
+        "operationId": "fetch_query_job_api_v1_query_jobs_fetch_get",
         "parameters": [
+          {
+            "name": "tenant_key",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "可选：仅拉取指定租户的任务",
+              "title": "Tenant Key"
+            },
+            "description": "可选：仅拉取指定租户的任务"
+          },
+          {
+            "name": "job_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "可选：仅拉取指定 job_id 的任务",
+              "title": "Job Id"
+            },
+            "description": "可选：仅拉取指定 job_id 的任务"
+          },
           {
             "name": "executor_id",
             "in": "query",
             "required": true,
             "schema": {
-              "type": "string"
+              "type": "string",
+              "description": "执行器唯一ID",
+              "title": "Executor Id"
             },
             "description": "执行器唯一ID"
           },
           {
             "name": "X-Executor-Key",
             "in": "header",
-            "required": true,
+            "required": false,
             "schema": {
-              "type": "string"
-            },
-            "description": "执行器密钥"
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Executor-Key"
+            }
           }
         ],
         "responses": {
@@ -69,33 +88,55 @@
                 }
               }
             }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
           }
         }
       }
     },
     "/api/v1/query-jobs/report": {
       "post": {
-        "summary": "上报任务执行结果",
-        "description": "执行器上报任务执行结果，仅更新执行次数与最近执行日期",
-        "operationId": "report_query_job",
+        "tags": [
+          "query-jobs"
+        ],
+        "summary": "Report Query Job",
+        "description": "执行器上报任务执行结果。\n仅更新 llm_query_jobs 表中的执行次数和日期。",
+        "operationId": "report_query_job_api_v1_query_jobs_report_post",
         "parameters": [
           {
             "name": "executor_id",
             "in": "query",
             "required": true,
             "schema": {
-              "type": "string"
+              "type": "string",
+              "description": "执行器唯一ID",
+              "title": "Executor Id"
             },
             "description": "执行器唯一ID"
           },
           {
             "name": "X-Executor-Key",
             "in": "header",
-            "required": true,
+            "required": false,
             "schema": {
-              "type": "string"
-            },
-            "description": "执行器密钥"
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Executor-Key"
+            }
           }
         ],
         "requestBody": {
@@ -103,16 +144,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "id": {
-                    "type": "integer",
-                    "description": "任务记录唯一主键ID"
-                  }
-                },
-                "required": [
-                  "id"
-                ]
+                "$ref": "#/components/schemas/Body_report_query_job_api_v1_query_jobs_report_post"
               }
             }
           }
@@ -127,24 +159,56 @@
                 }
               }
             }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
           }
         }
       }
     },
     "/api/v1/query-jobs/status": {
       "get": {
-        "summary": "查询任务状态列表",
-        "description": "按租户查询任务的 query_content 与状态信息",
-        "operationId": "list_query_jobs_status",
+        "tags": [
+          "query-jobs"
+        ],
+        "summary": "List Query Jobs Status",
+        "operationId": "list_query_jobs_status_api_v1_query_jobs_status_get",
         "parameters": [
           {
             "name": "tenant_key",
             "in": "query",
             "required": true,
             "schema": {
-              "type": "string"
+              "type": "string",
+              "description": "租户Key",
+              "title": "Tenant Key"
             },
             "description": "租户Key"
+          },
+          {
+            "name": "job_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "可选：仅查询指定 job_id 的任务",
+              "title": "Job Id"
+            },
+            "description": "可选：仅查询指定 job_id 的任务"
           },
           {
             "name": "include_deleted",
@@ -152,7 +216,9 @@
             "required": false,
             "schema": {
               "type": "boolean",
-              "default": false
+              "description": "是否包含已删除任务",
+              "default": false,
+              "title": "Include Deleted"
             },
             "description": "是否包含已删除任务"
           }
@@ -167,6 +233,58 @@
                 }
               }
             }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/query-jobs/load": {
+      "post": {
+        "tags": [
+          "query-jobs"
+        ],
+        "summary": "Load Query Jobs",
+        "description": "接收原始JSON数据并加载到llm_query_jobs数据库表中.",
+        "operationId": "load_query_jobs_api_v1_query_jobs_load_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoadQueryJobsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoadQueryJobsResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
           }
         }
       }
@@ -174,184 +292,301 @@
   },
   "components": {
     "schemas": {
-      "QueryContentItem": {
-        "type": "object",
+      "Body_report_query_job_api_v1_query_jobs_report_post": {
         "properties": {
-          "keyword": {
-            "type": "string",
-            "description": "关键词",
-            "minLength": 1
-          },
-          "query_content": {
-            "type": "array",
-            "description": "查询内容列表",
-            "minItems": 1,
-            "items": {
-              "type": "string"
-            }
+          "id": {
+            "type": "integer",
+            "title": "Id",
+            "description": "任务记录唯一主键ID"
           }
         },
+        "type": "object",
         "required": [
-          "keyword",
-          "query_content"
-        ]
+          "id"
+        ],
+        "title": "Body_report_query_job_api_v1_query_jobs_report_post"
       },
-      "QueryJobData": {
-        "type": "object",
+      "FetchQueryJobResponse": {
         "properties": {
-          "category": {
-            "type": "string",
-            "description": "分类",
-            "minLength": 1
+          "success": {
+            "type": "boolean",
+            "title": "Success",
+            "description": "是否成功"
           },
-          "brand": {
-            "type": "string",
-            "description": "品牌",
-            "minLength": 1,
-            "nullable": true
+          "count": {
+            "type": "integer",
+            "title": "Count",
+            "description": "任务数量"
           },
-          "competitor": {
-            "type": "array",
-            "description": "竞品列表",
-            "nullable": true,
-            "items": {
-              "type": "string"
-            }
-          },
-          "content": {
-            "type": "array",
-            "description": "内容列表",
-            "minItems": 1,
-            "items": {
-              "$ref": "#/components/schemas/QueryContentItem"
-            }
+          "jobs": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/QueryJobDetail"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "任务详情"
           }
         },
+        "type": "object",
         "required": [
-          "category",
-          "content"
-        ]
+          "success",
+          "count"
+        ],
+        "title": "FetchQueryJobResponse"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
       },
       "LoadQueryJobsRequest": {
-        "type": "object",
         "properties": {
           "tenant_key": {
             "type": "string",
-            "description": "租户Key",
-            "minLength": 1
+            "minLength": 1,
+            "title": "Tenant Key",
+            "description": "租户Key"
           },
           "job_id": {
             "type": "string",
-            "description": "任务ID",
-            "minLength": 1
+            "minLength": 1,
+            "title": "Job Id",
+            "description": "任务ID"
           },
           "effective_from": {
             "type": "string",
             "format": "date-time",
+            "title": "Effective From",
             "description": "生效开始时间"
           },
           "effective_to": {
-            "type": "string",
-            "format": "date-time",
-            "description": "生效结束时间（NULL表示未结束）",
-            "nullable": true
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Effective To",
+            "description": "生效结束时间（NULL表示未结束）"
           },
           "executor_id": {
             "type": "string",
-            "description": "执行器ID",
-            "minLength": 1
+            "minLength": 1,
+            "title": "Executor Id",
+            "description": "执行器ID"
           },
           "total_runs": {
             "type": "integer",
-            "default": 15,
-            "description": "总执行次数"
+            "title": "Total Runs",
+            "description": "总执行次数",
+            "default": 15
           },
           "executed_runs": {
             "type": "integer",
-            "default": 0,
-            "description": "已执行次数"
+            "title": "Executed Runs",
+            "description": "已执行次数",
+            "default": 0
           },
           "last_executed_date": {
             "type": "string",
             "format": "date",
+            "title": "Last Executed Date",
             "description": "最近执行日期"
           },
           "data": {
-            "$ref": "#/components/schemas/QueryJobData"
+            "$ref": "#/components/schemas/QueryJobData",
+            "description": "要加载的查询任务JSON数据"
           }
         },
+        "type": "object",
         "required": [
           "tenant_key",
           "job_id",
           "effective_from",
           "executor_id",
-          "last_executed_date",
           "data"
-        ]
+        ],
+        "title": "LoadQueryJobsRequest"
       },
       "LoadQueryJobsResponse": {
-        "type": "object",
         "properties": {
           "success": {
             "type": "boolean",
+            "title": "Success",
             "description": "是否成功"
           },
           "inserted_rows": {
             "type": "integer",
+            "title": "Inserted Rows",
             "description": "插入行数"
           },
           "message": {
             "type": "string",
+            "title": "Message",
             "description": "响应消息"
           }
         },
+        "type": "object",
         "required": [
           "success",
           "inserted_rows",
           "message"
-        ]
+        ],
+        "title": "LoadQueryJobsResponse"
+      },
+      "QueryContentItem": {
+        "properties": {
+          "keyword": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Keyword",
+            "description": "关键词"
+          },
+          "query_content": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "minItems": 1,
+            "title": "Query Content",
+            "description": "查询内容列表"
+          }
+        },
+        "type": "object",
+        "required": [
+          "keyword",
+          "query_content"
+        ],
+        "title": "QueryContentItem"
+      },
+      "QueryJobData": {
+        "properties": {
+          "category": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Category",
+            "description": "分类"
+          },
+          "brand": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Brand",
+            "description": "品牌"
+          },
+          "competitor": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Competitor",
+            "description": "竞品列表"
+          },
+          "content": {
+            "items": {
+              "$ref": "#/components/schemas/QueryContentItem"
+            },
+            "type": "array",
+            "minItems": 1,
+            "title": "Content",
+            "description": "内容列表"
+          }
+        },
+        "type": "object",
+        "required": [
+          "category",
+          "content"
+        ],
+        "title": "QueryJobData"
       },
       "QueryJobDetail": {
-        "type": "object",
         "properties": {
           "id": {
             "type": "integer",
+            "title": "Id",
             "description": "任务记录唯一主键ID"
           },
           "job_id": {
             "type": "string",
+            "title": "Job Id",
             "description": "任务组ID"
           },
           "tenant_key": {
             "type": "string",
+            "title": "Tenant Key",
             "description": "租户Key"
           },
           "category": {
             "type": "string",
+            "title": "Category",
             "description": "分类"
           },
           "brand": {
-            "type": "string",
-            "description": "品牌",
-            "nullable": true
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Brand",
+            "description": "品牌"
           },
           "competitor": {
-            "type": "array",
-            "description": "竞品列表",
-            "nullable": true,
-            "items": {
-              "type": "string"
-            }
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Competitor",
+            "description": "竞品列表"
           },
           "keyword": {
             "type": "string",
+            "title": "Keyword",
             "description": "关键词"
           },
           "query_content": {
             "type": "string",
+            "title": "Query Content",
             "description": "查询内容"
           }
         },
+        "type": "object",
         "required": [
           "id",
           "job_id",
@@ -359,117 +594,162 @@
           "category",
           "keyword",
           "query_content"
-        ]
-      },
-      "FetchQueryJobResponse": {
-        "type": "object",
-        "properties": {
-          "success": {
-            "type": "boolean",
-            "description": "是否成功"
-          },
-          "count": {
-            "type": "integer",
-            "description": "任务数量"
-          },
-          "jobs": {
-            "$ref": "#/components/schemas/QueryJobDetail",
-            "nullable": true
-          }
-        },
-        "required": [
-          "success",
-          "count"
-        ]
+        ],
+        "title": "QueryJobDetail"
       },
       "QueryJobStatusItem": {
-        "type": "object",
         "properties": {
           "tenant_key": {
             "type": "string",
+            "title": "Tenant Key",
             "description": "租户Key"
           },
           "brand": {
-            "type": "string",
-            "description": "品牌",
-            "nullable": true
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Brand",
+            "description": "品牌"
           },
           "competitor": {
-            "type": "array",
-            "description": "竞品列表",
-            "nullable": true,
-            "items": {
-              "type": "string"
-            }
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Competitor",
+            "description": "竞品列表"
           },
           "query_content": {
             "type": "string",
+            "title": "Query Content",
             "description": "查询内容"
           },
           "query_status": {
             "type": "integer",
+            "title": "Query Status",
             "description": "问题生效状态"
           },
           "effective_from": {
             "type": "string",
             "format": "date-time",
+            "title": "Effective From",
             "description": "生效开始时间"
           },
           "effective_to": {
-            "type": "string",
-            "format": "date-time",
-            "description": "生效结束时间",
-            "nullable": true
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Effective To",
+            "description": "生效结束时间"
           }
         },
+        "type": "object",
         "required": [
           "tenant_key",
           "query_content",
           "query_status",
           "effective_from"
-        ]
+        ],
+        "title": "QueryJobStatusItem"
       },
       "QueryJobStatusResponse": {
-        "type": "object",
         "properties": {
           "success": {
             "type": "boolean",
+            "title": "Success",
             "description": "是否成功"
           },
           "count": {
             "type": "integer",
+            "title": "Count",
             "description": "任务数量"
           },
           "jobs": {
-            "type": "array",
-            "description": "任务状态列表",
             "items": {
               "$ref": "#/components/schemas/QueryJobStatusItem"
-            }
+            },
+            "type": "array",
+            "title": "Jobs",
+            "description": "任务状态列表"
           }
         },
+        "type": "object",
         "required": [
           "success",
-          "count",
-          "jobs"
-        ]
+          "count"
+        ],
+        "title": "QueryJobStatusResponse"
       },
       "ReportQueryJobResponse": {
-        "type": "object",
         "properties": {
           "success": {
             "type": "boolean",
+            "title": "Success",
             "description": "是否成功"
           },
           "message": {
             "type": "string",
+            "title": "Message",
             "description": "响应消息"
           }
         },
+        "type": "object",
         "required": [
           "success",
           "message"
-        ]
+        ],
+        "title": "ReportQueryJobResponse"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
       }
     }
   }

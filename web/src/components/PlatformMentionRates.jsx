@@ -3,7 +3,7 @@ import { Card, List, Progress, Typography, Statistic, Tag, theme } from 'antd';
 import { TrophyOutlined, ArrowUpOutlined, ArrowDownOutlined } from '@ant-design/icons';
 import { CONFIG } from '@/config';
 
-const { DEFAULT_USER_ID, DEFAULT_JOB_ID, DEFAULT_BRAND } = CONFIG;
+const { DEFAULT_TENANT_KEY, DEFAULT_JOB_ID, DEFAULT_BRAND } = CONFIG;
 
 const buildQueryString = (params) => {
   const searchParams = new URLSearchParams();
@@ -66,7 +66,7 @@ const PlatformMentionRates = ({
   onPlatformClick,
   timeframe = '7days',
   date = '',
-  userId = DEFAULT_USER_ID,
+  tenantKey = DEFAULT_TENANT_KEY,
   jobId = DEFAULT_JOB_ID,
   brand = DEFAULT_BRAND,
 }) => {
@@ -79,13 +79,13 @@ const PlatformMentionRates = ({
   const queryString = useMemo(
     () =>
       buildQueryString({
-        user_id: userId,
+        tenant_key: tenantKey,
         job_id: jobId,
         brand,
         timeframe,
         date,
       }),
-    [userId, jobId, brand, timeframe, date],
+    [tenantKey, jobId, brand, timeframe, date],
   );
 
   useEffect(() => {

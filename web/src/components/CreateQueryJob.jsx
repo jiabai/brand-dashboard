@@ -15,14 +15,22 @@ import {
 import { MinusCircleOutlined, PlusOutlined, UploadOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { CONFIG } from '../config';
+import { getQueryParam, updateQueryParams } from '../utils';
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
 
-const CreateQueryJob = () => {
+const CreateQueryJob = ({ tenantKey: propTenantKey, jobId: propJobId }) => {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
+  const executorId = getQueryParam('executor_id', 'exec_bbda021a');
+  const tenantKey = propTenantKey || getQueryParam('tenant_key', CONFIG.DEFAULT_TENANT_KEY);
+  const initialJobId = propJobId || getQueryParam('job_id', '');
+
+  React.useEffect(() => {
+    updateQueryParams({ executor_id: executorId });
+  }, [executorId]);
 
   const onFinish = async (values) => {
     setLoading(true);
@@ -69,11 +77,7 @@ const CreateQueryJob = () => {
     const today = dayjs().format('YYYYMMDD_HHmmss');
     
     form.setFieldsValue({
-      tenant_key: 'tn_1b02b3ef4fbd',
       job_id: `job_${today}_${randomHex(8)}`,
-      executor_id: 'exec_bbda021a',
-      last_executed_date: dayjs(),
-      effective_from: dayjs().startOf('day'),
     });
   };
 
@@ -97,8 +101,9 @@ const CreateQueryJob = () => {
           layout="vertical"
           onFinish={onFinish}
           initialValues={{
-            tenant_key: 'tn_1b02b3ef4fbd',
-            executor_id: 'exec_bbda021a',
+            tenant_key: tenantKey,
+            job_id: initialJobId || undefined,
+            executor_id: executorId,
             total_runs: 15,
             executed_runs: 0,
             last_executed_date: dayjs(),

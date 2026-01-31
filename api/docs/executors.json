@@ -1,5 +1,5 @@
 {
-  "openapi": "3.0.0",
+  "openapi": "3.1.0",
   "info": {
     "title": "Brand Dashboard - Executors API",
     "description": "执行器管理接口，支持执行器的预设、自动注册和生命周期管理。",
@@ -7,20 +7,46 @@
   },
   "paths": {
     "/api/v1/executors/": {
+      "get": {
+        "tags": [
+          "executors"
+        ],
+        "summary": "List Executors",
+        "description": "获取所有执行器列表（包含 IP 地址，不返回 api_key）。",
+        "operationId": "list_executors_api_v1_executors__get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ExecutorListItem"
+                  },
+                  "type": "array",
+                  "title": "Response List Executors Api V1 Executors  Get"
+                }
+              }
+            }
+          }
+        }
+      },
       "post": {
-        "summary": "预设执行器 (Admin: Create)",
-        "description": "管理员手动创建一个新的执行器记录，并预设其允许的 IP 地址。响应中不包含 api_key，执行器需通过 /register 接口取回。",
-        "operationId": "create_executor",
-        "tags": ["Executors"],
+        "tags": [
+          "executors"
+        ],
+        "summary": "Create Executor",
+        "description": "管理员手动创建一个新的执行器记录，并预设其允许的 IP 地址。",
+        "operationId": "create_executor_api_v1_executors__post",
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/ExecutorCreate"
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "200": {
@@ -32,24 +58,13 @@
                 }
               }
             }
-          }
-        }
-      },
-      "get": {
-        "summary": "获取执行器列表 (Admin: List)",
-        "description": "获取系统中所有已预设的执行器列表，包含 IP 地址和状态，但不返回敏感的 api_key。",
-        "operationId": "list_executors",
-        "tags": ["Executors"],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
+          },
+          "422": {
+            "description": "Validation Error",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/ExecutorListItem"
-                  }
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -59,10 +74,12 @@
     },
     "/api/v1/executors/register": {
       "post": {
-        "summary": "执行器注册 (Executor: Register)",
-        "description": "执行器从预设的 IP 地址发起请求。系统根据请求来源 IP 自动识别执行器身份，并返回其专属的 executor_id 和 api_key。",
-        "operationId": "register_executor",
-        "tags": ["Executors"],
+        "tags": [
+          "executors"
+        ],
+        "summary": "Register Executor",
+        "description": "执行器注册接口。\n直接根据请求方的 IP 地址查找并返回对应的执行器凭据。\n如果该 IP 未在系统中预设为 active 状态，则拒绝注册。",
+        "operationId": "register_executor_api_v1_executors_register_post",
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -73,28 +90,27 @@
                 }
               }
             }
-          },
-          "403": {
-            "description": "Forbidden - IP not authorized"
           }
         }
       }
     },
     "/api/v1/executors/{executor_id}": {
       "delete": {
-        "summary": "禁用执行器 (Admin: Deactivate)",
-        "description": "将指定执行器的状态设置为 inactive，禁止其后续的所有业务请求。",
-        "operationId": "deactivate_executor",
-        "tags": ["Executors"],
+        "tags": [
+          "executors"
+        ],
+        "summary": "Deactivate Executor",
+        "description": "禁用执行器（逻辑删除，将状态设为 inactive）。",
+        "operationId": "deactivate_executor_api_v1_executors__executor_id__delete",
         "parameters": [
           {
             "name": "executor_id",
             "in": "path",
             "required": true,
             "schema": {
-              "type": "string"
-            },
-            "description": "要禁用的执行器唯一标识符"
+              "type": "string",
+              "title": "Executor Id"
+            }
           }
         ],
         "responses": {
@@ -102,18 +118,19 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": { "type": "boolean" },
-                    "message": { "type": "string" }
-                  }
-                }
+                "schema": {}
               }
             }
           },
-          "404": {
-            "description": "Not Found"
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
           }
         }
       }
@@ -121,94 +138,219 @@
   },
   "components": {
     "schemas": {
-      "ExecutorBase": {
-        "type": "object",
+      "ExecutorCreate": {
         "properties": {
           "name": {
             "type": "string",
+            "title": "Name",
             "description": "执行器名称",
             "example": "香港机房-爬虫01"
           },
           "type": {
-            "type": "string",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Type",
             "description": "执行器类型",
-            "example": "crawler",
-            "nullable": true
+            "example": "crawler"
           },
           "ip_address": {
             "type": "string",
+            "title": "Ip Address",
             "description": "执行器允许的 IP 地址",
             "example": "47.91.22.33"
           }
         },
-        "required": ["name", "ip_address"]
-      },
-      "ExecutorCreate": {
-        "allOf": [
-          { "$ref": "#/components/schemas/ExecutorBase" }
-        ]
-      },
-      "ExecutorResponse": {
-        "allOf": [
-          { "$ref": "#/components/schemas/ExecutorBase" },
-          {
-            "type": "object",
-            "properties": {
-              "executor_id": {
-                "type": "string",
-                "description": "执行器唯一标识符"
-              },
-              "status": {
-                "type": "string",
-                "description": "执行器状态"
-              },
-              "created_at": {
-                "type": "string",
-                "format": "date-time",
-                "description": "创建时间"
-              }
-            },
-            "required": ["executor_id", "status", "created_at"]
-          }
-        ]
+        "type": "object",
+        "required": [
+          "name",
+          "ip_address"
+        ],
+        "title": "ExecutorCreate",
+        "example": {
+          "ip_address": "47.91.22.33",
+          "name": "香港机房-爬虫01",
+          "type": "crawler"
+        }
       },
       "ExecutorListItem": {
-        "allOf": [
-          { "$ref": "#/components/schemas/ExecutorBase" },
-          {
-            "type": "object",
-            "properties": {
-              "executor_id": {
-                "type": "string",
-                "description": "执行器唯一标识符"
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "执行器名称",
+            "example": "香港机房-爬虫01"
+          },
+          "type": {
+            "anyOf": [
+              {
+                "type": "string"
               },
-              "status": {
-                "type": "string",
-                "description": "执行器状态"
-              },
-              "created_at": {
-                "type": "string",
-                "format": "date-time",
-                "description": "创建时间"
+              {
+                "type": "null"
               }
-            },
-            "required": ["executor_id", "status", "created_at"]
+            ],
+            "title": "Type",
+            "description": "执行器类型",
+            "example": "crawler"
+          },
+          "ip_address": {
+            "type": "string",
+            "title": "Ip Address",
+            "description": "执行器允许的 IP 地址",
+            "example": "47.91.22.33"
+          },
+          "executor_id": {
+            "type": "string",
+            "title": "Executor Id",
+            "description": "执行器唯一标识符"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "执行器状态"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At",
+            "description": "创建时间"
           }
-        ]
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "ip_address",
+          "executor_id",
+          "status",
+          "created_at"
+        ],
+        "title": "ExecutorListItem"
       },
       "ExecutorRegistrationResponse": {
-        "type": "object",
         "properties": {
           "executor_id": {
             "type": "string",
+            "title": "Executor Id",
             "description": "分发的执行器唯一标识符"
           },
           "api_key": {
             "type": "string",
+            "title": "Api Key",
             "description": "分发的执行器 API Key"
           }
         },
-        "required": ["executor_id", "api_key"]
+        "type": "object",
+        "required": [
+          "executor_id",
+          "api_key"
+        ],
+        "title": "ExecutorRegistrationResponse"
+      },
+      "ExecutorResponse": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "执行器名称",
+            "example": "香港机房-爬虫01"
+          },
+          "type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Type",
+            "description": "执行器类型",
+            "example": "crawler"
+          },
+          "ip_address": {
+            "type": "string",
+            "title": "Ip Address",
+            "description": "执行器允许的 IP 地址",
+            "example": "47.91.22.33"
+          },
+          "executor_id": {
+            "type": "string",
+            "title": "Executor Id",
+            "description": "执行器唯一标识符"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "执行器状态"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At",
+            "description": "创建时间"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "ip_address",
+          "executor_id",
+          "status",
+          "created_at"
+        ],
+        "title": "ExecutorResponse"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
       }
     }
   }

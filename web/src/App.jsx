@@ -5,6 +5,9 @@ import ErrorBoundary from './components/ErrorBoundary';
 import TaskName from './components/TaskName.jsx';
 import Sidebar from './components/Sidebar.jsx';
 
+import { CONFIG } from './config';
+import { getQueryParam, updateQueryParams } from './utils';
+
 const BrandMentionRate = React.lazy(() => import('./components/BrandMentionRate.jsx'));
 const PlatformMentionRates = React.lazy(() => import('./components/PlatformMentionRates.jsx'));
 const ReferencesTable = React.lazy(() => import('./components/ReferencesTable.jsx'));
@@ -44,14 +47,31 @@ const LiveClock = React.memo(function LiveClock() {
 function Dashboard() {
   const { token } = theme.useToken();
   // State management
-  const [currentView, setCurrentView] = useState('home');
-  const [selectedFilter, setSelectedFilter] = useState('7days');
+  const [currentView, setCurrentView] = useState(() => getQueryParam('view', 'home'));
+  const [selectedFilter, setSelectedFilter] = useState(() => getQueryParam('timeframe', '7days'));
   const [isLoading, setIsLoading] = useState(false);
   const [siderCollapsed, setSiderCollapsed] = useState(false);
-  const [selectedPlatform, setSelectedPlatform] = useState(null);
+  const [selectedPlatform, setSelectedPlatform] = useState(() => getQueryParam('platform', ''));
+
+  // Business params from URL or defaults
+  const [tenantKey] = useState(() => getQueryParam('tenant_key', CONFIG.DEFAULT_TENANT_KEY));
+  const [jobId] = useState(() => getQueryParam('job_id', CONFIG.DEFAULT_JOB_ID));
+  const [brand] = useState(() => getQueryParam('brand', CONFIG.DEFAULT_BRAND));
+
   const loadingTimerRef = useRef(null);
 
   const timeOptions = useMemo(() => TIME_OPTIONS, []);
+
+  useEffect(() => {
+    updateQueryParams({ 
+      view: currentView,
+      timeframe: selectedFilter,
+      tenant_key: tenantKey,
+      job_id: jobId,
+      brand: brand,
+      platform: selectedPlatform
+    });
+  }, [currentView, selectedFilter, tenantKey, jobId, brand, selectedPlatform]);
 
   // Cleanup loading timer on unmount
   useEffect(() => {
@@ -78,7 +98,7 @@ function Dashboard() {
   }, []);
 
   const handleBackFromPlatform = useCallback(() => {
-    setSelectedPlatform(null);
+    setSelectedPlatform('');
   }, []);
 
   const renderContent = () => {
@@ -86,14 +106,20 @@ function Dashboard() {
       <ErrorBoundary>
         <Suspense fallback={<Spin />}>
           {currentView === 'task-load' ? (
-            <CreateQueryJob />
+            <CreateQueryJob 
+              tenantKey={tenantKey} 
+              jobId={jobId} 
+              brand={brand} 
+            />
           ) : currentView === 'task-status' ? (
-            <QueryJobStatus />
+            <QueryJobStatus 
+              tenantKey={tenantKey} 
+            />
           ) : (
             <Spin spinning={isLoading}>
               {selectedPlatform ? (
                 <PlatformDetail 
-                  platformName={selectedPlatform.name} 
+                  platformName={selectedPlatform} 
                   onBack={handleBackFromPlatform} 
                 />
               ) : (
@@ -105,13 +131,29 @@ function Dashboard() {
                   }}
                 >
                   <div style={{ minWidth: 0 }}>
-                    <BrandMentionRate timeframe={selectedFilter} />
+                    <BrandMentionRate 
+                      timeframe={selectedFilter} 
+                      tenantKey={tenantKey}
+                      jobId={jobId}
+                      brand={brand}
+                    />
                   </div>
                   <div style={{ minWidth: 0 }}>
-                    <PlatformMentionRates timeframe={selectedFilter} onPlatformClick={setSelectedPlatform} />
+                    <PlatformMentionRates 
+                      timeframe={selectedFilter} 
+                      tenantKey={tenantKey}
+                      jobId={jobId}
+                      brand={brand}
+                      onPlatformClick={(platform) => setSelectedPlatform(platform?.name || '')} 
+                    />
                   </div>
                   <div style={{ minWidth: 0, gridColumn: '1 / -1' }}>
-                    <ReferencesTable timeframe={selectedFilter} />
+                    <ReferencesTable 
+                      timeframe={selectedFilter} 
+                      tenantKey={tenantKey}
+                      jobId={jobId}
+                      brand={brand}
+                    />
                   </div>
                 </div>
               )}

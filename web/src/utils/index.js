@@ -39,6 +39,29 @@ export const formatPercentage = (value) => {
   return `${rounded.toFixed(2)}%`;
 };
 
+/**
+ * 从 URL 参数中获取指定 key 的值
+ * @param {string} key - 参数名
+ * @param {string} defaultValue - 默认值
+ * @returns {string} 参数值
+ */
+export const getQueryParam = (key, defaultValue = '') => {
+  const params = new URLSearchParams(window.location.search);
+  return params.get(key) || defaultValue;
+};
+
+export const updateQueryParams = (params) => {
+  const url = new URL(window.location.href);
+  Object.entries(params).forEach(([key, value]) => {
+    if (value === null || value === undefined || value === '') {
+      url.searchParams.delete(key);
+    } else {
+      url.searchParams.set(key, String(value));
+    }
+  });
+  window.history.pushState({}, '', url);
+};
+
 
 // 数据验证函数
 export const validateBrandData = (data) => {

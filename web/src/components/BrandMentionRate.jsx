@@ -30,7 +30,7 @@ import { CONFIG } from '@/config';
 import LoadingSpinner from './LoadingSpinner';
 import EmptyState from './EmptyState';
 
-const { DEFAULT_USER_ID, DEFAULT_JOB_ID, DEFAULT_BRAND } = CONFIG;
+const { DEFAULT_TENANT_KEY, DEFAULT_JOB_ID, DEFAULT_BRAND } = CONFIG;
 
 const buildQueryString = (params) => {
   const searchParams = new URLSearchParams();
@@ -75,7 +75,7 @@ const roundTwoDecimals = (value) => {
 const BrandMentionRate = ({
   timeframe = '7days',
   date = '',
-  userId = DEFAULT_USER_ID,
+  tenantKey = DEFAULT_TENANT_KEY,
   jobId = DEFAULT_JOB_ID,
   brand = DEFAULT_BRAND,
 }) => {
@@ -94,24 +94,24 @@ const BrandMentionRate = ({
   const brandMetricsQueryString = useMemo(
     () =>
       buildQueryString({
-        user_id: userId,
+        tenant_key: tenantKey,
         job_id: jobId,
         timeframe,
         date,
       }),
-    [userId, jobId, timeframe, date],
+    [tenantKey, jobId, timeframe, date],
   );
 
   const targetBrandQueryString = useMemo(
     () =>
       buildQueryString({
-        user_id: userId,
+        tenant_key: tenantKey,
         job_id: jobId,
         timeframe,
         date,
         brand,
       }),
-    [userId, jobId, timeframe, date, brand],
+    [tenantKey, jobId, timeframe, date, brand],
   );
 
   const handleTableChange = (_, __, sorter) => {
