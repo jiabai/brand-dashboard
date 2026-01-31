@@ -20,13 +20,12 @@ import { getQueryParam, updateQueryParams } from '../utils';
 const { Title, Text } = Typography;
 const { TextArea } = Input;
 
-const CreateQueryJob = ({ tenantKey: propTenantKey, jobId: propJobId }) => {
+const CreateQueryJob = ({ tenantKey: propTenantKey }) => {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const executorId = getQueryParam('executor_id', 'exec_bbda021a');
   const tenantKey = propTenantKey || getQueryParam('tenant_key', CONFIG.DEFAULT_TENANT_KEY);
-  const initialJobId = propJobId || getQueryParam('job_id', '');
 
   React.useEffect(() => {
     updateQueryParams({ executor_id: executorId });
@@ -102,7 +101,6 @@ const CreateQueryJob = ({ tenantKey: propTenantKey, jobId: propJobId }) => {
           onFinish={onFinish}
           initialValues={{
             tenant_key: tenantKey,
-            job_id: initialJobId || undefined,
             executor_id: executorId,
             total_runs: 15,
             executed_runs: 0,

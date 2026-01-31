@@ -67,7 +67,7 @@ function Dashboard() {
       view: currentView,
       timeframe: selectedFilter,
       tenant_key: tenantKey,
-      job_id: jobId,
+      job_id: currentView === 'task-load' ? '' : jobId,
       brand: brand,
       platform: selectedPlatform
     });
@@ -108,8 +108,6 @@ function Dashboard() {
           {currentView === 'task-load' ? (
             <CreateQueryJob 
               tenantKey={tenantKey} 
-              jobId={jobId} 
-              brand={brand} 
             />
           ) : currentView === 'task-status' ? (
             <QueryJobStatus 
