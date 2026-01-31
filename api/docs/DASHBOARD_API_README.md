@@ -18,6 +18,8 @@
 | timeframe | string | 是 | 时间范围，可选值: `yesterday`, `7days`, `30days` |
 | date | string | 否 | 具体日期，格式: `YYYYMMDD` |
 | brand | string | 否 | 品牌名称 |
+| platform | string | 否 | 平台名称 |
+
 
 ### 请求示例
 
@@ -76,15 +78,13 @@ curl -X GET "http://your-api.com/api/v1/dashboard/brand-metrics?tenant_key=tn_xx
 | mention_rate | float | 品牌总提及率（比例，0~1） |
 | first_mention_rate | float | 首次提及 brand 率（比例，0~1） |
 | citation_rate_by_post | float | 发文引用率（有发文引用的对话占总对话的比例） |
-
-> **💡 计算口径说明**：当前接口的“引用率”计算均基于“**已产生引用链接的对话**”作为分母。
+| prompt_count | int | 问题总数 |
+| citation_source_count | int | 引用来源数量 |
+| keyword_coverage | int | 问题的答案提及品牌时，问题所属关键词的个数 |
 
 > **💡 计算口径说明**：当前接口的“引用率”计算均基于“**已产生引用链接的对话**”作为分母。
 > - **现状**：计算的是在 AI 给出链接的前提下，发文链接或域名的分布情况。
 > - **未来计划**：计划新增“全局引用率”指标，以“品牌总提及对话数”作为分母，用于评估 AI 给出链接的整体概率。
-| prompt_count | int | 问题总数 |
-| citation_source_count | int | 引用来源数量 |
-| keyword_coverage | int | 问题的答案提及品牌时，问题所属关键词的个数 |
 
 ### 数据计算逻辑
 
@@ -101,6 +101,27 @@ SELECT
 FROM qa_brand_state
 WHERE 
     tenant_key = <tenant_key>
+    AND job_id = <job_id>
+    AND `date` >= CURDATE() - INTERVAL <timeframe> DAY
+    AND `date` <= CURDATE()
+GROUP BY brand
+ORDER BY mention_rate DESC, brand ASC;
+```
+
+当请求参数不带brand='xxx'，带platform='oooo'时，返回所有品牌的指标：
+```sql
+SELECT 
+    brand,
+    COUNT(DISTINCT conversation_id) AS prompt_count,
+    SUM(is_mentioned) / COUNT(DISTINCT conversation_id) AS mention_rate,
+    SUM(is_first_mentioned) / COUNT(DISTINCT conversation_id) AS first_mention_rate,
+    0 AS citation_rate_by_post,
+    0 AS citation_source_count,
+    COUNT(DISTINCT CASE WHEN is_mentioned = 1 THEN keyword END) AS keyword_coverage
+FROM qa_brand_state
+WHERE 
+    tenant_key = <tenant_key>
+    AND platform = <platform>
     AND job_id = <job_id>
     AND `date` >= CURDATE() - INTERVAL <timeframe> DAY
     AND `date` <= CURDATE()
@@ -252,9 +273,10 @@ curl -X GET "http://your-api.com/api/v1/dashboard/post-citation-rate?tenant_key=
 | 字段名 | 类型 | 描述 |
 |--------|------|------|
 | brand | string | 品牌名称 |
-| citation_source_count | int | 引用来源数量 |
+| citation_source_count | int | 引用信源数量 |
 | citation_rate_by_post | float | 发文引用率（有发文引用的对话占总对话的比例） |
 
+> 指标名为“引用信源数量”，代表信源多样性。在互联网分析中，一个“信源”通常指一个独立的发布平台（如知乎、小红书、新浪新闻）。使用域名去重可以准确反映： 有多少个不同的平台 在支撑该品牌的正面声量。
 > **💡 计算口径说明**：当前“引用率”基于“**已产生引用链接的对话**”计算。未来将考虑新增以“品牌总提及对话数”为分母的全局指标。
 
 ### 数据计算逻辑

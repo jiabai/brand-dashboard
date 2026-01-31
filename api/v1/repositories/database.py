@@ -676,7 +676,8 @@ def query_brand_metrics(
     job_id: str,
     timeframe: str,
     specific_date: Optional[str] = None,
-    brand: Optional[str] = None
+    brand: Optional[str] = None,
+    platform: Optional[str] = None,
 ) -> List[Dict[str, Any]]:
     start_date, end_date = get_date_range(timeframe, specific_date)
 
@@ -700,6 +701,9 @@ def query_brand_metrics(
                 raise Exception("qa_brand_state 表缺少 is_first_mentioned 字段")
             first_mention_column = "is_first_mentioned"
 
+            if platform and "platform" not in columns:
+                raise Exception("qa_brand_state 表缺少 platform 字段")
+
             keyword_column = "keyword" if "keyword" in columns else None
 
             where_clauses = [
@@ -717,6 +721,10 @@ def query_brand_metrics(
             if brand:
                 where_clauses.append("brand = :brand")
                 params["brand"] = brand
+
+            if platform:
+                where_clauses.append("platform = :platform")
+                params["platform"] = platform
 
             where_sql = " AND ".join(where_clauses)
 

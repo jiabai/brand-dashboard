@@ -66,7 +66,7 @@ const Sidebar = ({ collapsed, onCollapse, onMenuClick, selectedKey }) => {
             {
               key: 'task-load',
               icon: <PlusOutlined />,
-              label: '加载任务'
+              label: '新建任务'
             },
             {
               key: 'task-status',

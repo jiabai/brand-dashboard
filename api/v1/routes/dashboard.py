@@ -311,6 +311,7 @@ async def get_brand_metrics(
     timeframe: TimeFrame = Query(..., description="时间范围"),
     date: Optional[str] = Query(None, description="具体日期(格式: YYYYMMDD)"),
     brand: Optional[str] = Query(None, description="品牌名称"),
+    platform: Optional[str] = Query(None, description="平台名称"),
 ):
     try:
         metrics = query_brand_metrics(
@@ -319,6 +320,7 @@ async def get_brand_metrics(
             timeframe=timeframe.value,
             specific_date=date,
             brand=brand,
+            platform=platform,
         )
 
         data = [
