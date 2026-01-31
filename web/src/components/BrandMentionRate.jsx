@@ -250,7 +250,6 @@ const BrandMentionRate = ({
             toPercent(item?.citation_rate_by_post ?? 0),
           ),
           promptValue: Number(item?.prompt_count ?? 0),
-          citationSourceValue: Number(item?.citation_source_count ?? 0),
           coveredKeywordsCount: Number(item?.keyword_coverage ?? 0),
         }));
 
@@ -274,11 +273,7 @@ const BrandMentionRate = ({
                 ),
               )),
               promptValue: targetItem.promptValue,
-              citationSourceValue: Number(
-                postCitationRateData?.citation_source_count ??
-                  targetItem.citationSourceValue ??
-                  0,
-              ),
+              citationSourceValue: Number(postCitationRateData?.citation_source_count ?? 0),
               coveredKeywordsCount: targetItem.coveredKeywordsCount,
             }
           : null;
