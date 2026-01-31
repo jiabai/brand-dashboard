@@ -107,7 +107,8 @@ function Dashboard() {
         <Suspense fallback={<Spin />}>
           {currentView === 'task-load' ? (
             <CreateQueryJob 
-              tenantKey={tenantKey} 
+              tenantKey={tenantKey}
+              onNavigate={setCurrentView}
             />
           ) : currentView === 'task-status' ? (
             <QueryJobStatus 

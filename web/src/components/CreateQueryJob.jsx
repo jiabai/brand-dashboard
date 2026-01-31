@@ -16,11 +16,12 @@ import { MinusCircleOutlined, PlusOutlined, UploadOutlined } from '@ant-design/i
 import dayjs from 'dayjs';
 import { CONFIG } from '../config';
 import { getQueryParam, updateQueryParams } from '../utils';
+import SubmissionSuccess from './SubmissionSuccess';
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
 
-const CreateQueryJob = ({ tenantKey: propTenantKey }) => {
+const CreateQueryJob = ({ tenantKey: propTenantKey, onNavigate }) => {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
@@ -58,8 +59,9 @@ const CreateQueryJob = ({ tenantKey: propTenantKey }) => {
 
       if (response.ok && data.success) {
         message.success(data.message || '任务加载成功');
-        setResult(data);
+        setResult({ ...data, job_id: payload.job_id });
         form.resetFields();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
       } else {
         message.error(data.message || '任务加载失败');
       }
@@ -80,20 +82,24 @@ const CreateQueryJob = ({ tenantKey: propTenantKey }) => {
     });
   };
 
+  if (result) {
+    return (
+      <div className="max-w-5xl mx-auto p-4">
+        <SubmissionSuccess 
+          result={result} 
+          onReset={() => {
+            setResult(null);
+            generateRandomIds();
+          }}
+          onViewStatus={() => onNavigate && onNavigate('task-status')}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-5xl mx-auto p-4">
       <Card title={<Title level={3}>LLM 查询任务加载</Title>} extra={<Button onClick={generateRandomIds}>生成示例 ID</Button>}>
-        {result && (
-          <Alert
-            message="加载成功"
-            description={`成功插入 ${result.inserted_rows} 行数据`}
-            type="success"
-            showIcon
-            closable
-            onClose={() => setResult(null)}
-            style={{ marginBottom: 24 }}
-          />
-        )}
         
         <Form
           form={form}
