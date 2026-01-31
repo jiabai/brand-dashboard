@@ -170,6 +170,25 @@ npm install
 npm run dev
 ```
 
+### 浏览器访问
+
+- 前端开发服务器：`http://localhost:3000/`
+- 前端 URL 参数（Query String）：
+- `view`：页面视图，可选 `home` / `task-load` / `task-status`（默认 `home`）
+- `timeframe`：时间范围，可选 `yesterday` / `7days` / `30days`（默认 `7days`）
+- `tenant_key`：租户 Key（默认读取内置配置）
+- `job_id`：任务/作业 ID（默认读取内置配置）
+- `brand`：品牌名称（支持中文；URL 中会被自动编码；默认读取内置配置）
+- `platform`：平台名称（选填；不为空时进入平台详情页）
+- `executor_id`：创建任务页执行器 ID（`view=task-load` 时使用；默认 `exec_bbda021a`）
+- `include_deleted`：任务状态页是否包含已删除（`view=task-status` 时使用；`true`/`1` 表示启用，默认 `false`）
+- 示例（首页）：`http://localhost:3000/?view=home&timeframe=7days&tenant_key=tn_xxx&job_id=job_xxx&brand=%E6%96%B0%E4%B8%9C%E6%96%B9&platform=deepseek&executor_id=exec_bbda021a&include_deleted=false`
+- 示例（创建任务）：`http://localhost:3000/?view=task-load&tenant_key=tn_xxx&executor_id=exec_bbda021a`
+- 示例（任务状态）：`http://localhost:3000/?view=task-status&tenant_key=tn_xxx&include_deleted=1`
+- 后端 API（如已启动）：`http://localhost:8000/`
+- 后端接口文档 Swagger（如已启动）：`http://localhost:8000/docs`
+- 生产构建预览（执行 `npm run preview` 后按终端提示）：通常为 `http://localhost:4173/`
+
 3. **构建生产版本**
 ```bash
 npm run build
