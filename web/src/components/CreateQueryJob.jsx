@@ -37,11 +37,10 @@ const CreateQueryJob = ({ tenantKey: propTenantKey, onNavigate }) => {
     setLoading(true);
     setResult(null);
     try {
-      // Format dates
       const payload = {
         ...values,
-        effective_from: values.effective_from ? values.effective_from.toISOString() : undefined,
-        effective_to: values.effective_to ? values.effective_to.toISOString() : undefined,
+        effective_from: values.effective_from ? values.effective_from.format('YYYY-MM-DDTHH:mm:ss') : undefined,
+        effective_to: values.effective_to ? values.effective_to.format('YYYY-MM-DDTHH:mm:ss') : undefined,
         last_executed_date: values.last_executed_date ? values.last_executed_date.format('YYYY-MM-DD') : dayjs().format('YYYY-MM-DD'),
         // Ensure defaults if not present (though form initialValues handles this mostly)
         total_runs: values.total_runs || 15,
