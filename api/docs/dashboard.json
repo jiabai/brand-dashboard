@@ -302,6 +302,69 @@
         }
       }
     },
+    "/api/v1/dashboard/available-dates": {
+      "get": {
+        "tags": [
+          "dashboard"
+        ],
+        "summary": "Get Available Dates",
+        "description": "获取仪表盘有数据的日期列表.",
+        "operationId": "get_dashboard_available_dates_api_v1_dashboard_available_dates_get",
+        "parameters": [
+          {
+            "name": "tenant_key",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "租户唯一字符串标识（tenants.tenant_key）",
+              "title": "Tenant Key"
+            },
+            "description": "租户唯一字符串标识（tenants.tenant_key）"
+          },
+          {
+            "name": "job_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "任务ID",
+              "title": "Job Id"
+            },
+            "description": "任务ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AvailableDatesResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/dashboard/brand-metrics": {
       "get": {
         "tags": [
@@ -689,6 +752,37 @@
   },
   "components": {
     "schemas": {
+      "AvailableDatesResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "响应状态"
+          },
+          "data": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Data",
+            "description": "日期列表 (YYYY-MM-DD)"
+          },
+          "metadata": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Metadata",
+            "description": "元数据"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "data",
+          "metadata"
+        ],
+        "title": "AvailableDatesResponse",
+        "description": "有数据日期响应模型."
+      },
       "BrandMentionRateData": {
         "properties": {
           "mention_rate": {

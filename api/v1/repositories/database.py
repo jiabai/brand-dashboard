@@ -566,7 +566,10 @@ def get_available_dates(tenant_key: str, job_id: Optional[str] = None) -> List[s
     try:
         with engine.connect() as conn:
             result = conn.execute(text(query), params)
-            return [row[0].isoformat() if hasattr(row[0], 'isoformat') else str(row[0]) for row in result.fetchall()]
+            return [
+                row[0].isoformat() if hasattr(row[0], "isoformat") else str(row[0])
+                for row in result.fetchall()
+            ]
     except Exception as e:
         logger.error(f"获取有数据日期失败: {str(e)}")
         return []

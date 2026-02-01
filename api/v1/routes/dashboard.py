@@ -6,6 +6,7 @@ from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, ConfigDict, Field
 
 from api.v1.repositories.database import (
+    get_available_dates,
     query_brand_mention_data,
     query_brand_metrics,
     query_brand_platform_mention_data,
@@ -13,7 +14,6 @@ from api.v1.repositories.database import (
     query_platform_metrics_by_brand,
     query_post_citation_rate,
     query_reference_url_stats,
-    get_available_dates,
 )
 from api.v1.utils.url_domain_resolver import resolve_url_domain
 
