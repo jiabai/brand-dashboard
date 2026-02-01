@@ -268,6 +268,7 @@ async def list_query_jobs_status(
         f"""
         SELECT
           tenant_key,
+          job_id,
           brand,
           competitor,
           query_content,
@@ -285,6 +286,7 @@ async def list_query_jobs_status(
     jobs = [
         QueryJobStatusItem(
             tenant_key=row.tenant_key,
+            job_id=row.job_id,
             brand=row.brand,
             competitor=json.loads(row.competitor) if row.competitor else None,
             query_content=row.query_content,

@@ -204,6 +204,7 @@ class QueryJobDetail(BaseModel):
 
 class QueryJobStatusItem(BaseModel):
     tenant_key: str = Field(..., description="租户Key")
+    job_id: str = Field(..., description="任务ID")
     brand: Optional[str] = Field(None, description="品牌")
     competitor: Optional[List[str]] = Field(None, description="竞品列表")
     query_content: str = Field(..., description="查询内容")

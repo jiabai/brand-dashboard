@@ -604,6 +604,11 @@
             "title": "Tenant Key",
             "description": "租户Key"
           },
+          "job_id": {
+            "type": "string",
+            "title": "Job Id",
+            "description": "任务ID"
+          },
           "brand": {
             "anyOf": [
               {
@@ -664,6 +669,7 @@
         "type": "object",
         "required": [
           "tenant_key",
+          "job_id",
           "query_content",
           "query_status",
           "effective_from"
