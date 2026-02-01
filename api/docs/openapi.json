@@ -3180,7 +3180,8 @@
         "enum": [
           "yesterday",
           "7days",
-          "30days"
+          "30days",
+          "specific_day"
         ],
         "title": "TimeFrame",
         "description": "时间范围枚举."

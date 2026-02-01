@@ -6,11 +6,12 @@
 
 ### 时间范围（timeframe / date）
 
-- timeframe 取值：`yesterday`、`7days`、`30days`，在 SQL 中作为 `<timeframe>` 天数使用。
+- timeframe 取值：`yesterday`、`7days`、`30days`、`specific_day`。
 - 默认按数据库当前日期 `CURDATE()` 计算区间：
   - 区间下界：`date >= CURDATE() - INTERVAL <timeframe> DAY`
   - 多数接口包含上界：`date <= CURDATE()`
-- `date` 参数（`YYYYMMDD`）用于指定具体日期的场景；若实现侧支持，通常等价于将日期过滤为该天（`date = <date>`）或将区间收敛为只包含该天。
+- `specific_day` 表示只统计 `date` 指定的那一天，不做任何相对前移。
+- `date` 参数（`YYYYMMDD`）用于指定具体日期的场景；在 `specific_day` 下将区间收敛为只包含该天。
 
 ### “问题 / 对话”与“记录”粒度
 

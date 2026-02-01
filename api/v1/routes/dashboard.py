@@ -23,6 +23,7 @@ class TimeFrame(str, Enum):
     YESTERDAY = "yesterday"
     DAYS_7 = "7days"
     DAYS_30 = "30days"
+    SPECIFIC_DAY = "specific_day"
 
 class BrandMentionRateData(BaseModel):
     """品牌总提及率数据模型."""

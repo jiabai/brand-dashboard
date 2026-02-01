@@ -15,7 +15,7 @@
 |--------|------|------|------|
 | tenant_key | string | 是 | 租户标识 tenant_key |
 | job_id | string | 是 | 任务ID |
-| timeframe | string | 是 | 时间范围，可选值: `yesterday`, `7days`, `30days` |
+| timeframe | string | 是 | 时间范围，可选值: `yesterday`, `7days`, `30days`, `specific_day` |
 | date | string | 否 | 具体日期，格式: `YYYYMMDD` |
 | brand | string | 否 | 品牌名称 |
 | platform | string | 否 | 平台名称 |
@@ -162,7 +162,7 @@ WHERE
 | tenant_key | string | 是 | 租户标识 tenant_key |
 | job_id | string | 是 | 任务ID |
 | brand | string | 是 | 品牌名称 |
-| timeframe | string | 是 | 时间范围，可选值: `yesterday`, `7days`, `30days` |
+| timeframe | string | 是 | 时间范围，可选值: `yesterday`, `7days`, `30days`, `specific_day` |
 | date | string | 否 | 具体日期，格式: `YYYYMMDD` |
 
 ### 请求示例
@@ -240,7 +240,7 @@ ORDER BY platform ASC;
 | tenant_key | string | 是 | 租户标识 tenant_key |
 | job_id | string | 是 | 任务ID |
 | brand | string | 是 | 品牌名称 |
-| timeframe | string | 是 | 时间范围，可选值: `yesterday`, `7days`, `30days` |
+| timeframe | string | 是 | 时间范围，可选值: `yesterday`, `7days`, `30days`, `specific_day` |
 | date | string | 否 | 具体日期，格式: `YYYYMMDD` |
 
 ### 请求示例
@@ -327,7 +327,7 @@ GROUP BY brand;
 | tenant_key | string | 是 | 租户标识 tenant_key |
 | job_id | string | 是 | 任务ID |
 | brand | string | 是 | 品牌名称 |
-| timeframe | string | 是 | 时间范围，可选值: `yesterday`, `7days`, `30days` |
+| timeframe | string | 是 | 时间范围，可选值: `yesterday`, `7days`, `30days`, `specific_day` |
 | date | string | 否 | 具体日期，格式: `YYYYMMDD` |
 
 ### 请求示例
@@ -424,7 +424,7 @@ ORDER BY percentage DESC;
 | tenant_key | string | 是 | 租户标识 tenant_key |
 | job_id | string | 是 | 任务ID |
 | brand | string | 是 | 品牌名称 |
-| timeframe | string | 是 | 时间范围，可选值: `yesterday`, `7days`, `30days` |
+| timeframe | string | 是 | 时间范围，可选值: `yesterday`, `7days`, `30days`, `specific_day` |
 | date | string | 否 | 具体日期，格式: `YYYYMMDD` |
 
 ### 请求示例
@@ -545,7 +545,7 @@ WHERE tenant_key = :tenant_key
 | category | string | 是 | 商品大类 |
 | brand | string | 是 | 品牌名称 |
 | keyword | string | 是 | 品牌关键词，或"全部" |
-| timeframe | string | 是 | 时间范围，可选值: `yesterday`, `7days`, `30days` |
+| timeframe | string | 是 | 时间范围，可选值: `yesterday`, `7days`, `30days`, `specific_day` |
 | date | string | 否 | 具体日期，格式: `YYYYMMDD` |
 
 ### 请求示例
@@ -669,7 +669,7 @@ ORDER BY mention_rate DESC; -- 在代码中进行排序
 |--------|------|------|------|
 | tenant_key | string | 是 | 租户标识 tenant_key |
 | job_id | string | 是 | 任务ID |
-| timeframe | string | 是 | 时间范围，可选值: `yesterday`, `7days`, `30days` |
+| timeframe | string | 是 | 时间范围，可选值: `yesterday`, `7days`, `30days`, `specific_day` |
 | date | string | 否 | 具体日期，格式: `YYYYMMDD` |
 
 ### 请求示例
@@ -1532,7 +1532,7 @@ api/
   - `tenant_key`: 租户标识
   - `job_id`: 任务ID
   - `brand`: 品牌名称
-  - `timeframe`: 时间范围（yesterday, 7days, 30days）
+  - `timeframe`: 时间范围（yesterday, 7days, 30days, specific_day）
   - `specific_date`: 指定日期（可选，格式: YYYYMMDD）
 - **返回**: 包含提及率数据的字典
 

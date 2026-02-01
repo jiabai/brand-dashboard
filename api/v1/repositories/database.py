@@ -58,7 +58,7 @@ def get_date_range(timeframe: str, specific_date: Optional[str] = None) -> tuple
     根据timeframe参数计算查询的日期范围
     
     Args:
-        timeframe: 时间范围 ('yesterday', '7days', '30days')
+        timeframe: 时间范围 ('yesterday', '7days', '30days', 'specific_day')
         specific_date: 指定日期 (格式: YYYYMMDD)
     
     Returns:
@@ -73,7 +73,9 @@ def get_date_range(timeframe: str, specific_date: Optional[str] = None) -> tuple
     else:
         end_date = datetime.now().date()
 
-    if timeframe == "yesterday":
+    if timeframe == "specific_day":
+        start_date = end_date
+    elif timeframe == "yesterday":
         start_date = end_date - timedelta(days=1)
         end_date = start_date  # 昨天就是单天
     elif timeframe == "7days":
@@ -90,7 +92,7 @@ def get_previous_date_range(timeframe: str, specific_date: Optional[str] = None)
     获取上一周期的时间范围
     
     Args:
-        timeframe: 时间范围 ('yesterday', '7days', '30days')
+        timeframe: 时间范围 ('yesterday', '7days', '30days', 'specific_day')
         specific_date: 指定日期 (格式: YYYYMMDD)
     
     Returns:
@@ -98,7 +100,10 @@ def get_previous_date_range(timeframe: str, specific_date: Optional[str] = None)
     """
     current_start, current_end = get_date_range(timeframe, specific_date)
 
-    if timeframe == "yesterday":
+    if timeframe == "specific_day":
+        prev_start = current_start - timedelta(days=1)
+        prev_end = current_end - timedelta(days=1)
+    elif timeframe == "yesterday":
         # 昨天的上一周期是前天
         prev_start = current_start - timedelta(days=1)
         prev_end = current_end - timedelta(days=1)
