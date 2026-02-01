@@ -20,7 +20,6 @@
 | brand | string | 否 | 品牌名称 |
 | platform | string | 否 | 平台名称 |
 
-
 ### 请求示例
 
 ```bash
@@ -727,6 +726,55 @@ WHERE tenant_key = :tenant_key
 ```
 
 - **reference_rate**: `(reference_count / total_questions) * 100`
+
+---------------------
+
+### 仪表盘可用日期 API
+
+### 接口信息
+- **路径**: `/api/v1/dashboard/available-dates`
+- **方法**: `GET`
+- **描述**: 获取仪表盘中有数据的所有日期列表
+
+### 请求参数
+
+| 参数名 | 类型 | 必填 | 描述 |
+|--------|------|------|------|
+| tenant_key | string | 是 | 租户标识 tenant_key |
+| job_id | string | 否 | 任务ID |
+
+### 请求示例
+
+```bash
+curl -X GET "http://your-api.com/api/v1/dashboard/available-dates?tenant_key=tn_xxx&job_id=job_123"
+```
+
+### 响应格式
+
+```json
+{
+  "status": "success",
+  "data": [
+    "2026-02-01",
+    "2026-01-31"
+  ],
+  "metadata": {
+    "tenant_key": "tn_xxx",
+    "job_id": "job_123",
+    "count": 2
+  }
+}
+```
+
+### 数据计算逻辑
+
+```sql
+SELECT DISTINCT date 
+FROM qa_brand_state 
+WHERE tenant_key = :tenant_key 
+  AND job_id = :job_id -- 可选
+ORDER BY date DESC;
+```
 
 ---
 
@@ -1580,4 +1628,5 @@ api/
 | 品牌总提及率 | `qa_brand_summary` | `query_brand_mention_data` | ✅ 已完成 |
 | 各平台提及率 | `qa_brand_summary` | `query_brand_platform_mention_data` | ✅ 已完成 |
 | 引用URL统计 | `qa_reference` | `query_reference_url_stats` | ✅ 已完成（全局统计） |
+| 可用日期列表 | `qa_brand_state` | `get_available_dates` | ✅ 已完成 |
 | LLM查询记录加载 | `llm_query_jobs` | N/A (Direct Insert) | ✅ 已完成 |

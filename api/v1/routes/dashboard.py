@@ -13,6 +13,7 @@ from api.v1.repositories.database import (
     query_platform_metrics_by_brand,
     query_post_citation_rate,
     query_reference_url_stats,
+    get_available_dates,
 )
 from api.v1.utils.url_domain_resolver import resolve_url_domain
 
@@ -85,6 +86,13 @@ class BrandMetricsItem(BaseModel):
 class BrandMetricsResponse(BaseModel):
     status: str = Field(..., description="响应状态")
     data: List[BrandMetricsItem] = Field(..., description="品牌总指标列表")
+    metadata: Dict[str, Any] = Field(..., description="元数据")
+
+
+class AvailableDatesResponse(BaseModel):
+    """有数据日期响应模型."""
+    status: str = Field(..., description="响应状态")
+    data: List[str] = Field(..., description="日期列表 (YYYY-MM-DD)")
     metadata: Dict[str, Any] = Field(..., description="元数据")
 
 
@@ -303,6 +311,27 @@ async def get_reference_url_stats(
         raise HTTPException(status_code=400, detail=str(e)) from e
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"获取引用URL统计数据失败: {str(e)}") from e
+
+
+@router.get("/available-dates", response_model=AvailableDatesResponse)
+async def get_dashboard_available_dates(
+    tenant_key: str = Query(..., description="租户唯一字符串标识（tenants.tenant_key）"),
+    job_id: Optional[str] = Query(None, description="任务ID")
+):
+    """获取仪表盘有数据的日期列表."""
+    try:
+        dates = get_available_dates(tenant_key, job_id)
+        return AvailableDatesResponse(
+            status="success",
+            data=dates,
+            metadata={
+                "tenant_key": tenant_key,
+                "job_id": job_id,
+                "count": len(dates)
+            }
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"获取可用日期失败: {str(e)}") from e
 
 
 @router.get("/brand-metrics", response_model=BrandMetricsResponse)

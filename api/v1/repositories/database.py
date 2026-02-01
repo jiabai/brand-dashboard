@@ -539,6 +539,38 @@ def query_reference_url_stats(
         logger.error("查询引用URL统计数据失败", error=str(e))
         raise Exception(f"查询引用URL统计数据失败: {str(e)}") from e
 
+def get_available_dates(tenant_key: str, job_id: Optional[str] = None) -> List[str]:
+    """
+    获取 qa_brand_state 表中有数据的所有日期
+    
+    Args:
+        tenant_key: 租户键
+        job_id: 任务ID (可选)
+        
+    Returns:
+        日期列表 (格式: YYYY-MM-DD), 按日期降序排列
+    """
+    query = """
+    SELECT DISTINCT date 
+    FROM qa_brand_state 
+    WHERE tenant_key = :tenant_key 
+    """
+    params = {"tenant_key": tenant_key}
+    
+    if job_id:
+        query += " AND job_id = :job_id "
+        params["job_id"] = job_id
+        
+    query += " ORDER BY date DESC"
+    
+    try:
+        with engine.connect() as conn:
+            result = conn.execute(text(query), params)
+            return [row[0].isoformat() if hasattr(row[0], 'isoformat') else str(row[0]) for row in result.fetchall()]
+    except Exception as e:
+        logger.error(f"获取有数据日期失败: {str(e)}")
+        return []
+
 def query_brand_platform_mention_data(
     tenant_key: str,
     job_id: str,
