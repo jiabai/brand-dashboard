@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   Table,
-  Input,
+  Select,
   Switch,
   Card,
   Tag,
@@ -40,6 +40,8 @@ const QueryJobStatus = ({ tenantKey: propTenantKey }) => {
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState([]);
   const [tenantKey] = useState(() => propTenantKey || getQueryParam('tenant_key', CONFIG.DEFAULT_TENANT_KEY));
+  const [selectedJobId, setSelectedJobId] = useState(() => getQueryParam('job_id', ''));
+  const [jobIdOptions, setJobIdOptions] = useState([]);
   const [includeDeleted, setIncludeDeleted] = useState(() => {
     const raw = getQueryParam('include_deleted', 'false');
     return raw === 'true' || raw === '1';
@@ -59,6 +61,9 @@ const QueryJobStatus = ({ tenantKey: propTenantKey }) => {
         tenant_key: tenantKey,
         include_deleted: includeDeleted ? 'true' : 'false',
       });
+      if (selectedJobId) {
+        params.set('job_id', selectedJobId);
+      }
 
       const response = await fetch(`/api/v1/query-jobs/status?${params}`);
       if (!response.ok) {
@@ -68,7 +73,15 @@ const QueryJobStatus = ({ tenantKey: propTenantKey }) => {
       const result = await response.json();
 
       if (result?.success) {
-        setData(Array.isArray(result.jobs) ? result.jobs : []);
+        const jobs = Array.isArray(result.jobs) ? result.jobs : [];
+        setData(jobs);
+        const nextJobIds = jobs.map((job) => job?.job_id).filter(Boolean);
+        setJobIdOptions((prev) => {
+          if (selectedJobId) {
+            return Array.from(new Set([...prev, ...nextJobIds]));
+          }
+          return Array.from(new Set(nextJobIds));
+        });
       } else {
         message.error(result?.message || '查询失败');
       }
@@ -78,7 +91,7 @@ const QueryJobStatus = ({ tenantKey: propTenantKey }) => {
     } finally {
       setLoading(false);
     }
-  }, [tenantKey, includeDeleted]);
+  }, [tenantKey, includeDeleted, selectedJobId]);
 
   useEffect(() => {
     fetchData();
@@ -178,14 +191,14 @@ const QueryJobStatus = ({ tenantKey: propTenantKey }) => {
             <Text type="secondary">实时追踪 LLM 查询任务的执行与生效情况</Text>
           </div>
           <Space>
-             <Input 
-                placeholder="输入租户 Key (e.g. tn_...)" 
-                value={tenantKey}
-                onChange={e => setTenantKey(e.target.value)}
-                style={{ width: 240 }}
-                prefix={<SearchOutlined style={{ color: 'rgba(255,255,255,0.25)' }} />}
-                onPressEnter={fetchData}
-                disabled
+             <Select
+                allowClear
+                placeholder="选择任务 ID"
+                value={selectedJobId || undefined}
+                options={jobIdOptions.map((jobId) => ({ label: jobId, value: jobId }))}
+                onChange={(value) => setSelectedJobId(value || '')}
+                style={{ width: 280 }}
+                suffixIcon={<SearchOutlined style={{ color: 'rgba(255,255,255,0.25)' }} />}
              />
              <Space size="small">
                 <Text type="secondary" style={{ fontSize: 12 }}>包含已删除</Text>

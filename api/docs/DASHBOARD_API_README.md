@@ -1134,13 +1134,32 @@ curl -X GET "http://your-api.com/api/v1/query-jobs/status?tenant_key=tn_1b02b3ef
   "count": 2,
   "jobs": [
     {
-      "tenant_key": "tn_1b02b3ef4fbd",
-      "brand": "哈基桃电竞",
-      "competitor": ["河马电竞俱乐部", "五九电竞俱乐部"],
-      "query_content": "三角洲陪玩有什么推荐？",
-      "query_status": 1,
-      "effective_from": "2026-01-23T00:00:00",
-      "effective_to": "2026-02-01T00:00:00"
+        "tenant_key": "tn_1b02b3ef4fbd",
+        "job_id": "job_20260201_171229_34974f3a",
+        "brand": "宝马",
+        "competitor": [
+            "奔驰",
+            "蔚来"
+        ],
+        "query_content": "宝马汽车的驾驶乐趣有哪些？",
+        "query_status": 1,
+        "effective_from": "2026-02-01T00:00:00",
+        "effective_to": "2026-02-03T00:00:00"
+    },
+    {
+        "tenant_key": "tn_1b02b3ef4fbd",
+        "job_id": "job_20260127_223236_989cc4db",
+        "brand": "哈基桃电竞",
+        "competitor": [
+            "河马电竞",
+            "五九电竞",
+            "知悦电竞",
+            "黛玉电竞"
+        ],
+        "query_content": "三角洲陪玩俱乐部售后服务好？",
+        "query_status": 3,
+        "effective_from": "2026-01-26T16:00:00",
+        "effective_to": "2026-01-31T16:00:00"
     }
   ]
 }
@@ -1154,6 +1173,7 @@ curl -X GET "http://your-api.com/api/v1/query-jobs/status?tenant_key=tn_1b02b3ef
 | count | int | 任务数量 |
 | jobs | array | 任务状态列表 |
 | jobs.tenant_key | string | 租户标识 Key |
+| jobs.job_id | string | 任务 ID |
 | jobs.brand | string | 品牌名称 |
 | jobs.competitor | array | 竞品名称列表 |
 | jobs.query_content | string | 查询内容 |
