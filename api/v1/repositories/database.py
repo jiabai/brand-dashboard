@@ -323,10 +323,6 @@ def query_post_citation_rate(
     """
     start_date, end_date = get_date_range(timeframe, specific_date)
 
-    # 转换为datetime以匹配created_at字段
-    start_datetime = datetime.combine(start_date, datetime.min.time())
-    end_datetime = datetime.combine(end_date, datetime.max.time())
-
     query = """
     SELECT
         COUNT(DISTINCT qr.domain) AS citation_source_count,
@@ -341,7 +337,7 @@ def query_post_citation_rate(
                     WHERE tenant_key = :tenant_key
                     AND job_id = :job_id
                     AND brand = :brand
-                    AND created_at BETWEEN :start_date AND :end_date
+                    AND date BETWEEN :start_date AND :end_date
                     GROUP BY conversation_id
                 ) AS conv_stats
             ),
@@ -351,7 +347,7 @@ def query_post_citation_rate(
     WHERE qr.tenant_key = :tenant_key
     AND qr.job_id = :job_id
     AND qr.brand = :brand
-    AND qr.created_at BETWEEN :start_date AND :end_date
+    AND qr.date BETWEEN :start_date AND :end_date
     """
 
     try:
@@ -362,8 +358,8 @@ def query_post_citation_rate(
                     "tenant_key": tenant_key,
                     "job_id": job_id,
                     "brand": brand,
-                    "start_date": start_datetime,
-                    "end_date": end_datetime
+                    "start_date": start_date,
+                    "end_date": end_date
                 }
             )
 
