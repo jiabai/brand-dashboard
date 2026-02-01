@@ -1,5 +1,5 @@
 import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Badge, ConfigProvider, Layout, Segmented, Space, Spin, Typography, theme } from 'antd';
+import { Badge, ConfigProvider, Layout, Segmented, Select, Space, Spin, Typography, theme } from 'antd';
 
 import ErrorBoundary from './components/ErrorBoundary';
 import TaskName from './components/TaskName.jsx';
@@ -20,8 +20,23 @@ const { Header, Content } = Layout;
 const TIME_OPTIONS = [
   { label: '昨天', value: 'yesterday' },
   { label: '过去7天', value: '7days' },
-  { label: '过去30天', value: '30days' }
+  { label: '过去30天', value: '30days' },
+  { label: '指定日期', value: 'specific_day' }
 ];
+
+const normalizeDateToDisplay = (value) => {
+  if (!value) return '';
+  const text = String(value);
+  if (/^\d{8}$/.test(text)) {
+    return `${text.slice(0, 4)}-${text.slice(4, 6)}-${text.slice(6, 8)}`;
+  }
+  return text;
+};
+
+const normalizeDateToParam = (value) => {
+  if (!value) return '';
+  return String(value).replace(/-/g, '');
+};
 
 const LiveClock = React.memo(function LiveClock() {
   const [currentTime, setCurrentTime] = useState(() => new Date());
@@ -49,7 +64,13 @@ function Dashboard() {
   // State management
   const [currentView, setCurrentView] = useState(() => getQueryParam('view', 'home'));
   const [selectedFilter, setSelectedFilter] = useState(() => getQueryParam('timeframe', '7days'));
+  const [selectedDate, setSelectedDate] = useState(() =>
+    normalizeDateToDisplay(getQueryParam('date', '')),
+  );
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingDates, setIsLoadingDates] = useState(false);
+  const [availableDates, setAvailableDates] = useState([]);
+  const [availableDatesError, setAvailableDatesError] = useState('');
   const [siderCollapsed, setSiderCollapsed] = useState(false);
   const [selectedPlatform, setSelectedPlatform] = useState(() => getQueryParam('platform', ''));
 
@@ -60,18 +81,60 @@ function Dashboard() {
 
   const loadingTimerRef = useRef(null);
 
+  const selectedDateParam = useMemo(() => {
+    if (selectedFilter !== 'specific_day') return '';
+    return normalizeDateToParam(selectedDate);
+  }, [selectedDate, selectedFilter]);
+
   const timeOptions = useMemo(() => TIME_OPTIONS, []);
 
   useEffect(() => {
     updateQueryParams({ 
       view: currentView,
       timeframe: selectedFilter,
+      date: selectedDateParam,
       tenant_key: tenantKey,
       job_id: jobId,
       brand: brand,
       platform: selectedPlatform
     });
-  }, [currentView, selectedFilter, tenantKey, jobId, brand, selectedPlatform]);
+  }, [currentView, selectedFilter, selectedDateParam, tenantKey, jobId, brand, selectedPlatform]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    const run = async () => {
+      try {
+        setIsLoadingDates(true);
+        setAvailableDatesError('');
+        const searchParams = new URLSearchParams({ tenant_key: tenantKey });
+        if (jobId) {
+          searchParams.set('job_id', jobId);
+        }
+        const response = await fetch(`/api/v1/dashboard/available-dates?${searchParams.toString()}`, {
+          method: 'GET',
+          signal: controller.signal,
+        });
+        if (!response.ok) {
+          throw new Error(`请求失败(${response.status})`);
+        }
+        const result = await response.json();
+        const list = Array.isArray(result?.data) ? result.data : [];
+        setAvailableDates(list);
+        setIsLoadingDates(false);
+      } catch (error) {
+        if (controller.signal.aborted) return;
+        setAvailableDates([]);
+        setAvailableDatesError(error?.message || '日期加载失败');
+        setIsLoadingDates(false);
+      }
+    };
+
+    run();
+
+    return () => {
+      controller.abort();
+    };
+  }, [tenantKey, jobId]);
 
   // Cleanup loading timer on unmount
   useEffect(() => {
@@ -88,6 +151,9 @@ function Dashboard() {
    */
   const handleFilterChange = useCallback((filter) => {
     setSelectedFilter(filter);
+    if (filter !== 'specific_day') {
+      setSelectedDate('');
+    }
     // Clear any existing timer
     if (loadingTimerRef.current) {
       clearTimeout(loadingTimerRef.current);
@@ -96,6 +162,14 @@ function Dashboard() {
     setIsLoading(true);
     loadingTimerRef.current = setTimeout(() => setIsLoading(false), 800);
   }, []);
+
+  useEffect(() => {
+    if (selectedFilter !== 'specific_day') return;
+    if (!availableDates.length) return;
+    if (!selectedDate || !availableDates.includes(selectedDate)) {
+      setSelectedDate(availableDates[0]);
+    }
+  }, [availableDates, selectedDate, selectedFilter]);
 
   const handleBackFromPlatform = useCallback(() => {
     setSelectedPlatform('');
@@ -132,6 +206,7 @@ function Dashboard() {
                   <div style={{ minWidth: 0 }}>
                     <BrandMentionRate 
                       timeframe={selectedFilter} 
+                      date={selectedDateParam}
                       tenantKey={tenantKey}
                       jobId={jobId}
                       brand={brand}
@@ -140,6 +215,7 @@ function Dashboard() {
                   <div style={{ minWidth: 0 }}>
                     <PlatformMentionRates 
                       timeframe={selectedFilter} 
+                      date={selectedDateParam}
                       tenantKey={tenantKey}
                       jobId={jobId}
                       brand={brand}
@@ -149,6 +225,7 @@ function Dashboard() {
                   <div style={{ minWidth: 0, gridColumn: '1 / -1' }}>
                     <ReferencesTable 
                       timeframe={selectedFilter} 
+                      date={selectedDateParam}
                       tenantKey={tenantKey}
                       jobId={jobId}
                       brand={brand}
@@ -200,6 +277,19 @@ function Dashboard() {
                 value={selectedFilter}
                 onChange={handleFilterChange}
               />
+              {selectedFilter === 'specific_day' ? (
+                <Select
+                  value={selectedDate || undefined}
+                  onChange={setSelectedDate}
+                  placeholder={availableDatesError ? '日期加载失败' : '选择日期'}
+                  options={availableDates.map((date) => ({ label: date, value: date }))}
+                  loading={isLoadingDates}
+                  disabled={Boolean(availableDatesError) || availableDates.length === 0}
+                  showSearch
+                  style={{ minWidth: 160 }}
+                  notFoundContent={isLoadingDates ? '加载中' : '暂无日期'}
+                />
+              ) : null}
             </Space>
           </Space>
         </Header>
