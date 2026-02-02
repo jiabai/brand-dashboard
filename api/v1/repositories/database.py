@@ -892,3 +892,91 @@ def query_platform_metrics_by_brand(
     except Exception as e:
         logger.error("查询平台指标数据失败", error=str(e))
         raise Exception(f"查询平台指标数据失败: {str(e)}") from e
+
+
+def query_keyword_platform_brand_rates(
+    tenant_key: str,
+    job_id: str,
+    timeframe: str,
+    specific_date: Optional[str] = None,
+) -> List[Dict[str, Any]]:
+    start_date, end_date = get_date_range(timeframe, specific_date)
+
+    try:
+        with engine.connect() as conn:
+            columns_result = conn.execute(text("SHOW COLUMNS FROM qa_brand_state")).fetchall()
+            columns = {row[0] for row in columns_result}
+
+            id_column = (
+                "conversation_id"
+                if "conversation_id" in columns
+                else "question_id"
+                if "question_id" in columns
+                else "id"
+            )
+
+            if "keyword" not in columns:
+                raise Exception("qa_brand_state 表缺少 keyword 字段")
+
+            if "platform" not in columns:
+                raise Exception("qa_brand_state 表缺少 platform 字段")
+
+            if "brand" not in columns:
+                raise Exception("qa_brand_state 表缺少 brand 字段")
+
+            if "is_mentioned" not in columns:
+                raise Exception("qa_brand_state 表缺少 is_mentioned 字段")
+
+            if "is_first_mentioned" not in columns:
+                raise Exception("qa_brand_state 表缺少 is_first_mentioned 字段")
+            first_mention_column = "is_first_mentioned"
+
+            query = f"""
+            SELECT
+                keyword,
+                platform,
+                brand,
+                ROUND(SUM(is_mentioned) * 1.0 / COUNT(DISTINCT {id_column}), 4) AS mention_rate,
+                ROUND(
+                    SUM({first_mention_column}) * 1.0 / COUNT(DISTINCT {id_column}),
+                    4
+                ) AS first_mention_rate
+            FROM qa_brand_state
+            WHERE tenant_key = :tenant_key
+              AND job_id = :job_id
+              AND date BETWEEN :start_date AND :end_date
+            GROUP BY keyword, platform, brand
+            ORDER BY keyword ASC, platform ASC, mention_rate DESC
+            """
+
+            rows = conn.execute(
+                text(query),
+                {
+                    "tenant_key": tenant_key,
+                    "job_id": job_id,
+                    "start_date": start_date,
+                    "end_date": end_date,
+                },
+            ).fetchall()
+
+            if not rows:
+                return []
+
+            result: List[Dict[str, Any]] = []
+            for keyword, platform, brand, mention_rate, first_mention_rate in rows:
+                result.append(
+                    {
+                        "keyword": keyword,
+                        "platform": platform,
+                        "brand": brand,
+                        "mention_rate": float(mention_rate) if mention_rate is not None else 0.0,
+                        "first_mention_rate": (
+                            float(first_mention_rate) if first_mention_rate is not None else 0.0
+                        ),
+                    }
+                )
+
+            return result
+    except Exception as e:
+        logger.error("查询 keyword-platform-brand rates 失败", error=str(e))
+        raise Exception(f"查询 keyword-platform-brand rates 失败: {str(e)}") from e

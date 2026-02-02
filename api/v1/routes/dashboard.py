@@ -11,6 +11,7 @@ from api.v1.repositories.database import (
     query_brand_metrics,
     query_brand_platform_mention_data,
     query_domain_citation_rate,
+    query_keyword_platform_brand_rates,
     query_platform_metrics_by_brand,
     query_post_citation_rate,
     query_reference_url_stats,
@@ -54,6 +55,20 @@ class PlatformMentionRateResponse(BaseModel):
     """各平台提及率响应模型."""
     status: str = Field(..., description="响应状态")
     data: List[PlatformMentionRateData] = Field(..., description="各平台提及率数据列表")
+    metadata: Dict[str, Any] = Field(..., description="元数据")
+
+
+class KeywordPlatformBrandRateItem(BaseModel):
+    keyword: str = Field(..., description="关键词")
+    platform: str = Field(..., description="平台")
+    brand: str = Field(..., description="品牌")
+    mention_rate: float = Field(..., description="提及率(比例，0~1)")
+    first_mention_rate: float = Field(..., description="首位提及率(比例，0~1)")
+
+
+class KeywordPlatformBrandRatesResponse(BaseModel):
+    status: str = Field(..., description="响应状态")
+    data: List[KeywordPlatformBrandRateItem] = Field(..., description="数据列表")
     metadata: Dict[str, Any] = Field(..., description="元数据")
 
 
@@ -485,3 +500,60 @@ async def get_post_citation_rate(
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"获取品牌发文引用率失败: {str(e)}") from e
+
+
+@router.get(
+    "/keyword-platform-brand-rates",
+    response_model=KeywordPlatformBrandRatesResponse,
+)
+async def get_keyword_platform_brand_rates(
+    tenant_key: str = Query(..., description="租户唯一字符串标识（tenants.tenant_key）"),
+    job_id: str = Query(..., description="任务ID"),
+    timeframe: TimeFrame = Query(..., description="时间范围"),
+    date: Optional[str] = Query(None, description="具体日期(格式: YYYYMMDD)"),
+):
+    if timeframe == TimeFrame.SPECIFIC_DAY and not date:
+        raise HTTPException(
+            status_code=400,
+            detail="timeframe=specific_day 时必须提供 date(YYYYMMDD)",
+        )
+
+    try:
+        rows = query_keyword_platform_brand_rates(
+            tenant_key=tenant_key,
+            job_id=job_id,
+            timeframe=timeframe.value,
+            specific_date=date,
+        )
+
+        data = [
+            KeywordPlatformBrandRateItem(
+                keyword=item["keyword"],
+                platform=item["platform"],
+                brand=item["brand"],
+                mention_rate=item["mention_rate"],
+                first_mention_rate=item["first_mention_rate"],
+            )
+            for item in rows
+        ]
+
+        return KeywordPlatformBrandRatesResponse(
+            status="success",
+            data=data,
+            metadata={
+                "tenant_key": tenant_key,
+                "job_id": job_id,
+                "timeframe": timeframe.value,
+                "date": date,
+                "calculation_method": "distinct_conversation_ratio",
+                "rate_unit": "ratio_0_1",
+                "row_count": len(data),
+            },
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"获取 keyword-platform-brand rates 失败: {str(e)}",
+        ) from e

@@ -11,6 +11,7 @@ import { getQueryParam, updateQueryParams } from './utils';
 const BrandMentionRate = React.lazy(() => import('./components/BrandMentionRate.jsx'));
 const PlatformMentionRates = React.lazy(() => import('./components/PlatformMentionRates.jsx'));
 const ReferencesTable = React.lazy(() => import('./components/ReferencesTable.jsx'));
+const BrandShareOfVoiceTable = React.lazy(() => import('./components/BrandShareOfVoiceTable.jsx'));
 const PlatformDetail = React.lazy(() => import('./components/PlatformDetail.jsx'));
 const CreateQueryJob = React.lazy(() => import('./components/CreateQueryJob.jsx'));
 const QueryJobStatus = React.lazy(() => import('./components/QueryJobStatus.jsx'));
@@ -188,6 +189,8 @@ function Dashboard() {
             <QueryJobStatus 
               tenantKey={tenantKey} 
             />
+          ) : currentView === 'platforms' ? (
+            <BrandShareOfVoiceTable />
           ) : (
             <Spin spinning={isLoading}>
               {selectedPlatform ? (
