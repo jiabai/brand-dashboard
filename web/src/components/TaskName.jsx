@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Button, Space, Spin, Tooltip, Typography } from 'antd';
+import { Button, Space, Spin, Tag, Tooltip, Typography } from 'antd';
 
 /**
  * TaskName component - 显示用户自定义的任务名称
@@ -74,10 +74,8 @@ const TaskName = () => {
   };
 
   return (
-    <Space size="small" align="center" style={{ minWidth: 0 }}>
-      <Typography.Text type="secondary" style={{ fontSize: 12, whiteSpace: 'nowrap' }}>
-        当前任务
-      </Typography.Text>
+    <Space size="small" align="center" style={{ display: 'flex', alignItems: 'center' }}>
+      <Tag color="blue" style={{ margin: 0 }}>当前任务</Tag>
       {loading ? (
         <Space size="small" align="center">
           <Spin size="small" />
@@ -85,12 +83,21 @@ const TaskName = () => {
         </Space>
       ) : error ? (
         <Tooltip title={error}>
-          <Button type="link" danger onClick={handleRetry} style={{ paddingInline: 0 }}>
+          <Button type="link" danger onClick={handleRetry} style={{ padding: 0, height: 'auto', lineHeight: 'normal' }}>
             任务加载失败，点击重试
           </Button>
         </Tooltip>
       ) : (
-        <Typography.Text strong ellipsis={{ tooltip: taskName }} style={{ maxWidth: 260, minWidth: 0 }}>
+        <Typography.Text 
+          strong 
+          ellipsis 
+          style={{ 
+            maxWidth: 320, 
+            margin: 0,
+            display: 'inline-block',
+            lineHeight: '22px'
+          }}
+        >
           {taskName}
         </Typography.Text>
       )}
