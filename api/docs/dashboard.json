@@ -749,6 +749,116 @@
         }
       }
     },
+    "/api/v1/dashboard/brand-mention-trend": {
+      "get": {
+        "tags": [
+          "dashboard"
+        ],
+        "summary": "Get Brand Mention Trend",
+        "operationId": "get_brand_mention_trend_api_v1_dashboard_brand_mention_trend_get",
+        "parameters": [
+          {
+            "name": "tenant_key",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "租户唯一字符串标识（tenants.tenant_key）",
+              "title": "Tenant Key"
+            },
+            "description": "租户唯一字符串标识（tenants.tenant_key）"
+          },
+          {
+            "name": "job_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "任务ID",
+              "title": "Job Id"
+            },
+            "description": "任务ID"
+          },
+          {
+            "name": "brand",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "品牌名称",
+              "title": "Brand"
+            },
+            "description": "品牌名称"
+          },
+          {
+            "name": "platform",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "平台名称",
+              "title": "Platform"
+            },
+            "description": "平台名称"
+          },
+          {
+            "name": "keyword",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "关键词",
+              "title": "Keyword"
+            },
+            "description": "关键词"
+          },
+          {
+            "name": "start_date",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "开始日期(格式: YYYY-MM-DD)",
+              "title": "Start Date"
+            },
+            "description": "开始日期(格式: YYYY-MM-DD)"
+          },
+          {
+            "name": "end_date",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "结束日期(格式: YYYY-MM-DD)",
+              "title": "End Date"
+            },
+            "description": "结束日期(格式: YYYY-MM-DD)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BrandMentionTrendResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/dashboard/keyword-platform-brand-rates": {
       "get": {
         "tags": [
@@ -1420,6 +1530,74 @@
           "metadata"
         ],
         "title": "KeywordPlatformBrandRatesResponse"
+      },
+      "BrandMentionTrendItem": {
+        "properties": {
+          "date": {
+            "type": "string",
+            "title": "Date",
+            "description": "日期"
+          },
+          "brand": {
+            "type": "string",
+            "title": "Brand",
+            "description": "品牌"
+          },
+          "platform": {
+            "type": "string",
+            "title": "Platform",
+            "description": "平台"
+          },
+          "keyword": {
+            "type": "string",
+            "title": "Keyword",
+            "description": "关键词"
+          },
+          "mention_rate": {
+            "type": "number",
+            "title": "Mention Rate",
+            "description": "提及率(比例，0~1)"
+          }
+        },
+        "type": "object",
+        "required": [
+          "date",
+          "brand",
+          "platform",
+          "keyword",
+          "mention_rate"
+        ],
+        "title": "BrandMentionTrendItem"
+      },
+      "BrandMentionTrendResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "响应状态"
+          },
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/BrandMentionTrendItem"
+            },
+            "type": "array",
+            "title": "Data",
+            "description": "趋势数据列表"
+          },
+          "metadata": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Metadata",
+            "description": "元数据"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "data",
+          "metadata"
+        ],
+        "title": "BrandMentionTrendResponse"
       },
       "TimeFrame": {
         "type": "string",

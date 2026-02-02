@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime, timedelta
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
@@ -9,6 +9,7 @@ from api.v1.repositories.database import (
     get_available_dates,
     query_brand_mention_data,
     query_brand_metrics,
+    query_brand_platform_keyword_daily_mention_rates,
     query_brand_platform_mention_data,
     query_domain_citation_rate,
     query_keyword_platform_brand_rates,
@@ -19,6 +20,33 @@ from api.v1.repositories.database import (
 from api.v1.utils.url_domain_resolver import resolve_url_domain
 
 router = APIRouter()
+
+def fill_missing_dates_locf(
+    rows: List[Dict[str, Any]],
+    start_date: date,
+    end_date: date,
+    initial_value: float = 0.0,
+) -> List[Dict[str, Any]]:
+    data_map: Dict[str, float] = {}
+    for row in rows:
+        row_date = row["date"]
+        if hasattr(row_date, "isoformat"):
+            date_key = row_date.isoformat()
+        else:
+            date_key = str(row_date)
+        data_map[date_key] = float(row["mention_rate"]) if row["mention_rate"] is not None else 0.0
+
+    result: List[Dict[str, Any]] = []
+    current_date = start_date
+    last_value = initial_value
+    while current_date <= end_date:
+        date_key = current_date.isoformat()
+        if date_key in data_map:
+            last_value = data_map[date_key]
+        result.append({"date": date_key, "mention_rate": last_value})
+        current_date += timedelta(days=1)
+
+    return result
 
 class TimeFrame(str, Enum):
     """时间范围枚举."""
@@ -69,6 +97,20 @@ class KeywordPlatformBrandRateItem(BaseModel):
 class KeywordPlatformBrandRatesResponse(BaseModel):
     status: str = Field(..., description="响应状态")
     data: List[KeywordPlatformBrandRateItem] = Field(..., description="数据列表")
+    metadata: Dict[str, Any] = Field(..., description="元数据")
+
+
+class BrandMentionTrendItem(BaseModel):
+    date: str = Field(..., description="日期")
+    brand: str = Field(..., description="品牌")
+    platform: str = Field(..., description="平台")
+    keyword: str = Field(..., description="关键词")
+    mention_rate: float = Field(..., description="提及率(比例，0~1)")
+
+
+class BrandMentionTrendResponse(BaseModel):
+    status: str = Field(..., description="响应状态")
+    data: List[BrandMentionTrendItem] = Field(..., description="趋势数据列表")
     metadata: Dict[str, Any] = Field(..., description="元数据")
 
 
@@ -271,6 +313,70 @@ async def get_platform_mention_rates(
         raise HTTPException(status_code=400, detail=str(e)) from e
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"获取品牌平台提及率失败: {str(e)}") from e
+
+@router.get("/brand-mention-trend", response_model=BrandMentionTrendResponse)
+async def get_brand_mention_trend(
+    tenant_key: str = Query(..., description="租户唯一字符串标识（tenants.tenant_key）"),
+    job_id: str = Query(..., description="任务ID"),
+    brand: str = Query(..., description="品牌名称"),
+    platform: str = Query(..., description="平台名称"),
+    keyword: str = Query(..., description="关键词"),
+    start_date: str = Query(..., description="开始日期(格式: YYYY-MM-DD)"),
+    end_date: str = Query(..., description="结束日期(格式: YYYY-MM-DD)"),
+):
+    try:
+        start_value = datetime.strptime(start_date, "%Y-%m-%d").date()
+        end_value = datetime.strptime(end_date, "%Y-%m-%d").date()
+
+        if start_value > end_value:
+            raise ValueError("开始日期不能晚于结束日期")
+
+        rows = query_brand_platform_keyword_daily_mention_rates(
+            tenant_key=tenant_key,
+            job_id=job_id,
+            brand=brand,
+            platform=platform,
+            keyword=keyword,
+            start_date=start_value,
+            end_date=end_value,
+        )
+
+        filled = fill_missing_dates_locf(
+            rows=rows,
+            start_date=start_value,
+            end_date=end_value,
+            initial_value=0.0,
+        )
+
+        data = [
+            BrandMentionTrendItem(
+                date=item["date"],
+                brand=brand,
+                platform=platform,
+                keyword=keyword,
+                mention_rate=item["mention_rate"],
+            )
+            for item in filled
+        ]
+
+        return BrandMentionTrendResponse(
+            status="success",
+            data=data,
+            metadata={
+                "brand": brand,
+                "platform": platform,
+                "keyword": keyword,
+                "start_date": start_date,
+                "end_date": end_date,
+                "fill_method": "locf",
+                "calculation_method": "mention_rate_by_day",
+                "points": len(data),
+            },
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"获取品牌提及率趋势失败: {str(e)}") from e
 
 @router.get("/reference-url-stats", response_model=ReferenceUrlResponse)
 async def get_reference_url_stats(

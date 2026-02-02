@@ -570,6 +570,82 @@ def get_available_dates(tenant_key: str, job_id: Optional[str] = None) -> List[s
         logger.error(f"获取有数据日期失败: {str(e)}")
         return []
 
+def query_brand_platform_keyword_daily_mention_rates(
+    tenant_key: str,
+    job_id: str,
+    brand: str,
+    platform: str,
+    keyword: str,
+    start_date: datetime.date,
+    end_date: datetime.date,
+) -> List[Dict[str, Any]]:
+    try:
+        with engine.connect() as conn:
+            columns_result = conn.execute(text("SHOW COLUMNS FROM qa_brand_state")).fetchall()
+            columns = {row[0] for row in columns_result}
+
+            id_column = (
+                "conversation_id"
+                if "conversation_id" in columns
+                else "question_id"
+                if "question_id" in columns
+                else "id"
+            )
+
+            required_columns = {"brand", "platform", "keyword", "is_mentioned", "date"}
+            missing_columns = required_columns - columns
+            if missing_columns:
+                raise Exception(f"qa_brand_state 表缺少字段: {', '.join(sorted(missing_columns))}")
+
+            query = f"""
+            SELECT
+                date,
+                brand,
+                platform,
+                keyword,
+                ROUND(SUM(is_mentioned) * 1.0 / COUNT(DISTINCT {id_column}), 4) AS mention_rate
+            FROM qa_brand_state
+            WHERE tenant_key = :tenant_key
+              AND job_id = :job_id
+              AND brand = :brand
+              AND platform = :platform
+              AND keyword = :keyword
+              AND date BETWEEN :start_date AND :end_date
+            GROUP BY date, platform, brand, keyword
+            ORDER BY date ASC
+            """
+
+            params = {
+                "tenant_key": tenant_key,
+                "job_id": job_id,
+                "brand": brand,
+                "platform": platform,
+                "keyword": keyword,
+                "start_date": start_date,
+                "end_date": end_date,
+            }
+
+            rows = conn.execute(text(query), params).fetchall()
+            if not rows:
+                return []
+
+            result: List[Dict[str, Any]] = []
+            for row in rows:
+                result.append(
+                    {
+                        "date": row[0],
+                        "brand": row[1],
+                        "platform": row[2],
+                        "keyword": row[3],
+                        "mention_rate": float(row[4]) if row[4] is not None else 0.0,
+                    }
+                )
+
+            return result
+    except Exception as e:
+        logger.error("数据库查询失败", error=str(e))
+        raise Exception(f"数据库查询失败: {str(e)}") from e
+
 def query_brand_platform_mention_data(
     tenant_key: str,
     job_id: str,

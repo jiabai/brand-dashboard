@@ -652,6 +652,109 @@ ORDER BY mention_rate DESC; -- 在代码中进行排序
 
 ---
 
+## 📉 品牌提及率趋势 API（平台 + 关键词，LOCF 填充）
+
+### 接口信息
+- **路径**: `/api/v1/dashboard/brand-mention-trend`
+- **方法**: `GET`
+- **描述**: 获取指定品牌在指定平台、指定关键词下的“按日提及率”趋势数据，并在后端按日期范围补齐缺失日期（LOCF：前值填充）
+- **实现状态**: ✅ 已完成
+
+### 请求参数
+
+| 参数名 | 类型 | 必填 | 描述 |
+|--------|------|------|------|
+| tenant_key | string | 是 | 租户标识 tenant_key |
+| job_id | string | 是 | 任务ID |
+| brand | string | 是 | 品牌名称 |
+| platform | string | 是 | 平台名称（如 deepseek） |
+| keyword | string | 是 | 关键词 |
+| start_date | string | 是 | 开始日期，格式: `YYYY-MM-DD` |
+| end_date | string | 是 | 结束日期，格式: `YYYY-MM-DD` |
+
+### 请求示例
+
+```bash
+curl -X GET "http://your-api.com/api/v1/dashboard/brand-mention-trend?tenant_key=tn_xxx&job_id=job_456&brand=哈基桃电竞&platform=deepseek&keyword=三角洲陪玩&start_date=2026-01-01&end_date=2026-01-31"
+```
+
+### 响应格式
+
+```json
+{
+  "status": "success",
+  "data": [
+    {
+      "date": "2026-01-01",
+      "brand": "哈基桃电竞",
+      "platform": "deepseek",
+      "keyword": "三角洲陪玩",
+      "mention_rate": 0.2000
+    },
+    {
+      "date": "2026-01-02",
+      "brand": "哈基桃电竞",
+      "platform": "deepseek",
+      "keyword": "三角洲陪玩",
+      "mention_rate": 0.2000
+    }
+  ],
+  "metadata": {
+    "brand": "哈基桃电竞",
+    "platform": "deepseek",
+    "keyword": "三角洲陪玩",
+    "start_date": "2026-01-01",
+    "end_date": "2026-01-31",
+    "fill_method": "locf",
+    "calculation_method": "mention_rate_by_day",
+    "points": 31
+  }
+}
+```
+
+### 响应字段说明
+
+| 字段名 | 类型 | 描述 |
+|--------|------|------|
+| status | string | 响应状态，"success" 或 "error" |
+| data | array | 趋势数据列表（按日） |
+| data.date | string | 日期（YYYY-MM-DD） |
+| data.brand | string | 品牌名称 |
+| data.platform | string | 平台名称 |
+| data.keyword | string | 关键词 |
+| data.mention_rate | float | 提及率（比例，0~1） |
+| metadata | object | 元数据 |
+| metadata.fill_method | string | 缺失日期填充方法（固定为 locf） |
+| metadata.points | int | 返回点位数量（等于日期范围天数） |
+
+### 数据计算逻辑
+
+基于代码实际执行的 SQL（参数以 SQLAlchemy 命名参数形式展示）：
+
+```sql
+SELECT
+    date,
+    brand,
+    platform,
+    keyword,
+    ROUND(SUM(is_mentioned) * 1.0 / COUNT(DISTINCT conversation_id), 4) AS mention_rate
+FROM qa_brand_state
+WHERE tenant_key = :tenant_key
+  AND job_id = :job_id
+  AND brand = :brand
+  AND platform = :platform
+  AND keyword = :keyword
+  AND date BETWEEN :start_date AND :end_date
+GROUP BY date, platform, brand, keyword
+ORDER BY date ASC
+```
+
+缺失日期补齐规则：
+- 在指定 `[start_date, end_date]` 范围内，若某日期无数据，则该日期的 `mention_rate` 使用上一个有数据日期的 `mention_rate`（前值填充）。
+- 若 `start_date` 当天无数据且之前也无数据可继承，则该日期的 `mention_rate` 为 `0.0`。
+
+---
+
 ## 关键词-平台-品牌提及率明细 API
 
 ### 接口信息
