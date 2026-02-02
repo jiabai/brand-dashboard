@@ -15,6 +15,7 @@ const BrandShareOfVoiceTable = React.lazy(() => import('./components/BrandShareO
 const PlatformDetail = React.lazy(() => import('./components/PlatformDetail.jsx'));
 const CreateQueryJob = React.lazy(() => import('./components/CreateQueryJob.jsx'));
 const QueryJobStatus = React.lazy(() => import('./components/QueryJobStatus.jsx'));
+const TrendAnalysis = React.lazy(() => import('./components/TrendAnalysis.jsx'));
 
 const { Header, Content } = Layout;
 
@@ -196,6 +197,16 @@ function Dashboard() {
               tenantKey={tenantKey}
               jobId={jobId}
             />
+          ) : currentView === 'trend' ? (
+            <Spin spinning={isLoading}>
+              <TrendAnalysis
+                timeframe={selectedFilter}
+                date={selectedDateParam}
+                tenantKey={tenantKey}
+                jobId={jobId}
+                brand={brand}
+              />
+            </Spin>
           ) : (
             <Spin spinning={isLoading}>
               {selectedPlatform ? (
