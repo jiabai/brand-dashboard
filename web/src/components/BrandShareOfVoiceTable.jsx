@@ -3,7 +3,7 @@ import { Alert, Empty, Table, Progress, Card, Tag, Space, Typography, Tooltip } 
 import { InfoCircleOutlined } from '@ant-design/icons';
 import { CONFIG } from '@/config';
 
-const { Text, Title } = Typography;
+const { Text } = Typography;
 const { DEFAULT_TENANT_KEY, DEFAULT_JOB_ID } = CONFIG;
 
 const COLUMN_WIDTH_STORAGE_KEY = 'BrandShareOfVoiceTable:columnWidths';
@@ -308,7 +308,6 @@ const BrandShareOfVoiceTable = ({
 
   return (
     <Card 
-      title={<Title level={4} style={{ margin: 0 }}>Brand Share of Voice</Title>}
       bordered={false}
       style={{ margin: 24, borderRadius: 8 }}
     >
