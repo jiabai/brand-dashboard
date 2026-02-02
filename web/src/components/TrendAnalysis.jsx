@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Card, Space, Typography, Input, Button, Row, Col, Statistic, Tag, theme } from 'antd';
+import { Card, Space, Typography, DatePicker, Row, Col, Statistic, Tag, theme } from 'antd';
 import { LineChartOutlined } from '@ant-design/icons';
 import { DualAxes } from '@ant-design/charts';
+import dayjs from 'dayjs';
 
 import { CONFIG } from '@/config';
 import { formatPercentage, getQueryParam, updateQueryParams } from '@/utils';
@@ -41,48 +42,46 @@ const roundTwoDecimals = (value) => {
   return Math.round(num * 100) / 100;
 };
 
-const formatDateToParam = (value) => {
-  if (!value) return '';
-  const date = value instanceof Date ? value : new Date(value);
-  if (Number.isNaN(date.getTime())) return '';
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}${month}${day}`;
-};
-
-const parseDateParam = (value) => {
+const parseDateInput = (value) => {
   if (!value) return null;
   const text = String(value);
   if (/^\d{8}$/.test(text)) {
-    const year = Number(text.slice(0, 4));
-    const month = Number(text.slice(4, 6)) - 1;
-    const day = Number(text.slice(6, 8));
-    return new Date(year, month, day);
+    const parsed = dayjs(text, 'YYYYMMDD');
+    return parsed.isValid() ? parsed : null;
   }
-  const date = new Date(text);
-  return Number.isNaN(date.getTime()) ? null : date;
+  const parsed = dayjs(text);
+  return parsed.isValid() ? parsed : null;
+};
+
+const formatDateParam = (value) => {
+  if (!value) return '';
+  const parsed = dayjs.isDayjs(value) ? value : dayjs(value);
+  if (!parsed.isValid()) return '';
+  return parsed.format('YYYYMMDD');
+};
+
+const formatDateDisplay = (value) => {
+  if (!value) return '';
+  const parsed = dayjs.isDayjs(value) ? value : dayjs(value);
+  if (!parsed.isValid()) return '';
+  return parsed.format('YYYY-MM-DD');
 };
 
 const getRangeByTimeframe = (timeframe, dateParam) => {
-  const today = new Date();
+  const today = dayjs();
   if (timeframe === 'yesterday') {
-    const yesterday = new Date(today);
-    yesterday.setDate(today.getDate() - 1);
-    const dayStr = formatDateToParam(yesterday);
-    return { startDate: dayStr, endDate: dayStr };
+    const yesterday = today.subtract(1, 'day');
+    return { startDate: yesterday, endDate: yesterday };
   }
   if (timeframe === 'specific_day') {
-    const parsed = parseDateParam(dateParam);
-    const dayStr = formatDateToParam(parsed || today);
-    return { startDate: dayStr, endDate: dayStr };
+    const parsed = parseDateInput(dateParam);
+    const day = parsed || today;
+    return { startDate: day, endDate: day };
   }
   const days = timeframe === '30days' ? 30 : 7;
-  const start = new Date(today);
-  start.setDate(today.getDate() - (days - 1));
   return {
-    startDate: formatDateToParam(start),
-    endDate: formatDateToParam(today),
+    startDate: today.subtract(days - 1, 'day'),
+    endDate: today,
   };
 };
 
@@ -95,6 +94,27 @@ const formatDateLabel = (value) => {
   return text;
 };
 
+const PLATFORM_COLORS = {
+  chatgpt: '#10b981',
+  gemini: '#3b82f6',
+  claude: '#f59e0b',
+  '通义千问': '#ef4444',
+  qwen: '#ef4444',
+  豆包: '#8b5cf6',
+  deepseek: '#06b6d4',
+  kimi: '#a855f7',
+  元宝: '#f97316',
+  夸克: '#ec4899',
+  文心一言: '#6b7280',
+};
+
+const getPlatformColor = (name) => {
+  const raw = String(name || '').trim();
+  if (!raw) return '#6b7280';
+  const keyLower = raw.toLowerCase();
+  return PLATFORM_COLORS[keyLower] || PLATFORM_COLORS[raw] || '#6b7280';
+};
+
 const TrendAnalysis = ({
   timeframe = '7days',
   date = '',
@@ -104,56 +124,143 @@ const TrendAnalysis = ({
 }) => {
   const { token } = theme.useToken();
   const abortControllerRef = useRef(null);
+  const metadataAbortRef = useRef(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [trendData, setTrendData] = useState([]);
-  const [platformInput, setPlatformInput] = useState(() =>
-    getQueryParam('trend_platform', 'deepseek'),
-  );
-  const [keywordInput, setKeywordInput] = useState(() =>
-    getQueryParam('trend_keyword', ''),
-  );
   const [platform, setPlatform] = useState(() =>
-    getQueryParam('trend_platform', 'deepseek'),
+    getQueryParam('trend_platform', '全部'),
   );
   const [keyword, setKeyword] = useState(() =>
-    getQueryParam('trend_keyword', ''),
+    getQueryParam('trend_keyword', '全部'),
+  );
+  const [startDate, setStartDate] = useState(() => {
+    const fromUrl = parseDateInput(getQueryParam('trend_start', ''));
+    if (fromUrl) return fromUrl;
+    return getRangeByTimeframe(timeframe, date).startDate;
+  });
+  const [endDate, setEndDate] = useState(() => {
+    const fromUrl = parseDateInput(getQueryParam('trend_end', ''));
+    if (fromUrl) return fromUrl;
+    return getRangeByTimeframe(timeframe, date).endDate;
+  });
+  const [metadataLoading, setMetadataLoading] = useState(false);
+  const [metadataError, setMetadataError] = useState('');
+  const [platformOptions, setPlatformOptions] = useState([]);
+  const [keywordOptions, setKeywordOptions] = useState([]);
+  const [combinations, setCombinations] = useState([]);
+  const [reloadKey, setReloadKey] = useState(0);
+
+  const tenantKeyValue = useMemo(
+    () => getQueryParam('tenant_key', tenantKey || DEFAULT_TENANT_KEY),
+    [tenantKey],
+  );
+  const jobIdValue = useMemo(
+    () => getQueryParam('job_id', jobId || DEFAULT_JOB_ID),
+    [jobId],
+  );
+  const brandValue = useMemo(
+    () => getQueryParam('brand', brand || DEFAULT_BRAND),
+    [brand],
   );
 
-  const dateRange = useMemo(() => getRangeByTimeframe(timeframe, date), [timeframe, date]);
+  const startDateParam = useMemo(() => formatDateParam(startDate), [startDate]);
+  const endDateParam = useMemo(() => formatDateParam(endDate), [endDate]);
+  const displayStart = useMemo(() => formatDateDisplay(startDate), [startDate]);
+  const displayEnd = useMemo(() => formatDateDisplay(endDate), [endDate]);
 
   useEffect(() => {
     updateQueryParams({
       trend_platform: platform,
       trend_keyword: keyword,
-      trend_start: dateRange.startDate,
-      trend_end: dateRange.endDate,
+      trend_start: startDateParam,
+      trend_end: endDateParam,
     });
-  }, [platform, keyword, dateRange.startDate, dateRange.endDate]);
+  }, [platform, keyword, startDateParam, endDateParam]);
+
+  useEffect(() => {
+    if (!tenantKeyValue || !jobIdValue || !startDateParam || !endDateParam) {
+      setPlatformOptions([]);
+      setKeywordOptions([]);
+      setCombinations([]);
+      return;
+    }
+
+    if (metadataAbortRef.current) {
+      metadataAbortRef.current.abort();
+    }
+
+    const controller = new AbortController();
+    metadataAbortRef.current = controller;
+
+    const run = async () => {
+      try {
+        setMetadataLoading(true);
+        setMetadataError('');
+        const result = await fetchJson(
+          `/api/v1/dashboard/filter-metadata?${buildQueryString({
+            tenant_key: tenantKeyValue,
+            job_id: jobIdValue,
+            start_date: startDateParam,
+            end_date: endDateParam,
+          })}`,
+          { signal: controller.signal },
+        );
+
+        if (result?.code && result.code !== 200) {
+          throw new Error(result?.message || '接口返回错误状态');
+        }
+
+        const payload = result?.data || {};
+        const nextPlatforms = Array.isArray(payload.platforms) ? payload.platforms : [];
+        const nextKeywords = Array.isArray(payload.keywords) ? payload.keywords : [];
+        const nextCombinations = Array.isArray(payload.combinations) ? payload.combinations : [];
+        setPlatformOptions(Array.from(new Set(nextPlatforms.filter(Boolean))));
+        setKeywordOptions(Array.from(new Set(nextKeywords.filter(Boolean))));
+        setCombinations(nextCombinations);
+        setMetadataLoading(false);
+      } catch (err) {
+        if (controller.signal.aborted) return;
+        if (err?.name === 'AbortError') return;
+        setPlatformOptions([]);
+        setKeywordOptions([]);
+        setCombinations([]);
+        setMetadataError(err?.message || '筛选项加载失败');
+        setMetadataLoading(false);
+      }
+    };
+
+    run();
+
+    return () => {
+      controller.abort();
+    };
+  }, [tenantKeyValue, jobIdValue, startDateParam, endDateParam]);
 
   const queryString = useMemo(
     () =>
       buildQueryString({
-        tenant_key: tenantKey,
-        job_id: jobId,
-        brand,
+        tenant_key: tenantKeyValue,
+        job_id: jobIdValue,
+        brand: brandValue,
         platform,
         keyword,
-        start_date: dateRange.startDate,
-        end_date: dateRange.endDate,
+        start_date: startDateParam,
+        end_date: endDateParam,
       }),
-    [tenantKey, jobId, brand, platform, keyword, dateRange.startDate, dateRange.endDate],
+    [
+      tenantKeyValue,
+      jobIdValue,
+      brandValue,
+      platform,
+      keyword,
+      startDateParam,
+      endDateParam,
+    ],
   );
 
-  const applyFilters = () => {
-    const nextPlatform = String(platformInput || '').trim();
-    const nextKeyword = String(keywordInput || '').trim();
-    setPlatform(nextPlatform);
-    setKeyword(nextKeyword);
-  };
-
   useEffect(() => {
-    if (!platform || !keyword || !dateRange.startDate || !dateRange.endDate) {
+    if (!platform || !keyword || !startDateParam || !endDateParam) {
       setTrendData([]);
       return;
     }
@@ -211,7 +318,43 @@ const TrendAnalysis = ({
     return () => {
       controller.abort();
     };
-  }, [platform, keyword, dateRange.startDate, dateRange.endDate, queryString]);
+  }, [platform, keyword, startDateParam, endDateParam, queryString, reloadKey]);
+
+  const availablePlatforms = useMemo(() => {
+    const options = ['全部', ...platformOptions];
+    if (!combinations.length || keyword === '全部') return options;
+    const allowed = new Set(
+      combinations
+        .filter((item) => item?.keyword === keyword)
+        .map((item) => item?.platform)
+        .filter(Boolean),
+    );
+    return options.filter((item) => item === '全部' || allowed.has(item));
+  }, [platformOptions, combinations, keyword]);
+
+  const availableKeywords = useMemo(() => {
+    const options = ['全部', ...keywordOptions];
+    if (!combinations.length || platform === '全部') return options;
+    const allowed = new Set(
+      combinations
+        .filter((item) => item?.platform === platform)
+        .map((item) => item?.keyword)
+        .filter(Boolean),
+    );
+    return options.filter((item) => item === '全部' || allowed.has(item));
+  }, [keywordOptions, combinations, platform]);
+
+  useEffect(() => {
+    if (!availablePlatforms.includes(platform)) {
+      setPlatform(availablePlatforms[0] || '全部');
+    }
+  }, [availablePlatforms, platform]);
+
+  useEffect(() => {
+    if (!availableKeywords.includes(keyword)) {
+      setKeyword(availableKeywords[0] || '全部');
+    }
+  }, [availableKeywords, keyword]);
 
   const stats = useMemo(() => {
     if (!trendData.length) {
@@ -318,9 +461,9 @@ const TrendAnalysis = ({
         }
         extra={
           <Space wrap>
-            <Tag color="processing">{brand}</Tag>
+            <Tag color="processing">{brandValue}</Tag>
             <Tag color="geekblue">
-              {dateRange.startDate} - {dateRange.endDate}
+              {displayStart || '--'} - {displayEnd || '--'}
             </Tag>
           </Space>
         }
@@ -328,22 +471,84 @@ const TrendAnalysis = ({
         <Space direction="vertical" size="middle" style={{ width: '100%' }}>
           <Row gutter={[16, 16]} align="middle">
             <Col flex="auto">
-              <Space wrap>
-                <Input
-                  value={platformInput}
-                  onChange={(event) => setPlatformInput(event.target.value)}
-                  placeholder="平台名称，例如 deepseek"
-                  style={{ width: 240 }}
-                />
-                <Input
-                  value={keywordInput}
-                  onChange={(event) => setKeywordInput(event.target.value)}
-                  placeholder="关键词"
-                  style={{ width: 240 }}
-                />
-                <Button type="primary" onClick={applyFilters}>
-                  应用
-                </Button>
+              <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+                <Space wrap align="center">
+                  <Typography.Text type="secondary">日期范围</Typography.Text>
+                  <DatePicker
+                    value={startDate}
+                    onChange={setStartDate}
+                    format="YYYY-MM-DD"
+                    allowClear
+                  />
+                  <Typography.Text type="secondary">至</Typography.Text>
+                  <DatePicker
+                    value={endDate}
+                    onChange={setEndDate}
+                    format="YYYY-MM-DD"
+                    allowClear
+                  />
+                </Space>
+                {metadataLoading ? (
+                  <Typography.Text type="secondary">筛选项加载中...</Typography.Text>
+                ) : metadataError ? (
+                  <Typography.Text type="danger">{metadataError}</Typography.Text>
+                ) : (
+                  <Space direction="vertical" size="small" style={{ width: '100%' }}>
+                    <Space direction="vertical" size={4}>
+                      <Typography.Text type="secondary">平台</Typography.Text>
+                      <Space wrap>
+                        {availablePlatforms.map((item) => {
+                          const checked = platform === item;
+                          const color = item === '全部' ? token.colorPrimary : getPlatformColor(item);
+                          return (
+                            <Tag.CheckableTag
+                              key={`platform-${item}`}
+                              checked={checked}
+                              onChange={() => setPlatform(item)}
+                              style={{
+                                paddingInline: 12,
+                                paddingBlock: 4,
+                                borderRadius: 999,
+                                border: `1px solid ${checked ? color : token.colorBorderSecondary}`,
+                                color: checked ? token.colorText : color,
+                                background: checked ? color : 'transparent',
+                                marginInlineEnd: 0,
+                              }}
+                            >
+                              {item}
+                            </Tag.CheckableTag>
+                          );
+                        })}
+                      </Space>
+                    </Space>
+                    <Space direction="vertical" size={4}>
+                      <Typography.Text type="secondary">关键词</Typography.Text>
+                      <Space wrap>
+                        {availableKeywords.map((item) => {
+                          const checked = keyword === item;
+                          return (
+                            <Tag.CheckableTag
+                              key={`keyword-${item}`}
+                              checked={checked}
+                              onChange={() => setKeyword(item)}
+                              style={{
+                                paddingInline: 12,
+                                paddingBlock: 4,
+                                borderRadius: 8,
+                                border: `1px solid ${checked ? token.colorPrimary : token.colorBorderSecondary}`,
+                                color: checked ? token.colorText : token.colorTextSecondary,
+                                background: checked ? token.colorPrimary : 'rgba(255, 255, 255, 0.08)',
+                                marginInlineEnd: 0,
+                              }}
+                            >
+                              {item}
+                            </Tag.CheckableTag>
+                          );
+                        })}
+                      </Space>
+                    </Space>
+                  </Space>
+                )}
               </Space>
             </Col>
             <Col>
@@ -381,12 +586,12 @@ const TrendAnalysis = ({
             title="数据加载失败"
             description={error}
             actionText="重试"
-            onAction={() => applyFilters()}
+            onAction={() => setReloadKey((prev) => prev + 1)}
           />
-        ) : !platform || !keyword ? (
+        ) : !platform || !keyword || !startDateParam || !endDateParam ? (
           <EmptyState
-            title="请输入平台与关键词"
-            description="填写平台名称与关键词后即可查看趋势"
+            title="请输入筛选条件"
+            description="选择平台、关键词与日期范围后即可查看趋势"
           />
         ) : !trendData.length ? (
           <EmptyState

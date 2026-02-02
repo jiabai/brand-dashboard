@@ -12,6 +12,7 @@ from api.v1.repositories.database import (
     query_brand_platform_keyword_daily_mention_rates,
     query_brand_platform_mention_data,
     query_domain_citation_rate,
+    query_filter_metadata,
     query_keyword_platform_brand_rates,
     query_platform_metrics_by_brand,
     query_post_citation_rate,
@@ -153,6 +154,26 @@ class AvailableDatesResponse(BaseModel):
     status: str = Field(..., description="响应状态")
     data: List[str] = Field(..., description="日期列表 (YYYY-MM-DD)")
     metadata: Dict[str, Any] = Field(..., description="元数据")
+
+
+class FilterMetadataCombination(BaseModel):
+    platform: str = Field(..., description="平台名称")
+    keyword: str = Field(..., description="关键词")
+
+
+class FilterMetadataData(BaseModel):
+    platforms: List[str] = Field(..., description="平台列表（去重）")
+    keywords: List[str] = Field(..., description="关键词列表（去重）")
+    combinations: List[FilterMetadataCombination] = Field(
+        ...,
+        description="有效的平台与关键词组合列表",
+    )
+
+
+class FilterMetadataResponse(BaseModel):
+    code: int = Field(..., description="状态码")
+    message: str = Field(..., description="状态信息")
+    data: FilterMetadataData = Field(..., description="筛选元数据")
 
 
 class PlatformMetricsByBrandItem(BaseModel):
@@ -435,6 +456,55 @@ async def get_reference_url_stats(
         raise HTTPException(status_code=400, detail=str(e)) from e
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"获取引用URL统计数据失败: {str(e)}") from e
+
+
+@router.get("/filter-metadata", response_model=FilterMetadataResponse)
+async def get_filter_metadata(
+    tenant_key: str = Query(..., description="租户标识（安全校验）"),
+    job_id: str = Query(..., description="任务唯一标识"),
+    start_date: Optional[str] = Query(None, description="开始日期(格式: YYYYMMDD)"),
+    end_date: Optional[str] = Query(None, description="结束日期(格式: YYYYMMDD)"),
+):
+    try:
+        rows = query_filter_metadata(
+            tenant_key=tenant_key,
+            job_id=job_id,
+            start_date=start_date,
+            end_date=end_date,
+        )
+
+        platforms: List[str] = []
+        keywords: List[str] = []
+        combinations: List[FilterMetadataCombination] = []
+        seen_platforms = set()
+        seen_keywords = set()
+
+        for row in rows:
+            platform = row["platform"]
+            keyword = row["keyword"]
+            if platform not in seen_platforms:
+                platforms.append(platform)
+                seen_platforms.add(platform)
+            if keyword not in seen_keywords:
+                keywords.append(keyword)
+                seen_keywords.add(keyword)
+            combinations.append(
+                FilterMetadataCombination(platform=platform, keyword=keyword)
+            )
+
+        return FilterMetadataResponse(
+            code=200,
+            message="success",
+            data=FilterMetadataData(
+                platforms=platforms,
+                keywords=keywords,
+                combinations=combinations,
+            ),
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"获取筛选元数据失败: {str(e)}") from e
 
 
 @router.get("/available-dates", response_model=AvailableDatesResponse)

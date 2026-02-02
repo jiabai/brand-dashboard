@@ -412,6 +412,97 @@
         }
       }
     },
+    "/api/v1/dashboard/filter-metadata": {
+      "get": {
+        "tags": [
+          "dashboard"
+        ],
+        "summary": "Get Filter Metadata",
+        "operationId": "get_filter_metadata_api_v1_dashboard_filter_metadata_get",
+        "parameters": [
+          {
+            "name": "tenant_key",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "租户标识（安全校验）",
+              "title": "Tenant Key"
+            },
+            "description": "租户标识（安全校验）"
+          },
+          {
+            "name": "job_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "任务唯一标识",
+              "title": "Job Id"
+            },
+            "description": "任务唯一标识"
+          },
+          {
+            "name": "start_date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "开始日期(格式: YYYYMMDD)",
+              "title": "Start Date"
+            },
+            "description": "开始日期(格式: YYYYMMDD)"
+          },
+          {
+            "name": "end_date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "结束日期(格式: YYYYMMDD)",
+              "title": "End Date"
+            },
+            "description": "结束日期(格式: YYYYMMDD)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FilterMetadataResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/dashboard/available-dates": {
       "get": {
         "tags": [
@@ -993,6 +1084,86 @@
         ],
         "title": "AvailableDatesResponse",
         "description": "有数据日期响应模型."
+      },
+      "FilterMetadataCombination": {
+        "properties": {
+          "platform": {
+            "type": "string",
+            "title": "Platform",
+            "description": "平台名称"
+          },
+          "keyword": {
+            "type": "string",
+            "title": "Keyword",
+            "description": "关键词"
+          }
+        },
+        "type": "object",
+        "required": [
+          "platform",
+          "keyword"
+        ],
+        "title": "FilterMetadataCombination"
+      },
+      "FilterMetadataData": {
+        "properties": {
+          "platforms": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Platforms",
+            "description": "平台列表（去重）"
+          },
+          "keywords": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Keywords",
+            "description": "关键词列表（去重）"
+          },
+          "combinations": {
+            "items": {
+              "$ref": "#/components/schemas/FilterMetadataCombination"
+            },
+            "type": "array",
+            "title": "Combinations",
+            "description": "有效的平台与关键词组合列表"
+          }
+        },
+        "type": "object",
+        "required": [
+          "platforms",
+          "keywords",
+          "combinations"
+        ],
+        "title": "FilterMetadataData"
+      },
+      "FilterMetadataResponse": {
+        "properties": {
+          "code": {
+            "type": "integer",
+            "title": "Code",
+            "description": "状态码"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "状态信息"
+          },
+          "data": {
+            "$ref": "#/components/schemas/FilterMetadataData",
+            "description": "筛选元数据"
+          }
+        },
+        "type": "object",
+        "required": [
+          "code",
+          "message",
+          "data"
+        ],
+        "title": "FilterMetadataResponse"
       },
       "BrandMentionRateData": {
         "properties": {

@@ -976,8 +976,70 @@ WHERE tenant_key = :tenant_key
   AND job_id = :job_id -- 可选
 ORDER BY date DESC;
 ```
+-------------
 
----
+### 任务筛选元数据接口
+
+### 接口信息
+- **路径**: `/api/v1/dashboard/filter-metadata`
+- **方法**: `GET`
+- **描述**: 获取指定任务下所有可用的平台和关键词，用于前端渲染筛选标签。
+
+### 请求参数 (Query & Path)
+
+| 参数名 | 类型 | 必填 | 位置 | 描述 |
+|--------|------|------|------|------|
+| job_id | string | 是 | Path | 任务唯一标识 |
+| tenant_key | string | 是 | Query | 租户标识（安全校验） |
+| start_date | string | 否 | Query | 开始日期 (YYYYMMDD) |
+| end_date | string | 否 | Query | 结束日期 (YYYYMMDD) |
+
+### 请求示例
+
+```bash
+curl -X GET "http://your-api.com/api/v1/dashboard/filter-metadata?tenant_key=tn_1b02b3ef4fbd&job_id=job_20260127_...&start_date=20260101&end_date=20260131"
+```
+
+### 响应示例
+
+```json
+{
+  "code": 200,
+  "message": "success",
+  "data": {
+    "platforms": ["ChatGPT", "Deepseek", "Qwen"],
+    "keywords": ["手机", "笔记本", "智能家居", "海尔冰箱"],
+    "combinations": [
+      { "platform": "Qwen", "keyword": "手机" },
+      { "platform": "Qwen", "keyword": "笔记本" },
+      { "platform": "Deepseek", "keyword": "手机" }
+    ]
+  }
+}
+```
+
+### 响应字段说明
+
+| 字段名 | 类型 | 描述 |
+|--------|------|------|
+| code | int | 状态码 |
+| message | string | 状态信息 |
+| data.platforms | array | 平台列表（去重） |
+| data.keywords | array | 关键词列表（去重） |
+| data.combinations | array | 有效的平台与关键词组合列表，用于联动筛选 |
+
+### 数据计算逻辑
+
+```sql
+SELECT DISTINCT platform, keyword
+FROM qa_brand_state 
+WHERE tenant_key = :tenant_key  
+  AND job_id = :job_id 
+  AND date BETWEEN :start_date AND :end_date
+ORDER BY platform ASC, keyword ASC;
+```
+
+------
 
 ## 🧠 品牌策略与分析 API (LLM)
 

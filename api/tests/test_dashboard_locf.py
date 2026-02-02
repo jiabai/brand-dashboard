@@ -88,3 +88,39 @@ class TestBrandMentionTrendApi(unittest.TestCase):
         self.assertEqual(data[1]["is_filled"], True)
         self.assertEqual(data[2]["is_filled"], False)
         self.assertEqual(data[3]["is_filled"], True)
+
+
+class TestFilterMetadataApi(unittest.TestCase):
+    def setUp(self):
+        app = FastAPI()
+        app.include_router(dashboard.router, prefix="/api/v1/dashboard")
+        self.client = TestClient(app)
+
+    def test_filter_metadata_returns_unique_lists(self):
+        rows = [
+            {"platform": "Qwen", "keyword": "手机"},
+            {"platform": "Qwen", "keyword": "笔记本"},
+            {"platform": "Deepseek", "keyword": "手机"},
+        ]
+
+        with patch(
+            "api.v1.routes.dashboard.query_filter_metadata",
+            return_value=rows,
+        ):
+            response = self.client.get(
+                "/api/v1/dashboard/filter-metadata",
+                params={
+                    "tenant_key": "tn_1b02b3ef4fbd",
+                    "job_id": "job_20260127_223236_989cc4db",
+                    "start_date": "20260101",
+                    "end_date": "20260131",
+                },
+            )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["code"], 200)
+        data = payload["data"]
+        self.assertEqual(data["platforms"], ["Qwen", "Deepseek"])
+        self.assertEqual(data["keywords"], ["手机", "笔记本"])
+        self.assertEqual(len(data["combinations"]), 3)
