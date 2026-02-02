@@ -1,10 +1,14 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, Empty, Table, Progress, Card, Tag, Space, Typography, Tooltip } from 'antd';
 import { InfoCircleOutlined } from '@ant-design/icons';
 import { CONFIG } from '@/config';
 
 const { Text, Title } = Typography;
 const { DEFAULT_TENANT_KEY, DEFAULT_JOB_ID } = CONFIG;
+
+const COLUMN_WIDTH_STORAGE_KEY = 'BrandShareOfVoiceTable:columnWidths';
+const MIN_COLUMN_WIDTH = 96;
+const MAX_COLUMN_WIDTH = 720;
 
 const buildQueryString = (params) => {
   const searchParams = new URLSearchParams();
@@ -24,6 +28,71 @@ const fetchJson = async (url, { signal } = {}) => {
   return response.json();
 };
 
+const ResizableHeaderCell = ({ onResize, width, style, children, ...restProps }) => {
+  const handleMouseDown = (event) => {
+    if (!onResize) return;
+    event.preventDefault();
+    event.stopPropagation();
+
+    const startX = event.clientX;
+    const startWidth = Number(width) || 0;
+
+    const prevCursor = document.body.style.cursor;
+    const prevUserSelect = document.body.style.userSelect;
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+
+    const handleMouseMove = (moveEvent) => {
+      const nextWidth = Math.max(
+        MIN_COLUMN_WIDTH,
+        Math.min(MAX_COLUMN_WIDTH, startWidth + (moveEvent.clientX - startX)),
+      );
+      onResize(nextWidth);
+    };
+
+    const handleMouseUp = () => {
+      document.body.style.cursor = prevCursor;
+      document.body.style.userSelect = prevUserSelect;
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  };
+
+  return (
+    <th
+      {...restProps}
+      style={{
+        ...style,
+        width,
+        position: 'relative',
+      }}
+    >
+      {children}
+      {!!onResize && (
+        <div
+          role="separator"
+          aria-orientation="vertical"
+          onMouseDown={handleMouseDown}
+          style={{
+            position: 'absolute',
+            top: 0,
+            right: 0,
+            height: '100%',
+            width: 10,
+            cursor: 'col-resize',
+            userSelect: 'none',
+            touchAction: 'none',
+            zIndex: 1,
+          }}
+        />
+      )}
+    </th>
+  );
+};
+
 const BrandShareOfVoiceTable = ({
   timeframe = '7days',
   date = '',
@@ -34,6 +103,14 @@ const BrandShareOfVoiceTable = ({
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [columnWidths, setColumnWidths] = useState(() => {
+    try {
+      const raw = window.localStorage.getItem(COLUMN_WIDTH_STORAGE_KEY);
+      return raw ? JSON.parse(raw) : {};
+    } catch (_) {
+      return {};
+    }
+  });
 
   const queryString = useMemo(
     () =>
@@ -113,88 +190,121 @@ const BrandShareOfVoiceTable = ({
     return platforms.map(p => ({ text: p, value: p }));
   }, [rows]);
 
-  const columns = [
-    {
-      title: 'Keyword',
-      dataIndex: 'keyword',
-      key: 'keyword',
-      filters: keywordFilters,
-      onFilter: (value, record) => record.keyword === value,
-      render: (text) => <Text strong>{text}</Text>,
+  const setColumnWidth = useCallback((key, nextWidth) => {
+    const width = Math.max(MIN_COLUMN_WIDTH, Math.min(MAX_COLUMN_WIDTH, Math.round(nextWidth)));
+    setColumnWidths((prev) => {
+      const next = { ...prev, [key]: width };
+      try {
+        window.localStorage.setItem(COLUMN_WIDTH_STORAGE_KEY, JSON.stringify(next));
+      } catch (_) {
+        // ignore
+      }
+      return next;
+    });
+  }, []);
+
+  const handleResize = useCallback(
+    (key) => (nextWidth) => {
+      setColumnWidth(key, nextWidth);
     },
-    {
-      title: 'Platform',
-      dataIndex: 'platform',
-      key: 'platform',
-      filters: platformFilters,
-      onFilter: (value, record) => record.platform === value,
-      render: (text) => <Tag color="blue">{text}</Tag>,
-    },
-    {
-      title: 'Brand',
-      dataIndex: 'brand',
-      key: 'brand',
-      render: (text) => <Text>{text}</Text>,
-    },
-    {
-      title: (
-        <Space>
-          Mention Rate
-          <Tooltip title="Percentage of conversations where the brand was mentioned">
-            <InfoCircleOutlined style={{ color: 'rgba(0,0,0,0.45)' }} />
-          </Tooltip>
-        </Space>
-      ),
-      dataIndex: 'mention_rate',
-      key: 'mention_rate',
-      sorter: (a, b) => a.mention_rate - b.mention_rate,
-      defaultSortOrder: 'descend',
-      render: (value) => (
-        <Space direction="vertical" style={{ width: '100%' }} size={0}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 2 }}>
-            <Text type="secondary" style={{ fontSize: 12 }}>{(value * 100).toFixed(2)}%</Text>
-          </div>
-          <Progress 
-            percent={value * 100} 
-            showInfo={false} 
-            size="small" 
-            strokeColor={{
-              '0%': '#108ee9',
-              '100%': '#87d068',
-            }}
-          />
-        </Space>
-      ),
-      width: 200,
-    },
-    {
-      title: (
-        <Space>
-          First Mention Rate
-          <Tooltip title="Percentage of conversations where the brand was mentioned first">
-            <InfoCircleOutlined style={{ color: 'rgba(0,0,0,0.45)' }} />
-          </Tooltip>
-        </Space>
-      ),
-      dataIndex: 'first_mention_rate',
-      key: 'first_mention_rate',
-      sorter: (a, b) => a.first_mention_rate - b.first_mention_rate,
-      render: (value) => (
-        <Space direction="vertical" style={{ width: '100%' }} size={0}>
-           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 2 }}>
-            <Text type="secondary" style={{ fontSize: 12 }}>{(value * 100).toFixed(2)}%</Text>
-          </div>
-          <Progress 
-            percent={value * 100} 
-            showInfo={false} 
-            size="small" 
-            strokeColor="#faad14"
-          />
-        </Space>
-      ),
-      width: 200,
-    },
-  ];
+    [setColumnWidth],
+  );
+
+  const columns = useMemo(() => {
+    const defs = [
+      {
+        title: 'Platform',
+        dataIndex: 'platform',
+        key: 'platform',
+        filters: platformFilters,
+        onFilter: (value, record) => record.platform === value,
+        render: (text) => <Tag color="blue">{text}</Tag>,
+        width: columnWidths.platform ?? 140,
+      },
+      {
+        title: 'Keyword',
+        dataIndex: 'keyword',
+        key: 'keyword',
+        filters: keywordFilters,
+        onFilter: (value, record) => record.keyword === value,
+        render: (text) => <Text strong>{text}</Text>,
+        width: columnWidths.keyword ?? 240,
+      },
+      {
+        title: 'Brand',
+        dataIndex: 'brand',
+        key: 'brand',
+        render: (text) => <Text>{text}</Text>,
+        width: columnWidths.brand ?? 200,
+      },
+      {
+        title: (
+          <Space>
+            Mention Rate
+            <Tooltip title="Percentage of conversations where the brand was mentioned">
+              <InfoCircleOutlined style={{ color: 'rgba(0,0,0,0.45)' }} />
+            </Tooltip>
+          </Space>
+        ),
+        dataIndex: 'mention_rate',
+        key: 'mention_rate',
+        sorter: (a, b) => a.mention_rate - b.mention_rate,
+        defaultSortOrder: 'descend',
+        render: (value) => (
+          <Space direction="vertical" style={{ width: '100%' }} size={0}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 2 }}>
+              <Text type="secondary" style={{ fontSize: 12 }}>{(value * 100).toFixed(2)}%</Text>
+            </div>
+            <Progress 
+              percent={value * 100} 
+              showInfo={false} 
+              size="small" 
+              strokeColor={{
+                '0%': '#108ee9',
+                '100%': '#87d068',
+              }}
+            />
+          </Space>
+        ),
+        width: columnWidths.mention_rate ?? 200,
+      },
+      {
+        title: (
+          <Space>
+            First Mention Rate
+            <Tooltip title="Percentage of conversations where the brand was mentioned first">
+              <InfoCircleOutlined style={{ color: 'rgba(0,0,0,0.45)' }} />
+            </Tooltip>
+          </Space>
+        ),
+        dataIndex: 'first_mention_rate',
+        key: 'first_mention_rate',
+        sorter: (a, b) => a.first_mention_rate - b.first_mention_rate,
+        render: (value) => (
+          <Space direction="vertical" style={{ width: '100%' }} size={0}>
+             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 2 }}>
+              <Text type="secondary" style={{ fontSize: 12 }}>{(value * 100).toFixed(2)}%</Text>
+            </div>
+            <Progress 
+              percent={value * 100} 
+              showInfo={false} 
+              size="small" 
+              strokeColor="#faad14"
+            />
+          </Space>
+        ),
+        width: columnWidths.first_mention_rate ?? 200,
+      },
+    ];
+
+    return defs.map((col) => ({
+      ...col,
+      onHeaderCell: () => ({
+        width: col.width,
+        onResize: handleResize(col.key),
+      }),
+    }));
+  }, [columnWidths, handleResize, keywordFilters, platformFilters]);
 
   return (
     <Card 
@@ -212,6 +322,9 @@ const BrandShareOfVoiceTable = ({
         dataSource={rows} 
         rowKey={(record) => `${record.keyword}-${record.platform}-${record.brand}`}
         loading={loading}
+        components={{ header: { cell: ResizableHeaderCell } }}
+        tableLayout="fixed"
+        scroll={{ x: 'max-content' }}
         pagination={{ pageSize: 10 }}
         locale={{
           emptyText: (
