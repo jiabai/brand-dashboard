@@ -22,10 +22,10 @@ class TestFillMissingDatesLocf(unittest.TestCase):
         )
 
         expected = [
-            {"date": "2026-01-01", "mention_rate": 0.2},
-            {"date": "2026-01-02", "mention_rate": 0.2},
-            {"date": "2026-01-03", "mention_rate": 0.5},
-            {"date": "2026-01-04", "mention_rate": 0.5},
+            {"date": "20260101", "mention_rate": 0.2},
+            {"date": "20260102", "mention_rate": 0.2},
+            {"date": "20260103", "mention_rate": 0.5},
+            {"date": "20260104", "mention_rate": 0.5},
         ]
         self.assertEqual(result, expected)
 
@@ -70,8 +70,8 @@ class TestBrandMentionTrendApi(unittest.TestCase):
                     "brand": "哈基桃电竞",
                     "platform": "deepseek",
                     "keyword": "三角洲陪玩",
-                    "start_date": "2026-01-01",
-                    "end_date": "2026-01-04",
+                    "start_date": "20260101",
+                    "end_date": "20260104",
                 },
             )
 

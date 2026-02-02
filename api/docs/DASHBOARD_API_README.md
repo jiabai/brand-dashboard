@@ -669,13 +669,13 @@ ORDER BY mention_rate DESC; -- 在代码中进行排序
 | brand | string | 是 | 品牌名称 |
 | platform | string | 是 | 平台名称（如 deepseek） |
 | keyword | string | 是 | 关键词 |
-| start_date | string | 是 | 开始日期，格式: `YYYY-MM-DD` |
-| end_date | string | 是 | 结束日期，格式: `YYYY-MM-DD` |
+| start_date | string | 是 | 开始日期，格式: `YYYYMMDD` |
+| end_date | string | 是 | 结束日期，格式: `YYYYMMDD` |
 
 ### 请求示例
 
 ```bash
-curl -X GET "http://your-api.com/api/v1/dashboard/brand-mention-trend?tenant_key=tn_xxx&job_id=job_456&brand=哈基桃电竞&platform=deepseek&keyword=三角洲陪玩&start_date=2026-01-01&end_date=2026-01-31"
+curl -X GET "http://your-api.com/api/v1/dashboard/brand-mention-trend?tenant_key=tn_xxx&job_id=job_456&brand=哈基桃电竞&platform=deepseek&keyword=三角洲陪玩&start_date=20260101&end_date=20260131"
 ```
 
 ### 响应格式
@@ -685,14 +685,14 @@ curl -X GET "http://your-api.com/api/v1/dashboard/brand-mention-trend?tenant_key
   "status": "success",
   "data": [
     {
-      "date": "2026-01-01",
+      "date": "20260101",
       "brand": "哈基桃电竞",
       "platform": "deepseek",
       "keyword": "三角洲陪玩",
       "mention_rate": 0.2000
     },
     {
-      "date": "2026-01-02",
+      "date": "20260102",
       "brand": "哈基桃电竞",
       "platform": "deepseek",
       "keyword": "三角洲陪玩",
@@ -703,8 +703,8 @@ curl -X GET "http://your-api.com/api/v1/dashboard/brand-mention-trend?tenant_key
     "brand": "哈基桃电竞",
     "platform": "deepseek",
     "keyword": "三角洲陪玩",
-    "start_date": "2026-01-01",
-    "end_date": "2026-01-31",
+    "start_date": "20260101",
+    "end_date": "20260131",
     "fill_method": "locf",
     "calculation_method": "mention_rate_by_day",
     "points": 31
@@ -718,7 +718,7 @@ curl -X GET "http://your-api.com/api/v1/dashboard/brand-mention-trend?tenant_key
 |--------|------|------|
 | status | string | 响应状态，"success" 或 "error" |
 | data | array | 趋势数据列表（按日） |
-| data.date | string | 日期（YYYY-MM-DD） |
+| data.date | string | 日期（YYYYMMDD） |
 | data.brand | string | 品牌名称 |
 | data.platform | string | 平台名称 |
 | data.keyword | string | 关键词 |

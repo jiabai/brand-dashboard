@@ -818,10 +818,10 @@
             "required": true,
             "schema": {
               "type": "string",
-              "description": "开始日期(格式: YYYY-MM-DD)",
+              "description": "开始日期(格式: YYYYMMDD)",
               "title": "Start Date"
             },
-            "description": "开始日期(格式: YYYY-MM-DD)"
+            "description": "开始日期(格式: YYYYMMDD)"
           },
           {
             "name": "end_date",
@@ -829,10 +829,10 @@
             "required": true,
             "schema": {
               "type": "string",
-              "description": "结束日期(格式: YYYY-MM-DD)",
+              "description": "结束日期(格式: YYYYMMDD)",
               "title": "End Date"
             },
-            "description": "结束日期(格式: YYYY-MM-DD)"
+            "description": "结束日期(格式: YYYYMMDD)"
           }
         ],
         "responses": {

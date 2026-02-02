@@ -30,17 +30,17 @@ def fill_missing_dates_locf(
     data_map: Dict[str, float] = {}
     for row in rows:
         row_date = row["date"]
-        if hasattr(row_date, "isoformat"):
-            date_key = row_date.isoformat()
+        if hasattr(row_date, "strftime"):
+            date_key = row_date.strftime("%Y%m%d")
         else:
-            date_key = str(row_date)
+            date_key = str(row_date).replace("-", "")
         data_map[date_key] = float(row["mention_rate"]) if row["mention_rate"] is not None else 0.0
 
     result: List[Dict[str, Any]] = []
     current_date = start_date
     last_value = initial_value
     while current_date <= end_date:
-        date_key = current_date.isoformat()
+        date_key = current_date.strftime("%Y%m%d")
         if date_key in data_map:
             last_value = data_map[date_key]
         result.append({"date": date_key, "mention_rate": last_value})
@@ -321,12 +321,12 @@ async def get_brand_mention_trend(
     brand: str = Query(..., description="品牌名称"),
     platform: str = Query(..., description="平台名称"),
     keyword: str = Query(..., description="关键词"),
-    start_date: str = Query(..., description="开始日期(格式: YYYY-MM-DD)"),
-    end_date: str = Query(..., description="结束日期(格式: YYYY-MM-DD)"),
+    start_date: str = Query(..., description="开始日期(格式: YYYYMMDD)"),
+    end_date: str = Query(..., description="结束日期(格式: YYYYMMDD)"),
 ):
     try:
-        start_value = datetime.strptime(start_date, "%Y-%m-%d").date()
-        end_value = datetime.strptime(end_date, "%Y-%m-%d").date()
+        start_value = datetime.strptime(start_date, "%Y%m%d").date()
+        end_value = datetime.strptime(end_date, "%Y%m%d").date()
 
         if start_value > end_value:
             raise ValueError("开始日期不能晚于结束日期")
