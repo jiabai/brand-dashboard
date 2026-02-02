@@ -501,6 +501,116 @@
         }
       }
     },
+    "/api/v1/dashboard/brand-mention-trend": {
+      "get": {
+        "tags": [
+          "dashboard"
+        ],
+        "summary": "Get Brand Mention Trend",
+        "operationId": "get_brand_mention_trend_api_v1_dashboard_brand_mention_trend_get",
+        "parameters": [
+          {
+            "name": "tenant_key",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "租户唯一字符串标识（tenants.tenant_key）",
+              "title": "Tenant Key"
+            },
+            "description": "租户唯一字符串标识（tenants.tenant_key）"
+          },
+          {
+            "name": "job_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "任务ID",
+              "title": "Job Id"
+            },
+            "description": "任务ID"
+          },
+          {
+            "name": "brand",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "品牌名称",
+              "title": "Brand"
+            },
+            "description": "品牌名称"
+          },
+          {
+            "name": "platform",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "平台名称",
+              "title": "Platform"
+            },
+            "description": "平台名称"
+          },
+          {
+            "name": "keyword",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "关键词",
+              "title": "Keyword"
+            },
+            "description": "关键词"
+          },
+          {
+            "name": "start_date",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "开始日期(格式: YYYYMMDD)",
+              "title": "Start Date"
+            },
+            "description": "开始日期(格式: YYYYMMDD)"
+          },
+          {
+            "name": "end_date",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "结束日期(格式: YYYYMMDD)",
+              "title": "End Date"
+            },
+            "description": "结束日期(格式: YYYYMMDD)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BrandMentionTrendResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/dashboard/reference-url-stats": {
       "get": {
         "tags": [
@@ -568,6 +678,69 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ReferenceUrlResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/dashboard/available-dates": {
+      "get": {
+        "tags": [
+          "dashboard"
+        ],
+        "summary": "Get Dashboard Available Dates",
+        "description": "获取仪表盘有数据的日期列表.",
+        "operationId": "get_dashboard_available_dates_api_v1_dashboard_available_dates_get",
+        "parameters": [
+          {
+            "name": "tenant_key",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "租户唯一字符串标识（tenants.tenant_key）",
+              "title": "Tenant Key"
+            },
+            "description": "租户唯一字符串标识（tenants.tenant_key）"
+          },
+          {
+            "name": "job_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "任务ID",
+              "title": "Job Id"
+            },
+            "description": "任务ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AvailableDatesResponse"
                 }
               }
             }
@@ -660,6 +833,24 @@
               "title": "Brand"
             },
             "description": "品牌名称"
+          },
+          {
+            "name": "platform",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "平台名称",
+              "title": "Platform"
+            },
+            "description": "平台名称"
           }
         ],
         "responses": {
@@ -952,6 +1143,89 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/PostCitationRateResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/dashboard/keyword-platform-brand-rates": {
+      "get": {
+        "tags": [
+          "dashboard"
+        ],
+        "summary": "Get Keyword Platform Brand Rates",
+        "operationId": "get_keyword_platform_brand_rates_api_v1_dashboard_keyword_platform_brand_rates_get",
+        "parameters": [
+          {
+            "name": "tenant_key",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "租户唯一字符串标识（tenants.tenant_key）",
+              "title": "Tenant Key"
+            },
+            "description": "租户唯一字符串标识（tenants.tenant_key）"
+          },
+          {
+            "name": "job_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "任务ID",
+              "title": "Job Id"
+            },
+            "description": "任务ID"
+          },
+          {
+            "name": "timeframe",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TimeFrame",
+              "description": "时间范围"
+            },
+            "description": "时间范围"
+          },
+          {
+            "name": "date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "具体日期(格式: YYYYMMDD)",
+              "title": "Date"
+            },
+            "description": "具体日期(格式: YYYYMMDD)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KeywordPlatformBrandRatesResponse"
                 }
               }
             }
@@ -1703,6 +1977,37 @@
         "title": "AnalysisType",
         "description": "分析类型枚举."
       },
+      "AvailableDatesResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "响应状态"
+          },
+          "data": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Data",
+            "description": "日期列表 (YYYY-MM-DD)"
+          },
+          "metadata": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Metadata",
+            "description": "元数据"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "data",
+          "metadata"
+        ],
+        "title": "AvailableDatesResponse",
+        "description": "有数据日期响应模型."
+      },
       "Body_report_query_job_api_v1_query_jobs_report_post": {
         "properties": {
           "id": {
@@ -1801,6 +2106,80 @@
         ],
         "title": "BrandMentionRateResponse",
         "description": "品牌总提及率响应模型."
+      },
+      "BrandMentionTrendItem": {
+        "properties": {
+          "date": {
+            "type": "string",
+            "title": "Date",
+            "description": "日期"
+          },
+          "brand": {
+            "type": "string",
+            "title": "Brand",
+            "description": "品牌"
+          },
+          "platform": {
+            "type": "string",
+            "title": "Platform",
+            "description": "平台"
+          },
+          "keyword": {
+            "type": "string",
+            "title": "Keyword",
+            "description": "关键词"
+          },
+          "mention_rate": {
+            "type": "number",
+            "title": "Mention Rate",
+            "description": "提及率(比例，0~1)"
+          },
+          "is_filled": {
+            "type": "boolean",
+            "title": "Is Filled",
+            "description": "是否为填充点位（LOCF 或初始值填充）"
+          }
+        },
+        "type": "object",
+        "required": [
+          "date",
+          "brand",
+          "platform",
+          "keyword",
+          "mention_rate",
+          "is_filled"
+        ],
+        "title": "BrandMentionTrendItem"
+      },
+      "BrandMentionTrendResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "响应状态"
+          },
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/BrandMentionTrendItem"
+            },
+            "type": "array",
+            "title": "Data",
+            "description": "趋势数据列表"
+          },
+          "metadata": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Metadata",
+            "description": "元数据"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "data",
+          "metadata"
+        ],
+        "title": "BrandMentionTrendResponse"
       },
       "BrandMetricsItem": {
         "properties": {
@@ -2528,6 +2907,74 @@
         "title": "HealthResponse",
         "description": "健康检查响应模型."
       },
+      "KeywordPlatformBrandRateItem": {
+        "properties": {
+          "keyword": {
+            "type": "string",
+            "title": "Keyword",
+            "description": "关键词"
+          },
+          "platform": {
+            "type": "string",
+            "title": "Platform",
+            "description": "平台"
+          },
+          "brand": {
+            "type": "string",
+            "title": "Brand",
+            "description": "品牌"
+          },
+          "mention_rate": {
+            "type": "number",
+            "title": "Mention Rate",
+            "description": "提及率(比例，0~1)"
+          },
+          "first_mention_rate": {
+            "type": "number",
+            "title": "First Mention Rate",
+            "description": "首位提及率(比例，0~1)"
+          }
+        },
+        "type": "object",
+        "required": [
+          "keyword",
+          "platform",
+          "brand",
+          "mention_rate",
+          "first_mention_rate"
+        ],
+        "title": "KeywordPlatformBrandRateItem"
+      },
+      "KeywordPlatformBrandRatesResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "响应状态"
+          },
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/KeywordPlatformBrandRateItem"
+            },
+            "type": "array",
+            "title": "Data",
+            "description": "数据列表"
+          },
+          "metadata": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Metadata",
+            "description": "元数据"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "data",
+          "metadata"
+        ],
+        "title": "KeywordPlatformBrandRatesResponse"
+      },
       "LoadQueryJobsRequest": {
         "properties": {
           "tenant_key": {
@@ -2991,6 +3438,11 @@
             "title": "Tenant Key",
             "description": "租户Key"
           },
+          "job_id": {
+            "type": "string",
+            "title": "Job Id",
+            "description": "任务ID"
+          },
           "brand": {
             "anyOf": [
               {
@@ -3051,6 +3503,7 @@
         "type": "object",
         "required": [
           "tenant_key",
+          "job_id",
           "query_content",
           "query_status",
           "effective_from"

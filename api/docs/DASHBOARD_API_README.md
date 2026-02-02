@@ -689,14 +689,16 @@ curl -X GET "http://your-api.com/api/v1/dashboard/brand-mention-trend?tenant_key
       "brand": "哈基桃电竞",
       "platform": "deepseek",
       "keyword": "三角洲陪玩",
-      "mention_rate": 0.2000
+      "mention_rate": 0.2000,
+      "is_filled": false
     },
     {
       "date": "20260102",
       "brand": "哈基桃电竞",
       "platform": "deepseek",
       "keyword": "三角洲陪玩",
-      "mention_rate": 0.2000
+      "mention_rate": 0.2000,
+      "is_filled": true
     }
   ],
   "metadata": {
@@ -723,6 +725,7 @@ curl -X GET "http://your-api.com/api/v1/dashboard/brand-mention-trend?tenant_key
 | data.platform | string | 平台名称 |
 | data.keyword | string | 关键词 |
 | data.mention_rate | float | 提及率（比例，0~1） |
+| data.is_filled | bool | 是否为填充点位（LOCF 或初始值填充） |
 | metadata | object | 元数据 |
 | metadata.fill_method | string | 缺失日期填充方法（固定为 locf） |
 | metadata.points | int | 返回点位数量（等于日期范围天数） |
@@ -752,6 +755,7 @@ ORDER BY date ASC
 缺失日期补齐规则：
 - 在指定 `[start_date, end_date]` 范围内，若某日期无数据，则该日期的 `mention_rate` 使用上一个有数据日期的 `mention_rate`（前值填充）。
 - 若 `start_date` 当天无数据且之前也无数据可继承，则该日期的 `mention_rate` 为 `0.0`。
+- 若某日期为补齐得到，则该日期返回 `is_filled = true`；否则为 `false`。
 
 ---
 

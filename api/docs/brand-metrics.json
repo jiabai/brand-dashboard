@@ -1,18 +1,18 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "Brand Dashboard API",
-    "version": "1.0.0"
+    "title": "Brand Analysis API",
+    "description": "品牌分析API服务，为dashboard提供数据接口",
+    "version": "0.1.0"
   },
   "paths": {
-    "/api/v1/dashboard/post-citation-rate": {
+    "/api/v1/dashboard/brand-metrics": {
       "get": {
         "tags": [
           "dashboard"
         ],
-        "summary": "Get Post Citation Rate",
-        "description": "获取品牌发文引用率信息.",
-        "operationId": "get_post_citation_rate_api_v1_dashboard_post_citation_rate_get",
+        "summary": "Get Brand Metrics",
+        "operationId": "get_brand_metrics_api_v1_dashboard_brand_metrics_get",
         "parameters": [
           {
             "name": "tenant_key",
@@ -20,10 +20,10 @@
             "required": true,
             "schema": {
               "type": "string",
-              "description": "租户唯一字符串标识",
+              "description": "租户唯一字符串标识（tenants.tenant_key）",
               "title": "Tenant Key"
             },
-            "description": "租户唯一字符串标识"
+            "description": "租户唯一字符串标识（tenants.tenant_key）"
           },
           {
             "name": "job_id",
@@ -35,17 +35,6 @@
               "title": "Job Id"
             },
             "description": "任务ID"
-          },
-          {
-            "name": "brand",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "description": "品牌名称",
-              "title": "Brand"
-            },
-            "description": "品牌名称"
           },
           {
             "name": "timeframe",
@@ -74,6 +63,42 @@
               "title": "Date"
             },
             "description": "具体日期(格式: YYYYMMDD)"
+          },
+          {
+            "name": "brand",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "品牌名称",
+              "title": "Brand"
+            },
+            "description": "品牌名称"
+          },
+          {
+            "name": "platform",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "平台名称",
+              "title": "Platform"
+            },
+            "description": "平台名称"
           }
         ],
         "responses": {
@@ -82,7 +107,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PostCitationRateResponse"
+                  "$ref": "#/components/schemas/BrandMetricsResponse"
                 }
               }
             }
@@ -103,46 +128,57 @@
   },
   "components": {
     "schemas": {
-      "HTTPValidationError": {
-        "properties": {
-          "detail": {
-            "items": {
-              "$ref": "#/components/schemas/ValidationError"
-            },
-            "type": "array",
-            "title": "Detail"
-          }
-        },
-        "type": "object",
-        "title": "HTTPValidationError"
-      },
-      "PostCitationRateData": {
+      "BrandMetricsItem": {
         "properties": {
           "brand": {
             "type": "string",
             "title": "Brand",
             "description": "品牌名称"
           },
+          "mention_rate": {
+            "type": "number",
+            "title": "Mention Rate",
+            "description": "品牌总提及率"
+          },
+          "first_mention_rate": {
+            "type": "number",
+            "title": "First Mention Rate",
+            "description": "首次提及品牌率"
+          },
+          "citation_rate_by_post": {
+            "type": "number",
+            "title": "Citation Rate By Post",
+            "description": "引用率"
+          },
+          "prompt_count": {
+            "type": "integer",
+            "title": "Prompt Count",
+            "description": "问题总数"
+          },
           "citation_source_count": {
             "type": "integer",
             "title": "Citation Source Count",
             "description": "引用来源数量"
           },
-          "citation_rate_by_post": {
-            "type": "number",
-            "title": "Citation Rate By Post",
-            "description": "发文引用率（有发文引用的对话占比）"
+          "keyword_coverage": {
+            "type": "integer",
+            "title": "Keyword Coverage",
+            "description": "关键词覆盖数"
           }
         },
         "type": "object",
         "required": [
           "brand",
+          "mention_rate",
+          "first_mention_rate",
+          "citation_rate_by_post",
+          "prompt_count",
           "citation_source_count",
-          "citation_rate_by_post"
+          "keyword_coverage"
         ],
-        "title": "PostCitationRateData"
+        "title": "BrandMetricsItem"
       },
-      "PostCitationRateResponse": {
+      "BrandMetricsResponse": {
         "properties": {
           "status": {
             "type": "string",
@@ -151,11 +187,11 @@
           },
           "data": {
             "items": {
-              "$ref": "#/components/schemas/PostCitationRateData"
+              "$ref": "#/components/schemas/BrandMetricsItem"
             },
             "type": "array",
             "title": "Data",
-            "description": "数据列表"
+            "description": "品牌总指标列表"
           },
           "metadata": {
             "additionalProperties": true,
@@ -170,7 +206,20 @@
           "data",
           "metadata"
         ],
-        "title": "PostCitationRateResponse"
+        "title": "BrandMetricsResponse"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
       },
       "TimeFrame": {
         "type": "string",

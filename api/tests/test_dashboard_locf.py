@@ -22,10 +22,10 @@ class TestFillMissingDatesLocf(unittest.TestCase):
         )
 
         expected = [
-            {"date": "20260101", "mention_rate": 0.2},
-            {"date": "20260102", "mention_rate": 0.2},
-            {"date": "20260103", "mention_rate": 0.5},
-            {"date": "20260104", "mention_rate": 0.5},
+            {"date": "20260101", "mention_rate": 0.2, "is_filled": False},
+            {"date": "20260102", "mention_rate": 0.2, "is_filled": True},
+            {"date": "20260103", "mention_rate": 0.5, "is_filled": False},
+            {"date": "20260104", "mention_rate": 0.5, "is_filled": True},
         ]
         self.assertEqual(result, expected)
 
@@ -84,3 +84,7 @@ class TestBrandMentionTrendApi(unittest.TestCase):
         self.assertEqual(data[1]["mention_rate"], 0.2)
         self.assertEqual(data[2]["mention_rate"], 0.5)
         self.assertEqual(data[3]["mention_rate"], 0.5)
+        self.assertEqual(data[0]["is_filled"], False)
+        self.assertEqual(data[1]["is_filled"], True)
+        self.assertEqual(data[2]["is_filled"], False)
+        self.assertEqual(data[3]["is_filled"], True)

@@ -41,9 +41,10 @@ def fill_missing_dates_locf(
     last_value = initial_value
     while current_date <= end_date:
         date_key = current_date.strftime("%Y%m%d")
-        if date_key in data_map:
+        is_filled = date_key not in data_map
+        if not is_filled:
             last_value = data_map[date_key]
-        result.append({"date": date_key, "mention_rate": last_value})
+        result.append({"date": date_key, "mention_rate": last_value, "is_filled": is_filled})
         current_date += timedelta(days=1)
 
     return result
@@ -106,6 +107,7 @@ class BrandMentionTrendItem(BaseModel):
     platform: str = Field(..., description="平台")
     keyword: str = Field(..., description="关键词")
     mention_rate: float = Field(..., description="提及率(比例，0~1)")
+    is_filled: bool = Field(..., description="是否为填充点位（LOCF 或初始值填充）")
 
 
 class BrandMentionTrendResponse(BaseModel):
@@ -355,6 +357,7 @@ async def get_brand_mention_trend(
                 platform=platform,
                 keyword=keyword,
                 mention_rate=item["mention_rate"],
+                is_filled=item["is_filled"],
             )
             for item in filled
         ]
