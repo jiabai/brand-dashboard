@@ -190,7 +190,12 @@ function Dashboard() {
               tenantKey={tenantKey} 
             />
           ) : currentView === 'platforms' ? (
-            <BrandShareOfVoiceTable />
+            <BrandShareOfVoiceTable
+              timeframe={selectedFilter}
+              date={selectedDateParam}
+              tenantKey={tenantKey}
+              jobId={jobId}
+            />
           ) : (
             <Spin spinning={isLoading}>
               {selectedPlatform ? (

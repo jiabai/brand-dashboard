@@ -1,32 +1,117 @@
-import React, { useMemo } from 'react';
-import { Table, Progress, Card, Tag, Space, Typography, Tooltip } from 'antd';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Alert, Empty, Table, Progress, Card, Tag, Space, Typography, Tooltip } from 'antd';
 import { InfoCircleOutlined } from '@ant-design/icons';
+import { CONFIG } from '@/config';
 
 const { Text, Title } = Typography;
+const { DEFAULT_TENANT_KEY, DEFAULT_JOB_ID } = CONFIG;
 
-const MOCK_DATA = [
-  { keyword: '三角洲陪玩', platform: 'deepseek', brand: '五九电竞', mention_rate: 0.6935, first_mention_rate: 0.0323 },
-  { keyword: '三角洲陪玩', platform: 'deepseek', brand: '知悦电竞', mention_rate: 0.5161, first_mention_rate: 0.0000 },
-  { keyword: '三角洲陪玩', platform: 'deepseek', brand: '河马电竞', mention_rate: 0.3871, first_mention_rate: 0.0000 },
-  { keyword: '三角洲陪玩', platform: 'deepseek', brand: '哈基桃电竞', mention_rate: 0.1613, first_mention_rate: 0.0000 },
-  { keyword: '三角洲陪玩', platform: 'deepseek', brand: '黛玉电竞', mention_rate: 0.0484, first_mention_rate: 0.0000 },
-  { keyword: '三角洲陪玩俱乐部', platform: 'deepseek', brand: '河马电竞', mention_rate: 0.7321, first_mention_rate: 0.0000 },
-  { keyword: '三角洲陪玩俱乐部', platform: 'deepseek', brand: '五九电竞', mention_rate: 0.4286, first_mention_rate: 0.0179 },
-  { keyword: '三角洲陪玩俱乐部', platform: 'deepseek', brand: '知悦电竞', mention_rate: 0.2500, first_mention_rate: 0.0000 },
-  { keyword: '三角洲陪玩俱乐部', platform: 'deepseek', brand: '黛玉电竞', mention_rate: 0.0714, first_mention_rate: 0.0000 },
-  { keyword: '三角洲陪玩俱乐部', platform: 'deepseek', brand: '哈基桃电竞', mention_rate: 0.0536, first_mention_rate: 0.0000 },
-];
+const buildQueryString = (params) => {
+  const searchParams = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value === undefined || value === null) return;
+    if (String(value) === '') return;
+    searchParams.set(key, String(value));
+  });
+  return searchParams.toString();
+};
 
-const BrandShareOfVoiceTable = () => {
+const fetchJson = async (url, { signal } = {}) => {
+  const response = await fetch(url, { method: 'GET', signal });
+  if (!response.ok) {
+    throw new Error(`请求失败(${response.status})`);
+  }
+  return response.json();
+};
+
+const BrandShareOfVoiceTable = ({
+  timeframe = '7days',
+  date = '',
+  tenantKey = DEFAULT_TENANT_KEY,
+  jobId = DEFAULT_JOB_ID,
+}) => {
+  const abortControllerRef = useRef(null);
+  const [rows, setRows] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  const queryString = useMemo(
+    () =>
+      buildQueryString({
+        tenant_key: tenantKey,
+        job_id: jobId,
+        timeframe,
+        date: timeframe === 'specific_day' ? date : '',
+      }),
+    [tenantKey, jobId, timeframe, date],
+  );
+
+  useEffect(() => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
+    const run = async () => {
+      try {
+        setLoading(true);
+        setError('');
+        const result = await fetchJson(
+          `/api/v1/dashboard/keyword-platform-brand-rates?${queryString}`,
+          { signal: controller.signal },
+        );
+
+        if (result?.status && result.status !== 'success') {
+          throw new Error('接口返回错误状态');
+        }
+
+        const list = Array.isArray(result?.data) ? result.data : [];
+
+        const normalized = list
+          .map((item) => {
+            const keyword = item?.keyword;
+            const platform = item?.platform;
+            const brand = item?.brand;
+            const mentionRate = Number(item?.mention_rate ?? 0);
+            const firstMentionRate = Number(item?.first_mention_rate ?? 0);
+            return {
+              keyword,
+              platform,
+              brand,
+              mention_rate: Number.isFinite(mentionRate) ? mentionRate : 0,
+              first_mention_rate: Number.isFinite(firstMentionRate) ? firstMentionRate : 0,
+            };
+          })
+          .filter((item) => item.keyword && item.platform && item.brand);
+
+        setRows(normalized);
+        setLoading(false);
+      } catch (err) {
+        if (controller.signal.aborted) return;
+        if (err?.name === 'AbortError') return;
+        setRows([]);
+        setError(err?.message || '数据加载失败');
+        setLoading(false);
+      }
+    };
+
+    run();
+
+    return () => {
+      controller.abort();
+    };
+  }, [queryString]);
+
   const keywordFilters = useMemo(() => {
-    const keywords = [...new Set(MOCK_DATA.map(item => item.keyword))];
+    const keywords = [...new Set(rows.map((item) => item.keyword).filter(Boolean))];
     return keywords.map(k => ({ text: k, value: k }));
-  }, []);
+  }, [rows]);
 
   const platformFilters = useMemo(() => {
-    const platforms = [...new Set(MOCK_DATA.map(item => item.platform))];
+    const platforms = [...new Set(rows.map((item) => item.platform).filter(Boolean))];
     return platforms.map(p => ({ text: p, value: p }));
-  }, []);
+  }, [rows]);
 
   const columns = [
     {
@@ -117,11 +202,25 @@ const BrandShareOfVoiceTable = () => {
       bordered={false}
       style={{ margin: 24, borderRadius: 8 }}
     >
+      {!!error && (
+        <div style={{ marginBottom: 12 }}>
+          <Alert type="error" showIcon message="数据加载失败" description={error} />
+        </div>
+      )}
       <Table 
         columns={columns} 
-        dataSource={MOCK_DATA} 
+        dataSource={rows} 
         rowKey={(record) => `${record.keyword}-${record.platform}-${record.brand}`}
+        loading={loading}
         pagination={{ pageSize: 10 }}
+        locale={{
+          emptyText: (
+            <Empty
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+              description={error ? '加载失败，请检查URL参数或稍后重试' : '暂无数据'}
+            />
+          ),
+        }}
       />
     </Card>
   );

@@ -652,7 +652,101 @@ ORDER BY mention_rate DESC; -- 在代码中进行排序
 
 ---
 
-## 🔗 引用统计 API
+## 关键词-平台-品牌提及率明细 API
+
+### 接口信息
+- **路径**: `/api/v1/dashboard/keyword-platform-brand-rates`
+- **方法**: `GET`
+- **描述**: 获取指定时间范围内按 `keyword + platform + brand` 聚合的提及率与首位提及率数据，基于`qa_brand_state`表计算
+- **实现状态**: ✅ 已完成
+
+### 请求参数
+
+| 参数名 | 类型 | 必填 | 描述 |
+|--------|------|------|------|
+| tenant_key | string | 是 | 租户标识 tenant_key |
+| job_id | string | 是 | 任务ID |
+| timeframe | string | 是 | 时间范围，可选值: `yesterday`, `7days`, `30days`, `specific_day` |
+| date | string | 否 | 具体日期，格式: `YYYYMMDD`（当 `timeframe=specific_day` 时必填） |
+
+### 请求示例
+
+```bash
+curl -X GET "http://your-api.com/api/v1/dashboard/keyword-platform-brand-rates?tenant_key=tn_xxx&job_id=job_456&timeframe=30days"
+```
+
+```bash
+curl -X GET "http://your-api.com/api/v1/dashboard/keyword-platform-brand-rates?tenant_key=tn_xxx&job_id=job_456&timeframe=specific_day&date=20260131"
+```
+
+### 响应格式
+
+```json
+{
+  "status": "success",
+  "data": [
+    {
+      "keyword": "三角洲陪玩",
+      "platform": "deepseek",
+      "brand": "五九电竞",
+      "mention_rate": 0.6935,
+      "first_mention_rate": 0.0323
+    }
+  ],
+  "metadata": {
+    "tenant_key": "tn_xxx",
+    "job_id": "job_456",
+    "timeframe": "30days",
+    "date": null,
+    "calculation_method": "distinct_conversation_ratio",
+    "rate_unit": "ratio_0_1",
+    "row_count": 1
+  }
+}
+```
+
+### 响应字段说明
+
+| 字段名 | 类型 | 描述 |
+|--------|------|------|
+| status | string | 响应状态，"success" 或 "error" |
+| data | array | 数据列表 |
+| data.keyword | string | 关键词 |
+| data.platform | string | 平台 |
+| data.brand | string | 品牌 |
+| data.mention_rate | float | 提及率（比例，0~1） |
+| data.first_mention_rate | float | 首位提及率（比例，0~1） |
+| metadata | object | 元数据 |
+| metadata.tenant_key | string | 租户标识 |
+| metadata.job_id | string | 任务ID |
+| metadata.timeframe | string | 时间范围 |
+| metadata.date | string/null | 具体日期（仅在 `specific_day` 时有效） |
+| metadata.calculation_method | string | 计算方式说明 |
+| metadata.rate_unit | string | rate 单位说明 |
+| metadata.row_count | int | 返回行数 |
+
+### 数据计算逻辑
+
+基于代码实际执行的 SQL（参数以 SQLAlchemy 命名参数形式展示）：
+
+```sql
+SELECT
+    keyword,
+    platform,
+    brand,
+    ROUND(SUM(is_mentioned) * 1.0 / COUNT(DISTINCT conversation_id), 4) AS mention_rate,
+    ROUND(SUM(is_first_mentioned) * 1.0 / COUNT(DISTINCT conversation_id), 4) AS first_mention_rate
+FROM qa_brand_state
+WHERE tenant_key = :tenant_key
+  AND job_id = :job_id
+  AND date BETWEEN :start_date AND :end_date
+GROUP BY keyword, platform, brand
+ORDER BY keyword ASC, platform ASC, mention_rate DESC;
+```
+
+---
+
+## �� 引用统计 API
 
 ### 全局引用URL统计
 
