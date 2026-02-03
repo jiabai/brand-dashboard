@@ -156,6 +156,11 @@ VITE_USE_MOCK=true
 
 # 后端 API 地址
 VITE_API_TARGET=http://localhost:8000
+
+# 默认业务参数
+VITE_DEFAULT_TENANT_KEY=tn_1b02b3ef4fbd
+VITE_DEFAULT_JOB_ID=job_20260127_223236_989cc4db
+VITE_DEFAULT_BRAND=哈基桃电竞
 ```
 
 ## 快速开始

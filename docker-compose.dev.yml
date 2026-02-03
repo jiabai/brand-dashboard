@@ -31,8 +31,8 @@ services:
     environment:
       - VITE_API_TARGET=http://api:8000
       - VITE_USE_MOCK=false
-      - VITE_DEFAULT_USER_ID=38e71daf-98b1-4230-9c78-a0364fd07f8f
-      - VITE_DEFAULT_JOB_ID=job_20260114_143606_dae12d36
+      - VITE_DEFAULT_TENANT_KEY=tn_1b02b3ef4fbd
+      - VITE_DEFAULT_JOB_ID=job_20260127_223236_989cc4db
       - VITE_DEFAULT_BRAND=哈基桃电竞
     depends_on:
       - api

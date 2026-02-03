@@ -10,6 +10,7 @@
 - [ ] 为核心组件补充基础渲染与交互测试
 - [x] 全面审查并升级文档 (移除不存在的组件引用，统一技术栈描述)
 - [x] 梳理 README，补充本地开发与部署说明
+- [x] 修正并更新环境变量：重命名 VITE_DEFAULT_USER_ID 为 VITE_DEFAULT_TENANT_KEY 并更新默认业务参数 (Job ID, Tenant Key)
 
 ## 历史任务示例
 
