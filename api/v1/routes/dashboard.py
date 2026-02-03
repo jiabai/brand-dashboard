@@ -66,6 +66,7 @@ class KeywordPlatformBrandRateItem(BaseModel):
     brand: str = Field(..., description="品牌")
     mention_rate: float = Field(..., description="提及率(比例，0~1)")
     first_mention_rate: float = Field(..., description="首位提及率(比例，0~1)")
+    top3_mention_rate: float = Field(..., description="前3位提及率(比例，0~1)")
 
 
 class KeywordPlatformBrandRatesResponse(BaseModel):
@@ -682,6 +683,7 @@ async def get_keyword_platform_brand_rates(
                 brand=item["brand"],
                 mention_rate=item["mention_rate"],
                 first_mention_rate=item["first_mention_rate"],
+                top3_mention_rate=item["top3_mention_rate"],
             )
             for item in rows
         ]

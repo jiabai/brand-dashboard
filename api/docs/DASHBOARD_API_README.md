@@ -790,7 +790,8 @@ curl -X GET "http://your-api.com/api/v1/dashboard/keyword-platform-brand-rates?t
       "platform": "deepseek",
       "brand": "五九电竞",
       "mention_rate": 0.6935,
-      "first_mention_rate": 0.0323
+      "first_mention_rate": 0.0323,
+      "top3_mention_rate": 0.1545
     }
   ],
   "metadata": {
@@ -816,6 +817,7 @@ curl -X GET "http://your-api.com/api/v1/dashboard/keyword-platform-brand-rates?t
 | data.brand | string | 品牌 |
 | data.mention_rate | float | 提及率（比例，0~1） |
 | data.first_mention_rate | float | 首位提及率（比例，0~1） |
+| data.top3_mention_rate | float | 前3位提及率（比例，0~1） |
 | metadata | object | 元数据 |
 | metadata.tenant_key | string | 租户标识 |
 | metadata.job_id | string | 任务ID |
@@ -835,7 +837,8 @@ SELECT
     platform,
     brand,
     ROUND(SUM(is_mentioned) * 1.0 / COUNT(DISTINCT conversation_id), 4) AS mention_rate,
-    ROUND(SUM(is_first_mentioned) * 1.0 / COUNT(DISTINCT conversation_id), 4) AS first_mention_rate
+    ROUND(SUM(is_first_mentioned) * 1.0 / COUNT(DISTINCT conversation_id), 4) AS first_mention_rate,
+    ROUND(SUM(is_top3_mentioned) * 1.0 / COUNT(DISTINCT conversation_id), 4) AS top3_mention_rate
 FROM qa_brand_state
 WHERE tenant_key = :tenant_key
   AND job_id = :job_id

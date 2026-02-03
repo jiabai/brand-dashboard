@@ -1085,6 +1085,10 @@ def query_keyword_platform_brand_rates(
                 raise Exception("qa_brand_state 表缺少 is_first_mentioned 字段")
             first_mention_column = "is_first_mentioned"
 
+            if "is_top3_mentioned" not in columns:
+                raise Exception("qa_brand_state 表缺少 is_top3_mentioned 字段")
+            top3_mention_column = "is_top3_mentioned"
+
             query = f"""
             SELECT
                 keyword,
@@ -1094,7 +1098,11 @@ def query_keyword_platform_brand_rates(
                 ROUND(
                     SUM({first_mention_column}) * 1.0 / COUNT(DISTINCT {id_column}),
                     4
-                ) AS first_mention_rate
+                ) AS first_mention_rate,
+                ROUND(
+                    SUM({top3_mention_column}) * 1.0 / COUNT(DISTINCT {id_column}),
+                    4
+                ) AS top3_mention_rate
             FROM qa_brand_state
             WHERE tenant_key = :tenant_key
               AND job_id = :job_id
@@ -1117,7 +1125,14 @@ def query_keyword_platform_brand_rates(
                 return []
 
             result: List[Dict[str, Any]] = []
-            for keyword, platform, brand, mention_rate, first_mention_rate in rows:
+            for (
+                keyword,
+                platform,
+                brand,
+                mention_rate,
+                first_mention_rate,
+                top3_mention_rate,
+            ) in rows:
                 result.append(
                     {
                         "keyword": keyword,
@@ -1126,6 +1141,9 @@ def query_keyword_platform_brand_rates(
                         "mention_rate": float(mention_rate) if mention_rate is not None else 0.0,
                         "first_mention_rate": (
                             float(first_mention_rate) if first_mention_rate is not None else 0.0
+                        ),
+                        "top3_mention_rate": (
+                            float(top3_mention_rate) if top3_mention_rate is not None else 0.0
                         ),
                     }
                 )

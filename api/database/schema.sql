@@ -251,6 +251,7 @@ CREATE TABLE IF NOT EXISTS `qa_brand_state` (
   `keyword` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '生成question的关键词，用户提交job时系统会根据关键词生成question',
   `is_mentioned` tinyint(1) NOT NULL DEFAULT '0' COMMENT 'Whether the brand is mentioned in the answer (0 = no, 1 = yes)',
   `is_first_mentioned` tinyint(1) NOT NULL DEFAULT '0' COMMENT 'Whether the brand is the first mentioned in the answer',
+  `is_top3_mentioned` tinyint(1) NOT NULL DEFAULT '0' COMMENT 'Whether the brand is among the first three mentioned in the answer',
   `sentiment_status` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Sentiment/emotion status (e.g., positive, negative, neutral)',
   `brands_found` json DEFAULT NULL COMMENT 'All brands found in the text (e.g., ["海尔 (Haier)", ...])',
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',

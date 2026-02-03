@@ -98,3 +98,43 @@ class TestFilterMetadataApi(unittest.TestCase):
         self.assertEqual(data["platforms"], ["Qwen", "Deepseek"])
         self.assertEqual(data["keywords"], ["手机", "笔记本"])
         self.assertEqual(len(data["combinations"]), 3)
+
+
+class TestKeywordPlatformBrandRatesApi(unittest.TestCase):
+    def setUp(self):
+        app = FastAPI()
+        app.include_router(dashboard.router, prefix="/api/v1/dashboard")
+        self.client = TestClient(app)
+
+    def test_keyword_platform_brand_rates_includes_top3_mention_rate(self):
+        rows = [
+            {
+                "keyword": "三角洲陪玩",
+                "platform": "deepseek",
+                "brand": "五九电竞",
+                "mention_rate": 0.6935,
+                "first_mention_rate": 0.0323,
+                "top3_mention_rate": 0.1545,
+            }
+        ]
+
+        with patch(
+            "api.v1.routes.dashboard.query_keyword_platform_brand_rates",
+            return_value=rows,
+        ):
+            response = self.client.get(
+                "/api/v1/dashboard/keyword-platform-brand-rates",
+                params={
+                    "tenant_key": "tn_1b02b3ef4fbd",
+                    "job_id": "job_20260127_223236_989cc4db",
+                    "timeframe": "30days",
+                },
+            )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["status"], "success")
+        data = payload["data"]
+        self.assertEqual(len(data), 1)
+        self.assertIn("top3_mention_rate", data[0])
+        self.assertEqual(data[0]["top3_mention_rate"], 0.1545)
