@@ -27,7 +27,7 @@ services:
       - ./web:/app
       - /app/node_modules
     ports:
-      - "3000:3000"
+      - "8443:3000"
     environment:
       - VITE_API_TARGET=http://api:8000
       - VITE_USE_MOCK=false
