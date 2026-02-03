@@ -10,8 +10,10 @@ export const CONFIG = {
 
   // 默认业务参数
   DEFAULT_TENANT_KEY: 'tn_1b02b3ef4fbd',
-  DEFAULT_JOB_ID: 'job_20260102_125104_7fad76ad',
-  DEFAULT_BRAND: '新东方',
+  DEFAULT_JOB_ID: 'job_20260127_223236_989cc4db',
+  DEFAULT_BRAND: '哈基桃电竞',
+  DEFAULT_EXECUTOR_ID: 'exec_bbda021a',
+  DEFAULT_INCLUDE_DELETED: 'false',
 };
 
 export default CONFIG;

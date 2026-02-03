@@ -1276,11 +1276,6 @@
             "type": "number",
             "title": "Mention Rate",
             "description": "提及率(比例，0~1)"
-          },
-          "is_filled": {
-            "type": "boolean",
-            "title": "Is Filled",
-            "description": "是否为填充点位（LOCF 或初始值填充）"
           }
         },
         "type": "object",
@@ -1289,8 +1284,7 @@
           "brand",
           "platform",
           "keyword",
-          "mention_rate",
-          "is_filled"
+          "mention_rate"
         ],
         "title": "BrandMentionTrendItem"
       },

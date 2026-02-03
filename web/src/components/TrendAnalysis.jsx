@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Card, Space, Typography, DatePicker, Row, Col, Statistic, Tag, theme } from 'antd';
 import { LineChartOutlined } from '@ant-design/icons';
-import { DualAxes } from '@ant-design/charts';
+import { Chart } from '@antv/g2';
 import dayjs from 'dayjs';
 
 import { CONFIG } from '@/config';
@@ -34,6 +34,13 @@ const toPercent = (value) => {
   const num = Number(value);
   if (!Number.isFinite(num)) return 0;
   return num <= 1 ? num * 100 : num;
+};
+
+const toFraction = (value) => {
+  const num = Number(value);
+  if (!Number.isFinite(num)) return 0;
+  if (num <= 1) return num;
+  return num / 100;
 };
 
 const roundTwoDecimals = (value) => {
@@ -85,15 +92,6 @@ const getRangeByTimeframe = (timeframe, dateParam) => {
   };
 };
 
-const formatDateLabel = (value) => {
-  if (!value) return '';
-  const text = String(value);
-  if (/^\d{8}$/.test(text)) {
-    return `${text.slice(4, 6)}-${text.slice(6, 8)}`;
-  }
-  return text;
-};
-
 const PLATFORM_COLORS = {
   chatgpt: '#10b981',
   gemini: '#3b82f6',
@@ -114,6 +112,87 @@ const getPlatformColor = (name) => {
   const keyLower = raw.toLowerCase();
   return PLATFORM_COLORS[keyLower] || PLATFORM_COLORS[raw] || '#6b7280';
 };
+
+const TrendG2Chart = React.memo(function TrendG2Chart({ data, token }) {
+  const containerRef = useRef(null);
+  const chartRef = useRef(null);
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+
+    if (chartRef.current) {
+      chartRef.current.destroy();
+      chartRef.current = null;
+    }
+
+    if (!Array.isArray(data) || data.length === 0) {
+      return;
+    }
+
+    const chart = new Chart({
+      container: containerRef.current,
+      autoFit: true,
+    });
+    chartRef.current = chart;
+
+    chart.theme({ type: 'academy' });
+
+    chart.data(data);
+
+    chart
+      .interval()
+      .encode('x', 'dateStr')
+      .encode('y', 'mention_rate')
+      .axis('x', { 
+        title: false, 
+        labelFill: '#A6A6A6', 
+        titleFill: '#A6A6A6' 
+      })
+      .axis('y', {
+        title: '提及率 (Mention Rate)',
+        titleFill: '#5B8FF9',
+        labelFormatter: (d) => `${(Number(d) * 100).toFixed(1)}%`,
+        labelFill: '#A6A6A6',
+      })
+      .tooltip({
+        title: (d) => d.dateStr,
+        items: [
+          {
+            field: 'mention_rate',
+            name: '提及率',
+            valueFormatter: (d) => `${(Number(d) * 100).toFixed(2)}%`,
+          },
+        ],
+      });
+
+    chart
+      .line()
+      .encode('x', 'dateStr')
+      .encode('y', 'mention_rate')
+      .encode('shape', 'smooth')
+      .style('stroke', '#fdae6b')
+      .style('lineWidth', 3)
+      .tooltip(false);
+
+    chart
+      .point()
+      .encode('x', 'dateStr')
+      .encode('y', 'mention_rate')
+      .encode('shape', 'point')
+      .style('fill', '#fdae6b')
+      .style('r', 5)
+      .tooltip(false);
+
+    chart.render();
+
+    return () => {
+      chart.destroy();
+      chartRef.current = null;
+    };
+  }, [data, token]);
+
+  return <div ref={containerRef} style={{ width: '100%', height: '100%' }} />;
+});
 
 const TrendAnalysis = ({
   timeframe = '7days',
@@ -237,6 +316,16 @@ const TrendAnalysis = ({
     };
   }, [tenantKeyValue, jobIdValue, startDateParam, endDateParam]);
 
+  useEffect(() => {
+    // 只有当 URL 中没有具体日期参数时，才响应 props 的变化
+    // 或者当 timeframe 变化时，重新同步日期范围
+    if (!getQueryParam('trend_start') && !getQueryParam('trend_end')) {
+      const range = getRangeByTimeframe(timeframe, date);
+      setStartDate(range.startDate);
+      setEndDate(range.endDate);
+    }
+  }, [timeframe, date]);
+
   const queryString = useMemo(
     () =>
       buildQueryString({
@@ -286,21 +375,16 @@ const TrendAnalysis = ({
         }
 
         const list = Array.isArray(result?.data) ? result.data : [];
-        let previousRate = null;
-        const normalized = list.map((item) => {
-          const mentionRateRaw = Number(item?.mention_rate ?? 0);
-          const mentionRatePct = roundTwoDecimals(toPercent(mentionRateRaw));
-          const deltaPct =
-            previousRate === null ? 0 : roundTwoDecimals(mentionRatePct - previousRate);
-          previousRate = mentionRatePct;
-          return {
-            dateLabel: formatDateLabel(item?.date),
-            dateRaw: String(item?.date || ''),
-            mentionRatePct,
-            deltaPct,
-            isFilled: Boolean(item?.is_filled),
-          };
-        });
+        const normalized = list
+          .map((item) => {
+            const dateRaw = String(item?.date || '').trim();
+            if (!dateRaw) return null;
+            return {
+              date: dateRaw,
+              mention_rate: toFraction(item?.mention_rate ?? 0),
+            };
+          })
+          .filter(Boolean);
 
         setTrendData(normalized);
         setIsLoading(false);
@@ -319,6 +403,39 @@ const TrendAnalysis = ({
       controller.abort();
     };
   }, [platform, keyword, startDateParam, endDateParam, queryString, reloadKey]);
+
+  const chartData = useMemo(() => {
+    if (!startDateParam || !endDateParam) return [];
+    if (!dayjs(startDateParam, 'YYYYMMDD', true).isValid()) return [];
+    if (!dayjs(endDateParam, 'YYYYMMDD', true).isValid()) return [];
+
+    const start = dayjs(startDateParam, 'YYYYMMDD');
+    const end = dayjs(endDateParam, 'YYYYMMDD');
+    if (end.isBefore(start, 'day')) return [];
+
+    const byDate = new Map(
+      (Array.isArray(trendData) ? trendData : [])
+        .filter((item) => item?.date)
+        .map((item) => [String(item.date), Number(item.mention_rate) || 0]),
+    );
+
+    const fullData = [];
+    let cursor = start;
+    while (cursor.isBefore(end, 'day') || cursor.isSame(end, 'day')) {
+      const dateRaw = cursor.format('YYYYMMDD');
+      fullData.push({
+        date: dateRaw,
+        dateStr: cursor.format('YYYY-MM-DD'),
+        mention_rate: byDate.get(dateRaw) ?? 0,
+        brand: brandValue,
+        platform,
+        keyword,
+      });
+      cursor = cursor.add(1, 'day');
+    }
+
+    return fullData;
+  }, [trendData, startDateParam, endDateParam, brandValue, platform, keyword]);
 
   const availablePlatforms = useMemo(() => {
     const options = ['全部', ...platformOptions];
@@ -357,111 +474,39 @@ const TrendAnalysis = ({
   }, [availableKeywords, keyword]);
 
   const stats = useMemo(() => {
-    if (!trendData.length) {
+    if (!chartData.length) {
       return {
         avg: 0,
         max: 0,
         min: 0,
-        filledCount: 0,
         total: 0,
       };
     }
-    const total = trendData.length;
-    const filledCount = trendData.filter((item) => item.isFilled).length;
-    const values = trendData.map((item) => item.mentionRatePct);
+    const total = chartData.length;
+    const values = chartData.map((item) => toPercent(item.mention_rate));
     const sum = values.reduce((acc, cur) => acc + cur, 0);
     const avg = roundTwoDecimals(sum / total);
     const max = roundTwoDecimals(Math.max(...values));
     const min = roundTwoDecimals(Math.min(...values));
-    return { avg, max, min, filledCount, total };
-  }, [trendData]);
-
-  const chartConfig = useMemo(() => {
-    if (!trendData.length) return null;
-
-    const lineColor = token.colorPrimary;
-    return {
-      data: [trendData, trendData],
-      xField: 'dateLabel',
-      yField: ['mentionRatePct', 'deltaPct'],
-      legend: false,
-      tooltip: {
-        shared: true,
-      },
-      xAxis: {
-        tickLine: null,
-        label: {
-          style: { fill: token.colorTextSecondary },
-        },
-      },
-      yAxis: {
-        mentionRatePct: {
-          label: {
-            formatter: (value) => `${value}%`,
-            style: { fill: token.colorTextSecondary },
-          },
-        },
-        deltaPct: {
-          label: {
-            formatter: (value) => `${value}%`,
-            style: { fill: token.colorTextSecondary },
-          },
-        },
-      },
-      meta: {
-        mentionRatePct: {
-          alias: '提及率',
-          formatter: (value) => `${Number(value).toFixed(2)}%`,
-        },
-        deltaPct: {
-          alias: '日变化',
-          formatter: (value) => `${Number(value) >= 0 ? '+' : ''}${Number(value).toFixed(2)}%`,
-        },
-      },
-      geometryOptions: [
-        {
-          geometry: 'line',
-          color: lineColor,
-          lineStyle: { lineWidth: 2 },
-          point: {
-            size: 4,
-            shape: 'circle',
-            style: (datum) =>
-              datum.isFilled
-                ? { fill: 'transparent', stroke: lineColor, lineWidth: 2 }
-                : { fill: lineColor, stroke: lineColor },
-          },
-        },
-        {
-          geometry: 'column',
-          color: (datum) =>
-            datum.deltaPct >= 0 ? token.colorSuccess : token.colorError,
-          columnStyle: (datum) => ({
-            fillOpacity: datum.isFilled ? 0.35 : 0.75,
-            radius: [3, 3, 0, 0],
-          }),
-        },
-      ],
-      slider: {
-        start: 0.55,
-        end: 1,
-        height: 16,
-      },
-    };
-  }, [trendData, token.colorPrimary, token.colorSuccess, token.colorError, token.colorTextSecondary]);
+    return { avg, max, min, total };
+  }, [chartData]);
 
   return (
     <Space direction="vertical" size="large" style={{ width: '100%' }}>
       <Card
         title={
-          <Space>
-            <LineChartOutlined />
-            <span>品牌提及率趋势</span>
+          <Space direction="vertical" size={2}>
+            <Space>
+              <LineChartOutlined />
+              <span>品牌提及率分析</span>
+            </Space>
+            <Typography.Text type="secondary">
+              品牌: {brandValue} | 平台: {platform} | 关键词: {keyword}
+            </Typography.Text>
           </Space>
         }
         extra={
           <Space wrap>
-            <Tag color="processing">{brandValue}</Tag>
             <Tag color="geekblue">
               {displayStart || '--'} - {displayEnd || '--'}
             </Tag>
@@ -551,12 +596,7 @@ const TrendAnalysis = ({
                 )}
               </Space>
             </Col>
-            <Col>
-              <Space>
-                <Tag color="default">实心点=原始</Tag>
-                <Tag color="default">空心点=补齐</Tag>
-              </Space>
-            </Col>
+            <Col />
           </Row>
           <Row gutter={[16, 16]}>
             <Col xs={12} sm={12} md={6}>
@@ -570,8 +610,8 @@ const TrendAnalysis = ({
             </Col>
             <Col xs={12} sm={12} md={6}>
               <Statistic
-                title="补齐点占比"
-                value={stats.total ? `${roundTwoDecimals((stats.filledCount / stats.total) * 100)}%` : '--'}
+                title="点位数"
+                value={stats.total || '--'}
               />
             </Col>
           </Row>
@@ -593,14 +633,17 @@ const TrendAnalysis = ({
             title="请输入筛选条件"
             description="选择平台、关键词与日期范围后即可查看趋势"
           />
-        ) : !trendData.length ? (
-          <EmptyState
-            title="暂无趋势数据"
-            description="当前筛选条件下未返回可展示的数据"
-          />
         ) : (
-          <div style={{ height: 420 }}>
-            <DualAxes {...chartConfig} />
+          <div
+            style={{
+              height: 500,
+              padding: 20,
+              borderRadius: 8,
+              background: token.colorBgElevated,
+              boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
+            }}
+          >
+            <TrendG2Chart data={chartData} token={token} />
           </div>
         )}
       </Card>

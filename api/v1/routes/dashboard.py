@@ -1,4 +1,4 @@
-from datetime import date, datetime, timedelta
+from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
@@ -21,34 +21,6 @@ from api.v1.repositories.database import (
 from api.v1.utils.url_domain_resolver import resolve_url_domain
 
 router = APIRouter()
-
-def fill_missing_dates_locf(
-    rows: List[Dict[str, Any]],
-    start_date: date,
-    end_date: date,
-    initial_value: float = 0.0,
-) -> List[Dict[str, Any]]:
-    data_map: Dict[str, float] = {}
-    for row in rows:
-        row_date = row["date"]
-        if hasattr(row_date, "strftime"):
-            date_key = row_date.strftime("%Y%m%d")
-        else:
-            date_key = str(row_date).replace("-", "")
-        data_map[date_key] = float(row["mention_rate"]) if row["mention_rate"] is not None else 0.0
-
-    result: List[Dict[str, Any]] = []
-    current_date = start_date
-    last_value = initial_value
-    while current_date <= end_date:
-        date_key = current_date.strftime("%Y%m%d")
-        is_filled = date_key not in data_map
-        if not is_filled:
-            last_value = data_map[date_key]
-        result.append({"date": date_key, "mention_rate": last_value, "is_filled": is_filled})
-        current_date += timedelta(days=1)
-
-    return result
 
 class TimeFrame(str, Enum):
     """时间范围枚举."""
@@ -108,7 +80,6 @@ class BrandMentionTrendItem(BaseModel):
     platform: str = Field(..., description="平台")
     keyword: str = Field(..., description="关键词")
     mention_rate: float = Field(..., description="提及率(比例，0~1)")
-    is_filled: bool = Field(..., description="是否为填充点位（LOCF 或初始值填充）")
 
 
 class BrandMentionTrendResponse(BaseModel):
@@ -364,24 +335,24 @@ async def get_brand_mention_trend(
             end_date=end_value,
         )
 
-        filled = fill_missing_dates_locf(
-            rows=rows,
-            start_date=start_value,
-            end_date=end_value,
-            initial_value=0.0,
-        )
+        data: List[BrandMentionTrendItem] = []
+        for row in rows:
+            row_date = row["date"]
+            if hasattr(row_date, "strftime"):
+                date_key = row_date.strftime("%Y%m%d")
+            else:
+                date_key = str(row_date).replace("-", "")
 
-        data = [
-            BrandMentionTrendItem(
-                date=item["date"],
-                brand=brand,
-                platform=platform,
-                keyword=keyword,
-                mention_rate=item["mention_rate"],
-                is_filled=item["is_filled"],
+            mention_rate = float(row["mention_rate"]) if row["mention_rate"] is not None else 0.0
+            data.append(
+                BrandMentionTrendItem(
+                    date=date_key,
+                    brand=brand,
+                    platform=platform,
+                    keyword=keyword,
+                    mention_rate=mention_rate,
+                )
             )
-            for item in filled
-        ]
 
         return BrandMentionTrendResponse(
             status="success",
@@ -392,7 +363,6 @@ async def get_brand_mention_trend(
                 "keyword": keyword,
                 "start_date": start_date,
                 "end_date": end_date,
-                "fill_method": "locf",
                 "calculation_method": "mention_rate_by_day",
                 "points": len(data),
             },

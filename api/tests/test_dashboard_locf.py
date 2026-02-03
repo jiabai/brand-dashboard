@@ -3,35 +3,8 @@ from datetime import date
 from unittest.mock import patch
 
 from api.v1.routes import dashboard
-from api.v1.routes.dashboard import fill_missing_dates_locf
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-
-
-class TestFillMissingDatesLocf(unittest.TestCase):
-    def test_fill_missing_dates_locf_carries_forward(self):
-        rows = [
-            {"date": date(2026, 1, 1), "mention_rate": 0.2},
-            {"date": date(2026, 1, 3), "mention_rate": 0.5},
-        ]
-        result = fill_missing_dates_locf(
-            rows=rows,
-            start_date=date(2026, 1, 1),
-            end_date=date(2026, 1, 4),
-            initial_value=0.0,
-        )
-
-        expected = [
-            {"date": "20260101", "mention_rate": 0.2, "is_filled": False},
-            {"date": "20260102", "mention_rate": 0.2, "is_filled": True},
-            {"date": "20260103", "mention_rate": 0.5, "is_filled": False},
-            {"date": "20260104", "mention_rate": 0.5, "is_filled": True},
-        ]
-        self.assertEqual(result, expected)
-
-
-if __name__ == "__main__":
-    unittest.main()
 
 
 class TestBrandMentionTrendApi(unittest.TestCase):
@@ -40,7 +13,7 @@ class TestBrandMentionTrendApi(unittest.TestCase):
         app.include_router(dashboard.router, prefix="/api/v1/dashboard")
         self.client = TestClient(app)
 
-    def test_brand_mention_trend_locf(self):
+    def test_brand_mention_trend_returns_only_existing_dates(self):
         rows = [
             {
                 "date": date(2026, 1, 1),
@@ -79,15 +52,16 @@ class TestBrandMentionTrendApi(unittest.TestCase):
         payload = response.json()
         self.assertEqual(payload["status"], "success")
         data = payload["data"]
-        self.assertEqual(len(data), 4)
+        self.assertEqual(len(data), 2)
+        self.assertEqual(data[0]["date"], "20260101")
         self.assertEqual(data[0]["mention_rate"], 0.2)
-        self.assertEqual(data[1]["mention_rate"], 0.2)
-        self.assertEqual(data[2]["mention_rate"], 0.5)
-        self.assertEqual(data[3]["mention_rate"], 0.5)
-        self.assertEqual(data[0]["is_filled"], False)
-        self.assertEqual(data[1]["is_filled"], True)
-        self.assertEqual(data[2]["is_filled"], False)
-        self.assertEqual(data[3]["is_filled"], True)
+        self.assertEqual(data[1]["date"], "20260103")
+        self.assertEqual(data[1]["mention_rate"], 0.5)
+        self.assertNotIn("is_filled", data[0])
+
+        metadata = payload["metadata"]
+        self.assertEqual(metadata["points"], 2)
+        self.assertNotIn("fill_method", metadata)
 
 
 class TestFilterMetadataApi(unittest.TestCase):

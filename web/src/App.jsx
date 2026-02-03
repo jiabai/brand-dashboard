@@ -65,7 +65,7 @@ function Dashboard() {
   const { token } = theme.useToken();
   // State management
   const [currentView, setCurrentView] = useState(() => getQueryParam('view', 'home'));
-  const [selectedFilter, setSelectedFilter] = useState(() => getQueryParam('timeframe', '7days'));
+  const [selectedFilter, setSelectedFilter] = useState(() => getQueryParam('timeframe', '30days'));
   const [selectedDate, setSelectedDate] = useState(() =>
     normalizeDateToDisplay(getQueryParam('date', '')),
   );
@@ -80,6 +80,8 @@ function Dashboard() {
   const [tenantKey] = useState(() => getQueryParam('tenant_key', CONFIG.DEFAULT_TENANT_KEY));
   const [jobId] = useState(() => getQueryParam('job_id', CONFIG.DEFAULT_JOB_ID));
   const [brand] = useState(() => getQueryParam('brand', CONFIG.DEFAULT_BRAND));
+  const [executorId] = useState(() => getQueryParam('executor_id', CONFIG.DEFAULT_EXECUTOR_ID));
+  const [includeDeleted] = useState(() => getQueryParam('include_deleted', CONFIG.DEFAULT_INCLUDE_DELETED));
 
   const loadingTimerRef = useRef(null);
 
@@ -98,9 +100,11 @@ function Dashboard() {
       tenant_key: tenantKey,
       job_id: jobId,
       brand: brand,
+      executor_id: executorId,
+      include_deleted: includeDeleted,
       platform: selectedPlatform
     });
-  }, [currentView, selectedFilter, selectedDateParam, tenantKey, jobId, brand, selectedPlatform]);
+  }, [currentView, selectedFilter, selectedDateParam, tenantKey, jobId, brand, executorId, includeDeleted, selectedPlatform]);
 
   useEffect(() => {
     const controller = new AbortController();

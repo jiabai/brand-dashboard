@@ -652,12 +652,12 @@ ORDER BY mention_rate DESC; -- 在代码中进行排序
 
 ---
 
-## 📉 品牌提及率趋势 API（平台 + 关键词，LOCF 填充）
+## 📉 品牌提及率趋势 API（平台 + 关键词）
 
 ### 接口信息
 - **路径**: `/api/v1/dashboard/brand-mention-trend`
 - **方法**: `GET`
-- **描述**: 获取指定品牌在指定平台、指定关键词下的“按日提及率”趋势数据，并在后端按日期范围补齐缺失日期（LOCF：前值填充）
+- **描述**: 获取指定品牌在指定平台、指定关键词下的“按日提及率”趋势数据（仅返回日期范围内实际有数据的日期点位）
 - **实现状态**: ✅ 已完成
 
 ### 请求参数
@@ -689,16 +689,14 @@ curl -X GET "http://your-api.com/api/v1/dashboard/brand-mention-trend?tenant_key
       "brand": "哈基桃电竞",
       "platform": "deepseek",
       "keyword": "三角洲陪玩",
-      "mention_rate": 0.2000,
-      "is_filled": false
+      "mention_rate": 0.2000
     },
     {
-      "date": "20260102",
+      "date": "20260103",
       "brand": "哈基桃电竞",
       "platform": "deepseek",
       "keyword": "三角洲陪玩",
-      "mention_rate": 0.2000,
-      "is_filled": true
+      "mention_rate": 0.5000
     }
   ],
   "metadata": {
@@ -707,9 +705,8 @@ curl -X GET "http://your-api.com/api/v1/dashboard/brand-mention-trend?tenant_key
     "keyword": "三角洲陪玩",
     "start_date": "20260101",
     "end_date": "20260131",
-    "fill_method": "locf",
     "calculation_method": "mention_rate_by_day",
-    "points": 31
+    "points": 2
   }
 }
 ```
@@ -725,10 +722,8 @@ curl -X GET "http://your-api.com/api/v1/dashboard/brand-mention-trend?tenant_key
 | data.platform | string | 平台名称 |
 | data.keyword | string | 关键词 |
 | data.mention_rate | float | 提及率（比例，0~1） |
-| data.is_filled | bool | 是否为填充点位（LOCF 或初始值填充） |
 | metadata | object | 元数据 |
-| metadata.fill_method | string | 缺失日期填充方法（固定为 locf） |
-| metadata.points | int | 返回点位数量（等于日期范围天数） |
+| metadata.points | int | 返回点位数量（等于 data 长度） |
 
 ### 数据计算逻辑
 
@@ -752,10 +747,8 @@ GROUP BY date, platform, brand, keyword
 ORDER BY date ASC
 ```
 
-缺失日期补齐规则：
-- 在指定 `[start_date, end_date]` 范围内，若某日期无数据，则该日期的 `mention_rate` 使用上一个有数据日期的 `mention_rate`（前值填充）。
-- 若 `start_date` 当天无数据且之前也无数据可继承，则该日期的 `mention_rate` 为 `0.0`。
-- 若某日期为补齐得到，则该日期返回 `is_filled = true`；否则为 `false`。
+日期返回规则：
+- 不做缺失日期补齐，仅返回 `[start_date, end_date]` 范围内实际有数据的日期点位。
 
 ---
 
