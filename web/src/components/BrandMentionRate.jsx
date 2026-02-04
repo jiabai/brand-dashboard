@@ -171,6 +171,19 @@ const BrandMentionRate = ({
       sorter: (a, b) => a.firstMentionRate - b.firstMentionRate,
       sortOrder: sortedInfo.columnKey === 'firstMentionRate' ? sortedInfo.order : null,
     },
+    {
+      title: '前三提及率',
+      dataIndex: 'top3MentionRate',
+      key: 'top3MentionRate',
+      render: (val) => (
+        <div style={{ width: 120 }}>
+          <Progress percent={val} size="small" showInfo={false} strokeColor={token.colorWarning} />
+          <Typography.Text type="secondary" style={{ fontSize: 12 }}>{formatPercentage(val)}</Typography.Text>
+        </div>
+      ),
+      sorter: (a, b) => a.top3MentionRate - b.top3MentionRate,
+      sortOrder: sortedInfo.columnKey === 'top3MentionRate' ? sortedInfo.order : null,
+    },
   ];
 
   const targetBrandName = targetBrandData?.name ?? brand;
@@ -246,6 +259,7 @@ const BrandMentionRate = ({
           name: item?.brand,
           mentionRate: roundTwoDecimals(clampPercent(toPercent(item?.mention_rate ?? 0))),
           firstMentionRate: roundTwoDecimals(clampPercent(toPercent(item?.first_mention_rate ?? 0))),
+          top3MentionRate: roundTwoDecimals(clampPercent(toPercent(item?.top3_mention_rate ?? 0))),
           promptValue: Number(item?.prompt_count ?? 0),
           coveredKeywordsCount: Number(item?.keyword_coverage ?? 0),
         }));
@@ -262,6 +276,7 @@ const BrandMentionRate = ({
               name: targetItem.name ?? effectiveTargetName,
               mentionRate: roundTwoDecimals(targetItem.mentionRate),
               firstMentionRate: roundTwoDecimals(targetItem.firstMentionRate),
+              top3MentionRate: roundTwoDecimals(targetItem.top3MentionRate),
               articleCitationRate: roundTwoDecimals(clampPercent(
                 toPercent(postCitationRateData?.citation_rate_by_post ?? 0),
               )),
@@ -364,19 +379,25 @@ const BrandMentionRate = ({
           </Col>
 
           {/* Key Rates - Circular Progress */}
-          <Col span={8} style={{ display: 'flex', justifyContent: 'center' }}>
+          <Col span={6} style={{ display: 'flex', justifyContent: 'center' }}>
             <div style={{ textAlign: 'center' }}>
               <Progress type="circle" percent={targetBrandData.mentionRate} size={80} strokeColor={token.colorPrimary} />
               <div style={{ marginTop: 8, fontWeight: 500 }}>总提及率</div>
             </div>
           </Col>
-          <Col span={8} style={{ display: 'flex', justifyContent: 'center' }}>
+          <Col span={6} style={{ display: 'flex', justifyContent: 'center' }}>
             <div style={{ textAlign: 'center' }}>
               <Progress type="circle" percent={targetBrandData.firstMentionRate} size={80} strokeColor={token.colorInfo} />
               <div style={{ marginTop: 8, fontWeight: 500 }}>首位提及率</div>
             </div>
           </Col>
-          <Col span={8} style={{ display: 'flex', justifyContent: 'center' }}>
+          <Col span={6} style={{ display: 'flex', justifyContent: 'center' }}>
+            <div style={{ textAlign: 'center' }}>
+              <Progress type="circle" percent={targetBrandData.top3MentionRate} size={80} strokeColor={token.colorWarning} />
+              <div style={{ marginTop: 8, fontWeight: 500 }}>前三提及率</div>
+            </div>
+          </Col>
+          <Col span={6} style={{ display: 'flex', justifyContent: 'center' }}>
             <div style={{ textAlign: 'center' }}>
               <Progress type="circle" percent={targetBrandData.articleCitationRate} size={80} strokeColor={token.colorSuccess} />
               <div style={{ marginTop: 8, fontWeight: 500 }}>发文引用率</div>
