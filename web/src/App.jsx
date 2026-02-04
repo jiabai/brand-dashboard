@@ -1,5 +1,6 @@
 import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Badge, ConfigProvider, Layout, Segmented, Select, Space, Spin, Typography, theme } from 'antd';
+import { Badge, ConfigProvider, Layout, Segmented, DatePicker, Space, Spin, Typography, theme } from 'antd';
+import dayjs from 'dayjs';
 
 import ErrorBoundary from './components/ErrorBoundary';
 import TaskName from './components/TaskName.jsx';
@@ -26,18 +27,22 @@ const TIME_OPTIONS = [
   { label: '指定日期', value: 'specific_day' }
 ];
 
-const normalizeDateToDisplay = (value) => {
-  if (!value) return '';
+const parseDateInput = (value) => {
+  if (!value) return null;
   const text = String(value);
   if (/^\d{8}$/.test(text)) {
-    return `${text.slice(0, 4)}-${text.slice(4, 6)}-${text.slice(6, 8)}`;
+    const parsed = dayjs(text, 'YYYYMMDD');
+    return parsed.isValid() ? parsed : null;
   }
-  return text;
+  const parsed = dayjs(text);
+  return parsed.isValid() ? parsed : null;
 };
 
-const normalizeDateToParam = (value) => {
+const formatDateParam = (value) => {
   if (!value) return '';
-  return String(value).replace(/-/g, '');
+  const parsed = dayjs.isDayjs(value) ? value : dayjs(value);
+  if (!parsed.isValid()) return '';
+  return parsed.format('YYYYMMDD');
 };
 
 const LiveClock = React.memo(function LiveClock() {
@@ -66,13 +71,7 @@ function Dashboard() {
   // State management
   const [currentView, setCurrentView] = useState(() => getQueryParam('view', 'home'));
   const [selectedFilter, setSelectedFilter] = useState(() => getQueryParam('timeframe', '30days'));
-  const [selectedDate, setSelectedDate] = useState(() =>
-    normalizeDateToDisplay(getQueryParam('date', '')),
-  );
   const [isLoading, setIsLoading] = useState(false);
-  const [isLoadingDates, setIsLoadingDates] = useState(false);
-  const [availableDates, setAvailableDates] = useState([]);
-  const [availableDatesError, setAvailableDatesError] = useState('');
   const [siderCollapsed, setSiderCollapsed] = useState(false);
   const [selectedPlatform, setSelectedPlatform] = useState(() => getQueryParam('platform', ''));
 
@@ -85,10 +84,31 @@ function Dashboard() {
 
   const loadingTimerRef = useRef(null);
 
+  const [startDate, setStartDate] = useState(() => {
+    const fromUrl = parseDateInput(getQueryParam('start_date', '') || getQueryParam('date', ''));
+    return fromUrl || dayjs();
+  });
+  const [endDate, setEndDate] = useState(() => {
+    const fromUrl = parseDateInput(getQueryParam('end_date', ''));
+    if (fromUrl) return fromUrl;
+    const fallback = parseDateInput(getQueryParam('start_date', '') || getQueryParam('date', ''));
+    return fallback || dayjs();
+  });
+
+  const startDateParam = useMemo(() => {
+    if (selectedFilter !== 'specific_day') return '';
+    return formatDateParam(startDate);
+  }, [startDate, selectedFilter]);
+
+  const endDateParam = useMemo(() => {
+    if (selectedFilter !== 'specific_day') return '';
+    return formatDateParam(endDate);
+  }, [endDate, selectedFilter]);
+
   const selectedDateParam = useMemo(() => {
     if (selectedFilter !== 'specific_day') return '';
-    return normalizeDateToParam(selectedDate);
-  }, [selectedDate, selectedFilter]);
+    return startDateParam;
+  }, [selectedFilter, startDateParam]);
 
   const timeOptions = useMemo(() => TIME_OPTIONS, []);
 
@@ -96,6 +116,8 @@ function Dashboard() {
     updateQueryParams({ 
       view: currentView,
       timeframe: selectedFilter,
+      start_date: startDateParam,
+      end_date: endDateParam,
       date: selectedDateParam,
       tenant_key: tenantKey,
       job_id: jobId,
@@ -104,43 +126,19 @@ function Dashboard() {
       include_deleted: includeDeleted,
       platform: selectedPlatform
     });
-  }, [currentView, selectedFilter, selectedDateParam, tenantKey, jobId, brand, executorId, includeDeleted, selectedPlatform]);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    const run = async () => {
-      try {
-        setIsLoadingDates(true);
-        setAvailableDatesError('');
-        const searchParams = new URLSearchParams({ tenant_key: tenantKey });
-        if (jobId) {
-          searchParams.set('job_id', jobId);
-        }
-        const response = await fetch(`/api/v1/dashboard/available-dates?${searchParams.toString()}`, {
-          method: 'GET',
-          signal: controller.signal,
-        });
-        if (!response.ok) {
-          throw new Error(`请求失败(${response.status})`);
-        }
-        const result = await response.json();
-        const list = Array.isArray(result?.data) ? result.data : [];
-        setAvailableDates(list);
-        setIsLoadingDates(false);
-      } catch (error) {
-        if (controller.signal.aborted) return;
-        setAvailableDates([]);
-        setAvailableDatesError(error?.message || '日期加载失败');
-        setIsLoadingDates(false);
-      }
-    };
-
-    run();
-
-    return () => {
-      controller.abort();
-    };
-  }, [tenantKey, jobId]);
+  }, [
+    currentView,
+    selectedFilter,
+    startDateParam,
+    endDateParam,
+    selectedDateParam,
+    tenantKey,
+    jobId,
+    brand,
+    executorId,
+    includeDeleted,
+    selectedPlatform,
+  ]);
 
   // Cleanup loading timer on unmount
   useEffect(() => {
@@ -157,9 +155,6 @@ function Dashboard() {
    */
   const handleFilterChange = useCallback((filter) => {
     setSelectedFilter(filter);
-    if (filter !== 'specific_day') {
-      setSelectedDate('');
-    }
     // Clear any existing timer
     if (loadingTimerRef.current) {
       clearTimeout(loadingTimerRef.current);
@@ -171,11 +166,18 @@ function Dashboard() {
 
   useEffect(() => {
     if (selectedFilter !== 'specific_day') return;
-    if (!availableDates.length) return;
-    if (!selectedDate || !availableDates.includes(selectedDate)) {
-      setSelectedDate(availableDates[0]);
+    if (!startDate && endDate) {
+      setStartDate(endDate);
+      return;
     }
-  }, [availableDates, selectedDate, selectedFilter]);
+    if (startDate && !endDate) {
+      setEndDate(startDate);
+      return;
+    }
+    if (startDate && endDate && endDate.isBefore(startDate, 'day')) {
+      setEndDate(startDate);
+    }
+  }, [selectedFilter, startDate, endDate]);
 
   const handleBackFromPlatform = useCallback(() => {
     setSelectedPlatform('');
@@ -197,7 +199,8 @@ function Dashboard() {
           ) : currentView === 'platforms' ? (
             <BrandShareOfVoiceTable
               timeframe={selectedFilter}
-              date={selectedDateParam}
+              startDate={startDateParam}
+              endDate={endDateParam}
               tenantKey={tenantKey}
               jobId={jobId}
             />
@@ -301,17 +304,38 @@ function Dashboard() {
                 onChange={handleFilterChange}
               />
               {selectedFilter === 'specific_day' ? (
-                <Select
-                  value={selectedDate || undefined}
-                  onChange={setSelectedDate}
-                  placeholder={availableDatesError ? '日期加载失败' : '选择日期'}
-                  options={availableDates.map((date) => ({ label: date, value: date }))}
-                  loading={isLoadingDates}
-                  disabled={Boolean(availableDatesError) || availableDates.length === 0}
-                  showSearch
-                  style={{ minWidth: 160 }}
-                  notFoundContent={isLoadingDates ? '加载中' : '暂无日期'}
-                />
+                <Space size="small" wrap align="center">
+                  <Typography.Text type="secondary">开始日期</Typography.Text>
+                  <DatePicker
+                    value={startDate}
+                    onChange={(nextValue) => {
+                      setStartDate(nextValue);
+                      if (nextValue && endDate && endDate.isBefore(nextValue, 'day')) {
+                        setEndDate(nextValue);
+                      }
+                      if (nextValue && !endDate) {
+                        setEndDate(nextValue);
+                      }
+                    }}
+                    format="YYYY-MM-DD"
+                    allowClear
+                  />
+                  <Typography.Text type="secondary">结束日期</Typography.Text>
+                  <DatePicker
+                    value={endDate}
+                    onChange={(nextValue) => {
+                      setEndDate(nextValue);
+                      if (nextValue && startDate && nextValue.isBefore(startDate, 'day')) {
+                        setStartDate(nextValue);
+                      }
+                      if (nextValue && !startDate) {
+                        setStartDate(nextValue);
+                      }
+                    }}
+                    format="YYYY-MM-DD"
+                    allowClear
+                  />
+                </Space>
               ) : null}
             </Space>
           </Space>

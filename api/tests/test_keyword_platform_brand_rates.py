@@ -7,7 +7,7 @@ class TestKeywordPlatformBrandRates(unittest.TestCase):
         from api.v1.repositories import database
 
         fake_rows = [
-            ("三角洲陪玩", "deepseek", "五九电竞", 0.6935, 0.0323),
+            ("三角洲陪玩", "deepseek", "五九电竞", 0.6935, 0.0323, 0.1545),
         ]
 
         execute_result = MagicMock()
@@ -21,6 +21,7 @@ class TestKeywordPlatformBrandRates(unittest.TestCase):
             ("conversation_id",),
             ("is_mentioned",),
             ("is_first_mentioned",),
+            ("is_top3_mentioned",),
         ]
 
         conn = MagicMock()
@@ -46,8 +47,8 @@ class TestKeywordPlatformBrandRates(unittest.TestCase):
             result = database.query_keyword_platform_brand_rates(
                 tenant_key="tn_1b02b3ef4fbd",
                 job_id="job_20260123_172515_f38024e2",
-                timeframe="30days",
-                specific_date=None,
+                start_date="20260101",
+                end_date="20260131",
             )
         finally:
             database.engine = original_engine
@@ -58,6 +59,7 @@ class TestKeywordPlatformBrandRates(unittest.TestCase):
         self.assertEqual(result[0]["brand"], "五九电竞")
         self.assertAlmostEqual(result[0]["mention_rate"], 0.6935)
         self.assertAlmostEqual(result[0]["first_mention_rate"], 0.0323)
+        self.assertAlmostEqual(result[0]["top3_mention_rate"], 0.1545)
 
         executed_sql = str(conn.execute.call_args[0][0])
         self.assertIn("GROUP BY", executed_sql)

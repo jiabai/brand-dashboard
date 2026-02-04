@@ -16,14 +16,19 @@
 | tenant_key | string | 是 | 租户标识 tenant_key |
 | job_id | string | 是 | 任务ID |
 | timeframe | string | 是 | 时间范围，可选值: `yesterday`, `7days`, `30days`, `specific_day` |
-| date | string | 否 | 具体日期，格式: `YYYYMMDD` |
+| start_date | string | 否 | 起始日期，格式: `YYYYMMDD`（当 `timeframe=specific_day` 时必填） |
+| end_date | string | 否 | 结束日期，格式: `YYYYMMDD`（当 `timeframe=specific_day` 时必填） |
 | brand | string | 否 | 品牌名称 |
 | platform | string | 否 | 平台名称 |
 
 ### 请求示例
 
 ```bash
-curl -X GET "http://your-api.com/api/v1/dashboard/brand-metrics?tenant_key=tn_xxx&job_id=job_456&timeframe=7days"
+curl -X GET "http://your-api.com/api/v1/dashboard/brand-metrics?tenant_key=tn_xxx&job_id=job_456&timeframe=30days"
+```
+
+```bash
+curl -X GET "http://your-api.com/api/v1/dashboard/brand-metrics?tenant_key=tn_xxx&job_id=job_456&timeframe=specific_day&start_date=20260131&end_date=20260131"
 ```
 
 ### 响应格式
@@ -59,8 +64,13 @@ curl -X GET "http://your-api.com/api/v1/dashboard/brand-metrics?tenant_key=tn_xx
     ......
   ],
   "metadata": {
-    "timeframe": "7days",
-    "calculation_method": "mention_count_ratio"
+    "tenant_key": "tn_xxx",
+    "job_id": "job_456",
+    "timeframe": "30days",
+    "start_date": "20260102",
+    "end_date": "20260131",
+    "calculation_method": "mention_count_ratio",
+    "row_count": 5
   }
 }
 ```
@@ -92,8 +102,7 @@ FROM qa_brand_state
 WHERE 
     tenant_key = <tenant_key>
     AND job_id = <job_id>
-    AND `date` >= CURDATE() - INTERVAL <timeframe> DAY
-    AND `date` <= CURDATE()
+    AND `date` BETWEEN :start_date AND :end_date
 GROUP BY brand
 ORDER BY mention_rate DESC, brand ASC;
 ```
@@ -112,8 +121,7 @@ WHERE
     tenant_key = <tenant_key>
     AND platform = <platform>
     AND job_id = <job_id>
-    AND `date` >= CURDATE() - INTERVAL <timeframe> DAY
-    AND `date` <= CURDATE()
+    AND `date` BETWEEN :start_date AND :end_date
 GROUP BY brand
 ORDER BY mention_rate DESC, brand ASC;
 ```
@@ -132,8 +140,7 @@ WHERE
     tenant_key = <tenant_key>
     AND job_id = <job_id>
     AND brand = <brand>
-    AND `date` >= CURDATE() - INTERVAL <timeframe> DAY
-    AND `date` <= CURDATE();
+    AND `date` BETWEEN :start_date AND :end_date
 ```
 
 --------------------------

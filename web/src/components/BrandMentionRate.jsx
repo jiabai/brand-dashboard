@@ -97,7 +97,8 @@ const BrandMentionRate = ({
         tenant_key: tenantKey,
         job_id: jobId,
         timeframe,
-        date,
+        start_date: timeframe === 'specific_day' ? date : undefined,
+        end_date: timeframe === 'specific_day' ? date : undefined,
       }),
     [tenantKey, jobId, timeframe, date],
   );

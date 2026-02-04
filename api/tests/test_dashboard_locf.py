@@ -216,6 +216,101 @@ class TestKeywordPlatformBrandRatesApi(unittest.TestCase):
         )
 
 
+class TestBrandMetricsApi(unittest.TestCase):
+    def setUp(self):
+        app = FastAPI()
+        app.include_router(dashboard.router, prefix="/api/v1/dashboard")
+        self.client = TestClient(app)
+
+    def test_brand_metrics_requires_date_range_for_specific_day(self):
+        response = self.client.get(
+            "/api/v1/dashboard/brand-metrics",
+            params={
+                "tenant_key": "tn_1b02b3ef4fbd",
+                "job_id": "job_20260127_223236_989cc4db",
+                "timeframe": "specific_day",
+                "start_date": "20260131",
+            },
+        )
+
+        self.assertEqual(response.status_code, 400)
+
+    def test_brand_metrics_uses_computed_date_range_for_non_specific_day(self):
+        rows = [
+            {
+                "brand": "学而思",
+                "mention_rate": 0.3333,
+                "first_mention_rate": 0.0,
+                "top3_mention_rate": 0.0667,
+                "prompt_count": 15,
+                "keyword_coverage": 3,
+            }
+        ]
+
+        with patch(
+            "api.v1.routes.dashboard.get_date_range",
+            return_value=(date(2026, 1, 1), date(2026, 1, 31)),
+        ):
+            with patch("api.v1.routes.dashboard.query_brand_metrics") as query_mock:
+                query_mock.return_value = rows
+                response = self.client.get(
+                    "/api/v1/dashboard/brand-metrics",
+                    params={
+                        "tenant_key": "tn_1b02b3ef4fbd",
+                        "job_id": "job_20260127_223236_989cc4db",
+                        "timeframe": "30days",
+                    },
+                )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["status"], "success")
+        self.assertEqual(payload["metadata"]["start_date"], "20260101")
+        self.assertEqual(payload["metadata"]["end_date"], "20260131")
+        self.assertEqual(payload["metadata"]["row_count"], 1)
+
+        query_mock.assert_called_once_with(
+            tenant_key="tn_1b02b3ef4fbd",
+            job_id="job_20260127_223236_989cc4db",
+            start_date="20260101",
+            end_date="20260131",
+            brand=None,
+            platform=None,
+        )
+
+    def test_brand_metrics_uses_supplied_date_range_for_specific_day(self):
+        rows = []
+
+        with patch("api.v1.routes.dashboard.query_brand_metrics") as query_mock:
+            query_mock.return_value = rows
+            response = self.client.get(
+                "/api/v1/dashboard/brand-metrics",
+                params={
+                    "tenant_key": "tn_1b02b3ef4fbd",
+                    "job_id": "job_20260127_223236_989cc4db",
+                    "timeframe": "specific_day",
+                    "start_date": "20260131",
+                    "end_date": "20260131",
+                },
+            )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        metadata = payload["metadata"]
+        self.assertEqual(metadata["start_date"], "20260131")
+        self.assertEqual(metadata["end_date"], "20260131")
+        self.assertEqual(metadata["row_count"], 0)
+
+        query_mock.assert_called_once_with(
+            tenant_key="tn_1b02b3ef4fbd",
+            job_id="job_20260127_223236_989cc4db",
+            start_date="20260131",
+            end_date="20260131",
+            brand=None,
+            platform=None,
+        )
+
+
 class TestKeywordPlatformBrandRatesQuery(unittest.TestCase):
     def test_query_keyword_platform_brand_rates_rejects_invalid_date_format(self):
         with self.assertRaises(ValueError):

@@ -53,7 +53,9 @@ def get_db():
     finally:
         db.close()
 
-def get_date_range(timeframe: str, specific_date: Optional[str] = None) -> tuple[datetime.date, datetime.date]:
+def get_date_range(
+    timeframe: str, specific_date: Optional[str] = None
+) -> tuple[datetime.date, datetime.date]:
     """
     根据timeframe参数计算查询的日期范围
     
@@ -864,12 +866,18 @@ def query_brand_platform_mention_data(
 def query_brand_metrics(
     tenant_key: str,
     job_id: str,
-    timeframe: str,
-    specific_date: Optional[str] = None,
+    start_date: str,
+    end_date: str,
     brand: Optional[str] = None,
     platform: Optional[str] = None,
 ) -> List[Dict[str, Any]]:
-    start_date, end_date = get_date_range(timeframe, specific_date)
+    try:
+        start_date_value = datetime.strptime(start_date, "%Y%m%d").date()
+        end_date_value = datetime.strptime(end_date, "%Y%m%d").date()
+    except ValueError as exc:
+        raise ValueError("日期格式错误，应为YYYYMMDD") from exc
+    if start_date_value > end_date_value:
+        raise ValueError("开始日期不能晚于结束日期")
 
     try:
         with engine.connect() as conn:
@@ -908,8 +916,8 @@ def query_brand_metrics(
             params: Dict[str, Any] = {
                 "tenant_key": tenant_key,
                 "job_id": job_id,
-                "start_date": start_date,
-                "end_date": end_date,
+                "start_date": start_date_value,
+                "end_date": end_date_value,
             }
 
             if brand:

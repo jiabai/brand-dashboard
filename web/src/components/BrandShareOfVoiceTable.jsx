@@ -95,7 +95,8 @@ const ResizableHeaderCell = ({ onResize, width, style, children, ...restProps })
 
 const BrandShareOfVoiceTable = ({
   timeframe = '7days',
-  date = '',
+  startDate = '',
+  endDate = '',
   tenantKey = DEFAULT_TENANT_KEY,
   jobId = DEFAULT_JOB_ID,
 }) => {
@@ -118,9 +119,10 @@ const BrandShareOfVoiceTable = ({
         tenant_key: tenantKey,
         job_id: jobId,
         timeframe,
-        date: timeframe === 'specific_day' ? date : '',
+        start_date: timeframe === 'specific_day' ? startDate : '',
+        end_date: timeframe === 'specific_day' ? endDate : '',
       }),
-    [tenantKey, jobId, timeframe, date],
+    [tenantKey, jobId, timeframe, startDate, endDate],
   );
 
   useEffect(() => {

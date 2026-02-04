@@ -504,16 +504,31 @@ async def get_brand_metrics(
     tenant_key: str = Query(..., description="租户唯一字符串标识（tenants.tenant_key）"),
     job_id: str = Query(..., description="任务ID"),
     timeframe: TimeFrame = Query(..., description="时间范围"),
-    date: Optional[str] = Query(None, description="具体日期(格式: YYYYMMDD)"),
+    start_date: Optional[str] = Query(None, description="起始日期(格式: YYYYMMDD)"),
+    end_date: Optional[str] = Query(None, description="结束日期(格式: YYYYMMDD)"),
     brand: Optional[str] = Query(None, description="品牌名称"),
     platform: Optional[str] = Query(None, description="平台名称"),
 ):
+    if timeframe == TimeFrame.SPECIFIC_DAY and (not start_date or not end_date):
+        raise HTTPException(
+            status_code=400,
+            detail="timeframe=specific_day 时必须提供 start_date 和 end_date(YYYYMMDD)",
+        )
+
     try:
+        if timeframe == TimeFrame.SPECIFIC_DAY:
+            effective_start_date = start_date
+            effective_end_date = end_date
+        else:
+            query_start_date, query_end_date = get_date_range(timeframe.value)
+            effective_start_date = query_start_date.strftime("%Y%m%d")
+            effective_end_date = query_end_date.strftime("%Y%m%d")
+
         metrics = query_brand_metrics(
             tenant_key=tenant_key,
             job_id=job_id,
-            timeframe=timeframe.value,
-            specific_date=date,
+            start_date=effective_start_date,
+            end_date=effective_end_date,
             brand=brand,
             platform=platform,
         )
@@ -534,8 +549,13 @@ async def get_brand_metrics(
             status="success",
             data=data,
             metadata={
+                "tenant_key": tenant_key,
+                "job_id": job_id,
                 "timeframe": timeframe.value,
+                "start_date": effective_start_date,
+                "end_date": effective_end_date,
                 "calculation_method": "mention_count_ratio",
+                "row_count": len(data),
             },
         )
     except ValueError as e:

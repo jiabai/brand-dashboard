@@ -59,7 +59,7 @@
             "description": "时间范围"
           },
           {
-            "name": "date",
+            "name": "start_date",
             "in": "query",
             "required": false,
             "schema": {
@@ -71,10 +71,28 @@
                   "type": "null"
                 }
               ],
-              "description": "具体日期(格式: YYYYMMDD)",
-              "title": "Date"
+              "description": "开始日期(格式: YYYYMMDD)",
+              "title": "Start Date"
             },
-            "description": "具体日期(格式: YYYYMMDD)"
+            "description": "开始日期(格式: YYYYMMDD)"
+          },
+          {
+            "name": "end_date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "结束日期(格式: YYYYMMDD)",
+              "title": "End Date"
+            },
+            "description": "结束日期(格式: YYYYMMDD)"
           }
         ],
         "responses": {
@@ -176,7 +194,7 @@
             "description": "时间范围"
           },
           {
-            "name": "date",
+            "name": "start_date",
             "in": "query",
             "required": false,
             "schema": {
@@ -188,10 +206,28 @@
                   "type": "null"
                 }
               ],
-              "description": "具体日期(格式: YYYYMMDD)",
-              "title": "Date"
+              "description": "开始日期(格式: YYYYMMDD)",
+              "title": "Start Date"
             },
-            "description": "具体日期(格式: YYYYMMDD)"
+            "description": "开始日期(格式: YYYYMMDD)"
+          },
+          {
+            "name": "end_date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "结束日期(格式: YYYYMMDD)",
+              "title": "End Date"
+            },
+            "description": "结束日期(格式: YYYYMMDD)"
           }
         ],
         "responses": {
@@ -370,7 +406,7 @@
             "description": "时间范围"
           },
           {
-            "name": "date",
+            "name": "start_date",
             "in": "query",
             "required": false,
             "schema": {
@@ -382,10 +418,28 @@
                   "type": "null"
                 }
               ],
-              "description": "具体日期(格式: YYYYMMDD)",
-              "title": "Date"
+              "description": "开始日期(格式: YYYYMMDD)",
+              "title": "Start Date"
             },
-            "description": "具体日期(格式: YYYYMMDD)"
+            "description": "开始日期(格式: YYYYMMDD)"
+          },
+          {
+            "name": "end_date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "结束日期(格式: YYYYMMDD)",
+              "title": "End Date"
+            },
+            "description": "结束日期(格式: YYYYMMDD)"
           }
         ],
         "responses": {
@@ -607,7 +661,7 @@
             "description": "时间范围"
           },
           {
-            "name": "date",
+            "name": "start_date",
             "in": "query",
             "required": false,
             "schema": {
@@ -619,10 +673,28 @@
                   "type": "null"
                 }
               ],
-              "description": "具体日期(格式: YYYYMMDD)",
-              "title": "Date"
+              "description": "开始日期(格式: YYYYMMDD)",
+              "title": "Start Date"
             },
-            "description": "具体日期(格式: YYYYMMDD)"
+            "description": "开始日期(格式: YYYYMMDD)"
+          },
+          {
+            "name": "end_date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "结束日期(格式: YYYYMMDD)",
+              "title": "End Date"
+            },
+            "description": "结束日期(格式: YYYYMMDD)"
           },
           {
             "name": "brand",
@@ -1009,7 +1081,7 @@
             "description": "时间范围"
           },
           {
-            "name": "date",
+            "name": "start_date",
             "in": "query",
             "required": false,
             "schema": {
@@ -1021,10 +1093,28 @@
                   "type": "null"
                 }
               ],
-              "description": "具体日期(格式: YYYYMMDD)",
-              "title": "Date"
+              "description": "开始日期(格式: YYYYMMDD)",
+              "title": "Start Date"
             },
-            "description": "具体日期(格式: YYYYMMDD)"
+            "description": "开始日期(格式: YYYYMMDD)"
+          },
+          {
+            "name": "end_date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "结束日期(格式: YYYYMMDD)",
+              "title": "End Date"
+            },
+            "description": "结束日期(格式: YYYYMMDD)"
           }
         ],
         "responses": {
