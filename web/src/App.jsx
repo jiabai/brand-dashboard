@@ -233,6 +233,7 @@ function Dashboard() {
                     <BrandMentionRate 
                       timeframe={selectedFilter} 
                       date={selectedDateParam}
+                      endDate={endDateParam}
                       tenantKey={tenantKey}
                       jobId={jobId}
                       brand={brand}

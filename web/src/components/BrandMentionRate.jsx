@@ -75,6 +75,7 @@ const roundTwoDecimals = (value) => {
 const BrandMentionRate = ({
   timeframe = '7days',
   date = '',
+  endDate = '',
   tenantKey = DEFAULT_TENANT_KEY,
   jobId = DEFAULT_JOB_ID,
   brand = DEFAULT_BRAND,
@@ -98,9 +99,9 @@ const BrandMentionRate = ({
         job_id: jobId,
         timeframe,
         start_date: timeframe === 'specific_day' ? date : undefined,
-        end_date: timeframe === 'specific_day' ? date : undefined,
+        end_date: timeframe === 'specific_day' ? endDate || date : undefined,
       }),
-    [tenantKey, jobId, timeframe, date],
+    [tenantKey, jobId, timeframe, date, endDate],
   );
 
   const targetBrandQueryString = useMemo(
