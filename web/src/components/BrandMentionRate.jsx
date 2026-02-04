@@ -172,7 +172,7 @@ const BrandMentionRate = ({
       sortOrder: sortedInfo.columnKey === 'firstMentionRate' ? sortedInfo.order : null,
     },
     {
-      title: '前三提及率',
+      title: '前3提及率',
       dataIndex: 'top3MentionRate',
       key: 'top3MentionRate',
       render: (val) => (
@@ -394,7 +394,7 @@ const BrandMentionRate = ({
           <Col span={6} style={{ display: 'flex', justifyContent: 'center' }}>
             <div style={{ textAlign: 'center' }}>
               <Progress type="circle" percent={targetBrandData.top3MentionRate} size={80} strokeColor={token.colorWarning} />
-              <div style={{ marginTop: 8, fontWeight: 500 }}>前三提及率</div>
+              <div style={{ marginTop: 8, fontWeight: 500 }}>前3提及率</div>
             </div>
           </Col>
           <Col span={6} style={{ display: 'flex', justifyContent: 'center' }}>
