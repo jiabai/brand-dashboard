@@ -53,7 +53,7 @@ def get_db():
     finally:
         db.close()
 
-def get_date_range(timeframe: str, specific_date: Optional[str] = None) -> tuple:
+def get_date_range(timeframe: str, specific_date: Optional[str] = None) -> tuple[datetime.date, datetime.date]:
     """
     根据timeframe参数计算查询的日期范围
     
@@ -1057,14 +1057,16 @@ def query_platform_metrics_by_brand(
         logger.error("查询平台指标数据失败", error=str(e))
         raise Exception(f"查询平台指标数据失败: {str(e)}") from e
 
-
 def query_keyword_platform_brand_rates(
     tenant_key: str,
     job_id: str,
-    timeframe: str,
-    specific_date: Optional[str] = None,
+    start_date: str,
+    end_date: str,
 ) -> List[Dict[str, Any]]:
-    start_date, end_date = get_date_range(timeframe, specific_date)
+    start_value: datetime.date = datetime.strptime(start_date, "%Y%m%d").date()
+    end_value: datetime.date = datetime.strptime(end_date, "%Y%m%d").date()
+    if start_value > end_value:
+        raise ValueError("开始日期不能晚于结束日期")
 
     try:
         with engine.connect() as conn:
@@ -1126,8 +1128,8 @@ def query_keyword_platform_brand_rates(
                 {
                     "tenant_key": tenant_key,
                     "job_id": job_id,
-                    "start_date": start_date,
-                    "end_date": end_date,
+                    "start_date": start_value,
+                    "end_date": end_value,
                 },
             ).fetchall()
 

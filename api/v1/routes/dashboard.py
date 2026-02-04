@@ -7,6 +7,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from api.v1.repositories.database import (
     get_available_dates,
+    get_date_range,
     query_brand_mention_data,
     query_brand_metrics,
     query_brand_platform_keyword_daily_mention_rates,
@@ -649,7 +650,6 @@ async def get_post_citation_rate(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"获取品牌发文引用率失败: {str(e)}") from e
 
-
 @router.get(
     "/keyword-platform-brand-rates",
     response_model=KeywordPlatformBrandRatesResponse,
@@ -658,20 +658,29 @@ async def get_keyword_platform_brand_rates(
     tenant_key: str = Query(..., description="租户唯一字符串标识（tenants.tenant_key）"),
     job_id: str = Query(..., description="任务ID"),
     timeframe: TimeFrame = Query(..., description="时间范围"),
-    date: Optional[str] = Query(None, description="具体日期(格式: YYYYMMDD)"),
+    start_date: Optional[str] = Query(None, description="起始日期(格式: YYYYMMDD)"),
+    end_date: Optional[str] = Query(None, description="结束日期(格式: YYYYMMDD)"),
 ):
-    if timeframe == TimeFrame.SPECIFIC_DAY and not date:
+    if timeframe == TimeFrame.SPECIFIC_DAY and (not start_date or not end_date):
         raise HTTPException(
             status_code=400,
-            detail="timeframe=specific_day 时必须提供 date(YYYYMMDD)",
+            detail="timeframe=specific_day 时必须提供 start_date 和 end_date(YYYYMMDD)",
         )
 
     try:
+        if timeframe == TimeFrame.SPECIFIC_DAY:
+            effective_start_date = start_date
+            effective_end_date = end_date
+        else:
+            query_start_date, query_end_date = get_date_range(timeframe.value)
+            effective_start_date = query_start_date.strftime("%Y%m%d")
+            effective_end_date = query_end_date.strftime("%Y%m%d")
+
         rows = query_keyword_platform_brand_rates(
             tenant_key=tenant_key,
             job_id=job_id,
-            timeframe=timeframe.value,
-            specific_date=date,
+            start_date=effective_start_date,
+            end_date=effective_end_date,
         )
 
         data = [
@@ -693,7 +702,8 @@ async def get_keyword_platform_brand_rates(
                 "tenant_key": tenant_key,
                 "job_id": job_id,
                 "timeframe": timeframe.value,
-                "date": date,
+                "start_date": effective_start_date,
+                "end_date": effective_end_date,
                 "calculation_method": "distinct_conversation_ratio",
                 "rate_unit": "ratio_0_1",
                 "row_count": len(data),

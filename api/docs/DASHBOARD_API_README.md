@@ -756,7 +756,8 @@ ORDER BY date ASC
 | tenant_key | string | 是 | 租户标识 tenant_key |
 | job_id | string | 是 | 任务ID |
 | timeframe | string | 是 | 时间范围，可选值: `yesterday`, `7days`, `30days`, `specific_day` |
-| date | string | 否 | 具体日期，格式: `YYYYMMDD`（当 `timeframe=specific_day` 时必填） |
+| start_date | string | 否 | 起始日期，格式: `YYYYMMDD`（当 `timeframe=specific_day` 时必填） |
+| end_date | string | 否 | 结束日期，格式: `YYYYMMDD`（当 `timeframe=specific_day` 时必填） |
 
 ### 请求示例
 
@@ -765,7 +766,7 @@ curl -X GET "http://your-api.com/api/v1/dashboard/keyword-platform-brand-rates?t
 ```
 
 ```bash
-curl -X GET "http://your-api.com/api/v1/dashboard/keyword-platform-brand-rates?tenant_key=tn_xxx&job_id=job_456&timeframe=specific_day&date=20260131"
+curl -X GET "http://your-api.com/api/v1/dashboard/keyword-platform-brand-rates?tenant_key=tn_xxx&job_id=job_456&timeframe=specific_day&start_date=20260131&end_date=20260131"
 ```
 
 ### 响应格式
@@ -787,7 +788,8 @@ curl -X GET "http://your-api.com/api/v1/dashboard/keyword-platform-brand-rates?t
     "tenant_key": "tn_xxx",
     "job_id": "job_456",
     "timeframe": "30days",
-    "date": null,
+    "start_date": "20260102",
+    "end_date": "20260131",
     "calculation_method": "distinct_conversation_ratio",
     "rate_unit": "ratio_0_1",
     "row_count": 1
@@ -811,7 +813,8 @@ curl -X GET "http://your-api.com/api/v1/dashboard/keyword-platform-brand-rates?t
 | metadata.tenant_key | string | 租户标识 |
 | metadata.job_id | string | 任务ID |
 | metadata.timeframe | string | 时间范围 |
-| metadata.date | string/null | 具体日期（仅在 `specific_day` 时有效） |
+| metadata.start_date | string | 起始日期（`YYYYMMDD`） |
+| metadata.end_date | string | 结束日期（`YYYYMMDD`） |
 | metadata.calculation_method | string | 计算方式说明 |
 | metadata.rate_unit | string | rate 单位说明 |
 | metadata.row_count | int | 返回行数 |

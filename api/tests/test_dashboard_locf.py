@@ -2,6 +2,7 @@ import unittest
 from datetime import date
 from unittest.mock import patch
 
+from api.v1.repositories.database import query_keyword_platform_brand_rates
 from api.v1.routes import dashboard
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
@@ -106,6 +107,53 @@ class TestKeywordPlatformBrandRatesApi(unittest.TestCase):
         app.include_router(dashboard.router, prefix="/api/v1/dashboard")
         self.client = TestClient(app)
 
+    def test_keyword_platform_brand_rates_requires_date_range_for_specific_day(self):
+        response = self.client.get(
+            "/api/v1/dashboard/keyword-platform-brand-rates",
+            params={
+                "tenant_key": "tn_1b02b3ef4fbd",
+                "job_id": "job_20260127_223236_989cc4db",
+                "timeframe": "specific_day",
+                "start_date": "20260131",
+            },
+        )
+
+        self.assertEqual(response.status_code, 400)
+
+    def test_keyword_platform_brand_rates_returns_date_range_metadata(self):
+        rows = [
+            {
+                "keyword": "三角洲陪玩",
+                "platform": "deepseek",
+                "brand": "五九电竞",
+                "mention_rate": 0.6935,
+                "first_mention_rate": 0.0323,
+                "top3_mention_rate": 0.1545,
+            }
+        ]
+
+        with patch(
+            "api.v1.routes.dashboard.query_keyword_platform_brand_rates",
+            return_value=rows,
+        ):
+            response = self.client.get(
+                "/api/v1/dashboard/keyword-platform-brand-rates",
+                params={
+                    "tenant_key": "tn_1b02b3ef4fbd",
+                    "job_id": "job_20260127_223236_989cc4db",
+                    "timeframe": "specific_day",
+                    "start_date": "20260131",
+                    "end_date": "20260131",
+                },
+            )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        metadata = payload["metadata"]
+        self.assertEqual(metadata["start_date"], "20260131")
+        self.assertEqual(metadata["end_date"], "20260131")
+        self.assertNotIn("date", metadata)
+
     def test_keyword_platform_brand_rates_includes_top3_mention_rate(self):
         rows = [
             {
@@ -138,3 +186,51 @@ class TestKeywordPlatformBrandRatesApi(unittest.TestCase):
         self.assertEqual(len(data), 1)
         self.assertIn("top3_mention_rate", data[0])
         self.assertEqual(data[0]["top3_mention_rate"], 0.1545)
+
+    def test_keyword_platform_brand_rates_uses_computed_date_range_for_non_specific_day(self):
+        with patch(
+            "api.v1.routes.dashboard.get_date_range",
+            return_value=(date(2026, 1, 1), date(2026, 1, 31)),
+        ):
+            with patch("api.v1.routes.dashboard.query_keyword_platform_brand_rates") as query_mock:
+                query_mock.return_value = []
+                response = self.client.get(
+                    "/api/v1/dashboard/keyword-platform-brand-rates",
+                    params={
+                        "tenant_key": "tn_1b02b3ef4fbd",
+                        "job_id": "job_20260127_223236_989cc4db",
+                        "timeframe": "30days",
+                    },
+                )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["metadata"]["start_date"], "20260101")
+        self.assertEqual(payload["metadata"]["end_date"], "20260131")
+
+        query_mock.assert_called_once_with(
+            tenant_key="tn_1b02b3ef4fbd",
+            job_id="job_20260127_223236_989cc4db",
+            start_date="20260101",
+            end_date="20260131",
+        )
+
+
+class TestKeywordPlatformBrandRatesQuery(unittest.TestCase):
+    def test_query_keyword_platform_brand_rates_rejects_invalid_date_format(self):
+        with self.assertRaises(ValueError):
+            query_keyword_platform_brand_rates(
+                tenant_key="tn_1b02b3ef4fbd",
+                job_id="job_20260127_223236_989cc4db",
+                start_date="2026-01-01",
+                end_date="20260131",
+            )
+
+    def test_query_keyword_platform_brand_rates_rejects_start_after_end(self):
+        with self.assertRaises(ValueError):
+            query_keyword_platform_brand_rates(
+                tenant_key="tn_1b02b3ef4fbd",
+                job_id="job_20260127_223236_989cc4db",
+                start_date="20260201",
+                end_date="20260131",
+            )
