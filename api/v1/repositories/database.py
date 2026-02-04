@@ -1004,10 +1004,16 @@ def query_platform_metrics_by_brand(
     tenant_key: str,
     job_id: str,
     brand: str,
-    timeframe: str,
-    specific_date: Optional[str] = None,
+    start_date: str,
+    end_date: str,
 ) -> List[Dict[str, Any]]:
-    start_date, end_date = get_date_range(timeframe, specific_date)
+    try:
+        start_date_value = datetime.strptime(start_date, "%Y%m%d").date()
+        end_date_value = datetime.strptime(end_date, "%Y%m%d").date()
+    except ValueError as exc:
+        raise ValueError("日期格式错误，应为YYYYMMDD") from exc
+    if start_date_value > end_date_value:
+        raise ValueError("开始日期不能晚于结束日期")
 
     try:
         with engine.connect() as conn:
@@ -1032,8 +1038,8 @@ def query_platform_metrics_by_brand(
                 "tenant_key": tenant_key,
                 "job_id": job_id,
                 "brand": brand,
-                "start_date": start_date,
-                "end_date": end_date,
+                "start_date": start_date_value,
+                "end_date": end_date_value,
             }
 
             query = f"""

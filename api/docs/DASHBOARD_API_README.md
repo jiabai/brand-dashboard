@@ -158,12 +158,17 @@ WHERE
 | job_id | string | 是 | 任务ID |
 | brand | string | 是 | 品牌名称 |
 | timeframe | string | 是 | 时间范围，可选值: `yesterday`, `7days`, `30days`, `specific_day` |
-| date | string | 否 | 具体日期，格式: `YYYYMMDD` |
+| start_date | string | 否 | 起始日期，格式: `YYYYMMDD`（当 `timeframe=specific_day` 时必填） |
+| end_date | string | 否 | 结束日期，格式: `YYYYMMDD`（当 `timeframe=specific_day` 时必填） |
 
 ### 请求示例
 
 ```bash
-curl -X GET "http://your-api.com/api/v1/dashboard/platform-metrics-by-brand?tenant_key=tn_xxx&job_id=job_456&brand=学而思&timeframe=7days"
+curl -X GET "http://your-api.com/api/v1/dashboard/platform-metrics-by-brand?tenant_key=tn_xxx&job_id=job_456&brand=学而思&timeframe=30days"
+```
+
+```bash
+curl -X GET "http://your-api.com/api/v1/dashboard/platform-metrics-by-brand?tenant_key=tn_xxx&job_id=job_456&brand=学而思&timeframe=specific_day&start_date=20260102&end_date=20260131"
 ```
 
 ### 响应格式
@@ -189,8 +194,13 @@ curl -X GET "http://your-api.com/api/v1/dashboard/platform-metrics-by-brand?tena
       ]
   },
   "metadata": {
-    "timeframe": "7days",
-    "calculation_method": "platform_metrics_by_brand"
+    "tenant_key": "tn_xxx",
+    "job_id": "job_456",
+    "timeframe": "30days",
+    "start_date": "20260102",
+    "end_date": "20260131",
+    "calculation_method": "platform_metrics_by_brand",
+    "row_count": 5
   }
 }
 ```
@@ -202,8 +212,8 @@ curl -X GET "http://your-api.com/api/v1/dashboard/platform-metrics-by-brand?tena
 | status | string | 响应状态，"success" 或 "error" |
 | brand | string | 品牌名称 |
 | platforms | array | platform 指标列表 |
-| platform | string | 平台名称 |
-| mention_rate | float | 平台提及率（比例，0~1） |
+| platforms.platform | string | 平台名称 |
+| platforms.mention_rate | float | 平台提及率（比例，0~1） |
 
 ### 数据计算逻辑
 
@@ -216,8 +226,7 @@ WHERE
     tenant_key = <tenant_key>
     AND job_id = <job_id>
     AND brand = <brand>
-    AND date >= CURDATE() - INTERVAL <timeframe> DAY
-    AND date <= CURDATE()
+    AND `date` BETWEEN :start_date AND :end_date
 GROUP BY platform
 ORDER BY platform ASC;
 ```

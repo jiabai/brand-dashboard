@@ -570,15 +570,30 @@ async def get_platform_metrics_by_brand(
     job_id: str = Query(..., description="任务ID"),
     brand: str = Query(..., description="品牌名称"),
     timeframe: TimeFrame = Query(..., description="时间范围"),
-    date: Optional[str] = Query(None, description="具体日期(格式: YYYYMMDD)"),
+    start_date: Optional[str] = Query(None, description="起始日期(格式: YYYYMMDD)"),
+    end_date: Optional[str] = Query(None, description="结束日期(格式: YYYYMMDD)"),
 ):
+    if timeframe == TimeFrame.SPECIFIC_DAY and (not start_date or not end_date):
+        raise HTTPException(
+            status_code=400,
+            detail="timeframe=specific_day 时必须提供 start_date 和 end_date(YYYYMMDD)",
+        )
+
     try:
+        if timeframe == TimeFrame.SPECIFIC_DAY:
+            effective_start_date = start_date
+            effective_end_date = end_date
+        else:
+            query_start_date, query_end_date = get_date_range(timeframe.value)
+            effective_start_date = query_start_date.strftime("%Y%m%d")
+            effective_end_date = query_end_date.strftime("%Y%m%d")
+
         platforms = query_platform_metrics_by_brand(
             tenant_key=tenant_key,
             job_id=job_id,
             brand=brand,
-            timeframe=timeframe.value,
-            specific_date=date,
+            start_date=effective_start_date,
+            end_date=effective_end_date,
         )
 
         return PlatformMetricsByBrandResponse(
@@ -594,8 +609,13 @@ async def get_platform_metrics_by_brand(
                 ],
             ),
             metadata={
+                "tenant_key": tenant_key,
+                "job_id": job_id,
                 "timeframe": timeframe.value,
+                "start_date": effective_start_date,
+                "end_date": effective_end_date,
                 "calculation_method": "platform_metrics_by_brand",
+                "row_count": len(platforms),
             },
         )
     except ValueError as e:
