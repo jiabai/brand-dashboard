@@ -66,6 +66,7 @@ const PlatformMentionRates = ({
   onPlatformClick,
   timeframe = '7days',
   date = '',
+  endDate = '',
   tenantKey = DEFAULT_TENANT_KEY,
   jobId = DEFAULT_JOB_ID,
   brand = DEFAULT_BRAND,
@@ -83,9 +84,10 @@ const PlatformMentionRates = ({
         job_id: jobId,
         brand,
         timeframe,
-        date,
+        start_date: timeframe === 'specific_day' ? date : undefined,
+        end_date: timeframe === 'specific_day' ? endDate || date : undefined,
       }),
-    [tenantKey, jobId, brand, timeframe, date],
+    [tenantKey, jobId, brand, timeframe, date, endDate],
   );
 
   useEffect(() => {
