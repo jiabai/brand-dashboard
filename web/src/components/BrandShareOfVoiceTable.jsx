@@ -152,12 +152,14 @@ const BrandShareOfVoiceTable = ({
             const brand = item?.brand;
             const mentionRate = Number(item?.mention_rate ?? 0);
             const firstMentionRate = Number(item?.first_mention_rate ?? 0);
+            const top3MentionRate = Number(item?.top3_mention_rate ?? 0);
             return {
               keyword,
               platform,
               brand,
               mention_rate: Number.isFinite(mentionRate) ? mentionRate : 0,
               first_mention_rate: Number.isFinite(firstMentionRate) ? firstMentionRate : 0,
+              top3_mention_rate: Number.isFinite(top3MentionRate) ? top3MentionRate : 0,
             };
           })
           .filter((item) => item.keyword && item.platform && item.brand);
@@ -294,6 +296,33 @@ const BrandShareOfVoiceTable = ({
           </Space>
         ),
         width: columnWidths.first_mention_rate ?? 200,
+      },
+      {
+        title: (
+          <Space>
+            Top 3 Mention Rate
+            <Tooltip title="Percentage of conversations where the brand was mentioned in the top 3 positions">
+              <InfoCircleOutlined style={{ color: 'rgba(0,0,0,0.45)' }} />
+            </Tooltip>
+          </Space>
+        ),
+        dataIndex: 'top3_mention_rate',
+        key: 'top3_mention_rate',
+        sorter: (a, b) => a.top3_mention_rate - b.top3_mention_rate,
+        render: (value) => (
+          <Space direction="vertical" style={{ width: '100%' }} size={0}>
+             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 2 }}>
+              <Text type="secondary" style={{ fontSize: 12 }}>{(value * 100).toFixed(2)}%</Text>
+            </div>
+            <Progress 
+              percent={value * 100} 
+              showInfo={false} 
+              size="small" 
+              strokeColor="#1890ff"
+            />
+          </Space>
+        ),
+        width: columnWidths.top3_mention_rate ?? 200,
       },
     ];
 

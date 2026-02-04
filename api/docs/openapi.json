@@ -2192,20 +2192,10 @@
             "title": "First Mention Rate",
             "description": "首次提及品牌率"
           },
-          "citation_rate_by_post": {
-            "type": "number",
-            "title": "Citation Rate By Post",
-            "description": "引用率"
-          },
           "prompt_count": {
             "type": "integer",
             "title": "Prompt Count",
             "description": "问题总数"
-          },
-          "citation_source_count": {
-            "type": "integer",
-            "title": "Citation Source Count",
-            "description": "引用来源数量"
           },
           "keyword_coverage": {
             "type": "integer",
@@ -2218,9 +2208,7 @@
           "brand",
           "mention_rate",
           "first_mention_rate",
-          "citation_rate_by_post",
           "prompt_count",
-          "citation_source_count",
           "keyword_coverage"
         ],
         "title": "BrandMetricsItem"

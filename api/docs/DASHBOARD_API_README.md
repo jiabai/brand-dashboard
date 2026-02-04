@@ -36,27 +36,24 @@ curl -X GET "http://your-api.com/api/v1/dashboard/brand-metrics?tenant_key=tn_xx
       "brand": "学而思",
       "mention_rate": 0.3333,
       "first_mention_rate": 0.0000,
-      "citation_rate_by_post": 0,
+      "top3_mention_rate": 0.0667,
       "prompt_count": 15,
-      "citation_source_count": 0,
       "keyword_coverage": 3
     },
     {
       "brand": "新东方",
       "mention_rate": 0.2667,
       "first_mention_rate": 0.1333,
-      "citation_rate_by_post": 0,
+      "top3_mention_rate": 0.0667,
       "prompt_count": 15,
-      "citation_source_count": 0,
       "keyword_coverage": 2
     },
     {
       "brand": "作业帮",
       "mention_rate": 0.2000,
       "first_mention_rate": 0.0000,
-      "citation_rate_by_post": 0,
+      "top3_mention_rate": 0.0667,
       "prompt_count": 15,
-      "citation_source_count": 0,
       "keyword_coverage": 3
     },
     ......
@@ -76,14 +73,9 @@ curl -X GET "http://your-api.com/api/v1/dashboard/brand-metrics?tenant_key=tn_xx
 | brand | string | 品牌名称 |
 | mention_rate | float | 品牌总提及率（比例，0~1） |
 | first_mention_rate | float | 首次提及 brand 率（比例，0~1） |
-| citation_rate_by_post | float | 发文引用率（有发文引用的对话占总对话的比例） |
+| top3_mention_rate | float | 前3次提及 brand 率（比例，0~1） |
 | prompt_count | int | 问题总数 |
-| citation_source_count | int | 引用来源数量 |
 | keyword_coverage | int | 问题的答案提及品牌时，问题所属关键词的个数 |
-
-> **💡 计算口径说明**：当前接口的“引用率”计算均基于“**已产生引用链接的对话**”作为分母。
-> - **现状**：计算的是在 AI 给出链接的前提下，发文链接或域名的分布情况。
-> - **未来计划**：计划新增“全局引用率”指标，以“品牌总提及对话数”作为分母，用于评估 AI 给出链接的整体概率。
 
 ### 数据计算逻辑
 
@@ -94,8 +86,7 @@ SELECT
     COUNT(DISTINCT conversation_id) AS prompt_count,
     SUM(is_mentioned) / COUNT(DISTINCT conversation_id) AS mention_rate,
     SUM(is_first_mentioned) / COUNT(DISTINCT conversation_id) AS first_mention_rate,
-    0 AS citation_rate_by_post,
-    0 AS citation_source_count,
+    SUM(is_top3_mentioned) / COUNT(DISTINCT conversation_id) AS top3_mention_rate,
     COUNT(DISTINCT CASE WHEN is_mentioned = 1 THEN keyword END) AS keyword_coverage
 FROM qa_brand_state
 WHERE 
@@ -107,15 +98,14 @@ GROUP BY brand
 ORDER BY mention_rate DESC, brand ASC;
 ```
 
-当请求参数不带brand='xxx'，带platform='oooo'时，返回所有品牌的指标：
+当请求参数不带brand='xxx'，带platform='oooo'时，返回platform下所有品牌的指标：
 ```sql
 SELECT 
     brand,
     COUNT(DISTINCT conversation_id) AS prompt_count,
     SUM(is_mentioned) / COUNT(DISTINCT conversation_id) AS mention_rate,
     SUM(is_first_mentioned) / COUNT(DISTINCT conversation_id) AS first_mention_rate,
-    0 AS citation_rate_by_post,
-    0 AS citation_source_count,
+    SUM(is_top3_mentioned) / COUNT(DISTINCT conversation_id) AS top3_mention_rate,
     COUNT(DISTINCT CASE WHEN is_mentioned = 1 THEN keyword END) AS keyword_coverage
 FROM qa_brand_state
 WHERE 
@@ -135,8 +125,7 @@ SELECT
     COUNT(DISTINCT conversation_id) AS prompt_count,
     SUM(is_mentioned) / COUNT(DISTINCT conversation_id) AS mention_rate,
     SUM(is_first_mentioned) / COUNT(DISTINCT conversation_id) AS first_mention_rate,
-    0 AS citation_rate_by_post,
-    0 AS citation_source_count,
+    SUM(is_top3_mentioned) / COUNT(DISTINCT conversation_id) AS top3_mention_rate,
     COUNT(DISTINCT CASE WHEN is_mentioned = 1 THEN keyword END) AS keyword_coverage
 FROM qa_brand_state
 WHERE 

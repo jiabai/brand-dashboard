@@ -50,10 +50,6 @@
 - 算法：`COUNT(DISTINCT CASE WHEN is_mentioned = 1 THEN keyword END)`
 - 解释：用于描述品牌被提及时的“话题覆盖面”，而不是提及强度。
 
-### 指标：citation_rate_by_post / citation_source_count
-
-- 当前算法：在该接口中固定为 0（占位字段），对应的真实计算由引用相关接口提供。
-
 ### 维度：brand 参数
 
 - 不传 `brand`：按 `brand` 分组返回所有品牌指标，并按 `mention_rate DESC, brand ASC` 排序。

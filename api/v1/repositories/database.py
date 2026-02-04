@@ -891,6 +891,10 @@ def query_brand_metrics(
                 raise Exception("qa_brand_state 表缺少 is_first_mentioned 字段")
             first_mention_column = "is_first_mentioned"
 
+            if "is_top3_mentioned" not in columns:
+                raise Exception("qa_brand_state 表缺少 is_top3_mentioned 字段")
+            top3_mention_column = "is_top3_mentioned"
+
             if platform and "platform" not in columns:
                 raise Exception("qa_brand_state 表缺少 platform 字段")
 
@@ -930,6 +934,7 @@ def query_brand_metrics(
                 COUNT(DISTINCT {id_column}) AS prompt_count,
                 SUM(is_mentioned) AS mention_count,
                 SUM({first_mention_column}) AS first_mention_count,
+                SUM({top3_mention_column}) AS top3_mention_count,
                 {keyword_coverage_expr} AS keyword_coverage
             FROM qa_brand_state
             WHERE {where_sql}
@@ -953,7 +958,8 @@ def query_brand_metrics(
                 prompt_count = int(row[1]) if row[1] else 0
                 mention_count = int(row[2]) if row[2] else 0
                 first_mention_count = int(row[3]) if row[3] else 0
-                keyword_coverage = int(row[4]) if row[4] else 0
+                top3_mention_count = int(row[4]) if row[4] else 0
+                keyword_coverage = int(row[5]) if row[5] else 0
 
                 mention_rate = (
                     round(mention_count / prompt_count, 4) if prompt_count > 0 else 0.0
@@ -963,15 +969,19 @@ def query_brand_metrics(
                     if prompt_count > 0
                     else 0.0
                 )
+                top3_mention_rate = (
+                    round(top3_mention_count / prompt_count, 4)
+                    if prompt_count > 0
+                    else 0.0
+                )
 
                 metrics.append(
                     {
                         "brand": row[0],
                         "mention_rate": mention_rate,
                         "first_mention_rate": first_mention_rate,
-                        "citation_rate_by_post": 0,
+                        "top3_mention_rate": top3_mention_rate,
                         "prompt_count": prompt_count,
-                        "citation_source_count": 0,
                         "keyword_coverage": keyword_coverage,
                     }
                 )

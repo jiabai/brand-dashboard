@@ -109,9 +109,8 @@ class BrandMetricsItem(BaseModel):
     brand: str = Field(..., description="品牌名称")
     mention_rate: float = Field(..., description="品牌总提及率")
     first_mention_rate: float = Field(..., description="首次提及品牌率")
-    citation_rate_by_post: float = Field(..., description="引用率")
+    top3_mention_rate: float = Field(..., description="前3次提及品牌率")
     prompt_count: int = Field(..., description="问题总数")
-    citation_source_count: int = Field(..., description="引用来源数量")
     keyword_coverage: int = Field(..., description="关键词覆盖数")
 
 
@@ -523,9 +522,8 @@ async def get_brand_metrics(
                 brand=item["brand"],
                 mention_rate=item["mention_rate"],
                 first_mention_rate=item["first_mention_rate"],
-                citation_rate_by_post=item["citation_rate_by_post"],
+                top3_mention_rate=item["top3_mention_rate"],
                 prompt_count=item["prompt_count"],
-                citation_source_count=item["citation_source_count"],
                 keyword_coverage=item["keyword_coverage"],
             )
             for item in metrics

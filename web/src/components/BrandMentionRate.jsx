@@ -246,9 +246,6 @@ const BrandMentionRate = ({
           name: item?.brand,
           mentionRate: roundTwoDecimals(clampPercent(toPercent(item?.mention_rate ?? 0))),
           firstMentionRate: roundTwoDecimals(clampPercent(toPercent(item?.first_mention_rate ?? 0))),
-          articleCitationRate: clampPercent(
-            toPercent(item?.citation_rate_by_post ?? 0),
-          ),
           promptValue: Number(item?.prompt_count ?? 0),
           coveredKeywordsCount: Number(item?.keyword_coverage ?? 0),
         }));
@@ -266,11 +263,7 @@ const BrandMentionRate = ({
               mentionRate: roundTwoDecimals(targetItem.mentionRate),
               firstMentionRate: roundTwoDecimals(targetItem.firstMentionRate),
               articleCitationRate: roundTwoDecimals(clampPercent(
-                toPercent(
-                  postCitationRateData?.citation_rate_by_post ??
-                    targetItem.articleCitationRate ??
-                    0,
-                ),
+                toPercent(postCitationRateData?.citation_rate_by_post ?? 0),
               )),
               promptValue: targetItem.promptValue,
               citationSourceValue: Number(postCitationRateData?.citation_source_count ?? 0),
