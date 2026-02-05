@@ -309,21 +309,20 @@ def query_post_citation_rate(
     tenant_key: str,
     job_id: str,
     brand: str,
-    timeframe: str,
-    specific_date: Optional[str] = None
+    start_date: datetime.date,
+    end_date: datetime.date
 ) -> Dict[str, Any]:
     """
     查询品牌发文引用率数据
     
     Args:
         brand: 品牌名称
-        timeframe: 时间范围
-        specific_date: 指定日期
+        start_date: 开始日期
+        end_date: 结束日期
     
     Returns:
         包含发文引用率数据的字典
     """
-    start_date, end_date = get_date_range(timeframe, specific_date)
 
     query = """
     SELECT

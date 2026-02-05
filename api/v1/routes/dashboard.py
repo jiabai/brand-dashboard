@@ -685,7 +685,7 @@ async def get_domain_citation_rate(
                 "end_date": query_end_date.strftime("%Y%m%d"),
                 "calculation_method": "domain_citation_rate",
                 "row_count": len(domain_distribution),
-            },
+            }
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
@@ -699,24 +699,45 @@ async def get_post_citation_rate(
     job_id: str = Query(..., description="任务ID"),
     brand: str = Query(..., description="品牌名称"),
     timeframe: TimeFrame = Query(..., description="时间范围"),
-    date: Optional[str] = Query(None, description="具体日期(格式: YYYYMMDD)")
+    start_date: Optional[str] = Query(None, description="起始日期(格式: YYYYMMDD)"),
+    end_date: Optional[str] = Query(None, description="结束日期(格式: YYYYMMDD)"),
 ):
     """获取品牌发文引用率信息."""
+    if timeframe == TimeFrame.SPECIFIC_DAY and (not start_date or not end_date):
+        raise HTTPException(
+            status_code=400,
+            detail="timeframe=specific_day 时必须提供 start_date 和 end_date(YYYYMMDD)",
+        )
+
     try:
+        if timeframe == TimeFrame.SPECIFIC_DAY:
+            query_start_date = datetime.strptime(start_date, "%Y%m%d").date()
+            query_end_date = datetime.strptime(end_date, "%Y%m%d").date()
+        else:
+            query_start_date, query_end_date = get_date_range(timeframe.value)
+
+        if query_start_date > query_end_date:
+            raise ValueError("开始日期不能晚于结束日期")
+
         data = query_post_citation_rate(
             tenant_key=tenant_key,
             job_id=job_id,
             brand=brand,
-            timeframe=timeframe.value,
-            specific_date=date
+            start_date=query_start_date,
+            end_date=query_end_date,
         )
 
         return PostCitationRateResponse(
             status="success",
             data=[PostCitationRateData(**data)],
             metadata={
+                "tenant_key": tenant_key,
+                "job_id": job_id,
                 "timeframe": timeframe.value,
-                "calculation_method": "post_citation_rate"
+                "start_date": query_start_date.strftime("%Y%m%d"),
+                "end_date": query_end_date.strftime("%Y%m%d"),
+                "calculation_method": "post_citation_rate",
+                "row_count": 1,
             }
         )
     except Exception as e:

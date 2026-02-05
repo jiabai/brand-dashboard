@@ -245,12 +245,17 @@ ORDER BY platform ASC;
 | job_id | string | 是 | 任务ID |
 | brand | string | 是 | 品牌名称 |
 | timeframe | string | 是 | 时间范围，可选值: `yesterday`, `7days`, `30days`, `specific_day` |
-| date | string | 否 | 具体日期，格式: `YYYYMMDD` |
+| start_date | string | 否 | 起始日期，格式: `YYYYMMDD`（当 `timeframe=specific_day` 时必填） |
+| end_date | string | 否 | 结束日期，格式: `YYYYMMDD`（当 `timeframe=specific_day` 时必填） |
 
 ### 请求示例
 
 ```bash
-curl -X GET "http://your-api.com/api/v1/dashboard/post-citation-rate?tenant_key=tn_xxx&job_id=job_456&brand=学而思&timeframe=7days"
+curl -X GET "http://your-api.com/api/v1/dashboard/post-citation-rate?tenant_key=tn_xxx&job_id=job_456&brand=学而思&timeframe=30days"
+```
+
+```bash
+curl -X GET "http://your-api.com/api/v1/dashboard/post-citation-rate?tenant_key=tn_xxx&job_id=job_456&brand=学而思&timeframe=specific_day&start_date=20260102&end_date=20260131"
 ```
 
 ### 响应格式
@@ -260,14 +265,19 @@ curl -X GET "http://your-api.com/api/v1/dashboard/post-citation-rate?tenant_key=
   "status": "success",
   "data": [
     {
-      "brand": "xxx",
+      "brand": "学而思",
       "citation_source_count": 104,
       "citation_rate_by_post": 0.0
     }
   ],
   "metadata": {
-    "timeframe": "7days",
-    "calculation_method": "post_citation_rate"
+    "tenant_key": "tn_xxx",
+    "job_id": "job_456",
+    "timeframe": "30days",
+    "start_date": "20260102",
+    "end_date": "20260131",
+    "calculation_method": "post_citation_rate",
+    "row_count": 1
   }
 }
 ```
@@ -301,8 +311,7 @@ SELECT
                     tenant_key = <tenant_key>
                     AND job_id = <job_id>
                     AND brand = <brand>
-                    AND created_at >= CURDATE() - INTERVAL <timeframe> DAY
-                    AND created_at <= CURDATE()
+                    AND `date` BETWEEN :start_date AND :end_date
                 GROUP BY conversation_id
             ) AS conv_stats
         ),
@@ -313,8 +322,7 @@ WHERE
     qr.tenant_key = <tenant_key>
     AND qr.job_id = <job_id>
     AND qr.brand = <brand>
-    AND qr.created_at >= CURDATE() - INTERVAL <timeframe> DAY
-    AND qr.created_at <= CURDATE()
+    AND qr.date BETWEEN :start_date AND :end_date
 GROUP BY brand;
 ```
 ---------------------
