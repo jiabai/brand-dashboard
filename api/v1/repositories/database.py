@@ -389,17 +389,9 @@ def query_domain_citation_rate(
     tenant_key: str,
     job_id: str,
     brand: str,
-    start_date: str,
-    end_date: str,
+    start_date: datetime.date,
+    end_date: datetime.date,
 ) -> List[Dict[str, Any]]:
-    try:
-        start_date_value = datetime.strptime(start_date, "%Y%m%d").date()
-        end_date_value = datetime.strptime(end_date, "%Y%m%d").date()
-    except ValueError as exc:
-        raise ValueError("日期格式错误，应为YYYYMMDD") from exc
-    if start_date_value > end_date_value:
-        raise ValueError("开始日期不能晚于结束日期")
-
     total_query = """
     SELECT COUNT(*)
     FROM qa_reference
@@ -426,8 +418,8 @@ def query_domain_citation_rate(
         "tenant_key": tenant_key,
         "job_id": job_id,
         "brand": brand,
-        "start_date": start_date_value,
-        "end_date": end_date_value,
+        "start_date": start_date,
+        "end_date": end_date,
     }
 
     try:
@@ -670,26 +662,18 @@ def query_brand_platform_keyword_daily_mention_rates(
             columns_result = conn.execute(text("SHOW COLUMNS FROM qa_brand_state")).fetchall()
             columns = {row[0] for row in columns_result}
 
-            id_column = (
-                "conversation_id"
-                if "conversation_id" in columns
-                else "question_id"
-                if "question_id" in columns
-                else "id"
-            )
-
             required_columns = {"brand", "platform", "keyword", "is_mentioned", "date"}
             missing_columns = required_columns - columns
             if missing_columns:
                 raise Exception(f"qa_brand_state 表缺少字段: {', '.join(sorted(missing_columns))}")
 
-            query = f"""
+            query = """
             SELECT
                 date,
                 brand,
                 platform,
                 keyword,
-                ROUND(SUM(is_mentioned) * 1.0 / COUNT(DISTINCT {id_column}), 4) AS mention_rate
+                ROUND(SUM(is_mentioned) * 1.0 / COUNT(DISTINCT conversation_id), 4) AS mention_rate
             FROM qa_brand_state
             WHERE tenant_key = :tenant_key
               AND job_id = :job_id
@@ -872,31 +856,15 @@ def query_brand_platform_mention_data(
 def query_brand_metrics(
     tenant_key: str,
     job_id: str,
-    start_date: str,
-    end_date: str,
+    start_date: datetime.date,
+    end_date: datetime.date,
     brand: Optional[str] = None,
     platform: Optional[str] = None,
 ) -> List[Dict[str, Any]]:
     try:
-        start_date_value = datetime.strptime(start_date, "%Y%m%d").date()
-        end_date_value = datetime.strptime(end_date, "%Y%m%d").date()
-    except ValueError as exc:
-        raise ValueError("日期格式错误，应为YYYYMMDD") from exc
-    if start_date_value > end_date_value:
-        raise ValueError("开始日期不能晚于结束日期")
-
-    try:
         with engine.connect() as conn:
             columns_result = conn.execute(text("SHOW COLUMNS FROM qa_brand_state")).fetchall()
             columns = {row[0] for row in columns_result}
-
-            id_column = (
-                "conversation_id"
-                if "conversation_id" in columns
-                else "question_id"
-                if "question_id" in columns
-                else "id"
-            )
 
             if "is_mentioned" not in columns:
                 raise Exception("qa_brand_state 表缺少 is_mentioned 字段")
@@ -922,8 +890,8 @@ def query_brand_metrics(
             params: Dict[str, Any] = {
                 "tenant_key": tenant_key,
                 "job_id": job_id,
-                "start_date": start_date_value,
-                "end_date": end_date_value,
+                "start_date": start_date,
+                "end_date": end_date,
             }
 
             if brand:
@@ -945,7 +913,7 @@ def query_brand_metrics(
             query = f"""
             SELECT
                 brand,
-                COUNT(DISTINCT {id_column}) AS prompt_count,
+                COUNT(DISTINCT conversation_id) AS prompt_count,
                 SUM(is_mentioned) AS mention_count,
                 SUM({first_mention_column}) AS first_mention_count,
                 SUM({top3_mention_column}) AS top3_mention_count,
@@ -955,8 +923,8 @@ def query_brand_metrics(
             GROUP BY brand
             ORDER BY
                 CASE
-                    WHEN COUNT(DISTINCT {id_column}) = 0 THEN 0
-                    ELSE SUM(is_mentioned) / COUNT(DISTINCT {id_column})
+                    WHEN COUNT(DISTINCT conversation_id) = 0 THEN 0
+                    ELSE SUM(is_mentioned) / COUNT(DISTINCT conversation_id)
                 END DESC,
                 brand ASC
             """
@@ -1010,17 +978,9 @@ def query_platform_metrics_by_brand(
     tenant_key: str,
     job_id: str,
     brand: str,
-    start_date: str,
-    end_date: str,
+    start_date: datetime.date,
+    end_date: datetime.date,
 ) -> List[Dict[str, Any]]:
-    try:
-        start_date_value = datetime.strptime(start_date, "%Y%m%d").date()
-        end_date_value = datetime.strptime(end_date, "%Y%m%d").date()
-    except ValueError as exc:
-        raise ValueError("日期格式错误，应为YYYYMMDD") from exc
-    if start_date_value > end_date_value:
-        raise ValueError("开始日期不能晚于结束日期")
-
     try:
         with engine.connect() as conn:
             columns_result = conn.execute(text("SHOW COLUMNS FROM qa_brand_state")).fetchall()
@@ -1044,8 +1004,8 @@ def query_platform_metrics_by_brand(
                 "tenant_key": tenant_key,
                 "job_id": job_id,
                 "brand": brand,
-                "start_date": start_date_value,
-                "end_date": end_date_value,
+                "start_date": start_date,
+                "end_date": end_date,
             }
 
             query = f"""
@@ -1080,26 +1040,13 @@ def query_platform_metrics_by_brand(
 def query_keyword_platform_brand_rates(
     tenant_key: str,
     job_id: str,
-    start_date: str,
-    end_date: str,
+    start_date: datetime.date,
+    end_date: datetime.date,
 ) -> List[Dict[str, Any]]:
-    start_value: datetime.date = datetime.strptime(start_date, "%Y%m%d").date()
-    end_value: datetime.date = datetime.strptime(end_date, "%Y%m%d").date()
-    if start_value > end_value:
-        raise ValueError("开始日期不能晚于结束日期")
-
     try:
         with engine.connect() as conn:
             columns_result = conn.execute(text("SHOW COLUMNS FROM qa_brand_state")).fetchall()
             columns = {row[0] for row in columns_result}
-
-            id_column = (
-                "conversation_id"
-                if "conversation_id" in columns
-                else "question_id"
-                if "question_id" in columns
-                else "id"
-            )
 
             if "keyword" not in columns:
                 raise Exception("qa_brand_state 表缺少 keyword 字段")
@@ -1126,13 +1073,13 @@ def query_keyword_platform_brand_rates(
                 keyword,
                 platform,
                 brand,
-                ROUND(SUM(is_mentioned) * 1.0 / COUNT(DISTINCT {id_column}), 4) AS mention_rate,
+                ROUND(SUM(is_mentioned) * 1.0 / COUNT(DISTINCT conversation_id), 4) AS mention_rate,
                 ROUND(
-                    SUM({first_mention_column}) * 1.0 / COUNT(DISTINCT {id_column}),
+                    SUM({first_mention_column}) * 1.0 / COUNT(DISTINCT conversation_id),
                     4
                 ) AS first_mention_rate,
                 ROUND(
-                    SUM({top3_mention_column}) * 1.0 / COUNT(DISTINCT {id_column}),
+                    SUM({top3_mention_column}) * 1.0 / COUNT(DISTINCT conversation_id),
                     4
                 ) AS top3_mention_rate
             FROM qa_brand_state
@@ -1148,8 +1095,8 @@ def query_keyword_platform_brand_rates(
                 {
                     "tenant_key": tenant_key,
                     "job_id": job_id,
-                    "start_date": start_value,
-                    "end_date": end_value,
+                    "start_date": start_date,
+                    "end_date": end_date,
                 },
             ).fetchall()
 

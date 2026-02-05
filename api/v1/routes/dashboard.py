@@ -316,14 +316,24 @@ async def get_brand_mention_trend(
     brand: str = Query(..., description="品牌名称"),
     platform: str = Query(..., description="平台名称"),
     keyword: str = Query(..., description="关键词"),
+    timeframe: TimeFrame = Query(..., description="时间范围"),
     start_date: str = Query(..., description="开始日期(格式: YYYYMMDD)"),
     end_date: str = Query(..., description="结束日期(格式: YYYYMMDD)"),
 ):
-    try:
-        start_value = datetime.strptime(start_date, "%Y%m%d").date()
-        end_value = datetime.strptime(end_date, "%Y%m%d").date()
+    if timeframe == TimeFrame.SPECIFIC_DAY and (not start_date or not end_date):
+        raise HTTPException(
+            status_code=400,
+            detail="timeframe=specific_day 时必须提供 start_date 和 end_date(YYYYMMDD)",
+        )
 
-        if start_value > end_value:
+    try:
+        if timeframe == TimeFrame.SPECIFIC_DAY:
+            query_start_date = datetime.strptime(start_date, "%Y%m%d").date()
+            query_end_date = datetime.strptime(end_date, "%Y%m%d").date()
+        else:
+            query_start_date, query_end_date = get_date_range(timeframe.value)
+
+        if query_start_date > query_end_date:
             raise ValueError("开始日期不能晚于结束日期")
 
         rows = query_brand_platform_keyword_daily_mention_rates(
@@ -332,8 +342,8 @@ async def get_brand_mention_trend(
             brand=brand,
             platform=platform,
             keyword=keyword,
-            start_date=start_value,
-            end_date=end_value,
+            start_date=query_start_date,
+            end_date=query_end_date,
         )
 
         data: List[BrandMentionTrendItem] = []
@@ -359,11 +369,11 @@ async def get_brand_mention_trend(
             status="success",
             data=data,
             metadata={
-                "brand": brand,
-                "platform": platform,
-                "keyword": keyword,
-                "start_date": start_date,
-                "end_date": end_date,
+                "tenant_key": tenant_key,
+                "job_id": job_id,
+                "timeframe": timeframe.value,
+                "start_date": query_start_date.strftime("%Y%m%d"),
+                "end_date": query_end_date.strftime("%Y%m%d"),
                 "calculation_method": "mention_rate_by_day",
                 "points": len(data),
             },
@@ -517,18 +527,19 @@ async def get_brand_metrics(
 
     try:
         if timeframe == TimeFrame.SPECIFIC_DAY:
-            effective_start_date = start_date
-            effective_end_date = end_date
+            query_start_date = datetime.strptime(start_date, "%Y%m%d").date()
+            query_end_date = datetime.strptime(end_date, "%Y%m%d").date()
         else:
             query_start_date, query_end_date = get_date_range(timeframe.value)
-            effective_start_date = query_start_date.strftime("%Y%m%d")
-            effective_end_date = query_end_date.strftime("%Y%m%d")
+
+        if query_start_date > query_end_date:
+            raise ValueError("开始日期不能晚于结束日期")
 
         metrics = query_brand_metrics(
             tenant_key=tenant_key,
             job_id=job_id,
-            start_date=effective_start_date,
-            end_date=effective_end_date,
+            start_date=query_start_date,
+            end_date=query_end_date,
             brand=brand,
             platform=platform,
         )
@@ -552,8 +563,8 @@ async def get_brand_metrics(
                 "tenant_key": tenant_key,
                 "job_id": job_id,
                 "timeframe": timeframe.value,
-                "start_date": effective_start_date,
-                "end_date": effective_end_date,
+                "start_date": query_start_date.strftime("%Y%m%d"),
+                "end_date": query_end_date.strftime("%Y%m%d"),
                 "calculation_method": "mention_count_ratio",
                 "row_count": len(data),
             },
@@ -562,7 +573,6 @@ async def get_brand_metrics(
         raise HTTPException(status_code=400, detail=str(e)) from e
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"获取品牌总指标失败: {str(e)}") from e
-
 
 @router.get("/platform-metrics-by-brand", response_model=PlatformMetricsByBrandResponse)
 async def get_platform_metrics_by_brand(
@@ -581,19 +591,20 @@ async def get_platform_metrics_by_brand(
 
     try:
         if timeframe == TimeFrame.SPECIFIC_DAY:
-            effective_start_date = start_date
-            effective_end_date = end_date
+            query_start_date = datetime.strptime(start_date, "%Y%m%d").date()
+            query_end_date = datetime.strptime(end_date, "%Y%m%d").date()
         else:
             query_start_date, query_end_date = get_date_range(timeframe.value)
-            effective_start_date = query_start_date.strftime("%Y%m%d")
-            effective_end_date = query_end_date.strftime("%Y%m%d")
+
+        if query_start_date > query_end_date:
+            raise ValueError("开始日期不能晚于结束日期")
 
         platforms = query_platform_metrics_by_brand(
             tenant_key=tenant_key,
             job_id=job_id,
             brand=brand,
-            start_date=effective_start_date,
-            end_date=effective_end_date,
+            start_date=query_start_date,
+            end_date=query_end_date,
         )
 
         return PlatformMetricsByBrandResponse(
@@ -612,8 +623,8 @@ async def get_platform_metrics_by_brand(
                 "tenant_key": tenant_key,
                 "job_id": job_id,
                 "timeframe": timeframe.value,
-                "start_date": effective_start_date,
-                "end_date": effective_end_date,
+                "start_date": query_start_date.strftime("%Y%m%d"),
+                "end_date": query_end_date.strftime("%Y%m%d"),
                 "calculation_method": "platform_metrics_by_brand",
                 "row_count": len(platforms),
             },
@@ -641,19 +652,20 @@ async def get_domain_citation_rate(
 
     try:
         if timeframe == TimeFrame.SPECIFIC_DAY:
-            effective_start_date = start_date
-            effective_end_date = end_date
+            query_start_date = datetime.strptime(start_date, "%Y%m%d").date()
+            query_end_date = datetime.strptime(end_date, "%Y%m%d").date()
         else:
             query_start_date, query_end_date = get_date_range(timeframe.value)
-            effective_start_date = query_start_date.strftime("%Y%m%d")
-            effective_end_date = query_end_date.strftime("%Y%m%d")
+
+        if query_start_date > query_end_date:
+            raise ValueError("开始日期不能晚于结束日期")
 
         domain_distribution = query_domain_citation_rate(
             tenant_key=tenant_key,
             job_id=job_id,
             brand=brand,
-            start_date=effective_start_date,
-            end_date=effective_end_date,
+            start_date=query_start_date,
+            end_date=query_end_date,
         )
 
         return DomainCitationRateResponse(
@@ -669,8 +681,8 @@ async def get_domain_citation_rate(
                 "tenant_key": tenant_key,
                 "job_id": job_id,
                 "timeframe": timeframe.value,
-                "start_date": effective_start_date,
-                "end_date": effective_end_date,
+                "start_date": query_start_date.strftime("%Y%m%d"),
+                "end_date": query_end_date.strftime("%Y%m%d"),
                 "calculation_method": "domain_citation_rate",
                 "row_count": len(domain_distribution),
             },
@@ -729,18 +741,19 @@ async def get_keyword_platform_brand_rates(
 
     try:
         if timeframe == TimeFrame.SPECIFIC_DAY:
-            effective_start_date = start_date
-            effective_end_date = end_date
+            query_start_date = datetime.strptime(start_date, "%Y%m%d").date()
+            query_end_date = datetime.strptime(end_date, "%Y%m%d").date()
         else:
             query_start_date, query_end_date = get_date_range(timeframe.value)
-            effective_start_date = query_start_date.strftime("%Y%m%d")
-            effective_end_date = query_end_date.strftime("%Y%m%d")
+
+        if query_start_date > query_end_date:
+            raise ValueError("开始日期不能晚于结束日期")
 
         rows = query_keyword_platform_brand_rates(
             tenant_key=tenant_key,
             job_id=job_id,
-            start_date=effective_start_date,
-            end_date=effective_end_date,
+            start_date=query_start_date,
+            end_date=query_end_date,
         )
 
         data = [
@@ -762,8 +775,8 @@ async def get_keyword_platform_brand_rates(
                 "tenant_key": tenant_key,
                 "job_id": job_id,
                 "timeframe": timeframe.value,
-                "start_date": effective_start_date,
-                "end_date": effective_end_date,
+                "start_date": query_start_date.strftime("%Y%m%d"),
+                "end_date": query_end_date.strftime("%Y%m%d"),
                 "calculation_method": "distinct_conversation_ratio",
                 "rate_unit": "ratio_0_1",
                 "row_count": len(data),

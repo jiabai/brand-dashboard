@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Card, Space, Typography, DatePicker, Row, Col, Statistic, Tag, theme } from 'antd';
+import { Card, Space, Typography, Row, Col, Statistic, Tag, theme } from 'antd';
 import { LineChartOutlined } from '@ant-design/icons';
 import { Chart } from '@antv/g2';
 import dayjs from 'dayjs';
@@ -213,16 +213,10 @@ const TrendAnalysis = ({
   const [keyword, setKeyword] = useState(() =>
     getQueryParam('trend_keyword', '全部'),
   );
-  const [startDate, setStartDate] = useState(() => {
-    const fromUrl = parseDateInput(getQueryParam('trend_start', ''));
-    if (fromUrl) return fromUrl;
-    return getRangeByTimeframe(timeframe, date).startDate;
-  });
-  const [endDate, setEndDate] = useState(() => {
-    const fromUrl = parseDateInput(getQueryParam('trend_end', ''));
-    if (fromUrl) return fromUrl;
-    return getRangeByTimeframe(timeframe, date).endDate;
-  });
+  const { startDate, endDate } = useMemo(
+    () => getRangeByTimeframe(timeframe, date),
+    [timeframe, date],
+  );
   const [metadataLoading, setMetadataLoading] = useState(false);
   const [metadataError, setMetadataError] = useState('');
   const [platformOptions, setPlatformOptions] = useState([]);
@@ -252,10 +246,8 @@ const TrendAnalysis = ({
     updateQueryParams({
       trend_platform: platform,
       trend_keyword: keyword,
-      trend_start: startDateParam,
-      trend_end: endDateParam,
     });
-  }, [platform, keyword, startDateParam, endDateParam]);
+  }, [platform, keyword]);
 
   useEffect(() => {
     if (!tenantKeyValue || !jobIdValue || !startDateParam || !endDateParam) {
@@ -316,16 +308,6 @@ const TrendAnalysis = ({
     };
   }, [tenantKeyValue, jobIdValue, startDateParam, endDateParam]);
 
-  useEffect(() => {
-    // 只有当 URL 中没有具体日期参数时，才响应 props 的变化
-    // 或者当 timeframe 变化时，重新同步日期范围
-    if (!getQueryParam('trend_start') && !getQueryParam('trend_end')) {
-      const range = getRangeByTimeframe(timeframe, date);
-      setStartDate(range.startDate);
-      setEndDate(range.endDate);
-    }
-  }, [timeframe, date]);
-
   const queryString = useMemo(
     () =>
       buildQueryString({
@@ -334,8 +316,9 @@ const TrendAnalysis = ({
         brand: brandValue,
         platform,
         keyword,
-        start_date: startDateParam,
-        end_date: endDateParam,
+        timeframe,
+        start_date: timeframe === 'specific_day' ? startDateParam : undefined,
+        end_date: timeframe === 'specific_day' ? endDateParam : undefined,
       }),
     [
       tenantKeyValue,
@@ -343,6 +326,7 @@ const TrendAnalysis = ({
       brandValue,
       platform,
       keyword,
+      timeframe,
       startDateParam,
       endDateParam,
     ],
@@ -517,22 +501,6 @@ const TrendAnalysis = ({
           <Row gutter={[16, 16]} align="middle">
             <Col flex="auto">
               <Space direction="vertical" size="middle" style={{ width: '100%' }}>
-                <Space wrap align="center">
-                  <Typography.Text type="secondary">日期范围</Typography.Text>
-                  <DatePicker
-                    value={startDate}
-                    onChange={setStartDate}
-                    format="YYYY-MM-DD"
-                    allowClear
-                  />
-                  <Typography.Text type="secondary">至</Typography.Text>
-                  <DatePicker
-                    value={endDate}
-                    onChange={setEndDate}
-                    format="YYYY-MM-DD"
-                    allowClear
-                  />
-                </Space>
                 {metadataLoading ? (
                   <Typography.Text type="secondary">筛选项加载中...</Typography.Text>
                 ) : metadataError ? (
@@ -631,7 +599,7 @@ const TrendAnalysis = ({
         ) : !platform || !keyword || !startDateParam || !endDateParam ? (
           <EmptyState
             title="请输入筛选条件"
-            description="选择平台、关键词与日期范围后即可查看趋势"
+            description="选择平台与关键词后即可查看趋势"
           />
         ) : (
           <div

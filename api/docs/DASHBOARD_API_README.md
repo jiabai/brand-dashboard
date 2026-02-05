@@ -687,13 +687,18 @@ ORDER BY mention_rate DESC; -- 在代码中进行排序
 | brand | string | 是 | 品牌名称 |
 | platform | string | 是 | 平台名称（如 deepseek） |
 | keyword | string | 是 | 关键词 |
-| start_date | string | 是 | 开始日期，格式: `YYYYMMDD` |
-| end_date | string | 是 | 结束日期，格式: `YYYYMMDD` |
+| timeframe | string | 是 | 时间范围，可选值: `yesterday`, `7days`, `30days`, `specific_day` |
+| start_date | string | 否 | 起始日期，格式: `YYYYMMDD`（当 `timeframe=specific_day` 时必填） |
+| end_date | string | 否 | 结束日期，格式: `YYYYMMDD`（当 `timeframe=specific_day` 时必填） |
 
 ### 请求示例
 
 ```bash
-curl -X GET "http://your-api.com/api/v1/dashboard/brand-mention-trend?tenant_key=tn_xxx&job_id=job_456&brand=哈基桃电竞&platform=deepseek&keyword=三角洲陪玩&start_date=20260101&end_date=20260131"
+curl -X GET "http://your-api.com/api/v1/dashboard/brand-mention-trend?tenant_key=tn_xxx&job_id=job_456&brand=哈基桃电竞&platform=deepseek&keyword=三角洲陪玩&timeframe=30days"
+```
+
+```bash
+curl -X GET "http://your-api.com/api/v1/dashboard/brand-mention-trend?tenant_key=tn_xxx&job_id=job_456&brand=哈基桃电竞&platform=deepseek&keyword=三角洲陪玩&start_date=20260102&end_date=20260131"
 ```
 
 ### 响应格式
@@ -718,13 +723,13 @@ curl -X GET "http://your-api.com/api/v1/dashboard/brand-mention-trend?tenant_key
     }
   ],
   "metadata": {
-    "brand": "哈基桃电竞",
-    "platform": "deepseek",
-    "keyword": "三角洲陪玩",
-    "start_date": "20260101",
+    "tenant_key": "tn_xxx",
+    "job_id": "job_456",
+    "timeframe": "30days",
+    "start_date": "20260102",
     "end_date": "20260131",
     "calculation_method": "mention_rate_by_day",
-    "points": 2
+    "row_count": 2
   }
 }
 ```
@@ -741,7 +746,13 @@ curl -X GET "http://your-api.com/api/v1/dashboard/brand-mention-trend?tenant_key
 | data.keyword | string | 关键词 |
 | data.mention_rate | float | 提及率（比例，0~1） |
 | metadata | object | 元数据 |
-| metadata.points | int | 返回点位数量（等于 data 长度） |
+| metadata.tenant_key | string | 租户标识 tenant_key |
+| metadata.job_id | string | 任务ID |
+| metadata.timeframe | string | 时间范围 |
+| metadata.start_date | string | 开始日期，格式: `YYYYMMDD` |
+| metadata.end_date | string | 结束日期，格式: `YYYYMMDD` |
+| metadata.calculation_method | string | 计算方式说明 |
+| metadata.row_count | int | 返回点位数量（等于 data 长度） |
 
 ### 数据计算逻辑
 
