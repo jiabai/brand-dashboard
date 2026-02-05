@@ -85,7 +85,7 @@
   - 再对所有问题取平均：`AVG(has_published_link)`，得到比例；若无数据则用 `COALESCE(..., 0)` 返回 0。
 - 解释：该指标反映“问题层面是否出现过发文链接”的覆盖率，而非引用条数占比。
 
-## 4. 域名引用率分布（/api/v1/dashboard/domain-citation-rate）
+## 4. 域名引用率分布（/api/v1/dashboard/citation-domain-stats）
 
 数据来源：`qa_reference`
 

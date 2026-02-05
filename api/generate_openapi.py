@@ -124,7 +124,7 @@ def generate_openapi():
             None,
             ["/api/v1/dashboard/platform-metrics-by-brand"],
         ),
-        ("domain-citation-rate.json", None, None, ["/api/v1/dashboard/domain-citation-rate"]),
+        ("citation-domain-stats.json", None, None, ["/api/v1/dashboard/citation-domain-stats"]),
         ("post-citation-rate.json", None, None, ["/api/v1/dashboard/post-citation-rate"]),
         ("conversation.json", None, ["/api/v1/conversation"], None),
         ("query-jobs.json", None, ["/api/v1/query-jobs"], None),

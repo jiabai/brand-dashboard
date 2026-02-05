@@ -74,10 +74,10 @@ ruff check api
 ### Dashboard相关
 - `GET /api/v1/dashboard/brand-mention-rate` - 获取品牌总提及率数据
 - `GET /api/v1/dashboard/platform-mention-rates` - 获取品牌在各平台的提及率数据
-- `GET /api/v1/dashboard/reference-url-stats` - 获取全局引用URL统计数据
+- `GET /api/v1/dashboard/citation-url-stats` - 获取全局引用URL统计数据
 - `GET /api/v1/dashboard/brand-metrics` - 获取品牌核心指标列表
 - `GET /api/v1/dashboard/platform-metrics-by-brand` - 获取指定品牌在各平台的详细指标
-- `GET /api/v1/dashboard/domain-citation-rate` - 获取域名引用率分布
+- `GET /api/v1/dashboard/citation-domain-stats` - 获取域名引用率分布
 - `GET /api/v1/dashboard/post-citation-rate` - 获取发文引用率数据
 
 ### 查询记录相关
@@ -173,7 +173,7 @@ const platformResponse = await fetch('http://localhost:8000/api/v1/dashboard/pla
 const platformData = await platformResponse.json();
 
 // 获取引用URL统计数据
-const referenceResponse = await fetch('http://localhost:8000/api/v1/dashboard/reference-url-stats?tenant_key=tn_xxx&job_id=job_456&timeframe=7days', {
+const referenceResponse = await fetch('http://localhost:8000/api/v1/dashboard/citation-url-stats?tenant_key=tn_xxx&job_id=job_456&timeframe=7days', {
   method: 'GET',
   headers: {
     'Accept': 'application/json',

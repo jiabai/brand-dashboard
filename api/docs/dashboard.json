@@ -364,14 +364,14 @@
         }
       }
     },
-    "/api/v1/dashboard/reference-url-stats": {
+    "/api/v1/dashboard/citation-url-stats": {
       "get": {
         "tags": [
           "dashboard"
         ],
-        "summary": "Get Reference Url Stats",
+        "summary": "Get Citation Url Stats",
         "description": "获取引用URL统计数据.",
-        "operationId": "get_reference_url_stats_api_v1_dashboard_reference_url_stats_get",
+        "operationId": "get_citation_url_stats_api_v1_dashboard_citation_url_stats_get",
         "parameters": [
           {
             "name": "tenant_key",
@@ -851,13 +851,13 @@
         }
       }
     },
-    "/api/v1/dashboard/domain-citation-rate": {
+    "/api/v1/dashboard/citation-domain-stats": {
       "get": {
         "tags": [
           "dashboard"
         ],
         "summary": "Get Domain Citation Rate",
-        "operationId": "get_domain_citation_rate_api_v1_dashboard_domain_citation_rate_get",
+        "operationId": "get_citation_domain_stats_api_v1_dashboard_citation_domain_stats_get",
         "parameters": [
           {
             "name": "tenant_key",

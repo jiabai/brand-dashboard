@@ -319,7 +319,7 @@ class TestDomainCitationRateApi(unittest.TestCase):
 
     def test_domain_citation_rate_requires_date_range_for_specific_day(self):
         response = self.client.get(
-            "/api/v1/dashboard/domain-citation-rate",
+            "/api/v1/dashboard/citation-domain-stats",
             params={
                 "tenant_key": "tn_1b02b3ef4fbd",
                 "job_id": "job_20260127_223236_989cc4db",
@@ -344,7 +344,7 @@ class TestDomainCitationRateApi(unittest.TestCase):
             with patch("api.v1.routes.dashboard.query_domain_citation_rate") as query_mock:
                 query_mock.return_value = rows
                 response = self.client.get(
-                    "/api/v1/dashboard/domain-citation-rate",
+                    "/api/v1/dashboard/citation-domain-stats",
                     params={
                         "tenant_key": "tn_1b02b3ef4fbd",
                         "job_id": "job_20260127_223236_989cc4db",
@@ -376,7 +376,7 @@ class TestDomainCitationRateApi(unittest.TestCase):
         with patch("api.v1.routes.dashboard.query_domain_citation_rate") as query_mock:
             query_mock.return_value = rows
             response = self.client.get(
-                "/api/v1/dashboard/domain-citation-rate",
+                "/api/v1/dashboard/citation-domain-stats",
                 params={
                     "tenant_key": "tn_1b02b3ef4fbd",
                     "job_id": "job_20260127_223236_989cc4db",

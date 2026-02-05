@@ -17,7 +17,7 @@ from api.v1.repositories.database import (
     query_keyword_platform_brand_rates,
     query_platform_metrics_by_brand,
     query_post_citation_rate,
-    query_reference_url_stats,
+    query_citation_url_stats,
 )
 from api.v1.utils.url_domain_resolver import resolve_url_domain
 
@@ -90,7 +90,7 @@ class BrandMentionTrendResponse(BaseModel):
     metadata: Dict[str, Any] = Field(..., description="元数据")
 
 
-class ReferenceUrlData(BaseModel):
+class CitationUrlData(BaseModel):
     """引用URL统计数据模型."""
     answer_reference_url: str = Field(..., description="引用URL")
     reference_count: int = Field(..., description="引用次数")
@@ -99,10 +99,10 @@ class ReferenceUrlData(BaseModel):
     reference_rate: float = Field(..., description="引用率(引用次数/总提问数)")
 
 
-class ReferenceUrlResponse(BaseModel):
+class CitationUrlResponse(BaseModel):
     """引用URL统计响应模型."""
     status: str = Field(..., description="响应状态")
-    data: List[ReferenceUrlData] = Field(..., description="引用URL统计数据列表")
+    data: List[CitationUrlData] = Field(..., description="引用URL统计数据列表")
     metadata: Dict[str, Any] = Field(..., description="元数据")
 
 
@@ -162,7 +162,6 @@ class PlatformMetricsByBrandResponse(BaseModel):
     status: str = Field(..., description="响应状态")
     data: PlatformMetricsByBrandData = Field(..., description="品牌平台指标数据")
     metadata: Dict[str, Any] = Field(..., description="元数据")
-
 
 class DomainCitationRateItem(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
@@ -383,8 +382,8 @@ async def get_brand_mention_trend(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"获取品牌提及率趋势失败: {str(e)}") from e
 
-@router.get("/reference-url-stats", response_model=ReferenceUrlResponse)
-async def get_reference_url_stats(
+@router.get("/citation-url-stats", response_model=CitationUrlResponse)
+async def get_citation_url_stats(
     tenant_key: str = Query(..., description="租户唯一字符串标识（tenants.tenant_key）"),
     job_id: str = Query(..., description="任务ID"),
     timeframe: TimeFrame = Query(..., description="时间范围"),
@@ -393,7 +392,7 @@ async def get_reference_url_stats(
     """获取引用URL统计数据."""
     try:
         # 从数据库查询引用URL统计数据
-        reference_data_list = query_reference_url_stats(
+        citation_data_list = query_citation_url_stats(
             tenant_key=tenant_key,
             job_id=job_id,
             timeframe=timeframe.value,
@@ -402,34 +401,34 @@ async def get_reference_url_stats(
 
         # 转换数据格式以匹配响应模型
         response_data = []
-        for reference_data in reference_data_list:
-            reference_count = reference_data["reference_count"]
-            total_questions = reference_data["total_questions"]
+        for citation_data in citation_data_list:
+            citation_count = citation_data["citation_count"]
+            total_questions = citation_data["total_questions"]
             # 解析URL获取中文名称
-            domain_info = resolve_url_domain(reference_data["url"])
+            domain_info = resolve_url_domain(citation_data["url"])
             chinese_name = domain_info["chinese_name"]
 
             # 计算引用率
-            reference_rate = (
-                round(reference_count / total_questions * 100, 2)
+            citation_rate = (
+                round(citation_count / total_questions * 100, 2)
                 if total_questions > 0
                 else 0.0
             )
 
-            response_data.append(ReferenceUrlData(
-                answer_reference_url=reference_data["url"],
-                reference_count=reference_count,
+            response_data.append(CitationUrlData(
+                answer_reference_url=citation_data["url"],
+                citation_count=citation_count,
                 total_questions=total_questions,
                 chinese_name=chinese_name,
-                reference_rate=reference_rate
+                citation_rate=citation_rate
             ))
 
-        return ReferenceUrlResponse(
+        return CitationUrlResponse(
             status="success",
             data=response_data,
             metadata={
                 "timeframe": timeframe.value,
-                "calculation_method": "reference_url_count",
+                "calculation_method": "citation_url_count",
                 "url_count": len(response_data)
             }
         )
@@ -634,8 +633,7 @@ async def get_platform_metrics_by_brand(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"获取平台指标失败: {str(e)}") from e
 
-
-@router.get("/domain-citation-rate", response_model=DomainCitationRateResponse)
+@router.get("/citation-domain-stats", response_model=DomainCitationRateResponse)
 async def get_domain_citation_rate(
     tenant_key: str = Query(..., description="租户唯一字符串标识（tenants.tenant_key）"),
     job_id: str = Query(..., description="任务ID"),
@@ -673,6 +671,7 @@ async def get_domain_citation_rate(
             domain_distribution=[
                 DomainCitationRateItem(
                     domain=item["domain"],
+                    chinese_name=item["chinese_name"],
                     domain_citation_rate=item["domain_citation_rate"],
                 )
                 for item in domain_distribution

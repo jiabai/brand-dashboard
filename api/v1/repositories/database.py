@@ -9,6 +9,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import QueuePool
 
 from api.v1.utils import get_logger
+from api.v1.utils.url_domain_resolver import get_chinese_name
 
 # 加载.env文件
 # 获取当前文件所在的目录 (api/v1/repositories)
@@ -433,14 +434,20 @@ def query_domain_citation_rate(
             for domain, domain_count in rows:
                 domain_count_int = int(domain_count) if domain_count else 0
                 percentage = round(domain_count_int * 100.0 / total_count_int, 2)
-                result.append({"domain": domain, "domain_citation_rate": percentage})
+                # 获取域名的中文名称
+                chinese_name = get_chinese_name(domain)
+                result.append({
+                    "domain": domain, 
+                    "chinese_name": chinese_name,
+                    "domain_citation_rate": percentage
+                })
 
             return result
     except Exception as e:
         logger.error("查询域名引用率数据失败: %s", str(e))
         raise
 
-def query_reference_url_stats(
+def query_citation_url_stats(
     tenant_key: str,
     job_id: str,
     timeframe: str,
@@ -464,14 +471,14 @@ def query_reference_url_stats(
     url_query = """
     SELECT 
         url, 
-        COUNT(*) AS reference_count 
+        COUNT(*) AS citation_count 
     FROM qa_reference 
     WHERE tenant_key = :tenant_key
     AND job_id = :job_id
     AND url IS NOT NULL 
     AND date BETWEEN :start_date AND :end_date 
     GROUP BY url 
-    ORDER BY reference_count DESC
+    ORDER BY citation_count DESC
     """
 
     # 查询总提问数
@@ -518,18 +525,18 @@ def query_reference_url_stats(
                 return []
 
             # 构建结果列表
-            reference_data = []
+            citation_data = []
             for row in url_rows:
-                reference_url = row[0]
-                reference_count = int(row[1]) if row[1] else 0
+                citation_url = row[0]
+                citation_count = int(row[1]) if row[1] else 0
 
-                reference_data.append({
-                    "url": reference_url,
-                    "reference_count": reference_count,
+                citation_data.append({
+                    "url": citation_url,
+                    "citation_count": citation_count,
                     "total_questions": total_questions
                 })
 
-            return reference_data
+            return citation_data
     except Exception as e:
         logger.error("查询引用URL统计数据失败", error=str(e))
         raise Exception(f"查询引用URL统计数据失败: {str(e)}") from e

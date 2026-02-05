@@ -65,7 +65,7 @@ const ReferencesTable = ({
         });
 
         const result = await fetchJson(
-          `/api/v1/dashboard/domain-citation-rate?${queryString}`,
+          `/api/v1/dashboard/citation-domain-stats?${queryString}`,
           { signal: controller.signal },
         );
 
@@ -78,13 +78,14 @@ const ReferencesTable = ({
         const normalized = list
           .map((item, index) => {
             const domain = item?.domain;
+            const chineseName = item?.chinese_name ?? item?.chineseName ?? '';
             const rawRate =
               item?.['domain-citation-rate'] ??
               item?.domain_citation_rate ??
               item?.domainCitationRate ??
               0;
             const rate = roundTwoDecimals(clampPercent(rawRate));
-            return { rank: index + 1, domain, rate };
+            return { rank: index + 1, domain, chineseName, rate };
           })
           .filter((item) => item.domain);
 
@@ -126,6 +127,13 @@ const ReferencesTable = ({
             {domain}
           </Typography.Link>
         )
+      },
+      {
+        title: '中文名称',
+        dataIndex: 'chineseName',
+        key: 'chineseName',
+        width: 160,
+        render: (value, record) => value ?? record?.chinese_name ?? ''
       },
       {
         title: '域名引用率',

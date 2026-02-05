@@ -328,7 +328,7 @@ GROUP BY brand;
 ---------------------
 
 ### 接口信息
-- **路径**: `/api/v1/dashboard/domain-citation-rate`
+- **路径**: `/api/v1/dashboard/citation-domain-stats`
 - **方法**: `GET`
 - **描述**: 获取品牌参考引用信息，基于`qa_reference`表计算
 
@@ -346,11 +346,11 @@ GROUP BY brand;
 ### 请求示例
 
 ```bash
-curl -X GET "http://your-api.com/api/v1/dashboard/domain-citation-rate?tenant_key=tn_xxx&job_id=job_456&brand=学而思&timeframe=30days"
+curl -X GET "http://your-api.com/api/v1/dashboard/citation-domain-stats?tenant_key=tn_xxx&job_id=job_456&brand=学而思&timeframe=30days"
 ```
 
 ```bash
-curl -X GET "http://your-api.com/api/v1/dashboard/domain-citation-rate?tenant_key=tn_xxx&job_id=job_456&brand=学而思&timeframe=specific_day&start_date=20260102&end_date=20260131"
+curl -X GET "http://your-api.com/api/v1/dashboard/citation-domain-stats?tenant_key=tn_xxx&job_id=job_456&brand=学而思&timeframe=specific_day&start_date=20260102&end_date=20260131"
 ```
 
 ### 响应格式
@@ -361,14 +361,17 @@ curl -X GET "http://your-api.com/api/v1/dashboard/domain-citation-rate?tenant_ke
   "domain_distribution": [
     {
       "domain": "www.baidu.com",
+      "chinese_name": "百度",
       "domain-citation-rate": 8.96
     },
     {
       "domain": "www.google.com",
+      "chinese_name": "谷歌",
       "domain-citation-rate": 3.73
     },
     {
       "domain": "www.zhihu.com",
+      "chinese_name": "知乎",
       "domain-citation-rate": 2.34
     },
     ......
@@ -440,7 +443,6 @@ ORDER BY percentage DESC;
 - **路径**: `/api/v1/dashboard/brand-mention-rate` [未使用]
 - **方法**: `GET`
 - **描述**: 获取品牌总提及率数据，基于`qa_brand_summary`表计算
-- **实现状态**: ✅ 已完成
 
 ### 请求参数
 
@@ -684,7 +686,6 @@ ORDER BY mention_rate DESC; -- 在代码中进行排序
 - **路径**: `/api/v1/dashboard/brand-mention-trend`
 - **方法**: `GET`
 - **描述**: 获取指定品牌在指定平台、指定关键词下的“按日提及率”趋势数据（仅返回日期范围内实际有数据的日期点位）
-- **实现状态**: ✅ 已完成
 
 ### 请求参数
 
@@ -795,7 +796,6 @@ ORDER BY date ASC
 - **路径**: `/api/v1/dashboard/keyword-platform-brand-rates`
 - **方法**: `GET`
 - **描述**: 获取指定时间范围内按 `keyword + platform + brand` 聚合的提及率与首位提及率数据，基于`qa_brand_state`表计算
-- **实现状态**: ✅ 已完成
 
 ### 请求参数
 
@@ -894,9 +894,9 @@ ORDER BY keyword ASC, platform ASC, mention_rate DESC;
 ### 全局引用URL统计 [未使用]
 
 ### 接口信息
-- **路径**: `/api/v1/dashboard/reference-url-stats` [未使用]
+- **路径**: `/api/v1/dashboard/citation-url-stats`
 - **方法**: `GET`
-- **描述**: 获取全局引用 URL 的统计数据，包括各站点的引用次数和引用率。
+- **描述**: 获取全局引用 URL 的统计数据，包括各站点的引用次数和引用率。基于`qa_reference`表计算。
 - **实现状态**: ✅ 已完成
 
 ### 请求参数
@@ -906,12 +906,13 @@ ORDER BY keyword ASC, platform ASC, mention_rate DESC;
 | tenant_key | string | 是 | 租户标识 tenant_key |
 | job_id | string | 是 | 任务ID |
 | timeframe | string | 是 | 时间范围，可选值: `yesterday`, `7days`, `30days`, `specific_day` |
-| date | string | 否 | 具体日期，格式: `YYYYMMDD` |
+| start_date | string | 否 | 起始日期，格式: `YYYYMMDD`（当 `timeframe=specific_day` 时必填） |
+| end_date | string | 否 | 结束日期，格式: `YYYYMMDD`（当 `timeframe=specific_day` 时必填） |
 
 ### 请求示例
 
 ```bash
-curl -X GET "http://your-api.com/api/v1/dashboard/reference-url-stats?tenant_key=tn_xxx&job_id=job_456&timeframe=7days"
+curl -X GET "http://your-api.com/api/v1/dashboard/citation-url-stats?tenant_key=tn_xxx&job_id=job_456&timeframe=7days"
 ```
 
 ### 响应格式
@@ -922,16 +923,16 @@ curl -X GET "http://your-api.com/api/v1/dashboard/reference-url-stats?tenant_key
   "data": [
     {
       "answer_reference_url": "https://www.zhihu.com/question/xxx",
-      "reference_count": 15,
+      "citation_count": 15,
       "total_questions": 100,
       "chinese_name": "知乎",
-      "reference_rate": 15.0
+      "citation_rate": 15.0
     },
     ...
   ],
   "metadata": {
     "timeframe": "7days",
-    "calculation_method": "reference_url_count",
+    "calculation_method": "citation_url_count",
     "url_count": 10
   }
 }
@@ -945,14 +946,14 @@ curl -X GET "http://your-api.com/api/v1/dashboard/reference-url-stats?tenant_key
 -- 1. 获取引用 URL 统计数据
 SELECT 
     url, 
-    COUNT(*) AS reference_count 
+    COUNT(*) AS citation_count 
 FROM qa_reference 
 WHERE tenant_key = :tenant_key
   AND job_id = :job_id
   AND url IS NOT NULL 
   AND date BETWEEN :start_date AND :end_date 
 GROUP BY url 
-ORDER BY reference_count DESC;
+ORDER BY citation_count DESC;
 
 -- 2. 获取总提问数（用于计算引用率）
 SELECT COUNT(DISTINCT conversation_id) AS total_questions 
@@ -962,14 +963,14 @@ WHERE tenant_key = :tenant_key
   AND date BETWEEN :start_date AND :end_date;
 ```
 
-- **reference_rate**: `(reference_count / total_questions) * 100`
+- **citation_rate**: `(citation_count / total_questions) * 100`
 
 ---------------------
 
-### 仪表盘可用日期 API [未使用]
+### 仪表盘可用日期 API
 
 ### 接口信息
-- **路径**: `/api/v1/dashboard/available-dates` [未使用]
+- **路径**: `/api/v1/dashboard/available-dates`
 - **方法**: `GET`
 - **描述**: 获取仪表盘中有数据的所有日期列表
 
