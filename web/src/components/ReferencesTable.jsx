@@ -10,6 +10,8 @@ import { buildDomainCitationQueryString } from '@/utils/domainCitationQuery';
 
 const { DEFAULT_TENANT_KEY, DEFAULT_JOB_ID, DEFAULT_BRAND } = CONFIG;
 
+const MIN_COLUMN_WIDTH = 80;
+
 const fetchJson = async (url, { signal } = {}) => {
   const response = await fetch(url, { method: 'GET', signal });
   if (!response.ok) {
@@ -28,6 +30,32 @@ const roundTwoDecimals = (value) => {
   const num = Number(value);
   if (!Number.isFinite(num)) return 0;
   return Math.round(num * 100) / 100;
+};
+
+const ResizableHeaderCell = ({ onResize, width, children, ...restProps }) => {
+  if (!width) {
+    return <th {...restProps}>{children}</th>;
+  }
+
+  return (
+    <th {...restProps} style={{ ...(restProps.style ?? {}), width, position: 'relative' }}>
+      {children}
+      <div
+        onMouseDown={onResize}
+        role="separator"
+        tabIndex={-1}
+        style={{
+          position: 'absolute',
+          top: 0,
+          right: -6,
+          width: 12,
+          height: '100%',
+          cursor: 'col-resize',
+          userSelect: 'none',
+        }}
+      />
+    </th>
+  );
 };
 
 const ReferencesTable = ({
@@ -110,7 +138,7 @@ const ReferencesTable = ({
   const loading = isLoading ?? internalLoading;
   const errorMsg = error ?? internalError ?? null;
 
-  const columns = useMemo(() => {
+  const baseColumns = useMemo(() => {
     return [
       {
         title: '排名',
@@ -122,6 +150,7 @@ const ReferencesTable = ({
         title: '链接域名',
         dataIndex: 'domain',
         key: 'domain',
+        width: 260,
         render: (domain) => (
           <Typography.Link href={`https://${domain}`} target="_blank" rel="noopener noreferrer">
             {domain}
@@ -144,6 +173,51 @@ const ReferencesTable = ({
       }
     ];
   }, []);
+
+  const [columns, setColumns] = useState(() => baseColumns);
+
+  useEffect(() => {
+    setColumns(baseColumns);
+  }, [baseColumns]);
+
+  const resizableColumns = useMemo(() => {
+    const startResize = (columnIndex) => (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+
+      const startX = event.clientX;
+      const startWidth = Number(columns[columnIndex]?.width) || MIN_COLUMN_WIDTH;
+
+      const onMouseMove = (moveEvent) => {
+        const delta = moveEvent.clientX - startX;
+        const nextWidth = Math.max(MIN_COLUMN_WIDTH, startWidth + delta);
+
+        setColumns((prev) => {
+          if (!Array.isArray(prev) || !prev[columnIndex]) return prev;
+          const next = prev.slice();
+          const current = next[columnIndex];
+          next[columnIndex] = { ...current, width: nextWidth };
+          return next;
+        });
+      };
+
+      const onMouseUp = () => {
+        window.removeEventListener('mousemove', onMouseMove);
+        window.removeEventListener('mouseup', onMouseUp);
+      };
+
+      window.addEventListener('mousemove', onMouseMove);
+      window.addEventListener('mouseup', onMouseUp);
+    };
+
+    return columns.map((col, index) => ({
+      ...col,
+      onHeaderCell: () => ({
+        width: col.width,
+        onResize: startResize(index),
+      }),
+    }));
+  }, [columns]);
 
   // 加载状态
   if (loading) {
@@ -178,7 +252,14 @@ const ReferencesTable = ({
       <Table
         rowKey={(record) => record.domain ?? String(record.rank)}
         size="middle"
-        columns={columns}
+        tableLayout="fixed"
+        scroll={{ x: 'max-content' }}
+        components={{
+          header: {
+            cell: ResizableHeaderCell,
+          },
+        }}
+        columns={resizableColumns}
         dataSource={displayData}
         pagination={
           displayData.length > 20
