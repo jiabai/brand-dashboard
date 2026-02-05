@@ -45,6 +45,12 @@ const formatDateParam = (value) => {
   return parsed.format('YYYYMMDD');
 };
 
+const normalizeAvailableDate = (value) => {
+  const parsed = parseDateInput(value);
+  if (!parsed) return '';
+  return parsed.format('YYYY-MM-DD');
+};
+
 const LiveClock = React.memo(function LiveClock() {
   const [currentTime, setCurrentTime] = useState(() => new Date());
 
@@ -84,6 +90,8 @@ function Dashboard() {
 
   const loadingTimerRef = useRef(null);
 
+  const [availableDates, setAvailableDates] = useState([]);
+
   const [startDate, setStartDate] = useState(() => {
     const fromUrl = parseDateInput(getQueryParam('start_date', '') || getQueryParam('date', ''));
     return fromUrl || dayjs();
@@ -112,6 +120,24 @@ function Dashboard() {
 
   const timeOptions = useMemo(() => TIME_OPTIONS, []);
 
+  const availableDateSet = useMemo(() => new Set(availableDates), [availableDates]);
+
+  const latestAvailableDate = useMemo(() => {
+    if (!availableDates.length) return '';
+    return availableDates.reduce((latest, current) => {
+      if (!latest) return current;
+      return dayjs(current).isAfter(dayjs(latest), 'day') ? current : latest;
+    }, '');
+  }, [availableDates]);
+
+  const isDateDisabled = useCallback(
+    (current) => {
+      if (!current || availableDates.length === 0) return false;
+      return !availableDateSet.has(current.format('YYYY-MM-DD'));
+    },
+    [availableDateSet, availableDates.length],
+  );
+
   useEffect(() => {
     updateQueryParams({ 
       view: currentView,
@@ -139,6 +165,41 @@ function Dashboard() {
     includeDeleted,
     selectedPlatform,
   ]);
+
+  useEffect(() => {
+    if (!tenantKey) {
+      setAvailableDates([]);
+      return;
+    }
+    const controller = new AbortController();
+    const params = new URLSearchParams();
+    params.set('tenant_key', tenantKey);
+    if (jobId) {
+      params.set('job_id', jobId);
+    }
+    const run = async () => {
+      const response = await fetch(`/api/v1/dashboard/available-dates?${params.toString()}`, {
+        method: 'GET',
+        signal: controller.signal,
+      });
+      if (!response.ok) {
+        throw new Error(`请求失败(${response.status})`);
+      }
+      const result = await response.json();
+      const list = Array.isArray(result?.data) ? result.data : [];
+      const normalized = list
+        .map((item) => normalizeAvailableDate(item))
+        .filter(Boolean);
+      setAvailableDates(normalized);
+    };
+    run().catch((err) => {
+      if (controller.signal.aborted) return;
+      setAvailableDates([]);
+    });
+    return () => {
+      controller.abort();
+    };
+  }, [tenantKey, jobId]);
 
   // Cleanup loading timer on unmount
   useEffect(() => {
@@ -178,6 +239,23 @@ function Dashboard() {
       setEndDate(startDate);
     }
   }, [selectedFilter, startDate, endDate]);
+
+  useEffect(() => {
+    if (selectedFilter !== 'specific_day') return;
+    if (!latestAvailableDate) return;
+    const latest = dayjs(latestAvailableDate, 'YYYY-MM-DD');
+    if (!latest.isValid()) return;
+    const startKey = startDate ? startDate.format('YYYY-MM-DD') : '';
+    const endKey = endDate ? endDate.format('YYYY-MM-DD') : '';
+    if (!startKey || !availableDateSet.has(startKey)) {
+      setStartDate(latest);
+      setEndDate(latest);
+      return;
+    }
+    if (endKey && !availableDateSet.has(endKey)) {
+      setEndDate(latest);
+    }
+  }, [selectedFilter, latestAvailableDate, availableDateSet, startDate, endDate]);
 
   const handleBackFromPlatform = useCallback(() => {
     setSelectedPlatform('');
@@ -302,6 +380,9 @@ function Dashboard() {
             <Space size="middle" wrap>
               <Badge status="processing" text="实时数据" />
               <LiveClock />
+              {latestAvailableDate ? (
+                <Typography.Text type="secondary">数据更新至: {latestAvailableDate}</Typography.Text>
+              ) : null}
               <Segmented
                 options={timeOptions}
                 value={selectedFilter}
@@ -323,6 +404,7 @@ function Dashboard() {
                     }}
                     format="YYYY-MM-DD"
                     allowClear
+                    disabledDate={isDateDisabled}
                   />
                   <Typography.Text type="secondary">结束日期</Typography.Text>
                   <DatePicker
@@ -338,6 +420,7 @@ function Dashboard() {
                     }}
                     format="YYYY-MM-DD"
                     allowClear
+                    disabledDate={isDateDisabled}
                   />
                 </Space>
               ) : null}

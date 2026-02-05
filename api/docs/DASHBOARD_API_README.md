@@ -434,10 +434,10 @@ ORDER BY percentage DESC;
 ```
 ---------------------------
 
-## 📊 品牌总提及率 API
+## 📊 品牌总提及率 API [未使用]
 
 ### 接口信息
-- **路径**: `/api/v1/dashboard/brand-mention-rate`
+- **路径**: `/api/v1/dashboard/brand-mention-rate` [未使用]
 - **方法**: `GET`
 - **描述**: 获取品牌总提及率数据，基于`qa_brand_summary`表计算
 - **实现状态**: ✅ 已完成
@@ -553,10 +553,10 @@ WHERE tenant_key = :tenant_key
 
 ---
 
-## 📈 各平台品牌提及率对比 API
+## � 各平台品牌提及率对比 API [未使用]
 
 ### 接口信息
-- **路径**: `/api/v1/dashboard/platform-mention-rates`
+- **路径**: `/api/v1/dashboard/platform-mention-rates` [未使用]
 - **方法**: `GET`
 - **描述**: 获取单个品牌在各平台的提及率对比数据，基于`qa_brand_state`表计算
 - **实现状态**: ✅ 已完成
@@ -891,10 +891,10 @@ ORDER BY keyword ASC, platform ASC, mention_rate DESC;
 
 ## �� 引用统计 API
 
-### 全局引用URL统计
+### 全局引用URL统计 [未使用]
 
 ### 接口信息
-- **路径**: `/api/v1/dashboard/reference-url-stats`
+- **路径**: `/api/v1/dashboard/reference-url-stats` [未使用]
 - **方法**: `GET`
 - **描述**: 获取全局引用 URL 的统计数据，包括各站点的引用次数和引用率。
 - **实现状态**: ✅ 已完成
@@ -966,10 +966,10 @@ WHERE tenant_key = :tenant_key
 
 ---------------------
 
-### 仪表盘可用日期 API
+### 仪表盘可用日期 API [未使用]
 
 ### 接口信息
-- **路径**: `/api/v1/dashboard/available-dates`
+- **路径**: `/api/v1/dashboard/available-dates` [未使用]
 - **方法**: `GET`
 - **描述**: 获取仪表盘中有数据的所有日期列表
 
@@ -1077,12 +1077,12 @@ ORDER BY platform ASC, keyword ASC;
 
 ------
 
-## 🧠 品牌策略与分析 API (LLM)
+## 🧠 品牌策略与分析 API (LLM) [未使用]
 
-### 品牌定位关键词生成
+### 品牌定位关键词生成 [未使用]
 
 ### 接口信息
-- **路径**: `/api/v1/analysis/positioning-keywords`
+- **路径**: `/api/v1/analysis/positioning-keywords` [未使用]
 - **方法**: `POST`
 - **描述**: 基于行业和品牌名称，利用 LLM 生成品牌定位关键词。
 
@@ -1140,10 +1140,10 @@ curl -X POST "http://your-api.com/api/v1/analysis/positioning-keywords" \
 
 ---
 
-### 消费者常见问题生成
+### 消费者常见问题生成 [未使用]
 
 ### 接口信息
-- **路径**: `/api/v1/analysis/consumer-questions`
+- **路径**: `/api/v1/analysis/consumer-questions` [未使用]
 - **方法**: `POST`
 - **描述**: 基于行业、品牌和核心关键词，生成消费者可能会问的问题。
 
@@ -1203,12 +1203,12 @@ curl -X POST "http://your-api.com/api/v1/analysis/consumer-questions" \
 
 ---
 
-## 🏢 平台租户管理 API
+## 🏢 平台租户管理 API [未使用]
 
-### 平台操作员创建租户
+### 平台操作员创建租户 [未使用]
 
 ### 接口信息
-- **路径**: `/api/v1/platform/tenants`
+- **路径**: `/api/v1/platform/tenants` [未使用]
 - **方法**: `POST`
 - **描述**: 平台操作员创建租户并生成管理员账号与邀请码。
 
@@ -1403,10 +1403,10 @@ curl -X POST "http://your-api.com/api/v1/query-jobs/load" \
 
 ---
 
-### LLM查询任务获取接口
+### LLM查询任务获取接口 [未使用]
 
 ### 接口信息
-- **路径**: `/api/v1/query-jobs/fetch`
+- **路径**: `/api/v1/query-jobs/fetch` [未使用]
 - **方法**: `GET`
 - **描述**: 执行器获取待执行任务。采用 Round-Robin 策略：优先选取已执行次数最少的任务，且按物理顺序排列。
 
@@ -1530,10 +1530,10 @@ curl -X GET "http://your-api.com/api/v1/query-jobs/status?tenant_key=tn_1b02b3ef
 
 ---
 
-### LLM查询任务上报接口
+### LLM查询任务上报接口 [未使用]
 
 ### 接口信息
-- **路径**: `/api/v1/query-jobs/report`
+- **路径**: `/api/v1/query-jobs/report` [未使用]
 - **方法**: `POST`
 - **描述**: 执行器上报任务执行结果，系统将增加该任务的已执行次数，并更新最近执行日期。
 
@@ -1565,10 +1565,10 @@ curl -X POST "http://localhost:8000/api/v1/query-jobs/report?executor_id=exec_bb
 
 ---
 
-### LLM对话入库接口
+### LLM对话入库接口 [未使用]
 
 ### 接口信息
-- **路径**: `/api/v1/conversation/load`
+- **路径**: `/api/v1/conversation/load` [未使用]
 - **方法**: `POST`
 - **描述**: 执行器批量上报对话与引用数据，写入 `llm_conversations` 与 `llm_conversation_references` 表。
 
@@ -1657,10 +1657,10 @@ curl -X POST "http://your-api.com/api/v1/conversation/load?executor_id=exec_3f2a
 
 ---
 
-### LLM对话获取接口
+### LLM对话获取接口 [未使用]
 
 ### 接口信息
-- **路径**: `/api/v1/conversation/fetch`
+- **路径**: `/api/v1/conversation/fetch` [未使用]
 - **方法**: `GET`
 - **描述**: 获取对话与引用列表，支持分页。
 
@@ -1727,16 +1727,16 @@ curl -X GET "http://your-api.com/api/v1/conversation/fetch?executor_id=exec_3f2a
 
 ---
 
-## 🛠️ 执行器管理 API (Executors)
+## 🛠️ 执行器管理 API (Executors) [未使用]
 
 系统采用 **"先预设 IP，后注册取回凭据"** 的安全流程：
 1. **预设**: 管理员在系统中手动创建执行器记录，并指定其固定的 `ip_address`。
 2. **注册**: 执行器从预设的 IP 发起请求，通过 `/register` 接口取回自己的 `executor_id` 和 `api_key`。
 3. **调用**: 执行器使用取回的凭据调用数据加载等业务接口。
 
-### 1. 预设执行器 (Admin: Create Executor)
+### 1. 预设执行器 (Admin: Create Executor) [未使用]
 
-**接口地址**: `POST /api/v1/executors/`
+**接口地址**: `POST /api/v1/executors/` [未使用]
 
 **请求参数 (JSON Body)**:
 
@@ -1769,9 +1769,9 @@ curl -X POST "http://your-api.com/api/v1/executors/" \
 }
 ```
 
-### 2. 执行器注册 (Executor: Register)
+### 2. 执行器注册 (Executor: Register) [未使用]
 
-**接口地址**: `POST /api/v1/executors/register`
+**接口地址**: `POST /api/v1/executors/register` [未使用]
 
 **描述**: 执行器启动时调用此接口。身份验证完全基于请求的 **来源 IP**。
 
@@ -1793,9 +1793,9 @@ curl -X POST "http://your-api.com/api/v1/executors/register" \
 }
 ```
 
-### 3. 获取执行器列表 (List)
+### 3. 获取执行器列表 (List) [未使用]
 
-**接口地址**: `GET /api/v1/executors/`
+**接口地址**: `GET /api/v1/executors/` [未使用]
 
 **描述**: 获取系统中所有执行器的列表。出于安全考虑，该接口不返回 `api_key`。
 
@@ -1819,9 +1819,9 @@ curl -X GET "http://your-api.com/api/v1/executors/"
 ]
 ```
 
-### 4. 禁用执行器 (Deactivate Executor)
+### 4. 禁用执行器 (Deactivate Executor) [未使用]
 
-**接口地址**: `DELETE /api/v1/executors/{executor_id}`
+**接口地址**: `DELETE /api/v1/executors/{executor_id}` [未使用]
 
 **描述**: 将指定执行器的状态设置为 `inactive`，禁用其访问权限。
 
@@ -1924,8 +1924,8 @@ api/
 
 | API接口 | 主要数据表 | 查询函数 | 实现状态 |
 |---------|------------|----------|----------|
-| 品牌总提及率 | `qa_brand_summary` | `query_brand_mention_data` | ✅ 已完成 |
-| 各平台提及率 | `qa_brand_summary` | `query_brand_platform_mention_data` | ✅ 已完成 |
-| 引用URL统计 | `qa_reference` | `query_reference_url_stats` | ✅ 已完成（全局统计） |
-| 可用日期列表 | `qa_brand_state` | `get_available_dates` | ✅ 已完成 |
+| 品牌总提及率 | `qa_brand_summary` | `query_brand_mention_data` | ✅ 已完成 [未使用] |
+| 各平台提及率 | `qa_brand_summary` | `query_brand_platform_mention_data` | ✅ 已完成 [未使用] |
+| 引用URL统计 | `qa_reference` | `query_reference_url_stats` | ✅ 已完成（全局统计） [未使用] |
+| 可用日期列表 | `qa_brand_state` | `get_available_dates` | ✅ 已完成 [未使用] |
 | LLM查询记录加载 | `llm_query_jobs` | N/A (Direct Insert) | ✅ 已完成 |
