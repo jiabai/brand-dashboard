@@ -154,9 +154,6 @@ def get_domain_name(domain: str) -> Tuple[str, str]:
     meaningful_parts = [p for p in parts if p.lower() not in common_tlds and p]
     
     if meaningful_parts:
-        # 取最后一个有意义的部分（通常是二级域名）
-        # 例如: blog.example.com -> example
-        # 例如: tech.tencent.com -> tencent (虽然 tencent 应该在 mapping 里，但作为兜底逻辑这样更稳健)
         display_name = meaningful_parts[-1]
     else:
         # 如果全是顶级域名或异常情况，取第一部分
@@ -165,8 +162,6 @@ def get_domain_name(domain: str) -> Tuple[str, str]:
     # 美化名称：将连字符和下划线替换为空格，并转为标题格式
     display_name = display_name.replace('-', ' ').replace('_', ' ').title()
 
-    # 对于未知的域名，返回美化后的名称作为英文名，中文名留空
-    # 这样上层调用者 resolve_url_domain 可以通过 'chinese_name or english_name' 逻辑进行处理
     return (display_name, "")
 
 def get_chinese_name(domain: str) -> str:

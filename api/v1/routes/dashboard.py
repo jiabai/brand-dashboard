@@ -12,12 +12,12 @@ from api.v1.repositories.database import (
     query_brand_metrics,
     query_brand_platform_keyword_daily_mention_rates,
     query_brand_platform_mention_data,
+    query_citation_url_stats,
     query_domain_citation_rate,
     query_filter_metadata,
     query_keyword_platform_brand_rates,
     query_platform_metrics_by_brand,
     query_post_citation_rate,
-    query_citation_url_stats,
 )
 from api.v1.utils.url_domain_resolver import resolve_url_domain
 
@@ -167,6 +167,7 @@ class DomainCitationRateItem(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
     domain: str = Field(..., description="域名")
+    chinese_name: str = Field(..., description="中文名称")
     domain_citation_rate: float = Field(
         ...,
         alias="domain-citation-rate",
