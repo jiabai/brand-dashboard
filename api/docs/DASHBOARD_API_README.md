@@ -332,12 +332,17 @@ GROUP BY brand;
 | job_id | string | 是 | 任务ID |
 | brand | string | 是 | 品牌名称 |
 | timeframe | string | 是 | 时间范围，可选值: `yesterday`, `7days`, `30days`, `specific_day` |
-| date | string | 否 | 具体日期，格式: `YYYYMMDD` |
+| start_date | string | 否 | 起始日期，格式: `YYYYMMDD`（当 `timeframe=specific_day` 时必填） |
+| end_date | string | 否 | 结束日期，格式: `YYYYMMDD`（当 `timeframe=specific_day` 时必填） |
 
 ### 请求示例
 
 ```bash
-curl -X GET "http://your-api.com/api/v1/dashboard/domain-citation-rate?tenant_key=tn_xxx&job_id=job_456&brand=学而思&timeframe=7days"
+curl -X GET "http://your-api.com/api/v1/dashboard/domain-citation-rate?tenant_key=tn_xxx&job_id=job_456&brand=学而思&timeframe=30days"
+```
+
+```bash
+curl -X GET "http://your-api.com/api/v1/dashboard/domain-citation-rate?tenant_key=tn_xxx&job_id=job_456&brand=学而思&timeframe=specific_day&start_date=20260102&end_date=20260131"
 ```
 
 ### 响应格式
@@ -361,8 +366,13 @@ curl -X GET "http://your-api.com/api/v1/dashboard/domain-citation-rate?tenant_ke
     ......
   ],
   "metadata": {
-    "timeframe": "7days",
-    "calculation_method": "domain_citation_rate"
+    "tenant_key": "tn_xxx",
+    "job_id": "job_456",
+    "timeframe": "30days",
+    "start_date": "20260102",
+    "end_date": "20260131",
+    "calculation_method": "domain_citation_rate",
+    "row_count": 5
   }
 }
 ```
@@ -373,11 +383,16 @@ curl -X GET "http://your-api.com/api/v1/dashboard/domain-citation-rate?tenant_ke
 |--------|------|------|
 | status | string | 响应状态，"success" 或 "error" |
 | domain_distribution | array | 域名引用率分布 |
-| domain | string | 域名 |
-| domain-citation-rate | float | 域名引用率 |
+| domain_distribution.domain | string | 域名 |
+| domain_distribution.domain-citation-rate | float | 域名引用率 |
 | metadata | object | 元数据 |
-| timeframe | string | 时间范围 |
-| calculation_method | string | 计算方法 |
+| metadata.tenant_key | string | 租户标识 tenant_key |
+| metadata.job_id | string | 任务ID |
+| metadata.timeframe | string | 时间范围 |
+| metadata.start_date | string | 起始日期 |
+| metadata.end_date | string | 结束日期 |
+| metadata.calculation_method | string | 计算方法 |
+| metadata.row_count | int | 数据行数 |
 
 > **💡 计算口径说明**：当前“域名引用率”计算均基于“**已产生引用链接的对话**”作为分母。
 
@@ -395,8 +410,7 @@ SELECT
               AND job_id = <job_id>
               AND brand = <brand>
               AND domain IS NOT NULL
-              AND date >= CURDATE() - INTERVAL <timeframe> DAY
-              AND date <= CURDATE()
+              AND `date` BETWEEN :start_date AND :end_date
         ),
         2
     ) AS percentage
@@ -406,8 +420,7 @@ WHERE
     AND job_id = <job_id>
     AND brand = <brand>
     AND domain IS NOT NULL
-    AND date >= CURDATE() - INTERVAL <timeframe> DAY
-    AND date <= CURDATE()
+    AND `date` BETWEEN :start_date AND :end_date
 GROUP BY domain
 ORDER BY percentage DESC;
 ```

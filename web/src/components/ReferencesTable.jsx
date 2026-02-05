@@ -6,17 +6,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Button, Card, Empty, Table, Typography } from 'antd';
 import { CONFIG } from '@/config';
+import { buildDomainCitationQueryString } from '@/utils/domainCitationQuery';
 
 const { DEFAULT_TENANT_KEY, DEFAULT_JOB_ID, DEFAULT_BRAND } = CONFIG;
-
-const buildQueryString = (params) => {
-  const searchParams = new URLSearchParams();
-  Object.entries(params).forEach(([key, value]) => {
-    if (value === undefined || value === null) return;
-    searchParams.set(key, String(value));
-  });
-  return searchParams.toString();
-};
 
 const fetchJson = async (url, { signal } = {}) => {
   const response = await fetch(url, { method: 'GET', signal });
@@ -41,6 +33,7 @@ const roundTwoDecimals = (value) => {
 const ReferencesTable = ({
   timeframe = '7days',
   date = '',
+  endDate = '',
   tenantKey = DEFAULT_TENANT_KEY,
   jobId = DEFAULT_JOB_ID,
   brand = DEFAULT_BRAND,
@@ -62,12 +55,13 @@ const ReferencesTable = ({
         setInternalLoading(true);
         setInternalError(null);
 
-        const queryString = buildQueryString({
-          tenant_key: tenantKey,
-          job_id: jobId,
+        const queryString = buildDomainCitationQueryString({
+          tenantKey,
+          jobId,
           brand,
           timeframe,
-          date,
+          startDate: date,
+          endDate,
         });
 
         const result = await fetchJson(
@@ -109,7 +103,7 @@ const ReferencesTable = ({
     return () => {
       controller.abort();
     };
-  }, [hasExternalData, tenantKey, jobId, brand, timeframe, date]);
+  }, [hasExternalData, tenantKey, jobId, brand, timeframe, date, endDate]);
 
   const displayData = hasExternalData ? referencesData : data;
   const loading = isLoading ?? internalLoading;
