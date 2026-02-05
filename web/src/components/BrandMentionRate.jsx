@@ -110,10 +110,11 @@ const BrandMentionRate = ({
         tenant_key: tenantKey,
         job_id: jobId,
         timeframe,
-        date,
+        start_date: timeframe === 'specific_day' ? date : undefined,
+        end_date: timeframe === 'specific_day' ? endDate || date : undefined,
         brand,
       }),
-    [tenantKey, jobId, timeframe, date, brand],
+    [tenantKey, jobId, timeframe, date, endDate, brand],
   );
 
   const handleTableChange = (_, __, sorter) => {
