@@ -42,17 +42,17 @@ const roundTwoDecimals = (value) => {
 };
 
 const PLATFORM_COLORS = {
-  chatgpt: '#10b981',
-  gemini: '#3b82f6',
-  claude: '#f59e0b',
-  '通义千问': '#ef4444',
-  qwen: '#ef4444',
-  豆包: '#8b5cf6',
-  deepseek: '#06b6d4',
-  kimi: '#a855f7',
-  元宝: '#f97316',
-  夸克: '#ec4899',
-  文心一言: '#6b7280',
+  chatgpt: '#2582a1',
+  gemini: '#f88c24',
+  claude: '#c52125',
+  '通义千问': '#87f4d0',
+  qwen: '#87f4d0',
+  豆包: '#a062d4',
+  deepseek: '#2582a1',
+  kimi: '#f88c24',
+  元宝: '#c52125',
+  夸克: '#87f4d0',
+  文心一言: '#a062d4',
 };
 
 const getPlatformColor = (name) => {

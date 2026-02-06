@@ -17,6 +17,7 @@ const PlatformDetail = React.lazy(() => import('./components/PlatformDetail.jsx'
 const CreateQueryJob = React.lazy(() => import('./components/CreateQueryJob.jsx'));
 const QueryJobStatus = React.lazy(() => import('./components/QueryJobStatus.jsx'));
 const TrendAnalysis = React.lazy(() => import('./components/TrendAnalysis.jsx'));
+const SourceAnalysis = React.lazy(() => import('./components/SourceAnalysis.jsx'));
 
 const { Header, Content } = Layout;
 
@@ -293,6 +294,8 @@ function Dashboard() {
                 brand={brand}
               />
             </Spin>
+          ) : currentView === 'sources' ? (
+            <SourceAnalysis />
           ) : (
             <Spin spinning={isLoading}>
               {selectedPlatform ? (
