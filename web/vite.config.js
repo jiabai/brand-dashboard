@@ -20,7 +20,7 @@ export default defineConfig(({ mode, command }) => {
     },
     server: {
       port: 3000,
-      allowedHosts: ['rushlink.click', 'mc.rushlink.click'],
+      allowedHosts: ['rushlink.click', 'mc.rushlink.click', 'www.rushlink.click'],
     },
     build: {
       outDir: 'dist',
