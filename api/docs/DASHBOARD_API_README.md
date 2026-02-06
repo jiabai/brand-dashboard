@@ -342,6 +342,7 @@ GROUP BY brand;
 | timeframe | string | 是 | 时间范围，可选值: `yesterday`, `7days`, `30days`, `specific_day` |
 | start_date | string | 否 | 起始日期，格式: `YYYYMMDD`（当 `timeframe=specific_day` 时必填） |
 | end_date | string | 否 | 结束日期，格式: `YYYYMMDD`（当 `timeframe=specific_day` 时必填） |
+| keyword | string | 否 | 关键词，用于筛选引用信源 |
 
 ### 请求示例
 
@@ -351,6 +352,10 @@ curl -X GET "http://your-api.com/api/v1/dashboard/citation-domain-stats?tenant_k
 
 ```bash
 curl -X GET "http://your-api.com/api/v1/dashboard/citation-domain-stats?tenant_key=tn_xxx&job_id=job_456&brand=学而思&timeframe=specific_day&start_date=20260102&end_date=20260131"
+```
+
+```bash
+curl -X GET "http://your-api.com/api/v1/dashboard/citation-domain-stats?tenant_key=tn_xxx&job_id=job_456&brand=学而思&timeframe=30days&keyword=数学培训"
 ```
 
 ### 响应格式
@@ -379,6 +384,7 @@ curl -X GET "http://your-api.com/api/v1/dashboard/citation-domain-stats?tenant_k
   "metadata": {
     "tenant_key": "tn_xxx",
     "job_id": "job_456",
+    "keyword": "数学培训",
     "timeframe": "30days",
     "start_date": "20260102",
     "end_date": "20260131",
@@ -399,6 +405,7 @@ curl -X GET "http://your-api.com/api/v1/dashboard/citation-domain-stats?tenant_k
 | metadata | object | 元数据 |
 | metadata.tenant_key | string | 租户标识 tenant_key |
 | metadata.job_id | string | 任务ID |
+| metadata.keyword | string | 关键词 |
 | metadata.timeframe | string | 时间范围 |
 | metadata.start_date | string | 起始日期 |
 | metadata.end_date | string | 结束日期 |
@@ -411,7 +418,7 @@ curl -X GET "http://your-api.com/api/v1/dashboard/citation-domain-stats?tenant_k
 
 ```sql
 SELECT 
-    domain,
+    domain, content_type,
     ROUND(
         COUNT(*) * 100.0 / (
             SELECT COUNT(*)
@@ -432,7 +439,38 @@ WHERE
     AND brand = <brand>
     AND domain IS NOT NULL
     AND `date` BETWEEN :start_date AND :end_date
-GROUP BY domain
+GROUP BY domain, content_type
+ORDER BY percentage DESC;
+```
+有keyword时，仅计算包含keyword的引用信源的域名引用率
+```sql
+SELECT 
+    domain, content_type,
+    ROUND(
+        COUNT(*) * 100.0 / (
+            SELECT COUNT(*)
+            FROM qa_reference
+            WHERE 
+              tenant_key = <tenant_key>
+              AND job_id = <job_id>
+              AND brand = <brand>
+              -- 新增可选 keyword 筛选
+              AND keyword = :keyword
+              AND domain IS NOT NULL
+              AND `date` BETWEEN :start_date AND :end_date
+        ),
+        2
+    ) AS percentage
+FROM qa_reference
+WHERE
+    tenant_key = <tenant_key>
+    AND job_id = <job_id>
+    AND brand = <brand>
+    -- 新增可选 keyword 筛选
+    AND keyword = :keyword
+    AND domain IS NOT NULL
+    AND `date` BETWEEN :start_date AND :end_date
+GROUP BY domain, content_type
 ORDER BY percentage DESC;
 ```
 ---------------------------
@@ -905,6 +943,8 @@ ORDER BY keyword ASC, platform ASC, mention_rate DESC;
 |--------|------|------|------|
 | tenant_key | string | 是 | 租户标识 tenant_key |
 | job_id | string | 是 | 任务ID |
+| keyword | string | 是 | 关键词 |
+| domain | string | 是 | 域名 |
 | timeframe | string | 是 | 时间范围，可选值: `yesterday`, `7days`, `30days`, `specific_day` |
 | start_date | string | 否 | 起始日期，格式: `YYYYMMDD`（当 `timeframe=specific_day` 时必填） |
 | end_date | string | 否 | 结束日期，格式: `YYYYMMDD`（当 `timeframe=specific_day` 时必填） |
@@ -912,7 +952,7 @@ ORDER BY keyword ASC, platform ASC, mention_rate DESC;
 ### 请求示例
 
 ```bash
-curl -X GET "http://your-api.com/api/v1/dashboard/citation-url-stats?tenant_key=tn_xxx&job_id=job_456&timeframe=7days"
+curl -X GET "http://your-api.com/api/v1/dashboard/citation-url-stats?tenant_key=tn_xxx&job_id=job_456&keyword=三角洲陪玩&domain=zhihu.com&timeframe=7days"
 ```
 
 ### 响应格式
@@ -931,7 +971,13 @@ curl -X GET "http://your-api.com/api/v1/dashboard/citation-url-stats?tenant_key=
     ...
   ],
   "metadata": {
+    "tenant_key": "tn_xxx",
+    "job_id": "job_456",
+    "keyword": "数学培训",
+    "domain": "zhihu.com",
     "timeframe": "7days",
+    "start_date": "20260102",
+    "end_date": "20260131",
     "calculation_method": "citation_url_count",
     "url_count": 10
   }
@@ -950,6 +996,8 @@ SELECT
 FROM qa_reference 
 WHERE tenant_key = :tenant_key
   AND job_id = :job_id
+  AND keyword = :keyword      -- 过滤：特定关键词
+  AND domain = :domain        -- 过滤：特定域名
   AND url IS NOT NULL 
   AND date BETWEEN :start_date AND :end_date 
 GROUP BY url 

@@ -93,10 +93,10 @@ class BrandMentionTrendResponse(BaseModel):
 class CitationUrlData(BaseModel):
     """引用URL统计数据模型."""
     answer_reference_url: str = Field(..., description="引用URL")
-    reference_count: int = Field(..., description="引用次数")
+    citation_count: int = Field(..., description="引用次数")
     total_questions: int = Field(..., description="总提问数")
     chinese_name: str = Field(..., description="中文名称")
-    reference_rate: float = Field(..., description="引用率(引用次数/总提问数)")
+    citation_rate: float = Field(..., description="引用率(引用次数/总提问数)")
 
 
 class CitationUrlResponse(BaseModel):
@@ -387,17 +387,36 @@ async def get_brand_mention_trend(
 async def get_citation_url_stats(
     tenant_key: str = Query(..., description="租户唯一字符串标识（tenants.tenant_key）"),
     job_id: str = Query(..., description="任务ID"),
+    keyword: str = Query(..., description="关键词"),
+    domain: str = Query(..., description="域名"),
     timeframe: TimeFrame = Query(..., description="时间范围"),
-    date: Optional[str] = Query(None, description="具体日期(格式: YYYYMMDD)")
+    start_date: Optional[str] = Query(None, description="开始日期(格式: YYYYMMDD)"),
+    end_date: Optional[str] = Query(None, description="结束日期(格式: YYYYMMDD)"),
 ):
     """获取引用URL统计数据."""
+    if timeframe == TimeFrame.SPECIFIC_DAY and (not start_date or not end_date):
+        raise HTTPException(
+            status_code=400,
+            detail="timeframe=specific_day 时必须提供 start_date 和 end_date(YYYYMMDD)",
+        )
+    if timeframe == TimeFrame.SPECIFIC_DAY:
+        query_start_date = datetime.strptime(start_date, "%Y%m%d").date()
+        query_end_date = datetime.strptime(end_date, "%Y%m%d").date()
+    else:
+        query_start_date, query_end_date = get_date_range(timeframe.value)
+
     try:
+        if query_start_date > query_end_date:
+            raise ValueError("开始日期不能晚于结束日期")
+
         # 从数据库查询引用URL统计数据
         citation_data_list = query_citation_url_stats(
             tenant_key=tenant_key,
             job_id=job_id,
-            timeframe=timeframe.value,
-            specific_date=date
+            keyword=keyword,
+            domain=domain,
+            start_date=query_start_date,
+            end_date=query_end_date,
         )
 
         # 转换数据格式以匹配响应模型
@@ -428,7 +447,13 @@ async def get_citation_url_stats(
             status="success",
             data=response_data,
             metadata={
+                "tenant_key": tenant_key,
+                "job_id": job_id,
+                "keyword": keyword,
+                "domain": domain,
                 "timeframe": timeframe.value,
+                "start_date": query_start_date.strftime("%Y%m%d"),
+                "end_date": query_end_date.strftime("%Y%m%d"),
                 "calculation_method": "citation_url_count",
                 "url_count": len(response_data)
             }
@@ -642,6 +667,7 @@ async def get_domain_citation_rate(
     timeframe: TimeFrame = Query(..., description="时间范围"),
     start_date: Optional[str] = Query(None, description="起始日期(格式: YYYYMMDD)"),
     end_date: Optional[str] = Query(None, description="结束日期(格式: YYYYMMDD)"),
+    keyword: Optional[str] = Query(None, description="关键词"),
 ):
     if timeframe == TimeFrame.SPECIFIC_DAY and (not start_date or not end_date):
         raise HTTPException(
@@ -665,6 +691,7 @@ async def get_domain_citation_rate(
             brand=brand,
             start_date=query_start_date,
             end_date=query_end_date,
+            keyword=keyword,
         )
 
         return DomainCitationRateResponse(
@@ -680,6 +707,7 @@ async def get_domain_citation_rate(
             metadata={
                 "tenant_key": tenant_key,
                 "job_id": job_id,
+                "keyword": keyword,
                 "timeframe": timeframe.value,
                 "start_date": query_start_date.strftime("%Y%m%d"),
                 "end_date": query_end_date.strftime("%Y%m%d"),

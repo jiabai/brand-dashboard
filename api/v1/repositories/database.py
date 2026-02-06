@@ -391,25 +391,28 @@ def query_domain_citation_rate(
     brand: str,
     start_date: datetime.date,
     end_date: datetime.date,
+    keyword: Optional[str] = None,
 ) -> List[Dict[str, Any]]:
-    total_query = """
-    SELECT COUNT(*)
-    FROM qa_reference
+    where_sql = """
     WHERE tenant_key = :tenant_key
     AND job_id = :job_id
     AND brand = :brand
     AND domain IS NOT NULL
     AND date BETWEEN :start_date AND :end_date
     """
+    if keyword:
+        where_sql += "\n    AND keyword = :keyword"
 
-    domain_query = """
+    total_query = f"""
+    SELECT COUNT(*)
+    FROM qa_reference
+    {where_sql}
+    """
+
+    domain_query = f"""
     SELECT domain, COUNT(*) AS domain_count
     FROM qa_reference
-    WHERE tenant_key = :tenant_key
-    AND job_id = :job_id
-    AND brand = :brand
-    AND domain IS NOT NULL
-    AND date BETWEEN :start_date AND :end_date
+    {where_sql}
     GROUP BY domain
     ORDER BY domain_count DESC
     """
@@ -421,6 +424,8 @@ def query_domain_citation_rate(
         "start_date": start_date,
         "end_date": end_date,
     }
+    if keyword:
+        params["keyword"] = keyword
 
     try:
         with engine.connect() as conn:
@@ -450,8 +455,10 @@ def query_domain_citation_rate(
 def query_citation_url_stats(
     tenant_key: str,
     job_id: str,
-    timeframe: str,
-    specific_date: Optional[str] = None
+    keyword: str,
+    domain: str,
+    start_date: datetime.date,
+    end_date: datetime.date
 ) -> List[Dict[str, Any]]:
     """
     查询引用URL的统计数据
@@ -460,12 +467,12 @@ def query_citation_url_stats(
         tenant_key: 租户键
         job_id: 任务ID
         timeframe: 时间范围 ('yesterday', '7days', '30days')
-        specific_date: 指定日期 (格式: YYYYMMDD)
+        start_date: 开始日期
+        end_date: 结束日期
     
     Returns:
         包含引用URL统计数据的列表，按引用次数降序排列
     """
-    start_date, end_date = get_date_range(timeframe, specific_date)
 
     # 查询引用URL统计
     url_query = """
@@ -475,6 +482,8 @@ def query_citation_url_stats(
     FROM qa_reference 
     WHERE tenant_key = :tenant_key
     AND job_id = :job_id
+    AND keyword = :keyword
+    AND domain = :domain
     AND url IS NOT NULL 
     AND date BETWEEN :start_date AND :end_date 
     GROUP BY url 
@@ -498,6 +507,8 @@ def query_citation_url_stats(
                 {
                     "tenant_key": tenant_key,
                     "job_id": job_id,
+                    "keyword": keyword,
+                    "domain": domain,
                     "start_date": start_date,
                     "end_date": end_date
                 }
