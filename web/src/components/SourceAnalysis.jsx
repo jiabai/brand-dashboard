@@ -350,22 +350,12 @@ const MediaListTable = () => {
 };
 
 export default function SourceAnalysis() {
-  const { token } = theme.useToken();
-
   return (
-    <div style={{ 
-      padding: token.paddingLG, 
-      maxWidth: 1600, 
-      margin: '0 auto',
-      backgroundColor: token.colorBgLayout,
-      minHeight: '100vh'
-    }}>
-      <Flex vertical gap="large">
-        <KeywordSection />
-        <SourceAnalysisChart />
-        <MediaListTable />
-      </Flex>
-    </div>
+    <Flex vertical gap="large">
+      <KeywordSection />
+      <SourceAnalysisChart />
+      <MediaListTable />
+    </Flex>
   );
 }
 
