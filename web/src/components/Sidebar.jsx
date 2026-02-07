@@ -41,18 +41,45 @@ const Sidebar = ({ collapsed, onCollapse, onMenuClick, selectedKey }) => {
         background: token.colorBgContainer
       }}
     >
-      <div style={{ padding: token.padding }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
-            <Typography.Text style={{ fontSize: 16, fontWeight: 700, color: token.colorText }}>
+      <div style={{ 
+        padding: collapsed ? `${token.padding}px 0` : token.padding,
+        display: 'flex',
+        justifyContent: 'center'
+      }}>
+        <div style={{ 
+          display: 'flex', 
+          flexDirection: 'column', 
+          gap: 4,
+          alignItems: collapsed ? 'center' : 'flex-start',
+          width: '100%'
+        }}>
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'baseline', 
+            gap: 6,
+            justifyContent: collapsed ? 'center' : 'flex-start'
+          }}>
+            <Typography.Text style={{ 
+              fontSize: 16, 
+              fontWeight: 700, 
+              color: token.colorText,
+              flexShrink: 0
+            }}>
               明察
             </Typography.Text>
-            <Typography.Text style={{ fontSize: 15, fontWeight: 500, color: token.colorPrimary }}>
-              InsightFlow
-            </Typography.Text>
+            {!collapsed && (
+              <Typography.Text style={{ 
+                fontSize: 15, 
+                fontWeight: 500, 
+                color: token.colorPrimary,
+                whiteSpace: 'nowrap'
+              }}>
+                InsightFlow
+              </Typography.Text>
+            )}
           </div>
           {!collapsed ? (
-            <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+            <Typography.Text type="secondary" style={{ fontSize: 12, whiteSpace: 'nowrap' }}>
               监控 · 分析 · 报告
             </Typography.Text>
           ) : null}
