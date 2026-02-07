@@ -8,6 +8,7 @@ import {
   MessageOutlined,
   PictureOutlined,
   PlusOutlined,
+  SmileOutlined,
   SettingOutlined,
   UnorderedListOutlined
 } from '@ant-design/icons';
@@ -17,6 +18,7 @@ const MENU_ITEMS = [
   { key: 'trend', icon: <LineChartOutlined />, label: '趋势分析' },
   { key: 'platforms', icon: <BarChartOutlined />, label: '分平台分析' },
   { key: 'sources', icon: <MessageOutlined />, label: '信源分析' },
+  { key: 'sentiment', icon: <SmileOutlined />, label: '情感分析' },
   { key: 'snapshots', icon: <PictureOutlined />, label: '问答快照' },
   { key: 'settings', icon: <SettingOutlined />, label: '品牌设置' },
   { key: 'subscribe', icon: <BookOutlined />, label: '订阅' }
