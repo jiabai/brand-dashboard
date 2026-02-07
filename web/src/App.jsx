@@ -305,7 +305,14 @@ function Dashboard() {
               brand={brand}
             />
           ) : currentView === 'sentiment' ? (
-            <SentimentAnalysis />
+            <SentimentAnalysis 
+              timeframe={selectedFilter}
+              date={selectedDateParam}
+              endDate={endDateParam}
+              tenantKey={tenantKey}
+              jobId={jobId}
+              brand={brand}
+            />
           ) : (
             <Spin spinning={isLoading}>
               {selectedPlatform ? (

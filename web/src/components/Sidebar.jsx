@@ -19,13 +19,21 @@ const MENU_ITEMS = [
   { key: 'platforms', icon: <BarChartOutlined />, label: '分平台分析' },
   { key: 'sources', icon: <MessageOutlined />, label: '信源分析' },
   { key: 'sentiment', icon: <SmileOutlined />, label: '情感分析' },
-  { key: 'snapshots', icon: <PictureOutlined />, label: '问答快照' },
-  { key: 'settings', icon: <SettingOutlined />, label: '品牌设置' },
-  { key: 'subscribe', icon: <BookOutlined />, label: '订阅' }
+  { key: 'snapshots', icon: <PictureOutlined />, label: '问答快照', disabled: true },
+  { key: 'settings', icon: <SettingOutlined />, label: '品牌设置', disabled: true },
+  { key: 'subscribe', icon: <BookOutlined />, label: '订阅', disabled: true }
 ];
 
 const Sidebar = ({ collapsed, onCollapse, onMenuClick, selectedKey }) => {
   const { token } = theme.useToken();
+
+  const handleMenuClick = ({ key }) => {
+    // 禁用这些特定键的跳转
+    if (['snapshots', 'settings', 'subscribe'].includes(key)) {
+      return;
+    }
+    onMenuClick && onMenuClick(key);
+  };
 
   return (
     <Layout.Sider
@@ -90,7 +98,7 @@ const Sidebar = ({ collapsed, onCollapse, onMenuClick, selectedKey }) => {
         <Menu
           mode="inline"
           selectedKeys={[selectedKey]}
-          onClick={({ key }) => onMenuClick && onMenuClick(key)}
+          onClick={handleMenuClick}
           items={[
             {
               key: 'task-load',
@@ -110,7 +118,7 @@ const Sidebar = ({ collapsed, onCollapse, onMenuClick, selectedKey }) => {
       <Menu
         mode="inline"
         selectedKeys={[selectedKey]}
-        onClick={({ key }) => onMenuClick && onMenuClick(key)}
+        onClick={handleMenuClick}
         items={MENU_ITEMS}
         style={{ border: 'none' }}
       />
