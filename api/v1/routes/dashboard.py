@@ -12,6 +12,7 @@ from api.v1.repositories.database import (
     query_brand_metrics,
     query_brand_platform_keyword_daily_mention_rates,
     query_brand_platform_mention_data,
+    query_citation_type_stats,
     query_citation_url_stats,
     query_domain_citation_rate,
     query_filter_metadata,
@@ -103,6 +104,26 @@ class CitationUrlResponse(BaseModel):
     """引用URL统计响应模型."""
     status: str = Field(..., description="响应状态")
     data: List[CitationUrlData] = Field(..., description="引用URL统计数据列表")
+    metadata: Dict[str, Any] = Field(..., description="元数据")
+
+
+class CitationTypeStatsSummary(BaseModel):
+    total_rows: int = Field(..., description="总条数")
+    conversations: int = Field(..., description="去重对话数")
+
+
+class CitationTypeStatsItem(BaseModel):
+    content_type: str = Field(..., description="引用类型")
+    type_pct: float = Field(..., description="引用类型占比(百分比)")
+
+
+class CitationTypeStatsResponse(BaseModel):
+    status: str = Field(..., description="响应状态")
+    summary: CitationTypeStatsSummary = Field(..., description="汇总信息")
+    citation_type_stats: List[CitationTypeStatsItem] = Field(
+        ...,
+        description="引用类型占比列表",
+    )
     metadata: Dict[str, Any] = Field(..., description="元数据")
 
 
@@ -462,6 +483,59 @@ async def get_citation_url_stats(
         raise HTTPException(status_code=400, detail=str(e)) from e
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"获取引用URL统计数据失败: {str(e)}") from e
+
+
+@router.get("/citation-type-stats", response_model=CitationTypeStatsResponse)
+async def get_citation_type_stats(
+    tenant_key: str = Query(..., description="租户标识 tenant_key"),
+    job_id: str = Query(..., description="任务ID"),
+    timeframe: TimeFrame = Query(..., description="时间范围"),
+    start_date: Optional[str] = Query(None, description="起始日期(格式: YYYYMMDD)"),
+    end_date: Optional[str] = Query(None, description="结束日期(格式: YYYYMMDD)"),
+):
+    if timeframe == TimeFrame.SPECIFIC_DAY and (not start_date or not end_date):
+        raise HTTPException(
+            status_code=400,
+            detail="timeframe=specific_day 时必须提供 start_date 和 end_date(YYYYMMDD)",
+        )
+
+    try:
+        if timeframe == TimeFrame.SPECIFIC_DAY:
+            query_start_date = datetime.strptime(start_date, "%Y%m%d").date()
+            query_end_date = datetime.strptime(end_date, "%Y%m%d").date()
+        else:
+            query_start_date, query_end_date = get_date_range(timeframe.value)
+
+        if query_start_date > query_end_date:
+            raise ValueError("开始日期不能晚于结束日期")
+
+        summary, stats = query_citation_type_stats(
+            tenant_key=tenant_key,
+            job_id=job_id,
+            start_date=query_start_date,
+            end_date=query_end_date,
+        )
+
+        return CitationTypeStatsResponse(
+            status="success",
+            summary=CitationTypeStatsSummary(**summary),
+            citation_type_stats=[
+                CitationTypeStatsItem(**item) for item in stats
+            ],
+            metadata={
+                "tenant_key": tenant_key,
+                "job_id": job_id,
+                "timeframe": timeframe.value,
+                "start_date": query_start_date.strftime("%Y%m%d"),
+                "end_date": query_end_date.strftime("%Y%m%d"),
+                "calculation_method": "content_type_pct",
+                "row_count": len(stats),
+            },
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"获取引用类型占比统计失败: {str(e)}") from e
 
 
 @router.get("/filter-metadata", response_model=FilterMetadataResponse)

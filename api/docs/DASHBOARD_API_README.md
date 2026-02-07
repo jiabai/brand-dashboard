@@ -475,6 +475,122 @@ ORDER BY percentage DESC;
 ```
 ---------------------------
 
+## 📊 引用类型占比统计 API
+
+### 接口信息
+- **路径**: `/api/v1/dashboard/citation-type-stats`
+- **方法**: `GET`
+- **描述**: 获取引用类型占比统计，返回总条数、去重对话数及各引用类型占比，基于`qa_reference`表计算
+
+### 请求参数
+
+| 参数名 | 类型 | 必填 | 描述 |
+|--------|------|------|------|
+| tenant_key | string | 是 | 租户标识 tenant_key |
+| job_id | string | 是 | 任务ID |
+| timeframe | string | 是 | 时间范围，可选值: `yesterday`, `7days`, `30days`, `specific_day` |
+| start_date | string | 否 | 起始日期，格式: `YYYYMMDD`（当 `timeframe=specific_day` 时必填） |
+| end_date | string | 否 | 结束日期，格式: `YYYYMMDD`（当 `timeframe=specific_day` 时必填） |
+
+### 请求示例
+
+```bash
+curl -X GET "http://your-api.com/api/v1/dashboard/citation-type-stats?tenant_key=tn_xxx&job_id=job_456&timeframe=30days"
+```
+
+```bash
+curl -X GET "http://your-api.com/api/v1/dashboard/citation-type-stats?tenant_key=tn_xxx&job_id=job_456&timeframe=specific_day&start_date=20260102&end_date=20260131"
+```
+
+### 响应格式
+
+```json
+{
+  "status": "success",
+  "summary": {
+    "total_rows": 1240,
+    "conversations": 356
+  },
+  "citation_type_stats": [
+    {
+      "content_type": "news",
+      "type_pct": 42.35
+    },
+    {
+      "content_type": "tech_review",
+      "type_pct": 28.19
+    },
+    {
+      "content_type": "gov_report",
+      "type_pct": 12.58
+    }
+  ],
+  "metadata": {
+    "tenant_key": "tn_xxx",
+    "job_id": "job_456",
+    "timeframe": "30days",
+    "start_date": "20260102",
+    "end_date": "20260131",
+    "calculation_method": "content_type_pct",
+    "row_count": 3
+  }
+}
+```
+
+### 响应字段说明
+
+| 字段名 | 类型 | 描述 |
+|--------|------|------|
+| status | string | 响应状态，"success" 或 "error" |
+| summary | object | 汇总信息 |
+| summary.total_rows | int | 总条数 |
+| summary.conversations | int | 去重对话数 |
+| citation_type_stats | array | 引用类型占比列表 |
+| citation_type_stats.content_type | string | 引用类型 |
+| citation_type_stats.type_pct | float | 引用类型占比（百分比） |
+| metadata | object | 元数据 |
+| metadata.tenant_key | string | 租户标识 tenant_key |
+| metadata.job_id | string | 任务ID |
+| metadata.timeframe | string | 时间范围 |
+| metadata.start_date | string | 起始日期 |
+| metadata.end_date | string | 结束日期 |
+| metadata.calculation_method | string | 计算方法 |
+| metadata.row_count | int | 引用类型条目数 |
+
+### 数据计算逻辑
+
+```sql
+SELECT
+    COUNT(*) AS total_rows,
+    COUNT(DISTINCT conversation_id) AS conversations
+FROM qa_reference
+WHERE tenant_key = :tenant_key
+  AND job_id = :job_id
+  AND `date` BETWEEN :start_date AND :end_date;
+```
+
+```sql
+SELECT
+    content_type,
+    ROUND(
+        COUNT(*) * 100.0 / NULLIF((
+            SELECT COUNT(*)
+            FROM qa_reference
+            WHERE tenant_key = :tenant_key
+              AND job_id = :job_id
+              AND `date` BETWEEN :start_date AND :end_date
+        ), 0),
+        2
+    ) AS type_pct
+FROM qa_reference
+WHERE tenant_key = :tenant_key
+  AND job_id = :job_id
+  AND `date` BETWEEN :start_date AND :end_date
+GROUP BY content_type
+ORDER BY type_pct DESC;
+```
+---------------------------
+
 ## 📊 品牌总提及率 API [未使用]
 
 ### 接口信息

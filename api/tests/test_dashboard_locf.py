@@ -436,6 +436,65 @@ class TestDomainCitationRateApi(unittest.TestCase):
         )
 
 
+class TestCitationTypeStatsApi(unittest.TestCase):
+    def setUp(self):
+        app = FastAPI()
+        app.include_router(dashboard.router, prefix="/api/v1/dashboard")
+        self.client = TestClient(app)
+
+    def test_citation_type_stats_requires_date_range_for_specific_day(self):
+        response = self.client.get(
+            "/api/v1/dashboard/citation-type-stats",
+            params={
+                "tenant_key": "tn_1b02b3ef4fbd",
+                "job_id": "job_20260127_223236_989cc4db",
+                "timeframe": "specific_day",
+                "start_date": "20260131",
+            },
+        )
+
+        self.assertEqual(response.status_code, 400)
+
+    def test_citation_type_stats_uses_computed_date_range_for_non_specific_day(self):
+        summary = {"total_rows": 1240, "conversations": 356}
+        stats = [
+            {"content_type": "news", "type_pct": 42.35},
+            {"content_type": "tech_review", "type_pct": 28.19},
+        ]
+
+        with patch(
+            "api.v1.routes.dashboard.get_date_range",
+            return_value=(date(2026, 1, 1), date(2026, 1, 31)),
+        ):
+            with patch("api.v1.routes.dashboard.query_citation_type_stats") as query_mock:
+                query_mock.return_value = summary, stats
+                response = self.client.get(
+                    "/api/v1/dashboard/citation-type-stats",
+                    params={
+                        "tenant_key": "tn_1b02b3ef4fbd",
+                        "job_id": "job_20260127_223236_989cc4db",
+                        "timeframe": "30days",
+                    },
+                )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["status"], "success")
+        self.assertEqual(payload["summary"]["total_rows"], 1240)
+        self.assertEqual(payload["summary"]["conversations"], 356)
+        self.assertEqual(payload["metadata"]["start_date"], "20260101")
+        self.assertEqual(payload["metadata"]["end_date"], "20260131")
+        self.assertEqual(payload["metadata"]["row_count"], 2)
+        self.assertEqual(len(payload["citation_type_stats"]), 2)
+
+        query_mock.assert_called_once_with(
+            tenant_key="tn_1b02b3ef4fbd",
+            job_id="job_20260127_223236_989cc4db",
+            start_date=date(2026, 1, 1),
+            end_date=date(2026, 1, 31),
+        )
+
+
 class TestPlatformMetricsByBrandApi(unittest.TestCase):
     def setUp(self):
         app = FastAPI()

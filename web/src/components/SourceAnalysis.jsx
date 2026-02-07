@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Card, Typography, Tag, Table, Badge, theme, Flex, Input, Button, Divider, Tooltip, Empty } from 'antd';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { Card, Typography, Tag, Table, Badge, theme, Flex, Input, Button, Divider, Tooltip, Empty, Spin } from 'antd';
 import { Chart } from '@antv/g2';
 import { 
   Search, 
@@ -12,8 +12,30 @@ import {
   TrendingUp,
   Hash
 } from 'lucide-react';
+import { CONFIG } from '@/config';
 
 const { Title, Text } = Typography;
+
+const { DEFAULT_TENANT_KEY, DEFAULT_JOB_ID } = CONFIG;
+
+// --- Helpers ---
+
+const buildQueryString = (params) => {
+  const searchParams = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value === undefined || value === null || value === '') return;
+    searchParams.set(key, String(value));
+  });
+  return searchParams.toString();
+};
+
+const fetchJson = async (url, { signal } = {}) => {
+  const response = await fetch(url, { method: 'GET', signal });
+  if (!response.ok) {
+    throw new Error(`请求失败(${response.status})`);
+  }
+  return response.json();
+};
 
 // --- Mock Data ---
 
@@ -43,7 +65,7 @@ const MOCK_MEDIA_LIST = Array.from({ length: 15 }).map((_, i) => ({
 
 // --- Components ---
 
-const KeywordSection = () => {
+const KeywordSection = ({ keywords = [], loading = false }) => {
   const { token } = theme.useToken();
   const [selectedKeyword, setSelectedKeyword] = useState(null);
   
@@ -53,49 +75,55 @@ const KeywordSection = () => {
       styles={{ body: { padding: token.paddingLG } }}
       style={{ boxShadow: token.boxShadowTertiary, borderRadius: token.borderRadiusLG }}
     >
-      <Flex vertical gap="middle">
-        <Flex align="center" gap="small">
-          <Hash size={20} color={token.colorPrimary} />
-          <Title level={4} style={{ margin: 0, fontWeight: 700 }}>品牌关键词</Title>
-          {selectedKeyword && (
-            <Tag 
-              closable 
-              onClose={() => setSelectedKeyword(null)}
-              color="processing"
-              style={{ marginLeft: token.marginSM }}
-            >
-              已选: {selectedKeyword}
-            </Tag>
+      <Spin spinning={loading}>
+        <Flex vertical gap="middle">
+          <Flex align="center" gap="small">
+            <Hash size={20} color={token.colorPrimary} />
+            <Title level={4} style={{ margin: 0, fontWeight: 700 }}>品牌关键词</Title>
+            {selectedKeyword && (
+              <Tag 
+                closable 
+                onClose={() => setSelectedKeyword(null)}
+                color="processing"
+                style={{ marginLeft: token.marginSM }}
+              >
+                已选: {selectedKeyword}
+              </Tag>
+            )}
+          </Flex>
+          
+          <Divider style={{ margin: '4px 0' }} />
+          
+          {keywords.length > 0 ? (
+            <Flex wrap="wrap" gap="small">
+              {keywords.map((kw) => {
+                const isSelected = selectedKeyword === kw;
+                return (
+                  <Tag 
+                    key={kw} 
+                    bordered={false}
+                    onClick={() => setSelectedKeyword(isSelected ? null : kw)}
+                    style={{ 
+                      borderRadius: token.borderRadiusLG,
+                      backgroundColor: isSelected ? token.colorPrimary : token.colorFillTertiary,
+                      color: isSelected ? '#fff' : token.colorTextDescription,
+                      padding: '4px 12px',
+                      cursor: 'pointer',
+                      transition: 'all 0.3s',
+                      margin: 0
+                    }}
+                    className={!isSelected ? "hover:bg-blue-50 hover:text-blue-600" : ""}
+                  >
+                    {kw}
+                  </Tag>
+                );
+              })}
+            </Flex>
+          ) : !loading && (
+            <Empty description="暂无关键词" image={Empty.PRESENTED_IMAGE_SIMPLE} />
           )}
         </Flex>
-        
-        <Divider style={{ margin: '4px 0' }} />
-        
-        <Flex wrap="wrap" gap="small">
-          {MOCK_KEYWORDS.map((kw) => {
-            const isSelected = selectedKeyword === kw;
-            return (
-              <Tag 
-                key={kw} 
-                bordered={false}
-                onClick={() => setSelectedKeyword(isSelected ? null : kw)}
-                style={{ 
-                  borderRadius: token.borderRadiusLG,
-                  backgroundColor: isSelected ? token.colorPrimary : token.colorFillTertiary,
-                  color: isSelected ? '#fff' : token.colorTextDescription,
-                  padding: '4px 12px',
-                  cursor: 'pointer',
-                  transition: 'all 0.3s',
-                  margin: 0
-                }}
-                className={!isSelected ? "hover:bg-blue-50 hover:text-blue-600" : ""}
-              >
-                {kw}
-              </Tag>
-            );
-          })}
-        </Flex>
-      </Flex>
+      </Spin>
     </Card>
   );
 };
@@ -349,10 +377,59 @@ const MediaListTable = () => {
   );
 };
 
-export default function SourceAnalysis() {
+export default function SourceAnalysis({ 
+  timeframe = '30days',
+  date = '',
+  endDate = '',
+  tenantKey = DEFAULT_TENANT_KEY,
+  jobId = DEFAULT_JOB_ID,
+}) {
+  const [keywords, setKeywords] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    
+    const fetchMetadata = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const queryParams = buildQueryString({
+          tenant_key: tenantKey,
+          job_id: jobId,
+          start_date: date,
+          end_date: endDate,
+        });
+
+        const result = await fetchJson(`/api/v1/dashboard/filter-metadata?${queryParams}`, {
+          signal: controller.signal
+        });
+
+        if (result?.code === 200 && result.data) {
+          setKeywords(result.data.keywords || []);
+        } else {
+          throw new Error(result?.message || '获取元数据失败');
+        }
+      } catch (err) {
+        if (err.name === 'AbortError') return;
+        console.error('Fetch filter metadata error:', err);
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchMetadata();
+
+    return () => {
+      controller.abort();
+    };
+  }, [tenantKey, jobId, date, endDate]);
+
   return (
     <Flex vertical gap="large">
-      <KeywordSection />
+      <KeywordSection keywords={keywords} loading={loading} />
       <SourceAnalysisChart />
       <MediaListTable />
     </Flex>

@@ -296,7 +296,14 @@ function Dashboard() {
               />
             </Spin>
           ) : currentView === 'sources' ? (
-            <SourceAnalysis />
+            <SourceAnalysis 
+              timeframe={selectedFilter}
+              date={selectedDateParam}
+              endDate={endDateParam}
+              tenantKey={tenantKey}
+              jobId={jobId}
+              brand={brand}
+            />
           ) : currentView === 'sentiment' ? (
             <SentimentAnalysis />
           ) : (

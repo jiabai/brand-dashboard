@@ -552,6 +552,97 @@ def query_citation_url_stats(
         logger.error("查询引用URL统计数据失败", error=str(e))
         raise Exception(f"查询引用URL统计数据失败: {str(e)}") from e
 
+
+def query_citation_type_stats(
+    tenant_key: str,
+    job_id: str,
+    start_date: datetime.date,
+    end_date: datetime.date,
+) -> tuple[Dict[str, int], List[Dict[str, Any]]]:
+    """
+    查询引用类型占比统计数据
+    
+    Args:
+        tenant_key: 租户键
+        job_id: 任务ID
+        start_date: 开始日期
+        end_date: 结束日期
+    
+    Returns:
+        包含总条数、去重对话数及各引用类型占比的元组
+    """
+    summary_query = """
+    SELECT
+        COUNT(*) AS total_rows,
+        COUNT(DISTINCT conversation_id) AS conversations
+    FROM qa_reference
+    WHERE tenant_key = :tenant_key
+    AND job_id = :job_id
+    AND date BETWEEN :start_date AND :end_date
+    """
+
+    type_query = """
+    SELECT
+        content_type,
+        COUNT(*) AS type_count
+    FROM qa_reference
+    WHERE tenant_key = :tenant_key
+    AND job_id = :job_id
+    AND date BETWEEN :start_date AND :end_date
+    GROUP BY content_type
+    ORDER BY type_count DESC
+    """
+
+    params = {
+        "tenant_key": tenant_key,
+        "job_id": job_id,
+        "start_date": start_date,
+        "end_date": end_date,
+    }
+
+    try:
+        with engine.connect() as conn:
+            summary_row = conn.execute(text(summary_query), params).fetchone()
+            total_rows = (
+                int(summary_row[0])
+                if summary_row and summary_row[0] is not None
+                else 0
+            )
+            conversations = (
+                int(summary_row[1])
+                if summary_row and summary_row[1] is not None
+                else 0
+            )
+            if total_rows <= 0:
+                return {"total_rows": total_rows, "conversations": conversations}, []
+
+            rows = conn.execute(text(type_query), params).fetchall()
+            stats: List[Dict[str, Any]] = []
+            for content_type, type_count in rows:
+                count_int = int(type_count) if type_count else 0
+                type_pct = (
+                    round(count_int * 100.0 / total_rows, 2)
+                    if total_rows > 0
+                    else 0.0
+                )
+                content_type_value = (
+                    content_type
+                    if content_type is not None
+                    else "unknown"
+                )
+                stats.append(
+                    {
+                        "content_type": content_type_value,
+                        "type_pct": type_pct,
+                    }
+                )
+
+            return {"total_rows": total_rows, "conversations": conversations}, stats
+    except Exception as e:
+        logger.error("查询引用类型占比统计失败", error=str(e))
+        raise Exception(f"查询引用类型占比统计失败: {str(e)}") from e
+
+
 def get_available_dates(tenant_key: str, job_id: Optional[str] = None) -> List[str]:
     """
     获取 qa_brand_state 表中有数据的所有日期

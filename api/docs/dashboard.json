@@ -466,6 +466,108 @@
         }
       }
     },
+    "/api/v1/dashboard/citation-type-stats": {
+      "get": {
+        "tags": [
+          "dashboard"
+        ],
+        "summary": "Get Citation Type Stats",
+        "description": "获取引用类型占比统计.",
+        "operationId": "get_citation_type_stats_api_v1_dashboard_citation_type_stats_get",
+        "parameters": [
+          {
+            "name": "tenant_key",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "租户标识 tenant_key",
+              "title": "Tenant Key"
+            },
+            "description": "租户标识 tenant_key"
+          },
+          {
+            "name": "job_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "任务ID",
+              "title": "Job Id"
+            },
+            "description": "任务ID"
+          },
+          {
+            "name": "timeframe",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TimeFrame",
+              "description": "时间范围"
+            },
+            "description": "时间范围"
+          },
+          {
+            "name": "start_date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "起始日期(格式: YYYYMMDD)",
+              "title": "Start Date"
+            },
+            "description": "起始日期(格式: YYYYMMDD)"
+          },
+          {
+            "name": "end_date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "结束日期(格式: YYYYMMDD)",
+              "title": "End Date"
+            },
+            "description": "结束日期(格式: YYYYMMDD)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CitationTypeStatsResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/dashboard/filter-metadata": {
       "get": {
         "tags": [
@@ -1795,6 +1897,80 @@
           "metadata"
         ],
         "title": "PostCitationRateResponse"
+      },
+      "CitationTypeStatsItem": {
+        "properties": {
+          "content_type": {
+            "type": "string",
+            "title": "Content Type",
+            "description": "引用类型"
+          },
+          "type_pct": {
+            "type": "number",
+            "title": "Type Pct",
+            "description": "引用类型占比(百分比)"
+          }
+        },
+        "type": "object",
+        "required": [
+          "content_type",
+          "type_pct"
+        ],
+        "title": "CitationTypeStatsItem"
+      },
+      "CitationTypeStatsResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "响应状态"
+          },
+          "summary": {
+            "$ref": "#/components/schemas/CitationTypeStatsSummary"
+          },
+          "citation_type_stats": {
+            "items": {
+              "$ref": "#/components/schemas/CitationTypeStatsItem"
+            },
+            "type": "array",
+            "title": "Citation Type Stats",
+            "description": "引用类型占比列表"
+          },
+          "metadata": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Metadata",
+            "description": "元数据"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "summary",
+          "citation_type_stats",
+          "metadata"
+        ],
+        "title": "CitationTypeStatsResponse"
+      },
+      "CitationTypeStatsSummary": {
+        "properties": {
+          "total_rows": {
+            "type": "integer",
+            "title": "Total Rows",
+            "description": "总条数"
+          },
+          "conversations": {
+            "type": "integer",
+            "title": "Conversations",
+            "description": "去重对话数"
+          }
+        },
+        "type": "object",
+        "required": [
+          "total_rows",
+          "conversations"
+        ],
+        "title": "CitationTypeStatsSummary"
       },
       "ReferenceUrlData": {
         "properties": {
