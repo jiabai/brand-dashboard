@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Card, Typography, Tag, Table, Badge, theme, Flex, Input, Button, Divider, Tooltip, Empty, Spin } from 'antd';
 import { Chart } from '@antv/g2';
+import dayjs from 'dayjs';
 import { 
   Search, 
   Download, 
@@ -13,12 +14,56 @@ import {
   Hash
 } from 'lucide-react';
 import { CONFIG } from '@/config';
+import { normalizeCitationTypeStats } from '@/utils/sourceAnalysis';
 
 const { Title, Text } = Typography;
 
 const { DEFAULT_TENANT_KEY, DEFAULT_JOB_ID } = CONFIG;
 
 // --- Helpers ---
+
+const parseDateInput = (value) => {
+  if (!value) return null;
+  const text = String(value);
+  if (/^\d{8}$/.test(text)) {
+    const parsed = dayjs(text, 'YYYYMMDD');
+    return parsed.isValid() ? parsed : null;
+  }
+  const parsed = dayjs(text);
+  return parsed.isValid() ? parsed : null;
+};
+
+const formatDateDisplay = (value) => {
+  if (!value) return '';
+  const parsed = dayjs.isDayjs(value) ? value : dayjs(value);
+  if (!parsed.isValid()) return '';
+  return parsed.format('YYYY-MM-DD');
+};
+
+const formatDateParam = (value) => {
+  if (!value) return '';
+  const parsed = dayjs.isDayjs(value) ? value : dayjs(value);
+  if (!parsed.isValid()) return '';
+  return parsed.format('YYYYMMDD');
+};
+
+const getRangeByTimeframe = (timeframe, dateParam) => {
+  const today = dayjs();
+  if (timeframe === 'yesterday') {
+    const yesterday = today.subtract(1, 'day');
+    return { startDate: yesterday, endDate: yesterday };
+  }
+  if (timeframe === 'specific_day') {
+    const parsed = parseDateInput(dateParam);
+    const day = parsed || today;
+    return { startDate: day, endDate: day };
+  }
+  const days = timeframe === '30days' ? 30 : 7;
+  return {
+    startDate: today.subtract(days - 1, 'day'),
+    endDate: today,
+  };
+};
 
 const buildQueryString = (params) => {
   const searchParams = new URLSearchParams();
@@ -42,14 +87,6 @@ const fetchJson = async (url, { signal } = {}) => {
 const MOCK_KEYWORDS = [
   '无尺码', '舒适', '内衣', '女性', '自由', '透气', '运动', '家居', 
   '大胸显小', '小胸聚拢', '亲肤', '无痕', '夏季新品', '折扣'
-];
-
-const MOCK_SOURCE_STATS = [
-  { type: '电商', value: 40, color: '#2582a1', icon: '🛒' }, 
-  { type: '新闻', value: 20, color: '#f88c24', icon: '📰' }, 
-  { type: '问答百科', value: 15, color: '#c52125', icon: '❓' }, 
-  { type: '官网', value: 10, color: '#87f4d0', icon: '🏢' }, 
-  { type: '社交媒体', value: 15, color: '#a062d4', icon: '📱' }, 
 ];
 
 const MOCK_MEDIA_LIST = Array.from({ length: 15 }).map((_, i) => ({
@@ -128,15 +165,30 @@ const KeywordSection = ({ keywords = [], loading = false }) => {
   );
 };
 
-const SourceAnalysisChart = () => {
+const SourceAnalysisChart = ({
+  displayDate,
+  timeframeLabel = '按天',
+  summary,
+  stats,
+  loading,
+}) => {
   const { token } = theme.useToken();
   const containerRef = useRef(null);
   const chartRef = useRef(null);
+  const chartData = useMemo(
+    () =>
+      stats.map((item) => ({
+        category: 'all',
+        type: item.type,
+        value: item.value / 100,
+      })),
+    [stats],
+  );
+  const colorRange = useMemo(() => stats.map((item) => item.color), [stats]);
 
   useEffect(() => {
     if (!containerRef.current) return;
 
-    // 清空容器内容（防止热更新重复渲染）
     containerRef.current.innerHTML = '';
 
     const chart = new Chart({
@@ -147,11 +199,7 @@ const SourceAnalysisChart = () => {
       inset: 0, // 确保图表内部无任何边距
     });
 
-    chart.data(MOCK_SOURCE_STATS.map(item => ({
-      category: 'all',
-      type: item.type,
-      value: item.value / 100,
-    })));
+    chart.data(chartData);
 
     chart
       .interval()
@@ -161,15 +209,15 @@ const SourceAnalysisChart = () => {
       .encode('color', 'type')
       .transform([{ type: 'stackY' }, { type: 'normalizeY' }])
       .scale('color', {
-        range: MOCK_SOURCE_STATS.map(item => item.color),
+        range: colorRange,
       })
       .scale('x', {
-        padding: 0, // 消除分类轴的默认内边距，确保撑满高度
+        padding: 0,
       })
       .axis(false)
       .legend(false)
       .tooltip(false)
-      .style('radius', 0) // 在堆叠条形图中，中间的块不应该有圆角，否则会出现间隙
+      .style('radius', 0)
       .style('stroke', '#fff')
       .style('lineWidth', 0)
       .label({
@@ -192,7 +240,7 @@ const SourceAnalysisChart = () => {
         chartRef.current.destroy();
       }
     };
-  }, []);
+  }, [chartData, colorRange]);
 
   return (
     <Card 
@@ -211,13 +259,15 @@ const SourceAnalysisChart = () => {
         
         <Flex gap="large" align="center" style={{ paddingLeft: 28 }}>
           {[
-            { label: '按天', value: '2025-09-16' },
-            { label: 'Prompt 总数', value: '75' },
-            { label: '引用信源数', value: '762' }
+            { label: timeframeLabel, value: displayDate },
+            { label: 'Prompt 总数', value: summary?.conversations ?? 0 },
+            { label: '引用信源数', value: summary?.totalRows ?? 0 },
           ].map(item => (
             <Flex key={item.label} align="center" gap="xs">
               <Text type="secondary" style={{ fontSize: token.fontSizeSM }}>{item.label}：</Text>
-              <Text strong style={{ fontSize: token.fontSize }}>{item.value}</Text>
+              <Text strong style={{ fontSize: token.fontSize }}>
+                {loading ? '加载中' : item.value}
+              </Text>
             </Flex>
           ))}
         </Flex>
@@ -245,7 +295,7 @@ const SourceAnalysisChart = () => {
       </div>
 
       <Flex wrap="wrap" justify="center" gap="xl">
-        {MOCK_SOURCE_STATS.map((item) => (
+        {stats.map((item) => (
           <Flex key={item.type} align="center" gap="small" style={{ 
             padding: '4px 12px', 
             borderRadius: token.borderRadiusSM,
@@ -387,6 +437,43 @@ export default function SourceAnalysis({
   const [keywords, setKeywords] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [citationSummary, setCitationSummary] = useState({ totalRows: 0, conversations: 0 });
+  const [citationStats, setCitationStats] = useState([]);
+  const [citationLoading, setCitationLoading] = useState(false);
+  const [citationError, setCitationError] = useState('');
+  const citationAbortRef = useRef(null);
+
+  const dateRange = useMemo(() => {
+    if (timeframe === 'specific_day') {
+      const start = parseDateInput(date) || dayjs();
+      const end = parseDateInput(endDate) || start;
+      const normalizedEnd = end.isBefore(start, 'day') ? start : end;
+      return { startDate: start, endDate: normalizedEnd };
+    }
+    return getRangeByTimeframe(timeframe, date);
+  }, [timeframe, date, endDate]);
+
+  const displayDate = useMemo(() => {
+    const start = formatDateDisplay(dateRange.startDate);
+    const end = formatDateDisplay(dateRange.endDate);
+    return start === end ? start : `${start} ~ ${end}`;
+  }, [dateRange]);
+
+  const startDateParam = useMemo(
+    () => formatDateParam(dateRange.startDate),
+    [dateRange.startDate],
+  );
+  const endDateParam = useMemo(
+    () => formatDateParam(dateRange.endDate),
+    [dateRange.endDate],
+  );
+
+  const timeframeLabel = useMemo(() => {
+    if (timeframe === 'yesterday') return '昨天';
+    if (timeframe === '7days') return '最近7天';
+    if (timeframe === '30days') return '最近30天';
+    return '指定日期';
+  }, [timeframe]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -427,10 +514,71 @@ export default function SourceAnalysis({
     };
   }, [tenantKey, jobId, date, endDate]);
 
+  useEffect(() => {
+    if (!tenantKey || !jobId) {
+      setCitationSummary({ totalRows: 0, conversations: 0 });
+      setCitationStats([]);
+      return;
+    }
+
+    if (citationAbortRef.current) {
+      citationAbortRef.current.abort();
+    }
+
+    const controller = new AbortController();
+    citationAbortRef.current = controller;
+
+    const run = async () => {
+      setCitationLoading(true);
+      setCitationError('');
+      try {
+        const queryParams = buildQueryString({
+          tenant_key: tenantKey,
+          job_id: jobId,
+          timeframe,
+          start_date: timeframe === 'specific_day' ? startDateParam : undefined,
+          end_date: timeframe === 'specific_day' ? endDateParam : undefined,
+        });
+
+        const result = await fetchJson(`/api/v1/dashboard/citation-type-stats?${queryParams}`, {
+          signal: controller.signal,
+        });
+
+        if (result?.status && result.status !== 'success') {
+          throw new Error('接口返回错误状态');
+        }
+
+        const normalized = normalizeCitationTypeStats(result, { maxItems: 5 });
+        setCitationSummary(normalized.summary);
+        setCitationStats(normalized.stats);
+        setCitationLoading(false);
+      } catch (err) {
+        if (controller.signal.aborted) return;
+        if (err?.name === 'AbortError') return;
+        setCitationSummary({ totalRows: 0, conversations: 0 });
+        setCitationStats([]);
+        setCitationError(err?.message || '数据加载失败');
+        setCitationLoading(false);
+      }
+    };
+
+    run();
+
+    return () => {
+      controller.abort();
+    };
+  }, [tenantKey, jobId, timeframe, startDateParam, endDateParam]);
+
   return (
     <Flex vertical gap="large">
       <KeywordSection keywords={keywords} loading={loading} />
-      <SourceAnalysisChart />
+      <SourceAnalysisChart
+        displayDate={displayDate}
+        timeframeLabel={timeframeLabel}
+        summary={citationSummary}
+        stats={citationStats}
+        loading={citationLoading}
+      />
       <MediaListTable />
     </Flex>
   );

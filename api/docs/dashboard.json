@@ -911,7 +911,7 @@
             "description": "时间范围"
           },
           {
-            "name": "date",
+            "name": "start_date",
             "in": "query",
             "required": false,
             "schema": {
@@ -923,10 +923,46 @@
                   "type": "null"
                 }
               ],
-              "description": "具体日期(格式: YYYYMMDD)",
-              "title": "Date"
+              "description": "起始日期(格式: YYYYMMDD)",
+              "title": "Start Date"
             },
-            "description": "具体日期(格式: YYYYMMDD)"
+            "description": "起始日期(格式: YYYYMMDD)"
+          },
+          {
+            "name": "end_date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "结束日期(格式: YYYYMMDD)",
+              "title": "End Date"
+            },
+            "description": "结束日期(格式: YYYYMMDD)"
+          },
+          {
+            "name": "keyword",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "关键词",
+              "title": "Keyword"
+            },
+            "description": "关键词"
           }
         ],
         "responses": {
@@ -958,7 +994,7 @@
         "tags": [
           "dashboard"
         ],
-        "summary": "Get Domain Citation Rate",
+        "summary": "Get Citation Domain Stats",
         "operationId": "get_citation_domain_stats_api_v1_dashboard_citation_domain_stats_get",
         "parameters": [
           {
@@ -1005,7 +1041,7 @@
             "description": "时间范围"
           },
           {
-            "name": "date",
+            "name": "start_date",
             "in": "query",
             "required": false,
             "schema": {
@@ -1017,10 +1053,46 @@
                   "type": "null"
                 }
               ],
-              "description": "具体日期(格式: YYYYMMDD)",
-              "title": "Date"
+              "description": "起始日期(格式: YYYYMMDD)",
+              "title": "Start Date"
             },
-            "description": "具体日期(格式: YYYYMMDD)"
+            "description": "起始日期(格式: YYYYMMDD)"
+          },
+          {
+            "name": "end_date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "结束日期(格式: YYYYMMDD)",
+              "title": "End Date"
+            },
+            "description": "结束日期(格式: YYYYMMDD)"
+          },
+          {
+            "name": "keyword",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "关键词，用于筛选引用信源",
+              "title": "Keyword"
+            },
+            "description": "关键词，用于筛选引用信源"
           }
         ],
         "responses": {
@@ -1585,6 +1657,11 @@
             "title": "Domain",
             "description": "域名"
           },
+          "chinese_name": {
+            "type": "string",
+            "title": "Chinese Name",
+            "description": "中文名称"
+          },
           "domain-citation-rate": {
             "type": "number",
             "title": "Domain-Citation-Rate",
@@ -1594,6 +1671,7 @@
         "type": "object",
         "required": [
           "domain",
+          "chinese_name",
           "domain-citation-rate"
         ],
         "title": "DomainCitationRateItem"
@@ -1614,8 +1692,69 @@
             "description": "域名引用率分布"
           },
           "metadata": {
-            "additionalProperties": true,
+            "properties": {
+              "tenant_key": {
+                "type": "string",
+                "description": "租户标识 tenant_key"
+              },
+              "job_id": {
+                "type": "string",
+                "description": "任务ID"
+              },
+              "keyword": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "关键词"
+              },
+              "timeframe": {
+                "type": "string",
+                "description": "时间范围"
+              },
+              "start_date": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "起始日期"
+              },
+              "end_date": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "结束日期"
+              },
+              "calculation_method": {
+                "type": "string",
+                "description": "计算方法"
+              },
+              "row_count": {
+                "type": "integer",
+                "description": "数据行数"
+              }
+            },
             "type": "object",
+            "required": [
+              "tenant_key",
+              "job_id",
+              "timeframe",
+              "calculation_method",
+              "row_count"
+            ],
             "title": "Metadata",
             "description": "元数据"
           }
