@@ -93,7 +93,7 @@ const ReferencesTable = ({
         });
 
         const result = await fetchJson(
-          `/api/v1/dashboard/citation-domain-stats?${queryString}`,
+          `/api/v1/dashboard/citation-domain-summary?${queryString}`,
           { signal: controller.signal },
         );
 
@@ -107,13 +107,24 @@ const ReferencesTable = ({
           .map((item, index) => {
             const domain = item?.domain;
             const chineseName = item?.chinese_name ?? item?.chineseName ?? '';
+            const citationCount = item?.citation_count ?? item?.citationCount ?? 0;
+            const keywordCoverage = item?.keyword_coverage ?? item?.keywordCoverage ?? 0;
+            const platformCoverage = item?.platform_coverage ?? item?.platformCoverage ?? 0;
             const rawRate =
               item?.['domain-citation-rate'] ??
               item?.domain_citation_rate ??
               item?.domainCitationRate ??
               0;
             const rate = roundTwoDecimals(clampPercent(rawRate));
-            return { rank: index + 1, domain, chineseName, rate };
+            return {
+              rank: index + 1,
+              domain,
+              chineseName,
+              citationCount,
+              keywordCoverage,
+              platformCoverage,
+              rate,
+            };
           })
           .filter((item) => item.domain);
 
@@ -144,7 +155,7 @@ const ReferencesTable = ({
         title: '排名',
         dataIndex: 'rank',
         key: 'rank',
-        width: 80
+        width: 80,
       },
       {
         title: '链接域名',
@@ -155,22 +166,40 @@ const ReferencesTable = ({
           <Typography.Link href={`https://${domain}`} target="_blank" rel="noopener noreferrer">
             {domain}
           </Typography.Link>
-        )
+        ),
       },
       {
         title: '中文名称',
         dataIndex: 'chineseName',
         key: 'chineseName',
         width: 160,
-        render: (value, record) => value ?? record?.chinese_name ?? ''
+        render: (value, record) => value ?? record?.chinese_name ?? '',
+      },
+      {
+        title: '引用次数',
+        dataIndex: 'citationCount',
+        key: 'citationCount',
+        width: 120,
+      },
+      {
+        title: '关键词覆盖数',
+        dataIndex: 'keywordCoverage',
+        key: 'keywordCoverage',
+        width: 140,
+      },
+      {
+        title: '平台覆盖数',
+        dataIndex: 'platformCoverage',
+        key: 'platformCoverage',
+        width: 120,
       },
       {
         title: '域名引用率',
         dataIndex: 'rate',
         key: 'rate',
         width: 120,
-        render: (rate) => `${roundTwoDecimals(rate)}%`
-      }
+        render: (rate) => `${roundTwoDecimals(rate)}%`,
+      },
     ];
   }, []);
 

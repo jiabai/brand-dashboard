@@ -15,6 +15,7 @@ from api.v1.repositories.database import (
     query_citation_type_stats,
     query_citation_url_stats,
     query_domain_citation_rate,
+    query_domain_citation_summary,
     query_filter_metadata,
     query_keyword_platform_brand_rates,
     query_platform_metrics_by_brand,
@@ -188,7 +189,10 @@ class DomainCitationRateItem(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
     domain: str = Field(..., description="域名")
-    chinese_name: str = Field(..., description="中文名称")
+    chinese_name: str = Field(..., description="域名中文名称")
+    keyword: str = Field(..., description="关键词")
+    content_type: str = Field(..., description="内容类型")
+    platform: str = Field(..., description="中国大模型平台")
     domain_citation_rate: float = Field(
         ...,
         alias="domain-citation-rate",
@@ -212,6 +216,31 @@ class PostCitationRateResponse(BaseModel):
     status: str = Field(..., description="响应状态")
     data: List[PostCitationRateData] = Field(..., description="数据列表")
     metadata: Dict[str, Any] = Field(..., description="元数据")
+
+
+class DomainCitationSummaryItem(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    domain: str = Field(..., description="域名")
+    chinese_name: str = Field(..., description="域名中文名称")
+    citation_count: int = Field(..., description="域名引用次数")
+    keyword_coverage: int = Field(..., description="域名关键词覆盖数")
+    platform_coverage: int = Field(..., description="域名平台覆盖数")
+    domain_citation_rate: float = Field(
+        ...,
+        alias="domain-citation-rate",
+        description="域名总引用率",
+    )
+
+
+class DomainCitationSummaryResponse(BaseModel):
+    status: str = Field(..., description="响应状态")
+    domain_distribution: List[DomainCitationSummaryItem] = Field(
+        ...,
+        description="域名引用率汇总分布",
+    )
+    metadata: Dict[str, Any] = Field(..., description="元数据")
+
 
 @router.get("/brand-mention-rate", response_model=BrandMentionRateResponse)
 async def get_brand_mention_rate(
@@ -742,6 +771,7 @@ async def get_domain_citation_rate(
     start_date: Optional[str] = Query(None, description="起始日期(格式: YYYYMMDD)"),
     end_date: Optional[str] = Query(None, description="结束日期(格式: YYYYMMDD)"),
     keyword: Optional[str] = Query(None, description="关键词"),
+    platform: Optional[str] = Query(None, description="中国大模型平台"),
 ):
     if timeframe == TimeFrame.SPECIFIC_DAY and (not start_date or not end_date):
         raise HTTPException(
@@ -766,6 +796,7 @@ async def get_domain_citation_rate(
             start_date=query_start_date,
             end_date=query_end_date,
             keyword=keyword,
+            platform=platform
         )
 
         return DomainCitationRateResponse(
@@ -774,6 +805,9 @@ async def get_domain_citation_rate(
                 DomainCitationRateItem(
                     domain=item["domain"],
                     chinese_name=item["chinese_name"],
+                    keyword=item["keyword"],
+                    content_type=item["content_type"],
+                    platform=item["platform"],
                     domain_citation_rate=item["domain_citation_rate"],
                 )
                 for item in domain_distribution
@@ -782,6 +816,7 @@ async def get_domain_citation_rate(
                 "tenant_key": tenant_key,
                 "job_id": job_id,
                 "keyword": keyword,
+                "platform": platform,
                 "timeframe": timeframe.value,
                 "start_date": query_start_date.strftime("%Y%m%d"),
                 "end_date": query_end_date.strftime("%Y%m%d"),
@@ -793,6 +828,70 @@ async def get_domain_citation_rate(
         raise HTTPException(status_code=400, detail=str(e)) from e
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"获取域名引用率失败: {str(e)}") from e
+
+
+@router.get("/citation-domain-summary", response_model=DomainCitationSummaryResponse)
+async def get_domain_citation_summary(
+    tenant_key: str = Query(..., description="租户唯一字符串标识（tenants.tenant_key）"),
+    job_id: str = Query(..., description="任务ID"),
+    brand: str = Query(..., description="品牌名称"),
+    timeframe: TimeFrame = Query(..., description="时间范围"),
+    start_date: Optional[str] = Query(None, description="起始日期(格式: YYYYMMDD)"),
+    end_date: Optional[str] = Query(None, description="结束日期(格式: YYYYMMDD)"),
+):
+    """获取域名维度的引用率汇总，按域名聚合，适配前端 ReferencesTable 组件."""
+    if timeframe == TimeFrame.SPECIFIC_DAY and (not start_date or not end_date):
+        raise HTTPException(
+            status_code=400,
+            detail="timeframe=specific_day 时必须提供 start_date 和 end_date(YYYYMMDD)",
+        )
+
+    try:
+        if timeframe == TimeFrame.SPECIFIC_DAY:
+            query_start_date = datetime.strptime(start_date, "%Y%m%d").date()
+            query_end_date = datetime.strptime(end_date, "%Y%m%d").date()
+        else:
+            query_start_date, query_end_date = get_date_range(timeframe.value)
+
+        if query_start_date > query_end_date:
+            raise ValueError("开始日期不能晚于结束日期")
+
+        domain_distribution = query_domain_citation_summary(
+            tenant_key=tenant_key,
+            job_id=job_id,
+            brand=brand,
+            start_date=query_start_date,
+            end_date=query_end_date,
+        )
+
+        return DomainCitationSummaryResponse(
+            status="success",
+            domain_distribution=[
+                DomainCitationSummaryItem(
+                    domain=item["domain"],
+                    chinese_name=item["chinese_name"],
+                    citation_count=item["citation_count"],
+                    keyword_coverage=item["keyword_coverage"],
+                    platform_coverage=item["platform_coverage"],
+                    domain_citation_rate=item["domain_citation_rate"],
+                )
+                for item in domain_distribution
+            ],
+            metadata={
+                "tenant_key": tenant_key,
+                "job_id": job_id,
+                "brand": brand,
+                "timeframe": timeframe.value,
+                "start_date": query_start_date.strftime("%Y%m%d"),
+                "end_date": query_end_date.strftime("%Y%m%d"),
+                "calculation_method": "domain_citation_summary",
+                "row_count": len(domain_distribution),
+            },
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"获取域名引用率汇总失败: {str(e)}") from e
 
 
 @router.get("/post-citation-rate", response_model=PostCitationRateResponse)

@@ -343,6 +343,7 @@ GROUP BY brand;
 | start_date | string | 否 | 起始日期，格式: `YYYYMMDD`（当 `timeframe=specific_day` 时必填） |
 | end_date | string | 否 | 结束日期，格式: `YYYYMMDD`（当 `timeframe=specific_day` 时必填） |
 | keyword | string | 否 | 关键词，用于筛选引用信源 |
+| platform | string | 否 | 中国大模型平台，可选值: `deepseek`, `千问`, `豆包`, `元宝`|
 
 ### 请求示例
 
@@ -351,7 +352,7 @@ curl -X GET "http://your-api.com/api/v1/dashboard/citation-domain-stats?tenant_k
 ```
 
 ```bash
-curl -X GET "http://your-api.com/api/v1/dashboard/citation-domain-stats?tenant_key=tn_xxx&job_id=job_456&brand=学而思&timeframe=specific_day&start_date=20260102&end_date=20260131"
+curl -X GET "http://your-api.com/api/v1/dashboard/citation-domain-stats?tenant_key=tn_xxx&job_id=job_456&brand=学而思&timeframe=specific_day&start_date=20260102&end_date=20260131&platform=deepseek"
 ```
 
 ```bash
@@ -367,16 +368,25 @@ curl -X GET "http://your-api.com/api/v1/dashboard/citation-domain-stats?tenant_k
     {
       "domain": "www.baidu.com",
       "chinese_name": "百度",
+      "keyword": "数学培训",
+      "content_type": "新闻",
+      "platform": "deepseek",
       "domain-citation-rate": 8.96
     },
     {
       "domain": "www.google.com",
       "chinese_name": "谷歌",
+      "keyword": "数学培训",
+      "content_type": "新闻",
+      "platform": "deepseek",
       "domain-citation-rate": 3.73
     },
     {
       "domain": "www.zhihu.com",
       "chinese_name": "知乎",
+      "keyword": "数学培训",
+      "content_type": "新闻",
+      "platform": "deepseek",
       "domain-citation-rate": 2.34
     },
     ......
@@ -385,6 +395,7 @@ curl -X GET "http://your-api.com/api/v1/dashboard/citation-domain-stats?tenant_k
     "tenant_key": "tn_xxx",
     "job_id": "job_456",
     "keyword": "数学培训",
+    "platform": "deepseek",
     "timeframe": "30days",
     "start_date": "20260102",
     "end_date": "20260131",
@@ -401,6 +412,10 @@ curl -X GET "http://your-api.com/api/v1/dashboard/citation-domain-stats?tenant_k
 | status | string | 响应状态，"success" 或 "error" |
 | domain_distribution | array | 域名引用率分布 |
 | domain_distribution.domain | string | 域名 |
+| domain_distribution.chinese_name | string | 域名中文名称 |
+| domain_distribution.keyword | string | 关键词 |
+| domain_distribution.content_type | string | 内容类型 |
+| domain_distribution.platform | string | 中国大模型平台 |
 | domain_distribution.domain-citation-rate | float | 域名引用率 |
 | metadata | object | 元数据 |
 | metadata.tenant_key | string | 租户标识 tenant_key |
@@ -418,9 +433,9 @@ curl -X GET "http://your-api.com/api/v1/dashboard/citation-domain-stats?tenant_k
 
 ```sql
 SELECT 
-    domain, content_type,
+    domain, keyword, content_type, platform,
     ROUND(
-        COUNT(*) * 100.0 / (
+        COUNT(*) * 100.0 / NULLIF((
             SELECT COUNT(*)
             FROM qa_reference
             WHERE 
@@ -429,7 +444,7 @@ SELECT
               AND brand = <brand>
               AND domain IS NOT NULL
               AND `date` BETWEEN :start_date AND :end_date
-        ),
+        ), 0),
         2
     ) AS percentage
 FROM qa_reference
@@ -439,13 +454,13 @@ WHERE
     AND brand = <brand>
     AND domain IS NOT NULL
     AND `date` BETWEEN :start_date AND :end_date
-GROUP BY domain, content_type
+GROUP BY domain, keyword, content_type, platform
 ORDER BY percentage DESC;
 ```
-有keyword时，仅计算包含keyword的引用信源的域名引用率
+有keyword和platform时，仅计算包含keyword和platform的引用信源的域名引用率
 ```sql
 SELECT 
-    domain, content_type,
+    domain, keyword, content_type, platform,
     ROUND(
         COUNT(*) * 100.0 / (
             SELECT COUNT(*)
@@ -456,6 +471,8 @@ SELECT
               AND brand = <brand>
               -- 新增可选 keyword 筛选
               AND keyword = :keyword
+              -- 新增可选 platform 筛选
+              AND platform = :platform
               AND domain IS NOT NULL
               AND `date` BETWEEN :start_date AND :end_date
         ),
@@ -468,11 +485,119 @@ WHERE
     AND brand = <brand>
     -- 新增可选 keyword 筛选
     AND keyword = :keyword
+    -- 新增可选 platform 筛选
+    AND platform = :platform
     AND domain IS NOT NULL
     AND `date` BETWEEN :start_date AND :end_date
-GROUP BY domain, content_type
+GROUP BY domain, keyword, content_type, platform
 ORDER BY percentage DESC;
 ```
+---------------------------
+
+### 接口信息
+- **路径**: `/api/v1/dashboard/citation-domain-summary`
+- **方法**: `GET`
+- **描述**: 获取域名维度的引用率汇总，按域名聚合，适配前端 `ReferencesTable` 组件
+
+### 请求参数
+
+| 参数名 | 类型 | 必填 | 描述 |
+|--------|------|------|------|
+| tenant_key | string | 是 | 租户标识 tenant_key |
+| job_id | string | 是 | 任务ID |
+| brand | string | 是 | 品牌名称 |
+| timeframe | string | 是 | 时间范围，可选值: `yesterday`, `7days`, `30days`, `specific_day` |
+| start_date | string | 否 | 起始日期，格式: `YYYYMMDD`（当 `timeframe=specific_day` 时必填） |
+| end_date | string | 否 | 结束日期，格式: `YYYYMMDD`（当 `timeframe=specific_day` 时必填） |
+
+### 请求示例
+
+```bash
+curl -X GET "http://your-api.com/api/v1/dashboard/citation-domain-summary?tenant_key=tn_xxx&job_id=job_456&brand=学而思&timeframe=30days"
+```
+
+### 响应格式
+
+```json
+{
+  "status": "success",
+  "domain_distribution": [
+    {
+      "domain": "www.baidu.com",
+      "chinese_name": "百度",
+      "citation_count": 10,
+      "keyword_coverage": 1,
+      "platform_coverage": 1,
+      "domain-citation-rate": 15.42
+    },
+    {
+      "domain": "www.google.com",
+      "chinese_name": "谷歌",
+      "citation_count": 50,
+      "keyword_coverage": 1,
+      "platform_coverage": 1,
+      "domain-citation-rate": 5.21
+    }
+  ],
+  "metadata": {
+    "tenant_key": "tn_xxx",
+    "job_id": "job_456",
+    "brand": "学而思",
+    "timeframe": "30days",
+    "start_date": "20260102",
+    "end_date": "20260131",
+    "calculation_method": "domain_citation_summary",
+    "row_count": 2
+  }
+}
+```
+
+### 响应字段说明
+
+| 字段名 | 类型 | 描述 |
+|--------|------|------|
+| status | string | 响应状态，"success" 或 "error" |
+| domain_distribution | array | 域名引用率汇总分布 |
+| domain_distribution.domain | string | 域名 |
+| domain_distribution.chinese_name | string | 域名中文名称 |
+| domain_distribution.citation_count | int | 域名引用次数 |
+| domain_distribution.keyword_coverage | int | 域名关键词覆盖数 |
+| domain_distribution.platform_coverage | int | 域名平台覆盖数 |
+| domain_distribution.domain-citation-rate | float | 域名总引用率 |
+| metadata | object | 元数据 |
+
+### 数据计算逻辑
+
+```sql
+SELECT 
+    domain,
+    COUNT(*) AS citation_count,
+    COUNT(DISTINCT keyword) AS keyword_coverage,
+    COUNT(DISTINCT platform) AS platform_coverage,
+    ROUND(
+        COUNT(*) * 100.0 / NULLIF((
+            SELECT COUNT(*)
+            FROM qa_reference
+            WHERE 
+              tenant_key = <tenant_key>
+              AND job_id = <job_id>
+              AND brand = <brand>
+              AND domain IS NOT NULL
+              AND `date` BETWEEN :start_date AND :end_date
+        ), 0),
+        2
+    ) AS percentage
+FROM qa_reference
+WHERE
+    tenant_key = <tenant_key>
+    AND job_id = <job_id>
+    AND brand = <brand>
+    AND domain IS NOT NULL
+    AND `date` BETWEEN :start_date AND :end_date
+GROUP BY domain
+ORDER BY percentage DESC;
+```
+> **注**：`chinese_name` 的映射由 API 后端代码根据 `domain` 完成，不涉及数据库聚合操作。
 ---------------------------
 
 ## 📊 引用类型占比统计 API
