@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { Card, Typography, Tag, Table, Badge, theme, Flex, Input, Button, Divider, Tooltip, Empty, Spin } from 'antd';
+import { Card, Typography, Tag, Table, Badge, theme, Flex, Button, Divider, Tooltip, Empty, Spin, Select, Popover } from 'antd';
 import { Chart } from '@antv/g2';
 import dayjs from 'dayjs';
 import { 
-  Search, 
   Download, 
   ExternalLink, 
   Globe, 
@@ -18,7 +17,7 @@ import { normalizeCitationTypeStats } from '@/utils/sourceAnalysis';
 
 const { Title, Text } = Typography;
 
-const { DEFAULT_TENANT_KEY, DEFAULT_JOB_ID } = CONFIG;
+const { DEFAULT_TENANT_KEY, DEFAULT_JOB_ID, DEFAULT_BRAND } = CONFIG;
 
 // --- Helpers ---
 
@@ -82,29 +81,43 @@ const fetchJson = async (url, { signal } = {}) => {
   return response.json();
 };
 
-// --- Mock Data ---
+const clampPercent = (value) => {
+  const num = Number(value);
+  if (!Number.isFinite(num)) return 0;
+  return Math.max(0, Math.min(100, num));
+};
 
-const MOCK_KEYWORDS = [
-  '无尺码', '舒适', '内衣', '女性', '自由', '透气', '运动', '家居', 
-  '大胸显小', '小胸聚拢', '亲肤', '无痕', '夏季新品', '折扣'
-];
+const roundTwoDecimals = (value) => {
+  const num = Number(value);
+  if (!Number.isFinite(num)) return 0;
+  return Math.round(num * 100) / 100;
+};
 
-const MOCK_MEDIA_LIST = Array.from({ length: 15 }).map((_, i) => ({
-  key: i,
-  domain: `source-${i}.com`,
-  sourceName: `信源名称 ${i + 1}`,
-  sourceUrl: `https://source-${i}.com`,
-  keyword: MOCK_KEYWORDS[i % MOCK_KEYWORDS.length],
-  contentType: ['新闻', '论坛', '博客', '评论'][i % 4],
-  platform: ['Google', 'Bing', 'Baidu'][i % 3],
-  citationRate: Math.floor(Math.random() * 100),
-}));
+const normalizeListValue = (value) => {
+  if (Array.isArray(value)) {
+    return value.map((item) => String(item || '').trim()).filter(Boolean);
+  }
+  const text = String(value || '');
+  return text
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean);
+};
+
+const buildSourceUrl = (domain) => {
+  if (!domain) return '';
+  const text = String(domain).trim();
+  if (!text) return '';
+  if (/^https?:\/\//i.test(text)) {
+    return text;
+  }
+  return `https://${text}`;
+};
 
 // --- Components ---
 
-const KeywordSection = ({ keywords = [], loading = false }) => {
+const KeywordSection = ({ keywords = [], loading = false, selectedKeyword, onKeywordChange }) => {
   const { token } = theme.useToken();
-  const [selectedKeyword, setSelectedKeyword] = useState(null);
   
   return (
     <Card 
@@ -120,7 +133,7 @@ const KeywordSection = ({ keywords = [], loading = false }) => {
             {selectedKeyword && (
               <Tag 
                 closable 
-                onClose={() => setSelectedKeyword(null)}
+                onClose={() => onKeywordChange?.('')}
                 color="processing"
                 style={{ marginLeft: token.marginSM }}
               >
@@ -139,7 +152,7 @@ const KeywordSection = ({ keywords = [], loading = false }) => {
                   <Tag 
                     key={kw} 
                     bordered={false}
-                    onClick={() => setSelectedKeyword(isSelected ? null : kw)}
+                    onClick={() => onKeywordChange?.(isSelected ? '' : kw)}
                     style={{ 
                       borderRadius: token.borderRadiusLG,
                       backgroundColor: isSelected ? token.colorPrimary : token.colorFillTertiary,
@@ -312,8 +325,23 @@ const SourceAnalysisChart = ({
   );
 };
 
-const MediaListTable = () => {
+const MediaListTable = ({
+  rows = [],
+  loading = false,
+  error = '',
+  platformOptions = [],
+  selectedPlatform,
+  onPlatformChange,
+}) => {
   const { token } = theme.useToken();
+  const normalizedPlatformOptions = useMemo(() => {
+    const fallback = ['deepseek', '千问', '豆包', '元宝'];
+    const base = platformOptions.length ? platformOptions : fallback;
+    return Array.from(new Set(base.filter(Boolean))).map((item) => ({
+      label: item,
+      value: item,
+    }));
+  }, [platformOptions]);
 
   const columns = [
     {
@@ -334,11 +362,19 @@ const MediaListTable = () => {
       title: '品牌关键词',
       dataIndex: 'keyword',
       key: 'keyword',
-      render: (text) => (
-        <Tag bordered={false} icon={<Hash size={10} />} style={{ borderRadius: 4 }}>
-          {text}
-        </Tag>
-      ),
+      render: (text) => {
+        const items = normalizeListValue(text);
+        if (!items.length) return <Text type="secondary">--</Text>;
+        return (
+          <Flex wrap="wrap" gap="small">
+            {items.map((item) => (
+              <Tag key={item} bordered={false} icon={<Hash size={10} />} style={{ borderRadius: 4 }}>
+                {item}
+              </Tag>
+            ))}
+          </Flex>
+        );
+      },
     },
     {
       title: '内容类型',
@@ -346,19 +382,32 @@ const MediaListTable = () => {
       key: 'contentType',
       render: (text) => {
         const colors = { '新闻': 'blue', '论坛': 'cyan', '博客': 'purple', '评论': 'orange' };
-        return <Tag color={colors[text] || 'default'} bordered={false}>{text}</Tag>;
+        const items = normalizeListValue(text);
+        if (!items.length) return <Text type="secondary">--</Text>;
+        return (
+          <Flex wrap="wrap" gap="small">
+            {items.map((item) => (
+              <Tag key={item} color={colors[item] || 'default'} bordered={false}>{item}</Tag>
+            ))}
+          </Flex>
+        );
       },
     },
     {
       title: '大模型平台',
       dataIndex: 'platform',
       key: 'platform',
-      render: (text) => (
-        <Flex align="center" gap="small">
-          <Badge status="processing" />
-          <Text>{text}</Text>
-        </Flex>
-      )
+      render: (text) => {
+        const items = normalizeListValue(text);
+        if (!items.length) return <Text type="secondary">--</Text>;
+        return (
+          <Flex wrap="wrap" gap="small">
+            {items.map((item) => (
+              <Tag key={item} color="processing" bordered={false}>{item}</Tag>
+            ))}
+          </Flex>
+        );
+      },
     },
     {
       title: '引用率',
@@ -389,8 +438,9 @@ const MediaListTable = () => {
           <Button 
             type="text" 
             icon={<ExternalLink size={16} />} 
-            href={record.sourceUrl} 
+            href={record.sourceUrl || undefined} 
             target="_blank" 
+            disabled={!record.sourceUrl}
           />
         </Tooltip>
       ),
@@ -409,19 +459,46 @@ const MediaListTable = () => {
           <Title level={4} style={{ margin: 0, fontWeight: 700 }}>引用媒介列表</Title>
         </Flex>
         <Flex gap="small">
-          <Button icon={<Filter size={14} />}>高级筛选</Button>
+          <Popover
+            trigger="click"
+            placement="bottomRight"
+            content={
+              <Flex vertical gap="small" style={{ minWidth: 220 }}>
+                <Text type="secondary">大模型平台</Text>
+                <Select
+                  allowClear
+                  placeholder="全部平台"
+                  value={selectedPlatform || undefined}
+                  onChange={(value) => onPlatformChange?.(value || '')}
+                  options={normalizedPlatformOptions}
+                />
+              </Flex>
+            }
+          >
+            <Button icon={<Filter size={14} />}>高级筛选</Button>
+          </Popover>
           <Button type="primary" icon={<Download size={14} />}>导出报告</Button>
         </Flex>
       </Flex>
+      {error ? (
+        <Flex align="center" gap="small" style={{ padding: token.paddingLG, color: token.colorError }}>
+          <Text type="danger">{error}</Text>
+        </Flex>
+      ) : null}
       <Table 
         columns={columns} 
-        dataSource={MOCK_MEDIA_LIST} 
+        dataSource={rows} 
+        rowKey={(record) => record.key || record.domain || record.sourceUrl}
         pagination={{ 
           pageSize: 10,
           showSizeChanger: true,
           showTotal: (total) => `共 ${total} 条数据`
         }}
+        loading={loading}
         size="middle"
+        locale={{
+          emptyText: error ? '加载失败，请稍后再试' : '暂无数据',
+        }}
       />
     </Card>
   );
@@ -433,8 +510,12 @@ export default function SourceAnalysis({
   endDate = '',
   tenantKey = DEFAULT_TENANT_KEY,
   jobId = DEFAULT_JOB_ID,
+  brand = DEFAULT_BRAND,
 }) {
   const [keywords, setKeywords] = useState([]);
+  const [selectedKeyword, setSelectedKeyword] = useState('');
+  const [selectedPlatform, setSelectedPlatform] = useState('');
+  const [platformOptions, setPlatformOptions] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [citationSummary, setCitationSummary] = useState({ totalRows: 0, conversations: 0 });
@@ -442,6 +523,10 @@ export default function SourceAnalysis({
   const [citationLoading, setCitationLoading] = useState(false);
   const [citationError, setCitationError] = useState('');
   const citationAbortRef = useRef(null);
+  const mediaAbortRef = useRef(null);
+  const [mediaRows, setMediaRows] = useState([]);
+  const [mediaLoading, setMediaLoading] = useState(false);
+  const [mediaError, setMediaError] = useState('');
 
   const dateRange = useMemo(() => {
     if (timeframe === 'specific_day') {
@@ -485,8 +570,8 @@ export default function SourceAnalysis({
         const queryParams = buildQueryString({
           tenant_key: tenantKey,
           job_id: jobId,
-          start_date: date,
-          end_date: endDate,
+          start_date: startDateParam,
+          end_date: endDateParam,
         });
 
         const result = await fetchJson(`/api/v1/dashboard/filter-metadata?${queryParams}`, {
@@ -495,6 +580,7 @@ export default function SourceAnalysis({
 
         if (result?.code === 200 && result.data) {
           setKeywords(result.data.keywords || []);
+          setPlatformOptions(result.data.platforms || []);
         } else {
           throw new Error(result?.message || '获取元数据失败');
         }
@@ -512,7 +598,13 @@ export default function SourceAnalysis({
     return () => {
       controller.abort();
     };
-  }, [tenantKey, jobId, date, endDate]);
+  }, [tenantKey, jobId, startDateParam, endDateParam]);
+
+  useEffect(() => {
+    if (selectedKeyword && !keywords.includes(selectedKeyword)) {
+      setSelectedKeyword('');
+    }
+  }, [keywords, selectedKeyword]);
 
   useEffect(() => {
     if (!tenantKey || !jobId) {
@@ -569,9 +661,105 @@ export default function SourceAnalysis({
     };
   }, [tenantKey, jobId, timeframe, startDateParam, endDateParam]);
 
+  useEffect(() => {
+    if (!tenantKey || !jobId || !brand) {
+      setMediaRows([]);
+      setMediaError('');
+      return;
+    }
+
+    if (mediaAbortRef.current) {
+      mediaAbortRef.current.abort();
+    }
+
+    const controller = new AbortController();
+    mediaAbortRef.current = controller;
+
+    const run = async () => {
+      setMediaLoading(true);
+      setMediaError('');
+      try {
+        const queryParams = buildQueryString({
+          tenant_key: tenantKey,
+          job_id: jobId,
+          brand,
+          timeframe,
+          start_date: timeframe === 'specific_day' ? startDateParam : undefined,
+          end_date: timeframe === 'specific_day' ? endDateParam : undefined,
+          keyword: selectedKeyword || undefined,
+          platform: selectedPlatform || undefined,
+        });
+
+        const result = await fetchJson(`/api/v1/dashboard/citation-domain-stats?${queryParams}`, {
+          signal: controller.signal,
+        });
+
+        if (result?.status && result.status !== 'success') {
+          throw new Error('接口返回错误状态');
+        }
+
+        const list = Array.isArray(result?.domain_distribution) ? result.domain_distribution : [];
+        const normalized = list
+          .map((item, index) => {
+            const domain = item?.domain ?? '';
+            const chineseName = item?.chinese_name ?? item?.chineseName ?? '';
+            const keywordValue = item?.keywords ?? item?.keyword ?? '';
+            const contentTypeValue = item?.content_types ?? item?.contentTypes ?? '';
+            const platformValue = item?.platforms ?? item?.platform ?? '';
+            const rawRate =
+              item?.['domain-citation-rate'] ??
+              item?.domain_citation_rate ??
+              item?.domainCitationRate ??
+              0;
+            const citationRate = roundTwoDecimals(clampPercent(rawRate));
+            return {
+              key: `${domain || 'row'}-${index}`,
+              domain,
+              sourceName: chineseName || domain || '--',
+              sourceUrl: buildSourceUrl(domain),
+              keyword: keywordValue,
+              contentType: contentTypeValue,
+              platform: platformValue,
+              citationRate,
+            };
+          })
+          .filter((item) => item.domain);
+
+        setMediaRows(normalized);
+        setMediaLoading(false);
+      } catch (err) {
+        if (controller.signal.aborted) return;
+        if (err?.name === 'AbortError') return;
+        setMediaRows([]);
+        setMediaError(err?.message || '数据加载失败');
+        setMediaLoading(false);
+      }
+    };
+
+    run();
+
+    return () => {
+      controller.abort();
+    };
+  }, [
+    tenantKey,
+    jobId,
+    brand,
+    timeframe,
+    startDateParam,
+    endDateParam,
+    selectedKeyword,
+    selectedPlatform,
+  ]);
+
   return (
     <Flex vertical gap="large">
-      <KeywordSection keywords={keywords} loading={loading} />
+      <KeywordSection
+        keywords={keywords}
+        loading={loading}
+        selectedKeyword={selectedKeyword}
+        onKeywordChange={setSelectedKeyword}
+      />
       <SourceAnalysisChart
         displayDate={displayDate}
         timeframeLabel={timeframeLabel}
@@ -579,7 +767,14 @@ export default function SourceAnalysis({
         stats={citationStats}
         loading={citationLoading}
       />
-      <MediaListTable />
+      <MediaListTable
+        rows={mediaRows}
+        loading={mediaLoading}
+        error={mediaError}
+        platformOptions={platformOptions}
+        selectedPlatform={selectedPlatform}
+        onPlatformChange={setSelectedPlatform}
+      />
     </Flex>
   );
 }
