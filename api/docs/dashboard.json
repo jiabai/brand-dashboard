@@ -1080,10 +1080,10 @@
             "required": true,
             "schema": {
               "type": "string",
-              "description": "租户唯一字符串标识（tenants.tenant_key）",
+              "description": "租户标识 tenant_key",
               "title": "Tenant Key"
             },
-            "description": "租户唯一字符串标识（tenants.tenant_key）"
+            "description": "租户标识 tenant_key"
           },
           {
             "name": "job_id",
@@ -1113,9 +1113,9 @@
             "required": true,
             "schema": {
               "$ref": "#/components/schemas/TimeFrame",
-              "description": "时间范围"
+              "description": "时间范围，可选值: yesterday, 7days, 30days, specific_day"
             },
-            "description": "时间范围"
+            "description": "时间范围，可选值: yesterday, 7days, 30days, specific_day"
           },
           {
             "name": "start_date",
@@ -1130,10 +1130,10 @@
                   "type": "null"
                 }
               ],
-              "description": "起始日期(格式: YYYYMMDD)",
+              "description": "起始日期，格式: YYYYMMDD（当 timeframe=specific_day 时必填）",
               "title": "Start Date"
             },
-            "description": "起始日期(格式: YYYYMMDD)"
+            "description": "起始日期，格式: YYYYMMDD（当 timeframe=specific_day 时必填）"
           },
           {
             "name": "end_date",
@@ -1148,10 +1148,10 @@
                   "type": "null"
                 }
               ],
-              "description": "结束日期(格式: YYYYMMDD)",
+              "description": "结束日期，格式: YYYYMMDD（当 timeframe=specific_day 时必填）",
               "title": "End Date"
             },
-            "description": "结束日期(格式: YYYYMMDD)"
+            "description": "结束日期，格式: YYYYMMDD（当 timeframe=specific_day 时必填）"
           },
           {
             "name": "keyword",
@@ -1184,10 +1184,10 @@
                   "type": "null"
                 }
               ],
-              "description": "中国大模型平台",
+              "description": "中国大模型平台，可选值: deepseek, 千问, 豆包, 元宝",
               "title": "Platform"
             },
-            "description": "中国大模型平台"
+            "description": "中国大模型平台，可选值: deepseek, 千问, 豆包, 元宝"
           }
         ],
         "responses": {
@@ -1886,24 +1886,24 @@
             "title": "Chinese Name",
             "description": "域名中文名称"
           },
-          "keyword": {
+          "keywords": {
             "type": "string",
-            "title": "Keyword",
-            "description": "关键词"
+            "title": "Keywords",
+            "description": "关键词（多个以逗号分隔）"
           },
-          "content_type": {
+          "content_types": {
             "type": "string",
-            "title": "Content Type",
-            "description": "内容类型"
+            "title": "Content Types",
+            "description": "内容类型（多个以逗号分隔）"
           },
-          "platform": {
+          "platforms": {
             "type": "string",
-            "title": "Platform",
-            "description": "中国大模型平台"
+            "title": "Platforms",
+            "description": "中国大模型平台（多个以逗号分隔）"
           },
-          "domain-citation-rate": {
+          "domain_citation_rate": {
             "type": "number",
-            "title": "Domain-Citation-Rate",
+            "title": "Domain Citation Rate",
             "description": "域名引用率"
           }
         },
@@ -1911,10 +1911,10 @@
         "required": [
           "domain",
           "chinese_name",
-          "keyword",
-          "content_type",
-          "platform",
-          "domain-citation-rate"
+          "keywords",
+          "content_types",
+          "platforms",
+          "domain_citation_rate"
         ],
         "title": "DomainCitationRateItem"
       },

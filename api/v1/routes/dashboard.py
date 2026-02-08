@@ -186,18 +186,12 @@ class PlatformMetricsByBrandResponse(BaseModel):
     metadata: Dict[str, Any] = Field(..., description="元数据")
 
 class DomainCitationRateItem(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
-
     domain: str = Field(..., description="域名")
     chinese_name: str = Field(..., description="域名中文名称")
-    keyword: str = Field(..., description="关键词")
-    content_type: str = Field(..., description="内容类型")
-    platform: str = Field(..., description="中国大模型平台")
-    domain_citation_rate: float = Field(
-        ...,
-        alias="domain-citation-rate",
-        description="域名引用率",
-    )
+    keywords: str = Field(..., description="关键词（多个以逗号分隔）")
+    content_types: str = Field(..., description="内容类型（多个以逗号分隔）")
+    platforms: str = Field(..., description="中国大模型平台（多个以逗号分隔）")
+    domain_citation_rate: float = Field(..., description="域名引用率")
 
 
 class DomainCitationRateResponse(BaseModel):
@@ -764,14 +758,29 @@ async def get_platform_metrics_by_brand(
 
 @router.get("/citation-domain-stats", response_model=DomainCitationRateResponse)
 async def get_domain_citation_rate(
-    tenant_key: str = Query(..., description="租户唯一字符串标识（tenants.tenant_key）"),
+    tenant_key: str = Query(..., description="租户标识 tenant_key"),
     job_id: str = Query(..., description="任务ID"),
     brand: str = Query(..., description="品牌名称"),
-    timeframe: TimeFrame = Query(..., description="时间范围"),
-    start_date: Optional[str] = Query(None, description="起始日期(格式: YYYYMMDD)"),
-    end_date: Optional[str] = Query(None, description="结束日期(格式: YYYYMMDD)"),
-    keyword: Optional[str] = Query(None, description="关键词"),
-    platform: Optional[str] = Query(None, description="中国大模型平台"),
+    timeframe: TimeFrame = Query(
+        ...,
+        description="时间范围，可选值: yesterday, 7days, 30days, specific_day",
+    ),
+    start_date: Optional[str] = Query(
+        None,
+        description="起始日期，格式: YYYYMMDD（当 timeframe=specific_day 时必填）",
+    ),
+    end_date: Optional[str] = Query(
+        None,
+        description="结束日期，格式: YYYYMMDD（当 timeframe=specific_day 时必填）",
+    ),
+    keyword: Optional[str] = Query(
+        None,
+        description="关键词，用于筛选引用信源",
+    ),
+    platform: Optional[str] = Query(
+        None,
+        description="中国大模型平台，可选值: deepseek, 千问, 豆包, 元宝",
+    ),
 ):
     if timeframe == TimeFrame.SPECIFIC_DAY and (not start_date or not end_date):
         raise HTTPException(
@@ -805,9 +814,9 @@ async def get_domain_citation_rate(
                 DomainCitationRateItem(
                     domain=item["domain"],
                     chinese_name=item["chinese_name"],
-                    keyword=item["keyword"],
-                    content_type=item["content_type"],
-                    platform=item["platform"],
+                    keywords=item["keywords"],
+                    content_types=item["content_types"],
+                    platforms=item["platforms"],
                     domain_citation_rate=item["domain_citation_rate"],
                 )
                 for item in domain_distribution

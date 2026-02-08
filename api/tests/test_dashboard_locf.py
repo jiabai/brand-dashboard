@@ -333,8 +333,22 @@ class TestDomainCitationRateApi(unittest.TestCase):
 
     def test_domain_citation_rate_uses_computed_date_range_for_non_specific_day(self):
         rows = [
-            {"domain": "www.baidu.com", "chinese_name": "百度", "domain_citation_rate": 8.96},
-            {"domain": "www.google.com", "chinese_name": "谷歌", "domain_citation_rate": 3.73},
+            {
+                "domain": "www.baidu.com",
+                "chinese_name": "百度",
+                "keywords": "数学培训,奥数",
+                "content_types": "新闻,论坛",
+                "platforms": "deepseek,千问",
+                "domain_citation_rate": 8.96,
+            },
+            {
+                "domain": "www.google.com",
+                "chinese_name": "谷歌",
+                "keywords": "数学培训",
+                "content_types": "新闻",
+                "platforms": "deepseek",
+                "domain_citation_rate": 3.73,
+            },
         ]
 
         with patch(
@@ -359,9 +373,14 @@ class TestDomainCitationRateApi(unittest.TestCase):
         self.assertEqual(payload["metadata"]["tenant_key"], "tn_1b02b3ef4fbd")
         self.assertEqual(payload["metadata"]["job_id"], "job_20260127_223236_989cc4db")
         self.assertIsNone(payload["metadata"]["keyword"])
+        self.assertIsNone(payload["metadata"]["platform"])
         self.assertEqual(payload["metadata"]["start_date"], "20260101")
         self.assertEqual(payload["metadata"]["end_date"], "20260131")
         self.assertEqual(payload["metadata"]["row_count"], 2)
+        self.assertEqual(payload["domain_distribution"][0]["keywords"], "数学培训,奥数")
+        self.assertEqual(payload["domain_distribution"][0]["content_types"], "新闻,论坛")
+        self.assertEqual(payload["domain_distribution"][0]["platforms"], "deepseek,千问")
+        self.assertEqual(payload["domain_distribution"][0]["domain_citation_rate"], 8.96)
 
         query_mock.assert_called_once_with(
             tenant_key="tn_1b02b3ef4fbd",
@@ -370,6 +389,7 @@ class TestDomainCitationRateApi(unittest.TestCase):
             start_date=date(2026, 1, 1),
             end_date=date(2026, 1, 31),
             keyword=None,
+            platform=None,
         )
 
     def test_domain_citation_rate_uses_supplied_date_range_for_specific_day(self):
@@ -402,6 +422,7 @@ class TestDomainCitationRateApi(unittest.TestCase):
             start_date=date(2026, 1, 2),
             end_date=date(2026, 1, 31),
             keyword=None,
+            platform=None,
         )
 
 
@@ -419,12 +440,14 @@ class TestDomainCitationRateApi(unittest.TestCase):
                     "start_date": "20260101",
                     "end_date": "20260101",
                     "keyword": "数学",
+                    "platform": "deepseek",
                 },
             )
 
         self.assertEqual(response.status_code, 200)
         payload = response.json()
         self.assertEqual(payload["metadata"]["keyword"], "数学")
+        self.assertEqual(payload["metadata"]["platform"], "deepseek")
 
         query_mock.assert_called_once_with(
             tenant_key="tn_1b02b3ef4fbd",
@@ -433,6 +456,7 @@ class TestDomainCitationRateApi(unittest.TestCase):
             start_date=date(2026, 1, 1),
             end_date=date(2026, 1, 1),
             keyword="数学",
+            platform="deepseek",
         )
 
 

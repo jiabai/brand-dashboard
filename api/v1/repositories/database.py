@@ -397,33 +397,48 @@ def query_domain_citation_rate(
     """
     查询域名引用率数据
 
-    根据文档要求，按 domain, keyword, content_type, platform 分组统计引用率。
-    当有 keyword 或 platform 筛选时，仅计算包含该筛选条件的引用信源的域名引用率。
+    按 domain 聚合统计引用率。
+    计算口径：
+    - 分子：特定 platform 和 keyword 下的域名引用数
+    - 分母：特定 platform 下该品牌的总引用数（不受 keyword 筛选影响，保证贡献度可加性）
     """
-    where_sql = """
+    # 基础过滤条件（用于分母）
+    base_where = """
     WHERE tenant_key = :tenant_key
     AND job_id = :job_id
     AND brand = :brand
     AND domain IS NOT NULL
     AND date BETWEEN :start_date AND :end_date
     """
-    if keyword:
-        where_sql += "\n    AND keyword = :keyword"
+    
+    # 分母 SQL：锁定在平台层级，不随 keyword 变化
+    denominator_where = base_where
     if platform:
-        where_sql += "\n    AND platform = :platform"
+        denominator_where += "\n    AND platform = :platform"
+
+    # 分子 SQL：随 keyword 和 platform 变化
+    numerator_where = base_where
+    if keyword:
+        numerator_where += "\n    AND keyword = :keyword"
+    if platform:
+        numerator_where += "\n    AND platform = :platform"
 
     total_query = f"""
     SELECT COUNT(*)
     FROM qa_reference
-    {where_sql}
+    {denominator_where}
     """
 
     domain_query = f"""
-    SELECT domain, keyword, content_type, platform, COUNT(*) AS domain_count
+    SELECT
+        domain,
+        GROUP_CONCAT(DISTINCT keyword) AS keywords,
+        GROUP_CONCAT(DISTINCT content_type) AS content_types,
+        GROUP_CONCAT(DISTINCT platform) AS platforms,
+        COUNT(*) AS domain_count
     FROM qa_reference
-    {where_sql}
-    GROUP BY domain, keyword, content_type, platform
-    ORDER BY domain_count DESC
+    {numerator_where}
+    GROUP BY domain
     """
 
     params: Dict[str, Any] = {
@@ -449,24 +464,24 @@ def query_domain_citation_rate(
             result: List[Dict[str, Any]] = []
             for row in rows:
                 domain = row[0]
-                row_keyword = row[1] if row[1] is not None else ""
-                content_type = row[2] if row[2] is not None else ""
-                row_platform = row[3] if row[3] is not None else ""
+                row_keywords = row[1] if row[1] is not None else ""
+                content_types = row[2] if row[2] is not None else ""
+                platforms = row[3] if row[3] is not None else ""
                 domain_count = row[4]
 
                 domain_count_int = int(domain_count) if domain_count else 0
                 percentage = round(domain_count_int * 100.0 / total_count_int, 2)
-                # 获取域名的中文名称
                 chinese_name = get_chinese_name(domain)
                 result.append({
                     "domain": domain,
                     "chinese_name": chinese_name,
-                    "keyword": row_keyword,
-                    "content_type": content_type,
-                    "platform": row_platform,
+                    "keywords": row_keywords,
+                    "content_types": content_types,
+                    "platforms": platforms,
                     "domain_citation_rate": percentage
                 })
 
+            result.sort(key=lambda item: item["domain_citation_rate"], reverse=True)
             return result
     except Exception as e:
         logger.error("查询域名引用率数据失败: %s", str(e))
@@ -801,7 +816,10 @@ def query_brand_platform_keyword_daily_mention_rates(
                 brand,
                 platform,
                 keyword,
-                ROUND(SUM(is_mentioned) * 1.0 / NULLIF(COUNT(DISTINCT conversation_id), 0), 4) AS mention_rate
+                ROUND(
+                    SUM(is_mentioned) * 1.0 / NULLIF(COUNT(DISTINCT conversation_id), 0),
+                    4
+                ) AS mention_rate
             FROM qa_brand_state
             WHERE tenant_key = :tenant_key
               AND job_id = :job_id
@@ -1287,7 +1305,10 @@ def query_keyword_platform_brand_rates(
                 keyword,
                 platform,
                 brand,
-                ROUND(SUM(is_mentioned) * 1.0 / NULLIF(COUNT(DISTINCT conversation_id), 0), 4) AS mention_rate,
+                ROUND(
+                    SUM(is_mentioned) * 1.0 / NULLIF(COUNT(DISTINCT conversation_id), 0),
+                    4
+                ) AS mention_rate,
                 ROUND(
                     SUM({first_mention_column}) * 1.0 / NULLIF(COUNT(DISTINCT conversation_id), 0),
                     4

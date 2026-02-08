@@ -368,26 +368,26 @@ curl -X GET "http://your-api.com/api/v1/dashboard/citation-domain-stats?tenant_k
     {
       "domain": "www.baidu.com",
       "chinese_name": "百度",
-      "keyword": "数学培训",
-      "content_type": "新闻",
-      "platform": "deepseek",
-      "domain-citation-rate": 8.96
+      "keywords": "数学培训,奥数",
+      "content_types": "新闻,论坛",
+      "platforms": "deepseek,千问",
+      "domain_citation_rate": 8.96
     },
     {
       "domain": "www.google.com",
       "chinese_name": "谷歌",
-      "keyword": "数学培训",
-      "content_type": "新闻",
-      "platform": "deepseek",
-      "domain-citation-rate": 3.73
+      "keywords": "数学培训",
+      "content_types": "新闻",
+      "platforms": "deepseek",
+      "domain_citation_rate": 3.73
     },
     {
       "domain": "www.zhihu.com",
       "chinese_name": "知乎",
-      "keyword": "数学培训",
-      "content_type": "新闻",
-      "platform": "deepseek",
-      "domain-citation-rate": 2.34
+      "keywords": "数学培训",
+      "content_types": "新闻",
+      "platforms": "deepseek",
+      "domain_citation_rate": 2.34
     },
     ......
   ],
@@ -413,10 +413,10 @@ curl -X GET "http://your-api.com/api/v1/dashboard/citation-domain-stats?tenant_k
 | domain_distribution | array | 域名引用率分布 |
 | domain_distribution.domain | string | 域名 |
 | domain_distribution.chinese_name | string | 域名中文名称 |
-| domain_distribution.keyword | string | 关键词 |
-| domain_distribution.content_type | string | 内容类型 |
-| domain_distribution.platform | string | 中国大模型平台 |
-| domain_distribution.domain-citation-rate | float | 域名引用率 |
+| domain_distribution.keywords | string | 关键词（多个以逗号分隔） |
+| domain_distribution.content_types | string | 内容类型（多个以逗号分隔） |
+| domain_distribution.platforms | string | 中国大模型平台（多个以逗号分隔） |
+| domain_distribution.domain_citation_rate | float | 域名引用率 |
 | metadata | object | 元数据 |
 | metadata.tenant_key | string | 租户标识 tenant_key |
 | metadata.job_id | string | 任务ID |
@@ -427,13 +427,22 @@ curl -X GET "http://your-api.com/api/v1/dashboard/citation-domain-stats?tenant_k
 | metadata.calculation_method | string | 计算方法 |
 | metadata.row_count | int | 数据行数 |
 
-> **💡 计算口径说明**：当前“域名引用率”计算均基于“**已产生引用链接的对话**”作为分母。
+> **💡 计算口径说明**：
+- **域名引用率**：计算各域名在指定范围内的引用占比。
+- **分母说明**：
+    - 基础分母为指定品牌、时间范围内的总引用记录数。
+    - 当筛选 `platform` 时，分母同步缩小为该平台内的总引用数。
+    - 当筛选 `keyword` 时，**分母保持不变**（即保持在平台层级或品牌层级），以反映该关键词对整体/平台的**贡献度（Contribution）**，而非该关键词细分市场内的占比。
 
 ### 数据计算逻辑
 
+当没有 keyword 和 platform 筛选时，计算逻辑（体现品牌/时间范围内的整体域名引用率）
 ```sql
 SELECT 
-    domain, keyword, content_type, platform,
+    domain, 
+    GROUP_CONCAT(DISTINCT keyword) AS keywords,
+    GROUP_CONCAT(DISTINCT content_type) AS content_types, 
+    GROUP_CONCAT(DISTINCT platform) AS platforms,
     ROUND(
         COUNT(*) * 100.0 / NULLIF((
             SELECT COUNT(*)
@@ -446,7 +455,7 @@ SELECT
               AND `date` BETWEEN :start_date AND :end_date
         ), 0),
         2
-    ) AS percentage
+    ) AS domain_citation_rate
 FROM qa_reference
 WHERE
     tenant_key = <tenant_key>
@@ -454,13 +463,49 @@ WHERE
     AND brand = <brand>
     AND domain IS NOT NULL
     AND `date` BETWEEN :start_date AND :end_date
-GROUP BY domain, keyword, content_type, platform
-ORDER BY percentage DESC;
+GROUP BY domain
+ORDER BY domain_citation_rate DESC;
 ```
-有keyword和platform时，仅计算包含keyword和platform的引用信源的域名引用率
+
+当有单独的 keyword 筛选时，计算逻辑（体现关键词对品牌的贡献度）
 ```sql
 SELECT 
-    domain, keyword, content_type, platform,
+    domain, 
+    GROUP_CONCAT(DISTINCT keyword) AS keywords,
+    GROUP_CONCAT(DISTINCT content_type) AS content_types, 
+    GROUP_CONCAT(DISTINCT platform) AS platforms,
+    ROUND(
+        COUNT(*) * 100.0 / NULLIF((
+            SELECT COUNT(*)
+            FROM qa_reference
+            WHERE 
+              tenant_key = <tenant_key>
+              AND job_id = <job_id>
+              AND brand = <brand>
+              AND domain IS NOT NULL
+              AND `date` BETWEEN :start_date AND :end_date
+        ), 0),
+        2
+    ) AS domain_citation_rate
+FROM qa_reference
+WHERE
+    tenant_key = <tenant_key>
+    AND job_id = <job_id>
+    AND brand = <brand>
+    AND keyword = :keyword
+    AND domain IS NOT NULL
+    AND `date` BETWEEN :start_date AND :end_date
+GROUP BY domain
+ORDER BY domain_citation_rate DESC;
+```
+
+当有 keyword 和 platform 筛选时的计算逻辑（体现关键词对平台的贡献度）
+```sql
+SELECT 
+    domain, 
+    GROUP_CONCAT(DISTINCT keyword) AS keywords,
+    GROUP_CONCAT(DISTINCT content_type) AS content_types, 
+    GROUP_CONCAT(DISTINCT platform) AS platforms,
     ROUND(
         COUNT(*) * 100.0 / (
             SELECT COUNT(*)
@@ -469,28 +514,25 @@ SELECT
               tenant_key = <tenant_key>
               AND job_id = <job_id>
               AND brand = <brand>
-              -- 新增可选 keyword 筛选
-              AND keyword = :keyword
-              -- 新增可选 platform 筛选
+              -- 分母不受 keyword 影响，仅受 platform 影响 (实现平台内贡献度)
               AND platform = :platform
               AND domain IS NOT NULL
               AND `date` BETWEEN :start_date AND :end_date
         ),
         2
-    ) AS percentage
+    ) AS domain_citation_rate
 FROM qa_reference
 WHERE
     tenant_key = <tenant_key>
     AND job_id = <job_id>
     AND brand = <brand>
-    -- 新增可选 keyword 筛选
+    -- 分子受 keyword 和 platform 共同筛选
     AND keyword = :keyword
-    -- 新增可选 platform 筛选
     AND platform = :platform
     AND domain IS NOT NULL
     AND `date` BETWEEN :start_date AND :end_date
-GROUP BY domain, keyword, content_type, platform
-ORDER BY percentage DESC;
+GROUP BY domain
+ORDER BY domain_citation_rate DESC;
 ```
 ---------------------------
 
