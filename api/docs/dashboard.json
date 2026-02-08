@@ -59,6 +59,101 @@
             "description": "时间范围"
           },
           {
+            "name": "date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "具体日期(格式: YYYYMMDD)",
+              "title": "Date"
+            },
+            "description": "具体日期(格式: YYYYMMDD)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BrandMentionRateResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/dashboard/citation-domain-summary": {
+      "get": {
+        "tags": [
+          "dashboard"
+        ],
+        "summary": "Get Citation Domain Summary",
+        "description": "获取域名维度的引用率汇总，按域名聚合，适配前端 ReferencesTable 组件.",
+        "operationId": "get_domain_citation_summary_api_v1_dashboard_citation_domain_summary_get",
+        "parameters": [
+          {
+            "name": "tenant_key",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "租户唯一字符串标识（tenants.tenant_key）",
+              "title": "Tenant Key"
+            },
+            "description": "租户唯一字符串标识（tenants.tenant_key）"
+          },
+          {
+            "name": "job_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "任务ID",
+              "title": "Job Id"
+            },
+            "description": "任务ID"
+          },
+          {
+            "name": "brand",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "品牌名称",
+              "title": "Brand"
+            },
+            "description": "品牌名称"
+          },
+          {
+            "name": "timeframe",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TimeFrame",
+              "description": "时间范围"
+            },
+            "description": "时间范围"
+          },
+          {
             "name": "start_date",
             "in": "query",
             "required": false,
@@ -71,10 +166,10 @@
                   "type": "null"
                 }
               ],
-              "description": "开始日期(格式: YYYYMMDD)",
+              "description": "起始日期(格式: YYYYMMDD)",
               "title": "Start Date"
             },
-            "description": "开始日期(格式: YYYYMMDD)"
+            "description": "起始日期(格式: YYYYMMDD)"
           },
           {
             "name": "end_date",
@@ -101,7 +196,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/BrandMentionRateResponse"
+                  "$ref": "#/components/schemas/DomainCitationSummaryResponse"
                 }
               }
             }
@@ -194,7 +289,7 @@
             "description": "时间范围"
           },
           {
-            "name": "start_date",
+            "name": "date",
             "in": "query",
             "required": false,
             "schema": {
@@ -206,28 +301,10 @@
                   "type": "null"
                 }
               ],
-              "description": "开始日期(格式: YYYYMMDD)",
-              "title": "Start Date"
+              "description": "具体日期(格式: YYYYMMDD)",
+              "title": "Date"
             },
-            "description": "开始日期(格式: YYYYMMDD)"
-          },
-          {
-            "name": "end_date",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "description": "结束日期(格式: YYYYMMDD)",
-              "title": "End Date"
-            },
-            "description": "结束日期(格式: YYYYMMDD)"
+            "description": "具体日期(格式: YYYYMMDD)"
           }
         ],
         "responses": {
@@ -1093,6 +1170,24 @@
               "title": "Keyword"
             },
             "description": "关键词，用于筛选引用信源"
+          },
+          {
+            "name": "platform",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "中国大模型平台",
+              "title": "Platform"
+            },
+            "description": "中国大模型平台"
           }
         ],
         "responses": {
@@ -1318,6 +1413,135 @@
   },
   "components": {
     "schemas": {
+      "DomainCitationSummaryItem": {
+        "properties": {
+          "domain": {
+            "type": "string",
+            "title": "Domain",
+            "description": "域名"
+          },
+          "chinese_name": {
+            "type": "string",
+            "title": "Chinese Name",
+            "description": "域名中文名称"
+          },
+          "citation_count": {
+            "type": "integer",
+            "title": "Citation Count",
+            "description": "域名引用次数"
+          },
+          "keyword_coverage": {
+            "type": "integer",
+            "title": "Keyword Coverage",
+            "description": "域名关键词覆盖数"
+          },
+          "platform_coverage": {
+            "type": "integer",
+            "title": "Platform Coverage",
+            "description": "域名平台覆盖数"
+          },
+          "domain-citation-rate": {
+            "type": "number",
+            "title": "Domain-Citation-Rate",
+            "description": "域名总引用率"
+          }
+        },
+        "type": "object",
+        "required": [
+          "domain",
+          "chinese_name",
+          "citation_count",
+          "keyword_coverage",
+          "platform_coverage",
+          "domain-citation-rate"
+        ],
+        "title": "DomainCitationSummaryItem"
+      },
+      "DomainCitationSummaryResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "响应状态"
+          },
+          "domain_distribution": {
+            "items": {
+              "$ref": "#/components/schemas/DomainCitationSummaryItem"
+            },
+            "type": "array",
+            "title": "Domain Distribution",
+            "description": "域名引用率汇总分布"
+          },
+          "metadata": {
+            "properties": {
+              "tenant_key": {
+                "type": "string",
+                "description": "租户标识 tenant_key"
+              },
+              "job_id": {
+                "type": "string",
+                "description": "任务ID"
+              },
+              "brand": {
+                "type": "string",
+                "description": "品牌名称"
+              },
+              "timeframe": {
+                "type": "string",
+                "description": "时间范围"
+              },
+              "start_date": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "起始日期"
+              },
+              "end_date": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "结束日期"
+              },
+              "calculation_method": {
+                "type": "string",
+                "description": "计算方法"
+              },
+              "row_count": {
+                "type": "integer",
+                "description": "数据行数"
+              }
+            },
+            "type": "object",
+            "required": [
+              "tenant_key",
+              "job_id",
+              "brand",
+              "timeframe",
+              "calculation_method",
+              "row_count"
+            ],
+            "title": "Metadata",
+            "description": "元数据"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "domain_distribution",
+          "metadata"
+        ],
+        "title": "DomainCitationSummaryResponse"
+      },
       "AvailableDatesResponse": {
         "properties": {
           "status": {
@@ -1660,7 +1884,22 @@
           "chinese_name": {
             "type": "string",
             "title": "Chinese Name",
-            "description": "中文名称"
+            "description": "域名中文名称"
+          },
+          "keyword": {
+            "type": "string",
+            "title": "Keyword",
+            "description": "关键词"
+          },
+          "content_type": {
+            "type": "string",
+            "title": "Content Type",
+            "description": "内容类型"
+          },
+          "platform": {
+            "type": "string",
+            "title": "Platform",
+            "description": "中国大模型平台"
           },
           "domain-citation-rate": {
             "type": "number",
@@ -1672,6 +1911,9 @@
         "required": [
           "domain",
           "chinese_name",
+          "keyword",
+          "content_type",
+          "platform",
           "domain-citation-rate"
         ],
         "title": "DomainCitationRateItem"
@@ -1711,6 +1953,17 @@
                   }
                 ],
                 "description": "关键词"
+              },
+              "platform": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "中国大模型平台"
               },
               "timeframe": {
                 "type": "string",
