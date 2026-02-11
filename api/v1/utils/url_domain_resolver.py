@@ -45,6 +45,7 @@ domain_mappings = {
     # 互联网巨头 - 字节跳动
     "bytedance.com": ("ByteDance", "字节跳动"),
     "douyin.com": ("Douyin", "抖音"),
+    "iesdouyin.com": ("Douyin", "抖音"),
     "toutiao.com": ("Toutiao", "今日头条"),
     "feishu.cn": ("Feishu", "飞书"),
     
@@ -62,6 +63,8 @@ domain_mappings = {
     "csdn.net": ("CSDN", "CSDN"),
     "xiaohongshu.com": ("Xiaohongshu", "小红书"),
     "redbook.com": ("Xiaohongshu", "小红书"),
+    "ithome.com": ("ITHome", "IT之家"),
+    "it.ithome.com": ("ITHome", "IT之家"),
 
     "cnblogs.com": ("CNBlogs", "博客园"),
     "18183.com": ("18183", "18183"),
@@ -74,6 +77,15 @@ domain_mappings = {
     "9game.cn": ("9Game", "9游戏"),
     "wandoujia.com": ("Wandoujia", "豌豆荚"),
     "360game.360.cn": ("360Game", "360游戏"),
+    
+    # SaaS 与客服工具
+    "udesk.cn": ("Udesk", "沃丰科技"),
+    "zoho.com.cn": ("Zoho", "卓豪"),
+    "miduoke.net": ("Miduoke", "米多客"),
+    "zhichi.com": ("Sobot", "智齿科技"),
+    "hollycrm.com": ("HollyCRM", "合力亿捷"),
+    "duoke.com": ("Duoke", "多客"),
+    "official.salesmartly.com": ("SaleSmartly", "SaleSmartly"),
     
     # AI 平台 - 国际
     "chatgpt.com": ("ChatGPT", "ChatGPT"),
@@ -91,6 +103,7 @@ domain_mappings = {
     "huanqiu.com": ("Huanqiu", "环球网"),
     "xinhuanet.com": ("Xinhua", "新华网"),
     "people.com.cn": ("People's Daily", "人民网"),
+    "szb.xnnews.com.cn": ("Xianning News", "咸宁新闻网"),
     "miit.gov.cn": ("MIIT", "工信部"),
     "zol.com.cn": ("ZOL", "中关村在线"),
     "eeo.com.cn": ("EEO", "经济观察网"),
@@ -290,8 +303,9 @@ if __name__ == "__main__":
         "https://chat.deepseek.com",
         "https://kimi.moonshot.cn",
         "https://www.baidu.com",
-        "https://github.com/features/copilot",
-        "https://www.people.com.cn/n1/2024/0101/c1001-40150567.html"
+        "https://iesdouyin.com",
+        "https://szb.xnnews.com.cn",
+        "https://ithome.com"
     ]
     
     for url in test_urls:
