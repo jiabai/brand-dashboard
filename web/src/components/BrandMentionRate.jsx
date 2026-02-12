@@ -97,11 +97,12 @@ const BrandMentionRate = ({
       buildQueryString({
         tenant_key: tenantKey,
         job_id: jobId,
+        brand: brand || undefined,
         timeframe,
         start_date: timeframe === 'specific_day' ? date : undefined,
         end_date: timeframe === 'specific_day' ? endDate || date : undefined,
       }),
-    [tenantKey, jobId, timeframe, date, endDate],
+    [tenantKey, jobId, brand, timeframe, date, endDate],
   );
 
   const targetBrandQueryString = useMemo(
