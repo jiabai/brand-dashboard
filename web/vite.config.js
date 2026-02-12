@@ -29,20 +29,30 @@ export default defineConfig(({ mode, command }) => {
       rollupOptions: {
         output: {
           manualChunks: (id) => {
-            if (!id.includes('node_modules')) return
-            if (id.includes('/node_modules/react') || id.includes('/node_modules/react-dom')) {
+            const normalizedId = id.replace(/\\/g, '/')
+            if (!normalizedId.includes('/node_modules/')) return
+            if (normalizedId.includes('/node_modules/react') || normalizedId.includes('/node_modules/react-dom')) {
               return 'react-vendor'
             }
-            if (id.includes('/node_modules/lucide-react')) {
+            if (normalizedId.includes('/node_modules/lucide-react')) {
               return 'lucide-vendor'
             }
-            if (id.includes('/node_modules/@ant-design/icons')) {
+            if (normalizedId.includes('/node_modules/@ant-design/icons')) {
               return 'antd-icons'
             }
-            if (id.includes('/node_modules/@rc-component') || id.includes('/node_modules/rc-')) {
+            if (normalizedId.includes('/node_modules/@rc-component') || normalizedId.includes('/node_modules/rc-')) {
               return 'rc-vendor'
             }
-            if (id.includes('/node_modules/antd')) {
+            if (normalizedId.includes('/node_modules/@antv/g2')) {
+              return 'antv-g2'
+            }
+            if (normalizedId.includes('/node_modules/@antv/')) {
+              return 'antv-vendor'
+            }
+            if (normalizedId.includes('/node_modules/dayjs')) {
+              return 'dayjs-vendor'
+            }
+            if (normalizedId.includes('/node_modules/antd')) {
               return 'antd-vendor'
             }
           }

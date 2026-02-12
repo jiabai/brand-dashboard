@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Card, Space, Typography, Row, Col, Statistic, Tag, theme } from 'antd';
 import { LineChartOutlined } from '@ant-design/icons';
-import { Chart } from '@antv/g2';
 import dayjs from 'dayjs';
 
 import { CONFIG } from '@/config';
@@ -120,74 +119,91 @@ const TrendG2Chart = React.memo(function TrendG2Chart({ data, token }) {
   useEffect(() => {
     if (!containerRef.current) return;
 
+    let disposed = false;
+
     if (chartRef.current) {
       chartRef.current.destroy();
       chartRef.current = null;
     }
 
     if (!Array.isArray(data) || data.length === 0) {
-      return;
+      return () => {
+        disposed = true;
+      };
     }
 
-    const chart = new Chart({
-      container: containerRef.current,
-      autoFit: true,
-    });
-    chartRef.current = chart;
+    const container = containerRef.current;
 
-    chart.theme({ type: 'academy' });
+    const run = async () => {
+      const mod = await import('@antv/g2');
+      if (disposed) return;
+      const { Chart } = mod;
 
-    chart.data(data);
-
-    chart
-      .interval()
-      .encode('x', 'dateStr')
-      .encode('y', 'mention_rate')
-      .axis('x', { 
-        title: false, 
-        labelFill: '#A6A6A6', 
-        titleFill: '#A6A6A6' 
-      })
-      .axis('y', {
-        title: '提及率 (Mention Rate)',
-        titleFill: '#5B8FF9',
-        labelFormatter: (d) => `${(Number(d) * 100).toFixed(1)}%`,
-        labelFill: '#A6A6A6',
-      })
-      .tooltip({
-        title: (d) => d.dateStr,
-        items: [
-          {
-            field: 'mention_rate',
-            name: '提及率',
-            valueFormatter: (d) => `${(Number(d) * 100).toFixed(2)}%`,
-          },
-        ],
+      const chart = new Chart({
+        container,
+        autoFit: true,
       });
+      chartRef.current = chart;
 
-    chart
-      .line()
-      .encode('x', 'dateStr')
-      .encode('y', 'mention_rate')
-      .encode('shape', 'smooth')
-      .style('stroke', '#fdae6b')
-      .style('lineWidth', 3)
-      .tooltip(false);
+      chart.theme({ type: 'academy' });
 
-    chart
-      .point()
-      .encode('x', 'dateStr')
-      .encode('y', 'mention_rate')
-      .encode('shape', 'point')
-      .style('fill', '#fdae6b')
-      .style('r', 5)
-      .tooltip(false);
+      chart.data(data);
 
-    chart.render();
+      chart
+        .interval()
+        .encode('x', 'dateStr')
+        .encode('y', 'mention_rate')
+        .axis('x', {
+          title: false,
+          labelFill: '#A6A6A6',
+          titleFill: '#A6A6A6',
+        })
+        .axis('y', {
+          title: '提及率 (Mention Rate)',
+          titleFill: '#5B8FF9',
+          labelFormatter: (d) => `${(Number(d) * 100).toFixed(1)}%`,
+          labelFill: '#A6A6A6',
+        })
+        .tooltip({
+          title: (d) => d.dateStr,
+          items: [
+            {
+              field: 'mention_rate',
+              name: '提及率',
+              valueFormatter: (d) => `${(Number(d) * 100).toFixed(2)}%`,
+            },
+          ],
+        });
+
+      chart
+        .line()
+        .encode('x', 'dateStr')
+        .encode('y', 'mention_rate')
+        .encode('shape', 'smooth')
+        .style('stroke', '#fdae6b')
+        .style('lineWidth', 3)
+        .tooltip(false);
+
+      chart
+        .point()
+        .encode('x', 'dateStr')
+        .encode('y', 'mention_rate')
+        .encode('shape', 'point')
+        .style('fill', '#fdae6b')
+        .style('r', 5)
+        .tooltip(false);
+
+      chart.render();
+    };
+
+    run().catch(() => {});
 
     return () => {
-      chart.destroy();
-      chartRef.current = null;
+      disposed = true;
+      if (chartRef.current) {
+        chartRef.current.destroy();
+        chartRef.current = null;
+      }
     };
   }, [data, token]);
 

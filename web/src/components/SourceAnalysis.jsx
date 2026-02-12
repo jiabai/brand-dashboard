@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Card, Typography, Tag, Table, Badge, theme, Flex, Button, Divider, Tooltip, Empty, Spin, Select, Popover } from 'antd';
-import { Chart } from '@antv/g2';
 import dayjs from 'dayjs';
 import { 
   Download, 
@@ -202,55 +201,74 @@ const SourceAnalysisChart = ({
   useEffect(() => {
     if (!containerRef.current) return;
 
+    let disposed = false;
+
     containerRef.current.innerHTML = '';
 
-    const chart = new Chart({
-      container: containerRef.current,
-      autoFit: true,
-      height: 16,
-      padding: 0,
-      inset: 0, // 确保图表内部无任何边距
-    });
+    if (chartRef.current) {
+      chartRef.current.destroy();
+      chartRef.current = null;
+    }
 
-    chart.data(chartData);
+    const container = containerRef.current;
 
-    chart
-      .interval()
-      .coordinate({ transform: [{ type: 'transpose' }] })
-      .encode('x', 'category')
-      .encode('y', 'value')
-      .encode('color', 'type')
-      .transform([{ type: 'stackY' }, { type: 'normalizeY' }])
-      .scale('color', {
-        range: colorRange,
-      })
-      .scale('x', {
+    const run = async () => {
+      const mod = await import('@antv/g2');
+      if (disposed) return;
+      const { Chart } = mod;
+
+      const chart = new Chart({
+        container,
+        autoFit: true,
+        height: 16,
         padding: 0,
-      })
-      .axis(false)
-      .legend(false)
-      .tooltip(false)
-      .style('radius', 0)
-      .style('stroke', '#fff')
-      .style('lineWidth', 0)
-      .label({
-        text: 'value',
-        position: 'inside',
-        transform: [{ type: 'stackY' }, { type: 'normalizeY' }],
-        formatter: (val) => val > 0.08 ? `${(val * 100).toFixed(0)}%` : '',
-        style: {
-          fill: '#fff',
-          fontSize: 10,
-          fontWeight: 600,
-        },
+        inset: 0,
       });
 
-    chart.render();
-    chartRef.current = chart;
+      chart.data(chartData);
+
+      chart
+        .interval()
+        .coordinate({ transform: [{ type: 'transpose' }] })
+        .encode('x', 'category')
+        .encode('y', 'value')
+        .encode('color', 'type')
+        .transform([{ type: 'stackY' }, { type: 'normalizeY' }])
+        .scale('color', {
+          range: colorRange,
+        })
+        .scale('x', {
+          padding: 0,
+        })
+        .axis(false)
+        .legend(false)
+        .tooltip(false)
+        .style('radius', 0)
+        .style('stroke', '#fff')
+        .style('lineWidth', 0)
+        .label({
+          text: 'value',
+          position: 'inside',
+          transform: [{ type: 'stackY' }, { type: 'normalizeY' }],
+          formatter: (val) => (val > 0.08 ? `${(val * 100).toFixed(0)}%` : ''),
+          style: {
+            fill: '#fff',
+            fontSize: 10,
+            fontWeight: 600,
+          },
+        });
+
+      chart.render();
+      chartRef.current = chart;
+    };
+
+    run().catch(() => {});
 
     return () => {
+      disposed = true;
       if (chartRef.current) {
         chartRef.current.destroy();
+        chartRef.current = null;
       }
     };
   }, [chartData, colorRange]);
