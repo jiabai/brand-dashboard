@@ -16,6 +16,7 @@ const BrandShareOfVoiceTable = React.lazy(() => import('./components/BrandShareO
 const PlatformDetail = React.lazy(() => import('./components/PlatformDetail.jsx'));
 const CreateQueryJob = React.lazy(() => import('./components/CreateQueryJob.jsx'));
 const QueryJobStatus = React.lazy(() => import('./components/QueryJobStatus.jsx'));
+const AccountManagement = React.lazy(() => import('./components/AccountManagement.jsx'));
 const TrendAnalysis = React.lazy(() => import('./components/TrendAnalysis.jsx'));
 const SourceAnalysis = React.lazy(() => import('./components/SourceAnalysis.jsx'));
 const SentimentAnalysis = React.lazy(() => import('./components/SentimentAnalysis.jsx'));
@@ -272,6 +273,8 @@ function Dashboard() {
               tenantKey={tenantKey}
               onNavigate={setCurrentView}
             />
+          ) : currentView === 'accounts' ? (
+            <AccountManagement />
           ) : currentView === 'task-status' ? (
             <QueryJobStatus 
               tenantKey={tenantKey} 
@@ -324,7 +327,7 @@ function Dashboard() {
                 <div
                   style={{
                     display: 'grid',
-                    gridTemplateColumns: 'minmax(0, 1.2fr) minmax(0, 1.8fr)',
+                    gridTemplateColumns: 'minmax(0, 1fr)',
                     gap: 16
                   }}
                 >
@@ -349,7 +352,7 @@ function Dashboard() {
                       onPlatformClick={(platform) => setSelectedPlatform(platform?.name || '')} 
                     />
                   </div>
-                  <div style={{ minWidth: 0, gridColumn: '1 / -1' }}>
+                  <div style={{ minWidth: 0 }}>
                     <ReferencesTable 
                       timeframe={selectedFilter} 
                       date={selectedDateParam}

@@ -12,6 +12,7 @@ from fastapi.responses import JSONResponse
 from api.v1.models.schemas import HealthResponse
 from api.v1.routes import (
     analysis,
+    auth,
     brand_strategy,
     config,
     conversation,
@@ -51,6 +52,7 @@ app.add_middleware(
 
 # 包含路由
 app.include_router(analysis.router, prefix="/api/v1/analysis", tags=["analysis"])
+app.include_router(auth.router, prefix="/api/v1", tags=["auth"])
 app.include_router(config.router, prefix="/api/v1/config", tags=["config"])
 app.include_router(dashboard.router, prefix="/api/v1/dashboard", tags=["dashboard"])
 app.include_router(brand_strategy.router, prefix="/api/v1/analysis", tags=["analysis"])

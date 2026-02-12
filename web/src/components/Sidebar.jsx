@@ -10,7 +10,8 @@ import {
   PlusOutlined,
   SmileOutlined,
   SettingOutlined,
-  UnorderedListOutlined
+  UnorderedListOutlined,
+  UserOutlined
 } from '@ant-design/icons';
 
 const MENU_ITEMS = [
@@ -21,6 +22,7 @@ const MENU_ITEMS = [
   { key: 'sentiment', icon: <SmileOutlined />, label: '情感分析' },
   { key: 'snapshots', icon: <PictureOutlined />, label: '问答快照', disabled: true },
   { key: 'settings', icon: <SettingOutlined />, label: '品牌设置', disabled: true },
+  { key: 'accounts', icon: <UserOutlined />, label: '账户管理' },
   { key: 'subscribe', icon: <BookOutlined />, label: '订阅', disabled: true }
 ];
 
