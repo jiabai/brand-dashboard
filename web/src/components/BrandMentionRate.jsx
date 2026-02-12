@@ -44,7 +44,21 @@ const buildQueryString = (params) => {
 const fetchJson = async (url, { signal } = {}) => {
   const response = await fetch(url, { method: 'GET', signal });
   if (!response.ok) {
-    throw new Error(`请求失败(${response.status})`);
+    let detail = '';
+    try {
+      const text = await response.text();
+      if (text) {
+        try {
+          const parsed = JSON.parse(text);
+          detail = parsed?.detail ? `: ${parsed.detail}` : `: ${text}`;
+        } catch {
+          detail = `: ${text}`;
+        }
+      }
+    } catch {
+      detail = '';
+    }
+    throw new Error(`请求失败(${response.status})${detail}`);
   }
   return response.json();
 };
@@ -97,12 +111,11 @@ const BrandMentionRate = ({
       buildQueryString({
         tenant_key: tenantKey,
         job_id: jobId,
-        brand: brand || undefined,
         timeframe,
         start_date: timeframe === 'specific_day' ? date : undefined,
         end_date: timeframe === 'specific_day' ? endDate || date : undefined,
       }),
-    [tenantKey, jobId, brand, timeframe, date, endDate],
+    [tenantKey, jobId, timeframe, date, endDate],
   );
 
   const targetBrandQueryString = useMemo(

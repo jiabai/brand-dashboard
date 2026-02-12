@@ -33,7 +33,7 @@ services:
       - VITE_USE_MOCK=false
       - VITE_DEFAULT_TENANT_KEY=tn_6e1f78442bae
       - VITE_DEFAULT_JOB_ID=job_20260209_123550_e9ba00f6
-      - VITE_DEFAULT_BRAND=Quickcep
+      - VITE_DEFAULT_BRAND=QuickCEP
     depends_on:
       - api
 
