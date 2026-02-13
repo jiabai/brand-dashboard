@@ -4,7 +4,7 @@ import { LineChartOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 
 import { CONFIG } from '@/config';
-import { formatPercentage, getQueryParam, updateQueryParams } from '@/utils';
+import { formatPercentage, getQueryParam, updateQueryParams, getPlatformColor } from '@/utils';
 
 import LoadingSpinner from './LoadingSpinner';
 import EmptyState from './EmptyState';
@@ -89,27 +89,6 @@ const getRangeByTimeframe = (timeframe, dateParam) => {
     startDate: today.subtract(days - 1, 'day'),
     endDate: today,
   };
-};
-
-const PLATFORM_COLORS = {
-  chatgpt: '#2582a1',
-  gemini: '#f88c24',
-  claude: '#c52125',
-  '通义千问': '#87f4d0',
-  qwen: '#87f4d0',
-  豆包: '#a062d4',
-  deepseek: '#2582a1',
-  kimi: '#f88c24',
-  元宝: '#c52125',
-  夸克: '#87f4d0',
-  文心一言: '#a062d4',
-};
-
-const getPlatformColor = (name) => {
-  const raw = String(name || '').trim();
-  if (!raw) return '#6b7280';
-  const keyLower = raw.toLowerCase();
-  return PLATFORM_COLORS[keyLower] || PLATFORM_COLORS[raw] || '#6b7280';
 };
 
 const TrendG2Chart = React.memo(function TrendG2Chart({ data, token }) {

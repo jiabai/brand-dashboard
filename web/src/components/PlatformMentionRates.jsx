@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Card, List, Progress, Typography, Statistic, Tag, theme } from 'antd';
 import { TrophyOutlined, ArrowUpOutlined, ArrowDownOutlined } from '@ant-design/icons';
 import { CONFIG } from '@/config';
+import { getPlatformColor } from '@/utils';
 
 const { DEFAULT_TENANT_KEY, DEFAULT_JOB_ID, DEFAULT_BRAND } = CONFIG;
 
@@ -39,27 +40,6 @@ const roundTwoDecimals = (value) => {
   const num = Number(value);
   if (!Number.isFinite(num)) return 0;
   return Math.round(num * 100) / 100;
-};
-
-const PLATFORM_COLORS = {
-  chatgpt: '#2582a1',
-  gemini: '#f88c24',
-  claude: '#c52125',
-  '通义千问': '#87f4d0',
-  qwen: '#87f4d0',
-  豆包: '#a062d4',
-  deepseek: '#2582a1',
-  kimi: '#f88c24',
-  元宝: '#c52125',
-  夸克: '#87f4d0',
-  文心一言: '#a062d4',
-};
-
-const getPlatformColor = (name) => {
-  const raw = String(name || '').trim();
-  if (!raw) return '#6b7280';
-  const keyLower = raw.toLowerCase();
-  return PLATFORM_COLORS[keyLower] || PLATFORM_COLORS[raw] || '#6b7280';
 };
 
 const PlatformMentionRates = ({
@@ -145,13 +125,13 @@ const PlatformMentionRates = ({
 
   if (loading) {
     return (
-      <Card title="各平台提及率" loading />
+      <Card title={`各平台提及率 (${brand})`} loading />
     );
   }
 
   if (error) {
     return (
-      <Card title="各平台提及率">
+      <Card title={`各平台提及率 (${brand})`}>
         <Typography.Text type="danger">{error}</Typography.Text>
       </Card>
     );
@@ -159,14 +139,14 @@ const PlatformMentionRates = ({
 
   if (platforms.length === 0) {
     return (
-      <Card title="各平台提及率">
+      <Card title={`各平台提及率 (${brand})`}>
         <Typography.Text type="secondary">暂无平台数据</Typography.Text>
       </Card>
     );
   }
 
   return (
-    <Card title="各平台提及率">
+    <Card title={`各平台提及率 (${brand})`}>
       <List
         dataSource={platforms}
         renderItem={(platform, index) => (

@@ -149,6 +149,7 @@ WHERE
 - **路径**: `/api/v1/dashboard/platform-metrics-by-brand`
 - **方法**: `GET`
 - **描述**: 获取平台指标，基于`qa_brand_state`表计算
+- **应用场景**: 用于分析不同平台对品牌的提及率，位置在首页“各平台提及率”卡片
 
 ### 请求参数
 

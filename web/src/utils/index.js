@@ -30,6 +30,38 @@ export const DEFAULT_REFERENCES_DATA = [
   { rank: 8, domain: 'huggingface.co', visibility: 35.2 }
 ];
 
+// 平台颜色配置
+export const PLATFORM_COLORS = {
+  chatgpt: '#2582a1',
+  gemini: '#f88c24',
+  claude: '#c52125',
+  '通义千问': '#87f4d0',
+  qwen: '#87f4d0',
+  '豆包': '#a062d4',
+  doubao: '#a062d4',
+  deepseek: '#2582a1',
+  kimi: '#f88c24',
+  '元宝': '#c52125',
+  yuanbao: '#c52125',
+  '夸克': '#87f4d0',
+  quark: '#87f4d0',
+  '文心一言': '#a062d4',
+  ernie: '#a062d4',
+  'ernie bot': '#a062d4',
+};
+
+/**
+ * 获取平台的显示颜色
+ * @param {string} name - 平台名称
+ * @returns {string} 颜色十六进制值
+ */
+export const getPlatformColor = (name) => {
+  const raw = String(name || '').trim();
+  if (!raw) return '#6b7280';
+  const keyLower = raw.toLowerCase();
+  return PLATFORM_COLORS[keyLower] || PLATFORM_COLORS[raw] || '#6b7280';
+};
+
 // 工具函数
 export const formatPercentage = (value) => {
   const num = Number(value);
