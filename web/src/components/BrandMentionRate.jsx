@@ -398,25 +398,53 @@ const BrandMentionRate = ({
           {/* Key Rates - Circular Progress */}
           <Col span={6} style={{ display: 'flex', justifyContent: 'center' }}>
             <div style={{ textAlign: 'center' }}>
-              <Progress type="circle" percent={targetBrandData.mentionRate} size={80} strokeColor={token.colorPrimary} />
+              <Progress
+                type="circle"
+                percent={targetBrandData.mentionRate}
+                size={80}
+                strokeColor={token.colorPrimary}
+                status="normal"
+                format={(percent) => formatPercentage(percent)}
+              />
               <div style={{ marginTop: 8, fontWeight: 500 }}>总提及率</div>
             </div>
           </Col>
           <Col span={6} style={{ display: 'flex', justifyContent: 'center' }}>
             <div style={{ textAlign: 'center' }}>
-              <Progress type="circle" percent={targetBrandData.firstMentionRate} size={80} strokeColor={token.colorInfo} />
+              <Progress
+                type="circle"
+                percent={targetBrandData.firstMentionRate}
+                size={80}
+                strokeColor={token.colorInfo}
+                status="normal"
+                format={(percent) => formatPercentage(percent)}
+              />
               <div style={{ marginTop: 8, fontWeight: 500 }}>首位提及率</div>
             </div>
           </Col>
           <Col span={6} style={{ display: 'flex', justifyContent: 'center' }}>
             <div style={{ textAlign: 'center' }}>
-              <Progress type="circle" percent={targetBrandData.top3MentionRate} size={80} strokeColor={token.colorWarning} />
+              <Progress
+                type="circle"
+                percent={targetBrandData.top3MentionRate}
+                size={80}
+                strokeColor={token.colorWarning}
+                status="normal"
+                format={(percent) => formatPercentage(percent)}
+              />
               <div style={{ marginTop: 8, fontWeight: 500 }}>前3提及率</div>
             </div>
           </Col>
           <Col span={6} style={{ display: 'flex', justifyContent: 'center' }}>
             <div style={{ textAlign: 'center' }}>
-              <Progress type="circle" percent={targetBrandData.articleCitationRate} size={80} strokeColor={token.colorSuccess} />
+              <Progress
+                type="circle"
+                percent={targetBrandData.articleCitationRate}
+                size={80}
+                strokeColor={token.colorSuccess}
+                status="normal"
+                format={(percent) => formatPercentage(percent)}
+              />
               <div style={{ marginTop: 8, fontWeight: 500 }}>发文引用率</div>
             </div>
           </Col>
