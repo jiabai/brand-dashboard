@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -27,7 +27,7 @@ async def create_executor(
     executor_id = generate_executor_id()
     api_key = generate_api_key()
 
-    now = datetime.now()
+    now = datetime.now(UTC)
     query = text(
         """
         INSERT INTO executors (
@@ -90,7 +90,7 @@ async def register_executor(
     if not executor:
         raise HTTPException(
             status_code=403, 
-            detail=f"注册失败：IP {client_ip} 未被授权或未预设。请联系管理员添加此 IP。"
+            detail="注册失败：当前 IP 未被授权。请联系管理员。"
         )
 
     return ExecutorRegistrationResponse(
@@ -131,7 +131,7 @@ async def deactivate_executor(
         "UPDATE executors SET status = 'inactive', updated_at = :now "
         "WHERE executor_id = :executor_id"
     )
-    now = datetime.now()
+    now = datetime.now(UTC)
 
     result = db.execute(query, {"executor_id": executor_id, "now": now})
     db.commit()

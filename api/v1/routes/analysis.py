@@ -1,6 +1,6 @@
 """分析相关API路由."""
 
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any, Dict
 
 from fastapi import APIRouter, HTTPException
@@ -48,7 +48,7 @@ async def analyze_brand(request: AnalysisRequest):
             success=True,
             data=result,
             message="分析完成",
-            timestamp=datetime.now()
+            timestamp=datetime.now(UTC)
         )
 
     except Exception as e:
@@ -80,7 +80,7 @@ async def recognize_brand(request: BrandRecognitionRequest):
             success=True,
             data=result,
             message="品牌识别完成",
-            timestamp=datetime.now()
+            timestamp=datetime.now(UTC)
         )
         
     except Exception as e:
@@ -97,7 +97,7 @@ async def get_analysis_result(result_id: str):
             success=True,
             data={"result_id": result_id, "status": "completed"},
             message="获取结果成功",
-            timestamp=datetime.now()
+            timestamp=datetime.now(UTC)
         )
         
     except Exception as e:
@@ -119,7 +119,7 @@ async def get_analysis_history(limit: int = 10, offset: int = 0):
                 "offset": offset
             },
             "message": "获取历史记录成功",
-            "timestamp": datetime.now()
+            "timestamp": datetime.now(UTC)
         }
 
     except Exception as e:

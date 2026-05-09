@@ -12,7 +12,12 @@ from api.v1.utils.security import hash_password, sign_token, verify_password, ve
 
 
 def _get_auth_secret() -> str:
-    return os.getenv("AUTH_SECRET", "dev_secret")
+    secret = os.getenv("AUTH_SECRET")
+    if not secret:
+        if os.getenv("ENV", "development") == "production":
+            raise RuntimeError("AUTH_SECRET environment variable is required in production")
+        return "dev_secret"
+    return secret
 
 
 def _generate_tenant_key() -> str:
@@ -569,7 +574,7 @@ def authenticate_user(email: str, password: str) -> Dict[str, Any]:
         {
             "user_id": user_id,
             "type": "access",
-            "exp": int((datetime.utcnow() + timedelta(hours=12)).timestamp()),
+            "exp": int((datetime.now(UTC) + timedelta(hours=12)).timestamp()),
         },
         _get_auth_secret(),
     )

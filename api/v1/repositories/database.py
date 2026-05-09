@@ -1,5 +1,5 @@
 import os
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -21,11 +21,19 @@ load_dotenv(dotenv_path=env_path)
 logger = get_logger(__name__)
 
 # 数据库配置
+_is_production = os.getenv("ENV", "development") == "production"
+
+_db_password = os.getenv("DB_PASSWORD")
+if not _db_password:
+    if _is_production:
+        raise RuntimeError("DB_PASSWORD environment variable is required in production")
+    _db_password = "devpassword"
+
 DATABASE_CONFIG = {
     "host": os.getenv("DB_HOST", "127.0.0.1"),
     "port": int(os.getenv("DB_PORT", "3306")),
     "user": os.getenv("DB_USER", "root"),
-    "password": os.getenv("DB_PASSWORD", "devpassword"),
+    "password": _db_password,
     "database": os.getenv("DB_NAME", "geo"),
     "charset": os.getenv("DB_CHARSET", "utf8mb4"),
 }
@@ -74,7 +82,7 @@ def get_date_range(
         except ValueError as exc:
             raise ValueError('日期格式错误，应为YYYYMMDD') from exc
     else:
-        end_date = datetime.now().date()
+        end_date = datetime.now(UTC).date()
 
     if timeframe == "specific_day":
         start_date = end_date
@@ -191,7 +199,7 @@ def query_brand_mention_data(
                     "mention_count": 0,
                     "first_mention_count": 0,
                     "analysis_date": end_date.isoformat(),
-                    "last_updated": datetime.now().isoformat()
+                    "last_updated": datetime.now(UTC).isoformat()
                 }
 
             result = conn.execute(
@@ -217,7 +225,7 @@ def query_brand_mention_data(
                     "mention_count": 0,
                     "first_mention_count": 0,
                     "analysis_date": end_date.isoformat(),
-                    "last_updated": datetime.now().isoformat()
+                    "last_updated": datetime.now(UTC).isoformat()
                 }
 
             # 提取数据
@@ -299,7 +307,7 @@ def query_brand_mention_data(
                 "mention_count": mention_count,
                 "first_mention_count": first_mention_count,
                 "analysis_date": analysis_date,
-                "last_updated": datetime.now().isoformat()
+                "last_updated": datetime.now(UTC).isoformat()
             }
             
     except Exception as e:

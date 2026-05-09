@@ -1,7 +1,9 @@
 """LLM查询任务相关API路由."""
 
 import datetime
+import hmac
 import json
+from datetime import UTC
 from typing import Any, Dict, Iterable, Optional
 
 from fastapi import APIRouter, Body, Depends, Header, HTTPException, Query
@@ -18,8 +20,11 @@ from api.v1.models.schemas import (
     ReportQueryJobResponse,
 )
 from api.v1.repositories.database import get_db
+from api.v1.utils import get_logger
 
 router = APIRouter()
+
+logger = get_logger(__name__)
 
 
 def sync_query_jobs_status(db: Session):
@@ -28,7 +33,7 @@ def sync_query_jobs_status(db: Session):
     1. 0 (未生效) -> 1 (生效中): 当当前时间 >= effective_from 时。
     2. 1 (生效中) -> 3 (已失效): 当 effective_to 不为空且当前时间 > effective_to 时。
     """
-    now = datetime.datetime.now()
+    now = datetime.datetime.now(UTC)
     try:
         db.execute(
             text(
@@ -50,8 +55,7 @@ def sync_query_jobs_status(db: Session):
         db.commit()
     except Exception as e:
         db.rollback()
-        # 记录日志但不抛出异常，以免影响主流程
-        print(f"Error syncing query job statuses: {e}")
+        logger.error("Error syncing query job statuses: %s", e)
 
 async def verify_executor(
     executor_id: str = Query(..., description="执行器唯一ID"),
@@ -75,7 +79,7 @@ async def verify_executor(
     if executor.status != 'active':
         raise HTTPException(status_code=403, detail="执行器已被禁用")
 
-    if executor.api_key != x_executor_key:
+    if not hmac.compare_digest(executor.api_key, x_executor_key):
         raise HTTPException(status_code=401, detail="执行器密钥错误")
 
     return executor_id
@@ -212,7 +216,7 @@ async def report_query_job(
             ),
             {
                 "today": datetime.date.today(),
-                "now": datetime.datetime.now(),
+                "now": datetime.datetime.now(UTC),
                 "id": id
             }
         )
@@ -325,7 +329,7 @@ def iter_query_jobs(
         competitor_str = json.dumps(competitor, ensure_ascii=False)
 
     # 根据生效开始时间设置初始状态：如果开始时间在未来，则为 0 (未生效)，否则为 1 (生效中)
-    now = datetime.datetime.now()
+    now = datetime.datetime.now(UTC)
     initial_status = 1 if effective_from <= now else 0
 
     for item in content:
@@ -372,7 +376,7 @@ async def load_query_jobs(
         )
 
     try:
-        now = datetime.datetime.now()
+        now = datetime.datetime.now(UTC)
 
         # 使用 request.data (QueryJobData)
         data_dict = request.data.dict()

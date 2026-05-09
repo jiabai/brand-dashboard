@@ -10,7 +10,7 @@ import logging
 import threading
 import time
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from enum import Enum
 from typing import Any, AsyncGenerator, Dict, List, Optional, Union
 
@@ -223,7 +223,7 @@ class LLMOperator:
         with self._cache_lock:
             if cache_key in self._cache:
                 cache_time, response = self._cache[cache_key]
-                if datetime.now() - cache_time < self._cache_timeout:
+                if datetime.now(UTC) - cache_time < self._cache_timeout:
                     self.logger.debug("Cache hit for key: %s", cache_key)
                     return response
                 else:
@@ -233,7 +233,7 @@ class LLMOperator:
     def _set_cache(self, cache_key: str, response: LLMResponse):
         """设置缓存"""
         with self._cache_lock:
-            self._cache[cache_key] = (datetime.now(), response)
+            self._cache[cache_key] = (datetime.now(UTC), response)
             self.logger.debug(
                 "Cache set for key: %s",
                 cache_key
@@ -245,7 +245,7 @@ class LLMOperator:
     def _cleanup_expired_cache(self):
         """清理过期缓存"""
         with self._cache_lock:
-            current_time = datetime.now()
+            current_time = datetime.now(UTC)
             expired_keys = []
 
             # 使用list避免在迭代时修改字典
@@ -565,7 +565,7 @@ class LLMOperator:
             "provider": self._stats["provider"],
             "model": self._stats["model"],
             "base_url": self.config.base_url,
-            "timestamp": datetime.now().isoformat()
+            "timestamp": datetime.now(UTC).isoformat()
         }
 
     def clear_cache(self):
@@ -580,7 +580,7 @@ class LLMOperator:
         with self._cache_lock:
             total_entries = len(self._cache)
             expired_entries = 0
-            current_time = datetime.now()
+            current_time = datetime.now(UTC)
 
             for _, (cache_time, _) in self._cache.items():
                 if current_time - cache_time > self._cache_timeout:
@@ -637,21 +637,21 @@ class LLMOperator:
                     "provider": response.provider,
                     "model": response.model,
                     "response_time": response.response_time,
-                    "timestamp": datetime.now().isoformat()
+                    "timestamp": datetime.now(UTC).isoformat()
                 }
             else:
                 return {
                     "status": "unhealthy",
                     "provider": self.config.provider,
                     "error": response.error_message,
-                    "timestamp": datetime.now().isoformat()
+                    "timestamp": datetime.now(UTC).isoformat()
                 }
         except Exception as e:
             return {
                 "status": "error",
                 "provider": self.config.provider,
                 "error": str(e),
-                "timestamp": datetime.now().isoformat()
+                "timestamp": datetime.now(UTC).isoformat()
             }
 
     def health_check(self) -> Dict[str, Any]:
@@ -666,7 +666,7 @@ class LLMOperator:
                         "Cannot call synchronous health_check from an "
                         "asynchronous context. Use health_check_async instead."
                     ),
-                    "timestamp": datetime.now().isoformat()
+                    "timestamp": datetime.now(UTC).isoformat()
                 }
         except RuntimeError:
             pass

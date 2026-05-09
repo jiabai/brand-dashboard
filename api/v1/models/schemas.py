@@ -2,7 +2,7 @@ from datetime import date, datetime
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class AnalysisType(str, Enum):
@@ -229,3 +229,211 @@ class QueryJobStatusResponse(BaseModel):
 class ReportQueryJobResponse(BaseModel):
     success: bool = Field(..., description="是否成功")
     message: str = Field(..., description="响应消息")
+
+
+class TimeFrame(str, Enum):
+    YESTERDAY = "yesterday"
+    DAYS_7 = "7days"
+    DAYS_30 = "30days"
+    SPECIFIC_DAY = "specific_day"
+
+
+class BrandMentionRateData(BaseModel):
+    mention_rate: float = Field(..., description="品牌总提及率(百分比)")
+    rank: int = Field(..., description="品牌排名")
+    change: float = Field(..., description="与上一周期对比的变化(百分比)")
+    question_count: int = Field(..., description="问题总数")
+    mention_count: int = Field(..., description="品牌提及数量")
+    first_mention_count: int = Field(..., description="首次提及品牌数量")
+    analysis_date: str = Field(..., description="分析日期")
+    last_updated: datetime = Field(..., description="最后更新时间")
+
+
+class BrandMentionRateResponse(BaseModel):
+    status: str = Field(..., description="响应状态")
+    data: BrandMentionRateData = Field(..., description="品牌总提及率数据")
+    metadata: Dict[str, Any] = Field(..., description="元数据")
+
+
+class PlatformMentionRateData(BaseModel):
+    name: str = Field(..., description="平台名称")
+    mention_rate: float = Field(..., description="该平台上的品牌提及率(百分比)")
+    first_mention_rate: float = Field(..., description="该平台上的品牌首位提及率(百分比)")
+    color: str = Field(..., description="颜色")
+
+
+class PlatformMentionRateResponse(BaseModel):
+    status: str = Field(..., description="响应状态")
+    data: List[PlatformMentionRateData] = Field(..., description="各平台提及率数据列表")
+    metadata: Dict[str, Any] = Field(..., description="元数据")
+
+
+class KeywordPlatformBrandRateItem(BaseModel):
+    keyword: str = Field(..., description="关键词")
+    platform: str = Field(..., description="平台")
+    brand: str = Field(..., description="品牌")
+    mention_rate: float = Field(..., description="提及率(比例，0~1)")
+    first_mention_rate: float = Field(..., description="首位提及率(比例，0~1)")
+    top3_mention_rate: float = Field(..., description="前3位提及率(比例，0~1)")
+
+
+class KeywordPlatformBrandRatesResponse(BaseModel):
+    status: str = Field(..., description="响应状态")
+    data: List[KeywordPlatformBrandRateItem] = Field(..., description="数据列表")
+    metadata: Dict[str, Any] = Field(..., description="元数据")
+
+
+class BrandMentionTrendItem(BaseModel):
+    date: str = Field(..., description="日期")
+    brand: str = Field(..., description="品牌")
+    platform: str = Field(..., description="平台")
+    keyword: str = Field(..., description="关键词")
+    mention_rate: float = Field(..., description="提及率(比例，0~1)")
+
+
+class BrandMentionTrendResponse(BaseModel):
+    status: str = Field(..., description="响应状态")
+    data: List[BrandMentionTrendItem] = Field(..., description="趋势数据列表")
+    metadata: Dict[str, Any] = Field(..., description="元数据")
+
+
+class CitationUrlData(BaseModel):
+    answer_reference_url: str = Field(..., description="引用URL")
+    citation_count: int = Field(..., description="引用次数")
+    total_questions: int = Field(..., description="总提问数")
+    chinese_name: str = Field(..., description="中文名称")
+    citation_rate: float = Field(..., description="引用率(引用次数/总提问数)")
+
+
+class CitationUrlResponse(BaseModel):
+    status: str = Field(..., description="响应状态")
+    data: List[CitationUrlData] = Field(..., description="引用URL统计数据列表")
+    metadata: Dict[str, Any] = Field(..., description="元数据")
+
+
+class CitationTypeStatsSummary(BaseModel):
+    total_rows: int = Field(..., description="总条数")
+    conversations: int = Field(..., description="去重对话数")
+
+
+class CitationTypeStatsItem(BaseModel):
+    content_type: str = Field(..., description="引用类型")
+    type_pct: float = Field(..., description="引用类型占比(百分比)")
+
+
+class CitationTypeStatsResponse(BaseModel):
+    status: str = Field(..., description="响应状态")
+    summary: CitationTypeStatsSummary = Field(..., description="汇总信息")
+    citation_type_stats: List[CitationTypeStatsItem] = Field(
+        ...,
+        description="引用类型占比列表",
+    )
+    metadata: Dict[str, Any] = Field(..., description="元数据")
+
+
+class BrandMetricsItem(BaseModel):
+    brand: str = Field(..., description="品牌名称")
+    mention_rate: float = Field(..., description="品牌总提及率")
+    first_mention_rate: float = Field(..., description="首次提及品牌率")
+    top3_mention_rate: float = Field(..., description="前3次提及品牌率")
+    prompt_count: int = Field(..., description="问题总数")
+    keyword_coverage: int = Field(..., description="关键词覆盖数")
+
+
+class BrandMetricsResponse(BaseModel):
+    status: str = Field(..., description="响应状态")
+    data: List[BrandMetricsItem] = Field(..., description="品牌总指标列表")
+    metadata: Dict[str, Any] = Field(..., description="元数据")
+
+
+class AvailableDatesResponse(BaseModel):
+    status: str = Field(..., description="响应状态")
+    data: List[str] = Field(..., description="日期列表 (YYYY-MM-DD)")
+    metadata: Dict[str, Any] = Field(..., description="元数据")
+
+
+class FilterMetadataCombination(BaseModel):
+    platform: str = Field(..., description="平台名称")
+    keyword: str = Field(..., description="关键词")
+
+
+class FilterMetadataData(BaseModel):
+    platforms: List[str] = Field(..., description="平台列表（去重）")
+    keywords: List[str] = Field(..., description="关键词列表（去重）")
+    combinations: List[FilterMetadataCombination] = Field(
+        ...,
+        description="有效的平台与关键词组合列表",
+    )
+
+
+class FilterMetadataResponse(BaseModel):
+    code: int = Field(..., description="状态码")
+    message: str = Field(..., description="状态信息")
+    data: FilterMetadataData = Field(..., description="筛选元数据")
+
+
+class PlatformMetricsByBrandItem(BaseModel):
+    platform: str = Field(..., description="平台名称")
+    mention_rate: float = Field(..., description="平台提及率")
+
+
+class PlatformMetricsByBrandData(BaseModel):
+    brand: str = Field(..., description="品牌名称")
+    platforms: List[PlatformMetricsByBrandItem] = Field(..., description="平台指标列表")
+
+
+class PlatformMetricsByBrandResponse(BaseModel):
+    status: str = Field(..., description="响应状态")
+    data: PlatformMetricsByBrandData = Field(..., description="品牌平台指标数据")
+    metadata: Dict[str, Any] = Field(..., description="元数据")
+
+
+class DomainCitationRateItem(BaseModel):
+    domain: str = Field(..., description="域名")
+    chinese_name: str = Field(..., description="域名中文名称")
+    keywords: str = Field(..., description="关键词（多个以逗号分隔）")
+    content_types: str = Field(..., description="内容类型（多个以逗号分隔）")
+    platforms: str = Field(..., description="中国大模型平台（多个以逗号分隔）")
+    domain_citation_rate: float = Field(..., description="域名引用率")
+
+
+class DomainCitationRateResponse(BaseModel):
+    status: str = Field(..., description="响应状态")
+    domain_distribution: List[DomainCitationRateItem] = Field(..., description="域名引用率分布")
+    metadata: Dict[str, Any] = Field(..., description="元数据")
+
+
+class PostCitationRateData(BaseModel):
+    brand: str = Field(..., description="品牌名称")
+    citation_source_count: int = Field(..., description="引用来源数量")
+    citation_rate_by_post: float = Field(..., description="发文引用率（有发文引用的对话占比）")
+
+
+class PostCitationRateResponse(BaseModel):
+    status: str = Field(..., description="响应状态")
+    data: List[PostCitationRateData] = Field(..., description="数据列表")
+    metadata: Dict[str, Any] = Field(..., description="元数据")
+
+
+class DomainCitationSummaryItem(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    domain: str = Field(..., description="域名")
+    chinese_name: str = Field(..., description="域名中文名称")
+    citation_count: int = Field(..., description="域名引用次数")
+    keyword_coverage: int = Field(..., description="域名关键词覆盖数")
+    platform_coverage: int = Field(..., description="域名平台覆盖数")
+    domain_citation_rate: float = Field(
+        ...,
+        alias="domain-citation-rate",
+        description="域名总引用率",
+    )
+
+
+class DomainCitationSummaryResponse(BaseModel):
+    status: str = Field(..., description="响应状态")
+    domain_distribution: List[DomainCitationSummaryItem] = Field(
+        ...,
+        description="域名引用率汇总分布",
+    )
+    metadata: Dict[str, Any] = Field(..., description="元数据")

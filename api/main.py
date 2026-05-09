@@ -1,5 +1,6 @@
 """FastAPI应用主文件."""
 
+import os
 from typing import Dict
 
 from asgi_correlation_id import CorrelationIdMiddleware
@@ -42,9 +43,12 @@ app = FastAPI(
 # app.add_middleware(StructlogMiddleware)
 app.add_middleware(CorrelationIdMiddleware)
 
+_cors_origins_str = os.getenv("CORS_ORIGINS", "http://localhost:3000,http://localhost:5173")
+_cors_origins = [origin.strip() for origin in _cors_origins_str.split(",") if origin.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:5173"],  # dashboard开发服务器
+    allow_origins=_cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
