@@ -55,7 +55,7 @@ docker compose -f docker-compose.prod.yml up --build  # Production mode
 
 - **Conventional Commits**: `feat:`, `fix:`, `docs:`, etc.
 - **Pre-commit hook** runs `ruff check api` and frontend lint/test scripts
-- **Change records**: Every code commit must include an `agents_chat/YYYYMMDD-HHMMSS-topic.md` file (in Chinese) containing Summary, Code Highlights, and Self-Tests sections
+- **Change records**: Every code commit must include a record file in the appropriate `docs/` subdirectory (e.g., `docs/design-docs/`, `docs/product-specs/`, `docs/exec-plans/completed/`, `docs/references/`) in Chinese, containing Summary, Code Highlights, and Self-Tests sections
 - **Task tracking**: Use `tasks.md` with Markdown checkboxes for multi-commit work
 
 ## Environment Variables

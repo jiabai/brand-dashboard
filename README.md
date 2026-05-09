@@ -7,7 +7,6 @@ React + FastAPI 的品牌分析仪表板，前端聚焦沉浸式可视化体验�
 - `web/`：React 18 + Vite + Tailwind CSS 前端应用
 - `api/`：FastAPI 服务，提供分析与仪表板数据接口
 - `docker-compose.dev.yml` / `docker-compose.prod.yml`：本地开发与生产部署
-- `agents_chat/`：变更记录
 - `tasks.md`：任务清单
 - `AGENTS.md`：仓库规范
 
@@ -112,5 +111,5 @@ DB_CHARSET=utf8mb4
 
 - Git Hooks：提交前执行 `ruff check api` 与 `npm --prefix web run lint/test --if-present`
 - 提交信息：Conventional Commits
-- 变更记录：新增 `agents_chat/YYYYMMDD-HHMMSS-*.md`（中文）
+- 变更记录：根据变更类型在 `docs/` 对应子目录新增记录（中文）
 - 路径别名：`@` 指向 `web/src`，`@/components`、`@/lib` 等见 `web/vite.config.js`

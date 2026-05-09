@@ -53,4 +53,4 @@
 - 前端：函数组件 + hooks，PascalCase 组件名，camelCase 变量，2 空格缩进，ES modules
 - 后端：类型注解，小路由/处理器，复用 `api/v1/models/schemas.py` 的 Pydantic 模型
 - 样式：优先 Tailwind 工具类，自定义 CSS 放 `web/src/styles/`
-- 提交：Conventional Commits，每次提交更新 `agents_chat/` 记录
+- 提交：Conventional Commits，每次提交根据变更类型在 `docs/` 对应子目录创建记录

@@ -23,7 +23,7 @@
 1. 读取 `AGENTS.md` + `docs/ARCHITECTURE.md` 了解上下文
 2. 非平凡任务：写 Spec → 写 ExecPlan → 拆任务 → 实现 → 验证
 3. 轻量任务：inspect → 最小改动 → 验证
-4. 每次提交更新 `agents_chat/` 记录（中文），使用 Conventional Commits
+4. 每次提交根据变更类型在 `docs/` 对应子目录创建记录（中文），使用 Conventional Commits
 
 ## 约束机制
 
