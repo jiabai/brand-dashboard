@@ -109,3 +109,5 @@ api/.venv
 # Temporary files
 *.tmp
 *.temp
+
+.trae/
