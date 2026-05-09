@@ -95,6 +95,17 @@ def is_cli_project(root: Path) -> bool:
     return False
 
 
+def _get_actual_name(path: Path) -> str | None:
+    if not path.exists():
+        return None
+    parent = path.parent
+    target_lower = path.name.lower()
+    for entry in parent.iterdir():
+        if entry.name.lower() == target_lower:
+            return entry.name
+    return None
+
+
 def detect_version(headings: list[str]) -> str:
     if "Scope" in headings:
         return "full"
@@ -380,20 +391,27 @@ def validate_project(root: Path, min_level: Severity) -> list[ValidationResult]:
             require_constraint_mechanism=True,
         )
     )
-    if legacy_tasks_md.exists() and not tasks_md.exists():
+
+    actual_tasks_name = _get_actual_name(tasks_md)
+    actual_legacy_name = _get_actual_name(legacy_tasks_md)
+    has_legacy = actual_legacy_name == "tasks.md"
+    has_proper = actual_tasks_name == "TASKS.md"
+
+    if has_legacy and not has_proper:
         results.append(ValidationResult(
             legacy_tasks_md,
             Severity.WARN,
             "旧命名 tasks.md 已存在；请重命名为根目录 TASKS.md",
         ))
         results.extend(validate_tasks_md(legacy_tasks_md, min_level))
+    elif has_legacy and has_proper:
+        results.append(ValidationResult(
+            legacy_tasks_md,
+            Severity.WARN,
+            "旧命名 tasks.md 仍存在；根目录任务清单统一使用 TASKS.md",
+        ))
+        results.extend(validate_tasks_md(tasks_md, min_level))
     else:
-        if legacy_tasks_md.exists():
-            results.append(ValidationResult(
-                legacy_tasks_md,
-                Severity.WARN,
-                "旧命名 tasks.md 仍存在；根目录任务清单统一使用 TASKS.md",
-            ))
         results.extend(validate_tasks_md(tasks_md, min_level))
     results.extend(validate_architecture_md(architecture_md, min_level, cli_project=cli))
     results.extend(validate_docs_structure(docs_dir, min_level, cli_project=cli))
