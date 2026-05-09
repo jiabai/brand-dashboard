@@ -1,17 +1,16 @@
-# 项目任务清单（示例）
+# Tasks
 
-> 说明：用于记录复杂或跨多次提交的工作计划，使用 `[ ]` / `[x]` 表示任务状态。
+## 进行中
+- [ ] 优化品牌分析仪表板布局与响应式表现 ✅ `npm --prefix web run build` 无报错且浏览器布局正常
+- [ ] 为核心组件补充基础渲染与交互测试 ✅ `npm --prefix web test` 全部通过
 
-## 当前里程碑
+## 待办
+- [ ] 清理根目录遗留文件（findings.md、progress.md、task_plan.md） ✅ `ls findings.md progress.md task_plan.md` 均不存在
 
-- [x] 重构 API 结构，引入 v1 版本前缀并迁移相关模块
-- [x] 修正数据库 Schema 中的字段语义冲突（移除 extracted_at 的 ON UPDATE 触发器）
-- [ ] 优化品牌分析仪表板布局与响应式表现
-- [ ] 为核心组件补充基础渲染与交互测试
-- [x] 全面审查并升级文档 (移除不存在的组件引用，统一技术栈描述)
-- [x] 梳理 README，补充本地开发与部署说明
-- [x] 修正并更新环境变量：重命名 VITE_DEFAULT_USER_ID 为 VITE_DEFAULT_TENANT_KEY 并更新默认业务参数 (Job ID, Tenant Key)
-
-## 历史任务示例
-
-- [x] 搭建 Vite + React + Tailwind 项目基础结构
+## 已完成
+- [x] 重构 API 结构，引入 v1 版本前缀并迁移相关模块（2026-01-22）✅ `ruff check api` 无报错
+- [x] 修正数据库 Schema 中的字段语义冲突（2026-01-30）✅ `api/database/schema.sql` 中 extracted_at 无 ON UPDATE 触发器
+- [x] 全面审查并升级文档（2026-01-08）✅ README 和 API 文档内容一致
+- [x] 梳理 README，补充本地开发与部署说明（2026-01-08）✅ README 包含 dev/build/run 指令
+- [x] 修正并更新环境变量（2026-02-03）✅ `grep VITE_DEFAULT_TENANT_KEY web/.env*` 存在
+- [x] 规范化项目文档体系（AGENTS.md + WORKFLOW.md + TASKS.md + ARCHITECTURE.md + EXECUTION_GATES.md）（2026-05-09）✅ `python scripts/validate_agents_docs.py --level ERROR` 无 ERROR

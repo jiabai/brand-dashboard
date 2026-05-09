@@ -1,74 +1,40 @@
-# Repository Guidelines
+# Brand Dashboard AI Collaboration Rules
 
-## 1. Project Overview
+## 快速入口
 
-- Brand Analysis Dashboard with React 18 + Vite + Tailwind (frontend) and a FastAPI service (backend).
-- Frontend lives in `web/`, backend lives in `api/`; keep the codebase small, readable, and easy to extend.
-- Aim for a clean, responsive dashboard UI with minimal coupling between UI and API concerns.
+- 架构：见 `docs/ARCHITECTURE.md`
+- 完成门禁：见 `docs/EXECUTION_GATES.md`
+- 执行清单：见 `TASKS.md`（如存在，全部完成后删除）
+- 工作流：见 `WORKFLOW.md`
+- 设计规范：见 `docs/DESIGN.md`
+- 安全规范：见 `docs/SECURITY.md`
+- 执行计划：见 `docs/exec-plans/active/`
 
-## 2. Project Structure & Modules
+## 核心信念
 
-- Frontend entry: `web/src/main.jsx` (mount) and `web/src/App.jsx` (root layout).
-- Components: `web/src/components` for feature components; `web/src/components/ui` for reusable primitives.
-- Styles: global styles in `web/src/App.css` and `web/src/index.css`; feature styles in `web/src/styles/*.css`.
-- Utilities: shared helpers in `web/src/lib` (e.g. `cn.js`) and `web/src/utils`.
-- Backend entry: `api/main.py` (FastAPI app), routers in `api/routes`, schemas in `api/models`, data access in `api/repositories`, utilities in `api/utils`.
+- 前后端分离：`web/` 只管 UI，`api/` 只管数据；不跨层直接访问数据库或 DOM
+- 多租户隔离：所有业务查询必须带 `tenant_key`，数据层强制租户过滤
+- 共享工具优于手写 helper：`web/src/lib/cn.js`、`web/src/utils/`、`api/v1/utils/` 是唯一共享入口
+- 边界验证优于 YOLO 猜测：API 入参用 Pydantic 校验，前端用 Ant Design Form 校验
+- "无聊"技术优先：React 18 + Ant Design + Tailwind + FastAPI + SQLAlchemy，不引入未经评估的新库
 
-## 3. Development, Build & Test
+## 开发流程
 
-- Frontend install: `cd web && npm install` (use npm to keep `web/package-lock.json` authoritative).
-- Dev server: `npm --prefix web run dev` (default `http://localhost:3000`).
-- Build: `npm --prefix web run build` to generate `web/dist/`; preview via `npm --prefix web run preview`.
-- Backend install/run: `pip install -r api/requirements.txt` then `uvicorn api.main:app --reload --host 0.0.0.0 --port 8000`.
-- Linting: `ruff check api` for backend; `npm --prefix web run lint/test --if-present` for frontend when scripts exist.
-- When adding frontend tests, wire them via `npm --prefix web test` (Vitest + React Testing Library recommended).
+1. 读取 `AGENTS.md` + `docs/ARCHITECTURE.md` 了解上下文
+2. 非平凡任务：写 Spec → 写 ExecPlan → 拆任务 → 实现 → 验证
+3. 轻量任务：inspect → 最小改动 → 验证
+4. 每次提交更新 `agents_chat/` 记录（中文），使用 Conventional Commits
 
-## 4. Coding Style & Naming
+## 约束机制
 
-- Use function components and hooks; prefer composition over deep prop drilling.
-- Indentation: 2 spaces; ES modules only; `camelCase` for variables/functions, `PascalCase` for React components and files in `web/src/components`.
-- Prefer Tailwind utility classes for layout/spacing; keep custom CSS in `web/src/styles` or component-level `.css`.
-- Keep JSX mostly declarative; extract non-trivial logic to helpers in `web/src/utils` or `web/src/lib`.
-- Backend: keep type hints, small routers/handlers, and reuse Pydantic models from `api/models/schemas.py`.
+- 模式：`linter+agents`
+- 配置：`api/pyproject.toml`
 
-## 5. Testing Guidelines
+## 常用命令
 
-- Place frontend tests next to components (`ComponentName.test.jsx`) in `web/src/**` or in a `__tests__` folder.
-- For each new feature, add at least rendering + basic interaction tests where practical.
-- Aim to keep tests fast; avoid hitting network or external services.
-
-## 6. Git Workflow & Commit Messages
-
-- Use Conventional Commits, e.g.:
-  - `feat: add model comparison view`
-  - `fix: fix loading spinner flicker`
-  - `docs: update README for new sections`
-- Keep commits small and focused; avoid mixing refactors with feature changes.
-- Before pushing, ensure the project builds and key flows still work in the browser.
-
-## 7. Git Hooks & agents_chat Records
-
-- Husky pre-commit hook enforces that every commit touching code also updates an `agents_chat/` record.
-- `agents_chat` file naming: `agents_chat/YYYYMMDD-HHMMSS-topic.md` (UTC or local, but be consistent).
-- Each record must contain at least:
-  - `## Summary` – what changed and why.
-  - `## Code Highlights` – key files, components, or patterns.
-  - `## Self-Tests` – manual checks or commands run (e.g. `npm run dev`, `npm run build`).
-- Pre-commit runs `ruff check api` plus frontend quality scripts via `npm --prefix web run lint/test --if-present`.
-- Commit linting relies on dependencies installed in `web/` (`npm install` there before committing).
-- Language policy: `agents_chat` records should be written primarily in Chinese (Simplified), while this `AGENTS.md` file must remain English-only.
-
-## 8. Agent-Specific Instructions
-
-- Prefer minimal, targeted changes; follow existing patterns in `web/src/components`, `web/src/styles`, Tailwind, and the Vite setup; mirror backend patterns in `api/routes`/`api/models`.
-- When adding tooling (tests, linting, formatting), wire it into `package.json` scripts and document usage here or in `README.md`.
-- For every substantial change, add or update an `agents_chat` record in the same commit to keep the project auditable.
-
-## 9. tasks.md Task List Guidelines
-
-- For complex or multi-commit work, maintain `tasks.md` in the repository root.
-- Use Markdown checkboxes to represent task status, for example:
-  - `- [ ] Implement new brand trend chart component`
-  - `- [x] Add sticky GooeyNav navigation behavior`
-- Keep each item small and well-scoped (ideally completable in 1–2 commits), and update `[ ]` to `[x]` as work is finished.
-- For important milestones or scope changes, update `tasks.md` first and then start coding, so the plan stays visible to others.
+- `npm --prefix web run dev` — 启动前端开发服务器（localhost:3000）
+- `npm --prefix web run build` — 构建前端生产包
+- `uvicorn api.main:app --reload --host 0.0.0.0 --port 8000` — 启动后端 API
+- `ruff check api` — 后端代码检查
+- `python scripts/validate_agents_docs.py --level ERROR` — 文档结构验证
+- `python scripts/validate_agents_docs.py --level WARN` — 文档完整性验证
