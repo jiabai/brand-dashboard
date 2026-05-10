@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Alert, Empty, Table, Progress, Card, Tag, Space, Typography, Tooltip } from 'antd';
 import { InfoCircleOutlined } from '@ant-design/icons';
 import { CONFIG } from '@/config';
+import { buildQueryString, fetchJson } from '@/utils';
 
 const { Text } = Typography;
 const { DEFAULT_TENANT_KEY, DEFAULT_JOB_ID } = CONFIG;
@@ -9,24 +10,6 @@ const { DEFAULT_TENANT_KEY, DEFAULT_JOB_ID } = CONFIG;
 const COLUMN_WIDTH_STORAGE_KEY = 'BrandShareOfVoiceTable:columnWidths';
 const MIN_COLUMN_WIDTH = 96;
 const MAX_COLUMN_WIDTH = 720;
-
-const buildQueryString = (params) => {
-  const searchParams = new URLSearchParams();
-  Object.entries(params).forEach(([key, value]) => {
-    if (value === undefined || value === null) return;
-    if (String(value) === '') return;
-    searchParams.set(key, String(value));
-  });
-  return searchParams.toString();
-};
-
-const fetchJson = async (url, { signal } = {}) => {
-  const response = await fetch(url, { method: 'GET', signal });
-  if (!response.ok) {
-    throw new Error(`请求失败(${response.status})`);
-  }
-  return response.json();
-};
 
 const ResizableHeaderCell = ({ onResize, width, style, children, ...restProps }) => {
   const handleMouseDown = (event) => {

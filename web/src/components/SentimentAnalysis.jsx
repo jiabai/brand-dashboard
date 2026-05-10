@@ -1,30 +1,14 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Card, Divider, Flex, Tag, Typography, theme, Spin, Empty } from 'antd';
+import { Card, Flex, Typography, theme } from 'antd';
 import { SmileOutlined } from '@ant-design/icons';
-import { Hash } from 'lucide-react';
 import { Chart } from '@antv/g2';
 import { CONFIG } from '@/config';
+import { buildQueryString, fetchJson } from '@/utils';
+import KeywordSection from './KeywordSection';
 
 const { Title } = Typography;
 
 const { DEFAULT_TENANT_KEY, DEFAULT_JOB_ID } = CONFIG;
-
-const buildQueryString = (params) => {
-  const searchParams = new URLSearchParams();
-  Object.entries(params).forEach(([key, value]) => {
-    if (value === undefined || value === null || value === '') return;
-    searchParams.set(key, String(value));
-  });
-  return searchParams.toString();
-};
-
-const fetchJson = async (url, { signal } = {}) => {
-  const response = await fetch(url, { method: 'GET', signal });
-  if (!response.ok) {
-    throw new Error(`请求失败(${response.status})`);
-  }
-  return response.json();
-};
 
 const MOCK_SENTIMENT = [
   { name: '正面', value: 600 },
@@ -50,69 +34,6 @@ const MOCK_DETAILS = Array.from({ length: 10 }).map((_, i) => ({
   platform: ['小红书', '微博', '抖音', '知乎', '京东'][i % 5],
   date: '2025-09-16',
 }));
-
-const KeywordSection = ({ keywords = [], loading = false, style }) => {
-  const { token } = theme.useToken();
-  const [selectedKeyword, setSelectedKeyword] = useState(null);
-
-  return (
-    <Card
-      bordered={false}
-      styles={{ body: { padding: token.paddingLG, display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 } }}
-      style={{ boxShadow: token.boxShadowTertiary, borderRadius: token.borderRadiusLG, display: 'flex', flexDirection: 'column', ...style }}
-    >
-      <Spin spinning={loading}>
-        <Flex vertical gap="middle" style={{ flex: 1 }}>
-          <Flex align="center" gap="small">
-            <Hash size={20} color={token.colorPrimary} />
-            <Title level={4} style={{ margin: 0, fontWeight: 700 }}>品牌关键词</Title>
-            {selectedKeyword ? (
-              <Tag
-                closable
-                onClose={() => setSelectedKeyword(null)}
-                color="processing"
-                style={{ marginLeft: token.marginSM }}
-              >
-                已选: {selectedKeyword}
-              </Tag>
-            ) : null}
-          </Flex>
-
-          <Divider style={{ margin: '4px 0' }} />
-
-          {keywords.length > 0 ? (
-            <Flex wrap="wrap" gap="small">
-              {keywords.map((kw) => {
-                const isSelected = selectedKeyword === kw;
-                return (
-                  <Tag
-                    key={kw}
-                    bordered={false}
-                    onClick={() => setSelectedKeyword(isSelected ? null : kw)}
-                    style={{
-                      borderRadius: token.borderRadiusLG,
-                      backgroundColor: isSelected ? token.colorPrimary : token.colorFillTertiary,
-                      color: isSelected ? '#fff' : token.colorTextDescription,
-                      padding: '4px 12px',
-                      cursor: 'pointer',
-                      transition: 'all 0.3s',
-                      margin: 0,
-                    }}
-                    className={!isSelected ? 'hover:bg-blue-50 hover:text-blue-600' : ''}
-                  >
-                    {kw}
-                  </Tag>
-                );
-              })}
-            </Flex>
-          ) : !loading && (
-            <Empty description="暂无关键词" image={Empty.PRESENTED_IMAGE_SIMPLE} />
-          )}
-        </Flex>
-      </Spin>
-    </Card>
-  );
-};
 
 const SentimentDonutChart = ({ containerRef }) => {
   const { token } = theme.useToken();

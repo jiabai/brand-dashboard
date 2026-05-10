@@ -7,7 +7,7 @@ import TaskName from './components/TaskName.jsx';
 import Sidebar from './components/Sidebar.jsx';
 
 import { CONFIG } from './config';
-import { getQueryParam, updateQueryParams } from './utils';
+import { fetchJson, getQueryParam, updateQueryParams } from './utils';
 
 const BrandMentionRate = React.lazy(() => import('./components/BrandMentionRate.jsx'));
 const PlatformMentionRates = React.lazy(() => import('./components/PlatformMentionRates.jsx'));
@@ -181,14 +181,10 @@ function Dashboard() {
       params.set('job_id', jobId);
     }
     const run = async () => {
-      const response = await fetch(`/api/v1/dashboard/available-dates?${params.toString()}`, {
-        method: 'GET',
-        signal: controller.signal,
-      });
-      if (!response.ok) {
-        throw new Error(`请求失败(${response.status})`);
-      }
-      const result = await response.json();
+      const result = await fetchJson(
+        `/api/v1/dashboard/available-dates?${params.toString()}`,
+        { signal: controller.signal },
+      );
       const list = Array.isArray(result?.data) ? result.data : [];
       const normalized = list
         .map((item) => normalizeAvailableDate(item))
@@ -320,7 +316,13 @@ function Dashboard() {
             <Spin spinning={isLoading}>
               {selectedPlatform ? (
                 <PlatformDetail 
-                  platformName={selectedPlatform} 
+                  platformName={selectedPlatform}
+                  tenantKey={tenantKey}
+                  jobId={jobId}
+                  brand={brand}
+                  timeframe={selectedFilter}
+                  startDate={startDateParam}
+                  endDate={endDateParam}
                   onBack={handleBackFromPlatform} 
                 />
               ) : (

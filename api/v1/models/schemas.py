@@ -96,6 +96,16 @@ class ConsumerQuestionsRequest(BaseModel):
     keywords: List[str] = Field(..., description="关键词列表")
 
 
+class PositioningKeywordsResponse(BaseModel):
+    keywords: List[str] = Field(..., description="定位关键词列表")
+    source: str = Field(..., description="数据来源: llm 或 fallback")
+
+
+class ConsumerQuestionsResponse(BaseModel):
+    questions: Dict[str, List[str]] = Field(..., description="关键词到问题列表的映射")
+    source: str = Field(..., description="数据来源: llm 或 fallback")
+
+
 class QueryContentItem(BaseModel):
     keyword: str = Field(..., min_length=1, description="关键词")
     query_content: List[str] = Field(..., min_items=1, description="查询内容列表")

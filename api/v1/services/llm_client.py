@@ -101,60 +101,54 @@ CONSUMER_QUESTIONS_PROMPT_TEMPLATE = (
 """
 ).strip()
 
-async def generate_positioning_keywords(industry: str, brand: str) -> List[str]:
+async def generate_positioning_keywords(industry: str, brand: str) -> tuple[List[str], str]:
     """
     生成品牌定位关键词
-    
+
     Args:
         industry: 行业名称
         brand: 品牌名称
-        
+
     Returns:
-        List[str]: 包含5个定位关键词的列表
+        tuple: (关键词列表, 数据来源 "llm" 或 "fallback")
     """
     settings = _load_llm_settings()
     operator = _create_llm_operator(settings)
 
-    # 尝试使用 LLMOperator 生成
     if operator:
         try:
             prompt = POSITIONING_KEYWORDS_PROMPT_TEMPLATE.format(brand=brand)
             messages = [{"role": "user", "content": prompt}]
 
-            # 调用 LLM
             response = await operator.chat_completion_async(messages=messages)
 
-            # 处理响应
             if isinstance(response, LLMResponse) and response.content:
                 content = _clean_json_content(response.content)
                 parsed = json.loads(content)
 
                 if isinstance(parsed, list):
-                    # 确保所有元素都是字符串
                     result = [str(x) for x in parsed][:5]
-                    # 如果结果不足5个，用空字符串补齐（虽然prompt要求5个）
                     while len(result) < 5:
                         result.append("")
-                    return result
+                    return result, "llm"
 
         except Exception as e:
             logger.warning("Failed to generate keywords using LLM", error=str(e))
-            # 继续执行回退逻辑
 
-    # 回退方案：基于输入返回通用占位关键词，保持顺序与规格
     safe_brand = brand.strip() or "品牌"
     safe_industry = industry.strip() or "行业"
-    return [
+    fallback = [
         f"{safe_industry}核心功能",
         "服务体验",
         f"{safe_industry}赛道",
         "核心价值",
         f"{safe_brand}受众",
     ]
+    return fallback, "fallback"
 
 async def generate_consumer_questions(
     industry: str, brand: str, keywords: List[str]
-) -> Dict[str, List[str]]:
+) -> tuple[Dict[str, List[str]], str]:
     """
     生成消费者问题
 
@@ -164,12 +158,11 @@ async def generate_consumer_questions(
         keywords: 关键词列表
 
     Returns:
-        Dict[str, List[str]]: 关键词到问题列表的映射
+        tuple: (关键词到问题列表的映射, 数据来源 "llm" 或 "fallback")
     """
     settings = _load_llm_settings()
     operator = _create_llm_operator(settings)
 
-    # 尝试使用 LLMOperator 生成
     if operator:
         try:
             prompt = CONSUMER_QUESTIONS_PROMPT_TEMPLATE.format(
@@ -179,29 +172,24 @@ async def generate_consumer_questions(
             )
             messages = [{"role": "user", "content": prompt}]
 
-            # 调用 LLM
             response = await operator.chat_completion_async(messages=messages)
 
-            # 处理响应
             if isinstance(response, LLMResponse) and response.content:
                 content = _clean_json_content(response.content)
                 parsed = json.loads(content)
 
                 if isinstance(parsed, dict):
-                    # 确保所有值都是字符串列表
                     result = {}
                     for keyword, questions in parsed.items():
                         if isinstance(questions, list):
                             result[keyword] = [str(x) for x in questions]
                         else:
                             result[keyword] = []
-                    return result
+                    return result, "llm"
 
         except Exception as e:
             logger.warning("Failed to generate consumer questions using LLM", error=str(e))
-            # 继续执行回退逻辑
 
-    # 回退方案
     result = {}
     for keyword in keywords:
         result[keyword] = [
@@ -209,4 +197,4 @@ async def generate_consumer_questions(
             f"{keyword}方面有什么特别之处吗？",
             f"与其他品牌相比，{keyword}表现怎样？"
         ]
-    return result
+    return result, "fallback"

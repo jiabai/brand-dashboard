@@ -1,6 +1,7 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
+from sqlalchemy import Engine
 
 from api.v1.repositories.auth import (
     activate_admin_account,
@@ -9,6 +10,7 @@ from api.v1.repositories.auth import (
     register_employee,
     verify_invite_code,
 )
+from api.v1.repositories.connection import get_engine
 
 router = APIRouter()
 
@@ -55,9 +57,9 @@ class LoginRequest(BaseModel):
 
 
 @router.post("/platform/tenants")
-def create_tenant(request: TenantCreateRequest):
+def create_tenant(request: TenantCreateRequest, engine: Engine = Depends(get_engine)):
     try:
-        result = create_tenant_with_admin(request.model_dump())
+        result = create_tenant_with_admin(engine, request.model_dump())
     except ValueError as exc:
         return JSONResponse(
             status_code=400,
@@ -67,14 +69,14 @@ def create_tenant(request: TenantCreateRequest):
 
 
 @router.post("/public/auth/activate")
-def activate_admin(request: ActivationRequest):
+def activate_admin(request: ActivationRequest, engine: Engine = Depends(get_engine)):
     if request.password != request.confirmPassword:
         return JSONResponse(
             status_code=400,
             content={"status": "error", "message": "两次密码不一致", "code": 400},
         )
     try:
-        result = activate_admin_account(request.token, request.password)
+        result = activate_admin_account(engine, request.token, request.password)
     except ValueError as exc:
         return JSONResponse(
             status_code=400,
@@ -84,9 +86,11 @@ def activate_admin(request: ActivationRequest):
 
 
 @router.post("/public/users/verify-invite-code")
-def verify_invite_code_handler(request: VerifyInviteCodeRequest):
+def verify_invite_code_handler(
+    request: VerifyInviteCodeRequest, engine: Engine = Depends(get_engine)
+):
     try:
-        result = verify_invite_code(request.code)
+        result = verify_invite_code(engine, request.code)
     except ValueError as exc:
         return JSONResponse(
             status_code=400,
@@ -96,9 +100,11 @@ def verify_invite_code_handler(request: VerifyInviteCodeRequest):
 
 
 @router.post("/public/users/register")
-def register_employee_handler(request: RegisterEmployeeRequest):
+def register_employee_handler(
+    request: RegisterEmployeeRequest, engine: Engine = Depends(get_engine)
+):
     try:
-        result = register_employee(request.model_dump())
+        result = register_employee(engine, request.model_dump())
     except ValueError as exc:
         return JSONResponse(
             status_code=400,
@@ -108,9 +114,9 @@ def register_employee_handler(request: RegisterEmployeeRequest):
 
 
 @router.post("/public/auth/login")
-def login_handler(request: LoginRequest):
+def login_handler(request: LoginRequest, engine: Engine = Depends(get_engine)):
     try:
-        result = authenticate_user(request.email, request.password)
+        result = authenticate_user(engine, request.email, request.password)
     except ValueError as exc:
         return JSONResponse(
             status_code=400,

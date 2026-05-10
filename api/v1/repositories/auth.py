@@ -5,9 +5,8 @@ from datetime import UTC, datetime, timedelta
 from typing import Any, Dict, List
 from urllib.parse import urlparse
 
-from sqlalchemy import text
+from sqlalchemy import Engine, text
 
-from api.v1.repositories.database import engine
 from api.v1.utils.security import hash_password, sign_token, verify_password, verify_token
 
 
@@ -45,7 +44,7 @@ def _build_tenant_base_url(subdomain: str | None) -> str:
     return f"{scheme}://{tenant_host}"
 
 
-def create_tenant_with_admin(payload: Dict[str, Any]) -> Dict[str, Any]:
+def create_tenant_with_admin(engine: Engine, payload: Dict[str, Any]) -> Dict[str, Any]:
     tenant_name = payload["tenantName"]
     admin_email = payload["adminEmail"]
     preferred_subdomain = payload.get("preferredSubdomain")
@@ -292,7 +291,7 @@ def create_tenant_with_admin(payload: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
-def activate_admin_account(token: str, password: str) -> Dict[str, Any]:
+def activate_admin_account(engine: Engine, token: str, password: str) -> Dict[str, Any]:
     payload = verify_token(token, _get_auth_secret())
     if payload.get("type") != "activation":
         raise ValueError("无效的激活令牌")
@@ -352,7 +351,7 @@ def activate_admin_account(token: str, password: str) -> Dict[str, Any]:
     }
 
 
-def verify_invite_code(code: str) -> Dict[str, Any]:
+def verify_invite_code(engine: Engine, code: str) -> Dict[str, Any]:
     now = datetime.now(UTC)
     with engine.connect() as conn:
         row = conn.execute(
@@ -389,7 +388,7 @@ def verify_invite_code(code: str) -> Dict[str, Any]:
     }
 
 
-def register_employee(payload: Dict[str, Any]) -> Dict[str, Any]:
+def register_employee(engine: Engine, payload: Dict[str, Any]) -> Dict[str, Any]:
     now = datetime.now(UTC)
     code = payload["inviteCode"]
     email = payload["email"]
@@ -537,7 +536,7 @@ def register_employee(payload: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
-def authenticate_user(email: str, password: str) -> Dict[str, Any]:
+def authenticate_user(engine: Engine, email: str, password: str) -> Dict[str, Any]:
     with engine.begin() as conn:
         user_row = conn.execute(
             text(

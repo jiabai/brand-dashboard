@@ -1,22 +1,68 @@
-import React, { useMemo } from 'react';
-import { Card, Table, Typography, Button, Tag, Progress, theme } from 'antd';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Card, Table, Typography, Button, Tag, Progress, Spin, theme } from 'antd';
 import { ArrowLeftOutlined } from '@ant-design/icons';
-import { formatPercentage } from '../utils';
+import { fetchJson, formatPercentage } from '../utils';
+import { buildQueryString } from '../utils';
 
-const PlatformDetail = ({ platformName, onBack }) => {
+const PlatformDetail = ({
+  platformName,
+  tenantKey,
+  jobId,
+  brand,
+  timeframe,
+  startDate,
+  endDate,
+  onBack,
+}) => {
   const { token } = theme.useToken();
+  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState([]);
 
-  const data = useMemo(() => {
-    return [
-      { rank: 1, name: "海尔", mentionRate: 85.5, firstMentionRate: 45.2 },
-      { rank: 2, name: "美的", mentionRate: 78.3, firstMentionRate: 40.1 },
-      { rank: 3, name: "格力", mentionRate: 72.1, firstMentionRate: 35.5 },
-      { rank: 4, name: "西门子", mentionRate: 65.8, firstMentionRate: 32.0 },
-      { rank: 5, name: "松下", mentionRate: 58.2, firstMentionRate: 28.5 },
-      { rank: 6, name: "小米", mentionRate: 45.0, firstMentionRate: 20.1 },
-      { rank: 7, name: "TCL", mentionRate: 32.5, firstMentionRate: 15.3 },
-    ];
-  }, [platformName]);
+  useEffect(() => {
+    let cancelled = false;
+    const controller = new AbortController();
+
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        const queryString = buildQueryString({
+          tenant_key: tenantKey,
+          job_id: jobId,
+          brand,
+          timeframe,
+          start_date: startDate,
+          end_date: endDate,
+          platform: platformName,
+        });
+        const result = await fetchJson(
+          `/api/v1/dashboard/brand-metrics?${queryString}`,
+          { signal: controller.signal },
+        );
+        if (cancelled) return;
+        const list = Array.isArray(result?.data) ? result.data : [];
+        const sorted = [...list]
+          .sort((a, b) => (b.mention_rate || 0) - (a.mention_rate || 0))
+          .map((item, index) => ({
+            rank: index + 1,
+            name: item.brand,
+            mentionRate: item.mention_rate,
+            firstMentionRate: item.first_mention_rate,
+          }));
+        setData(sorted);
+      } catch (err) {
+        if (cancelled || err.name === 'AbortError') return;
+        setData([]);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    fetchData();
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
+  }, [platformName, tenantKey, jobId, brand, timeframe, startDate, endDate]);
 
   const columns = useMemo(() => {
     return [
@@ -66,12 +112,12 @@ const PlatformDetail = ({ platformName, onBack }) => {
   }, [token.colorInfo, token.colorPrimary]);
 
   return (
-    <Card 
+    <Card
       title={
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <Button 
-            type="text" 
-            icon={<ArrowLeftOutlined />} 
+          <Button
+            type="text"
+            icon={<ArrowLeftOutlined />}
             onClick={onBack}
           />
           <span>{platformName} - 品牌提及率排名</span>
@@ -79,12 +125,14 @@ const PlatformDetail = ({ platformName, onBack }) => {
       }
       style={{ height: '100%' }}
     >
-      <Table 
-        dataSource={data} 
-        columns={columns} 
-        pagination={false} 
-        rowKey="name"
-      />
+      <Spin spinning={loading}>
+        <Table
+          dataSource={data}
+          columns={columns}
+          pagination={false}
+          rowKey="name"
+        />
+      </Spin>
     </Card>
   );
 };

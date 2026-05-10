@@ -15,7 +15,7 @@ import {
 import { MinusCircleOutlined, PlusOutlined, UploadOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { CONFIG } from '../config';
-import { getQueryParam, updateQueryParams } from '../utils';
+import { getQueryParam, postJson, updateQueryParams } from '../utils';
 import SubmissionSuccess from './SubmissionSuccess';
 
 const { Title, Text } = Typography;
@@ -47,17 +47,14 @@ const CreateQueryJob = ({ tenantKey: propTenantKey, onNavigate }) => {
         executed_runs: values.executed_runs || 0,
       };
 
-      const response = await fetch(`/api/v1/query-jobs/load`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      });
+      let data;
+      try {
+        data = await postJson('/api/v1/query-jobs/load', payload);
+      } catch (err) {
+        data = { success: false, message: err.message };
+      }
 
-      const data = await response.json();
-
-      if (response.ok && data.success) {
+      if (data.success) {
         messageApi.success(data.message || '任务加载成功');
         setResult({ ...data, job_id: payload.job_id });
         form.resetFields();

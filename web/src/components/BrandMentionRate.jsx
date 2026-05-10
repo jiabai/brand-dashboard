@@ -23,7 +23,7 @@ import {
 } from '@ant-design/icons';
 
 // Utilities
-import { formatPercentage } from '@/utils';
+import { formatPercentage, buildQueryString, fetchJson, toPercent, clampPercent, roundTwoDecimals } from '@/utils';
 import { CONFIG } from '@/config';
 
 // Components
@@ -32,60 +32,6 @@ import EmptyState from './EmptyState';
 
 const { DEFAULT_TENANT_KEY, DEFAULT_JOB_ID, DEFAULT_BRAND } = CONFIG;
 
-const buildQueryString = (params) => {
-  const searchParams = new URLSearchParams();
-  Object.entries(params).forEach(([key, value]) => {
-    if (value === undefined || value === null) return;
-    searchParams.set(key, String(value));
-  });
-  return searchParams.toString();
-};
-
-const fetchJson = async (url, { signal } = {}) => {
-  const response = await fetch(url, { method: 'GET', signal });
-  if (!response.ok) {
-    let detail = '';
-    try {
-      const text = await response.text();
-      if (text) {
-        try {
-          const parsed = JSON.parse(text);
-          detail = parsed?.detail ? `: ${parsed.detail}` : `: ${text}`;
-        } catch {
-          detail = `: ${text}`;
-        }
-      }
-    } catch {
-      detail = '';
-    }
-    throw new Error(`请求失败(${response.status})${detail}`);
-  }
-  return response.json();
-};
-
-const toPercent = (value) => {
-  const num = Number(value);
-  if (!Number.isFinite(num)) return 0;
-  // 统一处理：如果是小数形式（<=1）则乘以100，否则直接返回
-  // 注意：1.0 也是 100%
-  return num <= 1 ? num * 100 : num;
-};
-
-const clampPercent = (value) => {
-  const num = Number(value);
-  if (!Number.isFinite(num)) return 0;
-  return Math.max(0, Math.min(100, num));
-};
-
-const roundTwoDecimals = (value) => {
-  const num = Number(value);
-  if (!Number.isFinite(num)) return 0;
-  return Math.round(num * 100) / 100;
-};
-
-/**
- * BrandMentionRate component
- */
 const BrandMentionRate = ({
   timeframe = '7days',
   date = '',

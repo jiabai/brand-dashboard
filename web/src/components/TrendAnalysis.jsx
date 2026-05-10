@@ -4,92 +4,26 @@ import { LineChartOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 
 import { CONFIG } from '@/config';
-import { formatPercentage, getQueryParam, updateQueryParams, getPlatformColor } from '@/utils';
+import {
+  formatPercentage,
+  getQueryParam,
+  updateQueryParams,
+  getPlatformColor,
+  buildQueryString,
+  fetchJson,
+  toPercent,
+  toFraction,
+  roundTwoDecimals,
+  parseDateInput,
+  formatDateParam,
+  formatDateDisplay,
+  getRangeByTimeframe,
+} from '@/utils';
 
 import LoadingSpinner from './LoadingSpinner';
 import EmptyState from './EmptyState';
 
 const { DEFAULT_TENANT_KEY, DEFAULT_JOB_ID, DEFAULT_BRAND } = CONFIG;
-
-const buildQueryString = (params) => {
-  const searchParams = new URLSearchParams();
-  Object.entries(params).forEach(([key, value]) => {
-    if (value === undefined || value === null) return;
-    if (String(value).trim() === '') return;
-    searchParams.set(key, String(value));
-  });
-  return searchParams.toString();
-};
-
-const fetchJson = async (url, { signal } = {}) => {
-  const response = await fetch(url, { method: 'GET', signal });
-  if (!response.ok) {
-    throw new Error(`请求失败(${response.status})`);
-  }
-  return response.json();
-};
-
-const toPercent = (value) => {
-  const num = Number(value);
-  if (!Number.isFinite(num)) return 0;
-  return num <= 1 ? num * 100 : num;
-};
-
-const toFraction = (value) => {
-  const num = Number(value);
-  if (!Number.isFinite(num)) return 0;
-  if (num <= 1) return num;
-  return num / 100;
-};
-
-const roundTwoDecimals = (value) => {
-  const num = Number(value);
-  if (!Number.isFinite(num)) return 0;
-  return Math.round(num * 100) / 100;
-};
-
-const parseDateInput = (value) => {
-  if (!value) return null;
-  const text = String(value);
-  if (/^\d{8}$/.test(text)) {
-    const parsed = dayjs(text, 'YYYYMMDD');
-    return parsed.isValid() ? parsed : null;
-  }
-  const parsed = dayjs(text);
-  return parsed.isValid() ? parsed : null;
-};
-
-const formatDateParam = (value) => {
-  if (!value) return '';
-  const parsed = dayjs.isDayjs(value) ? value : dayjs(value);
-  if (!parsed.isValid()) return '';
-  return parsed.format('YYYYMMDD');
-};
-
-const formatDateDisplay = (value) => {
-  if (!value) return '';
-  const parsed = dayjs.isDayjs(value) ? value : dayjs(value);
-  if (!parsed.isValid()) return '';
-  return parsed.format('YYYY-MM-DD');
-};
-
-const getRangeByTimeframe = (timeframe, dateParam) => {
-  const today = dayjs();
-  if (timeframe === 'yesterday') {
-    const yesterday = today.subtract(1, 'day');
-    return { startDate: yesterday, endDate: yesterday };
-  }
-  if (timeframe === 'specific_day') {
-    const parsed = parseDateInput(dateParam);
-    const day = parsed || today;
-    return { startDate: day, endDate: day };
-  }
-  const days = timeframe === '30days' ? 30 : 7;
-  return {
-    startDate: today.subtract(days - 1, 'day'),
-    endDate: today,
-  };
-};
 
 const TrendG2Chart = React.memo(function TrendG2Chart({ data, token }) {
   const containerRef = useRef(null);

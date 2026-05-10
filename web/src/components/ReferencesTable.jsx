@@ -7,30 +7,11 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Button, Card, Empty, Table, Typography } from 'antd';
 import { CONFIG } from '@/config';
 import { buildDomainCitationQueryString } from '@/utils/domainCitationQuery';
+import { fetchJson, clampPercent, roundTwoDecimals } from '@/utils';
 
 const { DEFAULT_TENANT_KEY, DEFAULT_JOB_ID, DEFAULT_BRAND } = CONFIG;
 
 const MIN_COLUMN_WIDTH = 80;
-
-const fetchJson = async (url, { signal } = {}) => {
-  const response = await fetch(url, { method: 'GET', signal });
-  if (!response.ok) {
-    throw new Error(`请求失败(${response.status})`);
-  }
-  return response.json();
-};
-
-const clampPercent = (value) => {
-  const num = Number(value);
-  if (!Number.isFinite(num)) return 0;
-  return Math.max(0, Math.min(100, num));
-};
-
-const roundTwoDecimals = (value) => {
-  const num = Number(value);
-  if (!Number.isFinite(num)) return 0;
-  return Math.round(num * 100) / 100;
-};
 
 const ResizableHeaderCell = ({ onResize, width, children, ...restProps }) => {
   if (!width) {

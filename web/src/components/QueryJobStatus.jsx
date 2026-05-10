@@ -23,7 +23,7 @@ import {
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { CONFIG } from '../config';
-import { getQueryParam, updateQueryParams } from '../utils';
+import { fetchJson, getQueryParam, updateQueryParams } from '../utils';
 
 const { Title, Text } = Typography;
 
@@ -65,12 +65,13 @@ const QueryJobStatus = ({ tenantKey: propTenantKey }) => {
         params.set('job_id', selectedJobId);
       }
 
-      const response = await fetch(`/api/v1/query-jobs/status?${params}`);
-      if (!response.ok) {
+      let result;
+      try {
+        result = await fetchJson(`/api/v1/query-jobs/status?${params}`);
+      } catch {
         message.error('查询失败');
         return;
       }
-      const result = await response.json();
 
       if (result?.success) {
         const jobs = Array.isArray(result.jobs) ? result.jobs : [];

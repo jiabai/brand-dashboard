@@ -29,17 +29,9 @@ import {
   UserOutlined
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
+import { postJson } from '../utils';
 
 const { Title, Text } = Typography;
-
-const requestJson = async (url, options = {}) => {
-  const response = await fetch(url, options);
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok || data?.status === 'error') {
-    throw new Error(data?.message || `请求失败(${response.status})`);
-  }
-  return data;
-};
 
 const AccountManagement = () => {
   const [messageApi, contextHolder] = message.useMessage();
@@ -76,11 +68,7 @@ const AccountManagement = () => {
           ? dayjs(values.contractEndDate).format('YYYY-MM-DD')
           : undefined,
       };
-      const result = await requestJson('/api/v1/platform/tenants', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
+      const result = await postJson('/api/v1/platform/tenants', payload);
       messageApi.success(result?.message || '租户创建成功');
       pushResponse('租户开通', 'success', result);
     } catch (error) {
@@ -94,11 +82,7 @@ const AccountManagement = () => {
   const handleActivateAdmin = async (values) => {
     setLoading('activate', true);
     try {
-      const result = await requestJson('/api/v1/public/auth/activate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(values),
-      });
+      const result = await postJson('/api/v1/public/auth/activate', values);
       messageApi.success(result?.message || '账号激活成功');
       pushResponse('管理员激活', 'success', result);
     } catch (error) {
@@ -112,11 +96,7 @@ const AccountManagement = () => {
   const handleVerifyInviteCode = async (values) => {
     setLoading('verify', true);
     try {
-      const result = await requestJson('/api/v1/public/users/verify-invite-code', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(values),
-      });
+      const result = await postJson('/api/v1/public/users/verify-invite-code', values);
       messageApi.success(result?.message || '邀请码有效');
       pushResponse('邀请码核验', 'success', result);
     } catch (error) {
@@ -130,11 +110,7 @@ const AccountManagement = () => {
   const handleRegisterEmployee = async (values) => {
     setLoading('register', true);
     try {
-      const result = await requestJson('/api/v1/public/users/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(values),
-      });
+      const result = await postJson('/api/v1/public/users/register', values);
       messageApi.success(result?.message || '注册成功');
       pushResponse('员工注册', 'success', result);
     } catch (error) {
@@ -148,11 +124,7 @@ const AccountManagement = () => {
   const handleLogin = async (values) => {
     setLoading('login', true);
     try {
-      const result = await requestJson('/api/v1/public/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(values),
-      });
+      const result = await postJson('/api/v1/public/auth/login', values);
       messageApi.success(result?.message || '登录成功');
       pushResponse('账户登录', 'success', result);
     } catch (error) {

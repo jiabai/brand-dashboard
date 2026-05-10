@@ -13,95 +13,22 @@ import {
 } from 'lucide-react';
 import { CONFIG } from '@/config';
 import { normalizeCitationTypeStats } from '@/utils/sourceAnalysis';
+import {
+  buildQueryString,
+  fetchJson,
+  clampPercent,
+  roundTwoDecimals,
+  normalizeListValue,
+  parseDateInput,
+  formatDateParam,
+  formatDateDisplay,
+  getRangeByTimeframe,
+} from '@/utils';
+import KeywordSection from './KeywordSection';
 
 const { Title, Text } = Typography;
 
 const { DEFAULT_TENANT_KEY, DEFAULT_JOB_ID, DEFAULT_BRAND } = CONFIG;
-
-// --- Helpers ---
-
-const parseDateInput = (value) => {
-  if (!value) return null;
-  const text = String(value);
-  if (/^\d{8}$/.test(text)) {
-    const parsed = dayjs(text, 'YYYYMMDD');
-    return parsed.isValid() ? parsed : null;
-  }
-  const parsed = dayjs(text);
-  return parsed.isValid() ? parsed : null;
-};
-
-const formatDateDisplay = (value) => {
-  if (!value) return '';
-  const parsed = dayjs.isDayjs(value) ? value : dayjs(value);
-  if (!parsed.isValid()) return '';
-  return parsed.format('YYYY-MM-DD');
-};
-
-const formatDateParam = (value) => {
-  if (!value) return '';
-  const parsed = dayjs.isDayjs(value) ? value : dayjs(value);
-  if (!parsed.isValid()) return '';
-  return parsed.format('YYYYMMDD');
-};
-
-const getRangeByTimeframe = (timeframe, dateParam) => {
-  const today = dayjs();
-  if (timeframe === 'yesterday') {
-    const yesterday = today.subtract(1, 'day');
-    return { startDate: yesterday, endDate: yesterday };
-  }
-  if (timeframe === 'specific_day') {
-    const parsed = parseDateInput(dateParam);
-    const day = parsed || today;
-    return { startDate: day, endDate: day };
-  }
-  const days = timeframe === '30days' ? 30 : 7;
-  return {
-    startDate: today.subtract(days - 1, 'day'),
-    endDate: today,
-  };
-};
-
-const buildQueryString = (params) => {
-  const searchParams = new URLSearchParams();
-  Object.entries(params).forEach(([key, value]) => {
-    if (value === undefined || value === null || value === '') return;
-    searchParams.set(key, String(value));
-  });
-  return searchParams.toString();
-};
-
-const fetchJson = async (url, { signal } = {}) => {
-  const response = await fetch(url, { method: 'GET', signal });
-  if (!response.ok) {
-    throw new Error(`请求失败(${response.status})`);
-  }
-  return response.json();
-};
-
-const clampPercent = (value) => {
-  const num = Number(value);
-  if (!Number.isFinite(num)) return 0;
-  return Math.max(0, Math.min(100, num));
-};
-
-const roundTwoDecimals = (value) => {
-  const num = Number(value);
-  if (!Number.isFinite(num)) return 0;
-  return Math.round(num * 100) / 100;
-};
-
-const normalizeListValue = (value) => {
-  if (Array.isArray(value)) {
-    return value.map((item) => String(item || '').trim()).filter(Boolean);
-  }
-  const text = String(value || '');
-  return text
-    .split(',')
-    .map((item) => item.trim())
-    .filter(Boolean);
-};
 
 const buildSourceUrl = (domain) => {
   if (!domain) return '';
@@ -111,70 +38,6 @@ const buildSourceUrl = (domain) => {
     return text;
   }
   return `https://${text}`;
-};
-
-// --- Components ---
-
-const KeywordSection = ({ keywords = [], loading = false, selectedKeyword, onKeywordChange }) => {
-  const { token } = theme.useToken();
-  
-  return (
-    <Card 
-      bordered={false} 
-      styles={{ body: { padding: token.paddingLG } }}
-      style={{ boxShadow: token.boxShadowTertiary, borderRadius: token.borderRadiusLG }}
-    >
-      <Spin spinning={loading}>
-        <Flex vertical gap="middle">
-          <Flex align="center" gap="small">
-            <Hash size={20} color={token.colorPrimary} />
-            <Title level={4} style={{ margin: 0, fontWeight: 700 }}>品牌关键词</Title>
-            {selectedKeyword && (
-              <Tag 
-                closable 
-                onClose={() => onKeywordChange?.('')}
-                color="processing"
-                style={{ marginLeft: token.marginSM }}
-              >
-                已选: {selectedKeyword}
-              </Tag>
-            )}
-          </Flex>
-          
-          <Divider style={{ margin: '4px 0' }} />
-          
-          {keywords.length > 0 ? (
-            <Flex wrap="wrap" gap="small">
-              {keywords.map((kw) => {
-                const isSelected = selectedKeyword === kw;
-                return (
-                  <Tag 
-                    key={kw} 
-                    bordered={false}
-                    onClick={() => onKeywordChange?.(isSelected ? '' : kw)}
-                    style={{ 
-                      borderRadius: token.borderRadiusLG,
-                      backgroundColor: isSelected ? token.colorPrimary : token.colorFillTertiary,
-                      color: isSelected ? '#fff' : token.colorTextDescription,
-                      padding: '4px 12px',
-                      cursor: 'pointer',
-                      transition: 'all 0.3s',
-                      margin: 0
-                    }}
-                    className={!isSelected ? "hover:bg-blue-50 hover:text-blue-600" : ""}
-                  >
-                    {kw}
-                  </Tag>
-                );
-              })}
-            </Flex>
-          ) : !loading && (
-            <Empty description="暂无关键词" image={Empty.PRESENTED_IMAGE_SIMPLE} />
-          )}
-        </Flex>
-      </Spin>
-    </Card>
-  );
 };
 
 const SourceAnalysisChart = ({

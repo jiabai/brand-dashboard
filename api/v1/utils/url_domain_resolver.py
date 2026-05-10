@@ -3,7 +3,7 @@ URL域名解析器
 用于解析answer_reference_url的域名和对应的中文/英文名称
 """
 
-from typing import Dict, Tuple
+from typing import Dict, Optional, Tuple
 from urllib.parse import urlparse
 
 # 域名缓存
@@ -297,6 +297,111 @@ def get_cache_info() -> Dict[str, any]:
         "cache_size": len(domain_cache),
         "cached_domains": list(domain_cache.keys())
     }
+
+def infer_content_type(domain: str, url: str = "") -> Optional[str]:
+    """根据域名推断内容类型。"""
+    d = domain.lower()
+    if not d:
+        return None
+    if any(
+        x in d
+        for x in [
+            "weibo.com", "zhihu.com", "douban.com", "xhslink.com",
+            "xiaohongshu.com", "tieba.baidu.com", "bilibili.com",
+            "kuaishou.com", "soulapp.cn", "twitter.com", "x.com", "t.co",
+            "facebook.com", "instagram.com", "youtube.com", "twitch.tv",
+            "tiktok.com", "douyin.com", "threads.net", "reddit.com",
+            "discord.com", "discord.gg", "telegram.org", "t.me",
+            "linkedin.com", "pinterest.com", "snapchat.com", "tumblr.com",
+            "vk.com", "mp.weixin.qq.com", "qq.com", "qzone.qq.com",
+            "wechat.com", "line.me", "kakao.com", "weverse.io",
+        ]
+    ):
+        return "social_media"
+    if any(
+        x in d
+        for x in [
+            "jd.com", "taobao.com", "tmall.com", "vip.com", "suning.com",
+            "amazon", "pinduoduo.com", "1688.com", "ebay.com",
+            "aliexpress.com", "temu.com", "shein.com", "shopee.com",
+            "lazada.com", "rakuten.co.jp", "mercari.com", "flipkart.com",
+            "walmart.com", "bestbuy.com", "target.com", "costco.com",
+            "etsy.com", "shopify.com", "weidian.com", "youzan.com",
+            "dangdang.com", "yhd.com", "kaola.com", "mogujie.com",
+            "jd.hk", "amazon.cn", "amazon.jp", "amazon.de", "amazon.fr",
+            "amazon.co.uk", "aldi.com", "lidl.com", "carrefour.com",
+            "ikea.com", "hm.com", "zara.com", "uniqlo.com",
+        ]
+    ):
+        return "ecommerce"
+    if any(
+        x in d
+        for x in [
+            "baike.baidu.com", "wikipedia.org", "wikidata.org",
+            "wiktionary.org", "wikihow.com", "zhidao.baidu.com",
+            "wenwen.sogou.com", "wukong.com", "baike.sogou.com",
+            "mbd.baidu.com", "quora.com", "stackexchange.com",
+            "stackoverflow.com", "baike.360.cn", "baike.so.com",
+            "zh.wikipedia.org", "en.wikipedia.org", "stackoverflow.cn",
+            "segmentfault.com", "oschina.net", "csdn.net",
+        ]
+    ):
+        return "qa_wiki"
+    if any(
+        x in d
+        for x in [
+            "apple.com", "huawei.com", "mi.com", "oppo.com", "vivo.com",
+            "samsung.com", "tesla.com", "microsoft.com", "google.com",
+            "openai.com", "amazon.com", "bytedance.com", "tencent.com",
+            "alibaba.com", "baidu.com", "lenovo.com.cn", "huawei.com/cn",
+            "samsung.com/cn", "sony.com", "canon.com", "nikon.com",
+            "adidas.com", "nike.com", "coca-cola.com", "pepsico.com",
+            "mcdonalds.com", "kfc.com",
+        ]
+    ):
+        return "official_site"
+    if any(
+        x in d
+        for x in [
+            ".gov.", ".gov.cn", "miit.gov.cn", "gov.uk", "europa.eu",
+            "whitehouse.gov", "stats.gov.cn", "mof.gov.cn", "pbc.gov.cn",
+            ".gov.au", ".gov.nz", ".gov.sg", ".gov.hk", ".gov.mo",
+            "un.org", "who.int", "wto.org", "imf.org", "worldbank.org",
+            "ilo.org",
+        ]
+    ):
+        return "gov_report"
+    if any(
+        x in d
+        for x in [
+            "zol.com", "it168.com", "pconline.com.cn", "zealer.com",
+            "36kr.com", "ifanr.com", "dgtle.com", "mydrivers.com",
+            "cnbeta.com", "ithome.com", "techweb.com.cn", "tmtpost.com",
+            "geekpark.net", "huxiu.com", "sspai.com", "pingwest.com",
+            "techcrunch.com", "theverge.com", "engadget.com", "wired.com",
+            "arstechnica.com", "macrumors.com", "9to5mac.com",
+            "9to5google.com", "androidcentral.com", "phonearena.com",
+            "gsmarena.com",
+        ]
+    ):
+        return "tech_review"
+    if any(
+        x in d
+        for x in [
+            "news.cn", "xinhuanet", "huanqiu.com", "people.com.cn",
+            "cctv.com", "sina.com.cn", "163.com", "qq.com", "sohu.com",
+            "ifeng.com", "thepaper.cn", "jiemian.com", "caixin.com",
+            "chinanews.com", "cnr.cn", "yicai.com", "guancha.cn",
+            "infzm.com", "bbc.com", "cnn.com", "reuters.com",
+            "bloomberg.com", "nytimes.com", "ft.com", "wsj.com",
+            "washpost.com", "latimes.com", "guardian.com",
+            "independent.co.uk", "telegraph.co.uk", "japantimes.co.jp",
+            "koreaherald.com", "straitstimes.com", "toutiao.com",
+        ]
+    ):
+        return "news"
+    return "other"
+
 
 if __name__ == "__main__":
     test_urls = [

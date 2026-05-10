@@ -2,45 +2,9 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Card, List, Progress, Typography, Statistic, Tag, theme } from 'antd';
 import { TrophyOutlined, ArrowUpOutlined, ArrowDownOutlined } from '@ant-design/icons';
 import { CONFIG } from '@/config';
-import { getPlatformColor } from '@/utils';
+import { getPlatformColor, buildQueryString, fetchJson, toPercent, clampPercent, roundTwoDecimals } from '@/utils';
 
 const { DEFAULT_TENANT_KEY, DEFAULT_JOB_ID, DEFAULT_BRAND } = CONFIG;
-
-const buildQueryString = (params) => {
-  const searchParams = new URLSearchParams();
-  Object.entries(params).forEach(([key, value]) => {
-    if (value === undefined || value === null) return;
-    searchParams.set(key, String(value));
-  });
-  return searchParams.toString();
-};
-
-const fetchJson = async (url, { signal } = {}) => {
-  const response = await fetch(url, { method: 'GET', signal });
-  if (!response.ok) {
-    throw new Error(`请求失败(${response.status})`);
-  }
-  return response.json();
-};
-
-const toPercent = (value) => {
-  const num = Number(value);
-  if (!Number.isFinite(num)) return 0;
-  if (num > 0 && num <= 1) return num * 100;
-  return num;
-};
-
-const clampPercent = (value) => {
-  const num = Number(value);
-  if (!Number.isFinite(num)) return 0;
-  return Math.max(0, Math.min(100, num));
-};
-
-const roundTwoDecimals = (value) => {
-  const num = Number(value);
-  if (!Number.isFinite(num)) return 0;
-  return Math.round(num * 100) / 100;
-};
 
 const PlatformMentionRates = ({
   onPlatformClick,
