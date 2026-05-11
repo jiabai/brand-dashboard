@@ -193,6 +193,7 @@ python scripts/validate_agents_docs.py --level ERROR
 
 | 文档 | 说明 |
 |------|------|
+| [docs/product-specs/PRD.md](./docs/product-specs/PRD.md) | 产品需求文档（明察 InsightFlow） |
 | [AGENTS.md](./AGENTS.md) | AI 协作规则与常用命令 |
 | [WORKFLOW.md](./WORKFLOW.md) | 开发工作流（Spec → Plan → 实现 → 验证） |
 | [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) | 系统架构与模块地图 |
