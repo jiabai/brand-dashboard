@@ -1,0 +1,47 @@
+# SQLite 版本的开发环境配置
+# 使用方式：docker compose -f docker-compose.sqlite.yml up
+#
+# 与 docker-compose.dev.yml 的区别：
+# - 不依赖外部 MySQL 服务
+# - 数据库文件持久化到 ./data/geo.db
+# - 适合本地开发和轻量部署场景
+
+services:
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile.dev
+    container_name: brand-analysis-api-sqlite
+    restart: unless-stopped
+    volumes:
+      - ./api:/app/api
+      - ./data:/app/data
+    ports:
+      - "8000:8000"
+    environment:
+      - DB_DIALECT=sqlite
+      - DB_SQLITE_PATH=/app/data/geo.db
+
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile.dev
+    container_name: brand-analysis-web-sqlite
+    restart: unless-stopped
+    volumes:
+      - ./web:/app
+      - /app/node_modules
+    ports:
+      - "8443:3000"
+    environment:
+      - VITE_API_TARGET=http://api:8000
+      - VITE_USE_MOCK=false
+      - VITE_DEFAULT_TENANT_KEY=tn_6e1f78442bae
+      - VITE_DEFAULT_JOB_ID=job_20260209_123550_e9ba00f6
+      - VITE_DEFAULT_BRAND=QuickCEP
+    depends_on:
+      - api
+
+networks:
+  default:
+    name: brand-analysis-sqlite-network

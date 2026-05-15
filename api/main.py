@@ -22,11 +22,13 @@ from api.v1.routes import (
     executors,
     query_jobs,
 )
+from api.v1.repositories.init_db import init_db
 from api.v1.services.job_reset_scheduler import start_scheduler
 
 
 @asynccontextmanager
 async def _lifespan(app):
+    init_db()
     start_scheduler()
     yield
 

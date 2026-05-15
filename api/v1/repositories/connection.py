@@ -2,7 +2,7 @@ import os
 from pathlib import Path
 
 from dotenv import load_dotenv
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import QueuePool, StaticPool
 
@@ -53,13 +53,26 @@ def _build_sqlite_engine():
     if not Path(db_path).is_absolute():
         project_root = Path(__file__).resolve().parent.parent.parent
         db_path = str(project_root / db_path)
+
+    # 确保 SQLite 文件所在目录存在
+    Path(db_path).parent.mkdir(parents=True, exist_ok=True)
+
     url = f"sqlite:///{db_path}"
-    return create_engine(
+    eng = create_engine(
         url,
         connect_args={"check_same_thread": False},
         poolclass=StaticPool,
         echo=False,
-    ), {"dialect": "sqlite"}
+    )
+
+    # 启用 WAL 模式：提升并发读性能，避免写锁阻塞所有读操作
+    # busy_timeout：写锁争用时最多等待 5 秒
+    with eng.connect() as conn:
+        conn.execute(text("PRAGMA journal_mode=WAL"))
+        conn.execute(text("PRAGMA busy_timeout=5000"))
+        conn.commit()
+
+    return eng, {"dialect": "sqlite"}
 
 
 if _db_dialect == "sqlite":
