@@ -1,5 +1,5 @@
 import unittest
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 
 class TestKeywordPlatformBrandRates(unittest.TestCase):
@@ -13,23 +13,8 @@ class TestKeywordPlatformBrandRates(unittest.TestCase):
         execute_result = MagicMock()
         execute_result.fetchall.return_value = fake_rows
 
-        show_columns_result = MagicMock()
-        show_columns_result.fetchall.return_value = [
-            ("keyword",),
-            ("platform",),
-            ("brand",),
-            ("conversation_id",),
-            ("is_mentioned",),
-            ("is_first_mentioned",),
-            ("is_top3_mentioned",),
-        ]
-
         conn = MagicMock()
-        conn.execute.side_effect = lambda stmt, params=None: (
-            show_columns_result
-            if "SHOW COLUMNS FROM qa_brand_state" in str(stmt)
-            else execute_result
-        )
+        conn.execute.return_value = execute_result
 
         class _ConnCtx:
             def __enter__(self):
@@ -41,15 +26,24 @@ class TestKeywordPlatformBrandRates(unittest.TestCase):
         engine = MagicMock()
         engine.connect.return_value = _ConnCtx()
 
+        fake_columns = {
+            "keyword", "platform", "brand", "conversation_id",
+            "is_mentioned", "is_first_mentioned", "is_top3_mentioned",
+        }
+
         original_engine = database.engine
         database.engine = engine
         try:
-            result = database.query_keyword_platform_brand_rates(
-                tenant_key="tn_1b02b3ef4fbd",
-                job_id="job_20260123_172515_f38024e2",
-                start_date="20260101",
-                end_date="20260131",
-            )
+            with patch(
+                "api.v1.repositories.filter_metadata.get_columns",
+                return_value=fake_columns,
+            ):
+                result = database.query_keyword_platform_brand_rates(
+                    tenant_key="tn_1b02b3ef4fbd",
+                    job_id="job_20260123_172515_f38024e2",
+                    start_date="20260101",
+                    end_date="20260131",
+                )
         finally:
             database.engine = original_engine
 
@@ -66,4 +60,3 @@ class TestKeywordPlatformBrandRates(unittest.TestCase):
         self.assertIn("keyword", executed_sql)
         self.assertIn("platform", executed_sql)
         self.assertIn("brand", executed_sql)
-

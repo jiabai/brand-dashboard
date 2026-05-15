@@ -1,6 +1,7 @@
 """FastAPI应用主文件."""
 
 import os
+from contextlib import asynccontextmanager
 from typing import Dict
 
 from asgi_correlation_id import CorrelationIdMiddleware
@@ -21,6 +22,13 @@ from api.v1.routes import (
     executors,
     query_jobs,
 )
+from api.v1.services.job_reset_scheduler import start_scheduler
+
+
+@asynccontextmanager
+async def _lifespan(app):
+    start_scheduler()
+    yield
 
 # log_settings = LogSettings(
 #     logger="brand-analysis-api",
@@ -36,7 +44,8 @@ app = FastAPI(
     version="0.1.0",
     docs_url="/api/v1/docs",
     redoc_url="/api/v1/redoc",
-    openapi_url="/api/v1/openapi.json"
+    openapi_url="/api/v1/openapi.json",
+    lifespan=_lifespan,
 )
 
 # app.add_middleware(AccessLogMiddleware)

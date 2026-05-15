@@ -2,6 +2,7 @@ from typing import Any, Dict, List, Optional
 
 from sqlalchemy import text
 
+from api.v1.repositories.dialect import group_concat_expr
 from api.v1.utils import get_logger
 from api.v1.utils.url_domain_resolver import get_chinese_name
 
@@ -131,12 +132,16 @@ def query_domain_citation_rate(
     {denominator_where}
     """
 
+    kw_expr = group_concat_expr("keyword")
+    ct_expr = group_concat_expr("content_type")
+    pf_expr = group_concat_expr("platform")
+
     domain_query = f"""
     SELECT
         domain,
-        GROUP_CONCAT(DISTINCT keyword) AS keywords,
-        GROUP_CONCAT(DISTINCT content_type) AS content_types,
-        GROUP_CONCAT(DISTINCT platform) AS platforms,
+        {kw_expr} AS keywords,
+        {ct_expr} AS content_types,
+        {pf_expr} AS platforms,
         COUNT(*) AS domain_count
     FROM qa_reference
     {numerator_where}

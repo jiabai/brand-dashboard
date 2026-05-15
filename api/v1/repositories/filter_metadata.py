@@ -3,6 +3,7 @@ from typing import Any, Dict, List, Optional
 
 from sqlalchemy import text
 
+from api.v1.repositories.dialect import get_columns
 from api.v1.utils import get_logger
 
 logger = get_logger(__name__)
@@ -66,8 +67,7 @@ def query_filter_metadata(
 
     try:
         with engine.connect() as conn:
-            columns_result = conn.execute(text("SHOW COLUMNS FROM qa_brand_state")).fetchall()
-            columns = {row[0] for row in columns_result}
+            columns = get_columns(conn, "qa_brand_state")
             required_columns = {"platform", "keyword", "date"}
             missing_columns = required_columns - columns
             if missing_columns:
@@ -133,8 +133,7 @@ def query_keyword_platform_brand_rates(
 ) -> List[Dict[str, Any]]:
     try:
         with engine.connect() as conn:
-            columns_result = conn.execute(text("SHOW COLUMNS FROM qa_brand_state")).fetchall()
-            columns = {row[0] for row in columns_result}
+            columns = get_columns(conn, "qa_brand_state")
 
             if "keyword" not in columns:
                 raise Exception("qa_brand_state 表缺少 keyword 字段")

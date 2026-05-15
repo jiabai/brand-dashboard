@@ -3,6 +3,7 @@ from typing import Any, Dict, List, Optional
 
 from sqlalchemy import text
 
+from api.v1.repositories.dialect import get_columns
 from api.v1.utils import get_logger
 from api.v1.utils.date_range import get_date_range, get_previous_date_range
 
@@ -218,8 +219,7 @@ def query_brand_platform_mention_data(
 
     try:
         with engine.connect() as conn:
-            columns_result = conn.execute(text("SHOW COLUMNS FROM qa_brand_state")).fetchall()
-            columns = {row[0] for row in columns_result}
+            columns = get_columns(conn, "qa_brand_state")
 
             id_column = (
                 "conversation_id"
@@ -337,8 +337,7 @@ def query_brand_platform_keyword_daily_mention_rates(
 ) -> List[Dict[str, Any]]:
     try:
         with engine.connect() as conn:
-            columns_result = conn.execute(text("SHOW COLUMNS FROM qa_brand_state")).fetchall()
-            columns = {row[0] for row in columns_result}
+            columns = get_columns(conn, "qa_brand_state")
 
             required_columns = {"brand", "platform", "keyword", "is_mentioned", "date"}
             missing_columns = required_columns - columns
@@ -409,8 +408,7 @@ def query_brand_metrics(
 ) -> List[Dict[str, Any]]:
     try:
         with engine.connect() as conn:
-            columns_result = conn.execute(text("SHOW COLUMNS FROM qa_brand_state")).fetchall()
-            columns = {row[0] for row in columns_result}
+            columns = get_columns(conn, "qa_brand_state")
 
             if "is_mentioned" not in columns:
                 raise Exception("qa_brand_state 表缺少 is_mentioned 字段")
@@ -530,8 +528,7 @@ def query_platform_metrics_by_brand(
 ) -> List[Dict[str, Any]]:
     try:
         with engine.connect() as conn:
-            columns_result = conn.execute(text("SHOW COLUMNS FROM qa_brand_state")).fetchall()
-            columns = {row[0] for row in columns_result}
+            columns = get_columns(conn, "qa_brand_state")
 
             if "is_mentioned" not in columns:
                 raise Exception("qa_brand_state 表缺少 is_mentioned 字段")

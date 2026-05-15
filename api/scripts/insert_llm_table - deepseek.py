@@ -7,7 +7,12 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
 from urllib.parse import urlparse
 
-import pymysql
+from sqlalchemy import text
+
+from api.v1.repositories.connection import engine, get_dialect
+from api.v1.utils import get_logger
+
+logger = get_logger(__name__)
 
 
 def get_query_directories(output_path: str) -> List[Dict[str, any]]:
@@ -123,24 +128,30 @@ def extract_query_and_answer(lines: List[str]) -> Tuple[str, str]:
 
     return query_content, answer_content
 
-def load_output_metadata(conn: pymysql.connections.Connection, query_id: str) -> Dict[str, Any]:
+def load_output_metadata(conn, query_id: str) -> Dict[str, Any]:
     """
-    从数据库llm_query_record表获取metadata信息
+    从数据库llm_query_jobs表获取metadata信息
     """
-    sql = """
+    sql = text("""
     SELECT tenant_key, job_id, category, brand, keyword, query_content, created_at
     FROM llm_query_jobs
-    WHERE id = %s
-    """
+    WHERE id = :query_id
+    """)
 
-    with conn.cursor(pymysql.cursors.DictCursor) as cursor:
-        cursor.execute(sql, (query_id,))
-        result = cursor.fetchone()
+    result = conn.execute(sql, {"query_id": query_id}).fetchone()
 
-        if not result:
-            raise ValueError(f"query_id {query_id} not found in llm_query_jobs table")
+    if not result:
+        raise ValueError(f"query_id {query_id} not found in llm_query_jobs table")
 
-        return result
+    return {
+        "tenant_key": result[0],
+        "job_id": result[1],
+        "category": result[2],
+        "brand": result[3],
+        "keyword": result[4],
+        "query_content": result[5],
+        "created_at": result[6],
+    }
 
 def parse_dialogue_file(path: str) -> Dict[str, Any]:
     with open(path, "r", encoding="utf-8") as f:
@@ -321,8 +332,6 @@ def infer_content_type(domain: str, url: str) -> Optional[str]:
         return "qa_wiki"
 
     # 4. 官网 (Official Website - 启发式规则)
-    # 通常包含 brand 关键词，或者特定的 corporate, group 等词汇，这里主要匹配常见的品牌官网特征
-    # 注意：这部分比较难准确匹配，通常需要配合 content 或者更详细的域名库
     if any(
         x in d
         for x in [
@@ -464,132 +473,122 @@ def infer_content_type(domain: str, url: str) -> Optional[str]:
 
     return "other"
 
-def get_db_connection() -> pymysql.connections.Connection:
-    db_host = os.environ.get("DB_HOST", "192.168.31.233")
-    db_port = int(os.environ.get("DB_PORT", "3306"))
-    db_user = os.environ.get("DB_USER", "root")
-    db_password = os.environ.get("DB_PASSWORD", "123456")
-    db_name = os.environ.get("DB_NAME", "geo")
+def _build_upsert_conversation_sql() -> str:
+    """根据方言生成 upsert SQL"""
+    dialect = get_dialect()
+    if dialect == "mysql":
+        return """
+        INSERT INTO llm_conversations
+          (tenant_key, job_id, conversation_id, platform, keyword, brand, category,
+           query_content, answer_content, model_name, token_usage, extracted_at)
+        VALUES
+          (:tenant_key, :job_id, :conversation_id, :platform, :keyword, :brand, :category,
+           :query_content, :answer_content, :model_name, :token_usage, :extracted_at)
+        ON DUPLICATE KEY UPDATE
+          platform = VALUES(platform),
+          keyword = VALUES(keyword),
+          brand = VALUES(brand),
+          category = VALUES(category),
+          query_content = VALUES(query_content),
+          answer_content = VALUES(answer_content),
+          model_name = VALUES(model_name),
+          token_usage = VALUES(token_usage)
+        """
+    else:
+        return """
+        INSERT OR REPLACE INTO llm_conversations
+          (tenant_key, job_id, conversation_id, platform, keyword, brand, category,
+           query_content, answer_content, model_name, token_usage, extracted_at)
+        VALUES
+          (:tenant_key, :job_id, :conversation_id, :platform, :keyword, :brand, :category,
+           :query_content, :answer_content, :model_name, :token_usage, :extracted_at)
+        """
 
-    if not db_name:
-        raise RuntimeError("DB_NAME environment variable is required")
+def _build_upsert_reference_sql() -> str:
+    """根据方言生成 upsert SQL"""
+    dialect = get_dialect()
+    if dialect == "mysql":
+        return """
+        INSERT INTO llm_conversation_references
+          (tenant_key, job_id, conversation_id, platform, brand, category, keyword,
+           query_content, url, domain, cite_index, site_name, content_type)
+        VALUES
+          (:tenant_key, :job_id, :conversation_id, :platform, :brand, :category, :keyword,
+           :query_content, :url, :domain, :cite_index, :site_name, :content_type)
+        ON DUPLICATE KEY UPDATE
+          platform = VALUES(platform),
+          brand = VALUES(brand),
+          category = VALUES(category),
+          keyword = VALUES(keyword),
+          query_content = VALUES(query_content),
+          url = VALUES(url),
+          domain = VALUES(domain),
+          cite_index = VALUES(cite_index),
+          site_name = VALUES(site_name),
+          content_type = VALUES(content_type)
+        """
+    else:
+        return """
+        INSERT OR REPLACE INTO llm_conversation_references
+          (tenant_key, job_id, conversation_id, platform, brand, category, keyword,
+           query_content, url, domain, cite_index, site_name, content_type)
+        VALUES
+          (:tenant_key, :job_id, :conversation_id, :platform, :brand, :category, :keyword,
+           :query_content, :url, :domain, :cite_index, :site_name, :content_type)
+        """
 
-    connection = pymysql.connect(
-        host=db_host,
-        port=db_port,
-        user=db_user,
-        password=db_password,
-        database=db_name,
-        charset="utf8mb4",
-        autocommit=False,
-    )
-    return connection
 
 def insert_llm_conversation(
-    conn: pymysql.connections.Connection,
+    conn,
     tenant_key: str,
     job_id: str,
     record: Dict[str, Any],
 ) -> None:
-    sql = """
-INSERT INTO llm_conversations
-  (tenant_key, job_id, conversation_id, platform, keyword, brand, category,
-   query_content, answer_content, model_name, token_usage, extracted_at)
-VALUES
-  (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-ON DUPLICATE KEY UPDATE
-  platform = VALUES(platform),
-  keyword = VALUES(keyword),
-  brand = VALUES(brand),
-  category = VALUES(category),
-  query_content = VALUES(query_content),
-  answer_content = VALUES(answer_content),
-  model_name = VALUES(model_name),
-  token_usage = VALUES(token_usage)
-"""
+    sql = text(_build_upsert_conversation_sql())
+    conn.execute(sql, {
+        "tenant_key": tenant_key,
+        "job_id": job_id,
+        "conversation_id": record["conversation_id"],
+        "platform": record["platform"],
+        "keyword": record["keyword"],
+        "brand": record.get("brand"),
+        "category": record.get("category"),
+        "query_content": record["query_content"],
+        "answer_content": record["answer_content"],
+        "model_name": record.get("model_name"),
+        "token_usage": record.get("token_usage"),
+        "extracted_at": record["extracted_at"],
+    })
 
-    with conn.cursor() as cursor:
-        cursor.execute(
-            sql,
-            (
-                tenant_key,
-                job_id,
-                record["conversation_id"],
-                record["platform"],
-                record["keyword"],
-                record.get("brand"),
-                record.get("category"),
-                record["query_content"],
-                record["answer_content"],
-                record.get("model_name"),
-                record.get("token_usage"),
-                record["extracted_at"],
-            ),
-        )
 
 def insert_llm_conversation_references(
-    conn: pymysql.connections.Connection,
+    conn,
     tenant_key: str,
     job_id: str,
     record: Dict[str, Any],
     citation: List[Dict[str, Any]],
 ) -> None:
-    sql = """
-INSERT INTO llm_conversation_references
-  (
-    tenant_key,
-    job_id,
-    conversation_id,
-    platform,
-    brand,
-    category,
-    keyword,
-    query_content,
-    url,
-    domain,
-    cite_index,
-    site_name,
-    content_type
-  )
-VALUES
-  (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-ON DUPLICATE KEY UPDATE
-  platform = VALUES(platform),
-  brand = VALUES(brand),
-  category = VALUES(category),
-  keyword = VALUES(keyword),
-  query_content = VALUES(query_content),
-  url = VALUES(url),
-  domain = VALUES(domain),
-  cite_index = VALUES(cite_index),
-  site_name = VALUES(site_name),
-  content_type = VALUES(content_type)
-"""
-
-    with conn.cursor() as cursor:
-        for ref in citation:
-            if not ref.get("url"):
-                continue
-            domain = extract_domain(ref["url"])
-            content_type = infer_content_type(domain, ref["url"])
-            cursor.execute(
-                sql,
-                (
-                    tenant_key,
-                    job_id,
-                    record["conversation_id"],
-                    record["platform"],
-                    record.get("brand"),
-                    record.get("category"),
-                    record["keyword"],
-                    record["query_content"],
-                    ref["url"],
-                    domain,
-                    ref.get("cite_index"),
-                    ref.get("site_name"),
-                    content_type,
-                ),
-            )
+    sql = text(_build_upsert_reference_sql())
+    for ref in citation:
+        if not ref.get("url"):
+            continue
+        domain = extract_domain(ref["url"])
+        content_type = infer_content_type(domain, ref["url"])
+        conn.execute(sql, {
+            "tenant_key": tenant_key,
+            "job_id": job_id,
+            "conversation_id": record["conversation_id"],
+            "platform": record["platform"],
+            "brand": record.get("brand"),
+            "category": record.get("category"),
+            "keyword": record["keyword"],
+            "query_content": record["query_content"],
+            "url": ref["url"],
+            "domain": domain,
+            "cite_index": ref.get("cite_index"),
+            "site_name": ref.get("site_name"),
+            "content_type": content_type,
+        })
 
 def main() -> None:
     # 从output目录读取所有DB_QUERY_ID目录
@@ -604,26 +603,25 @@ def main() -> None:
         sys.exit(0)
 
     query_dirs = get_query_directories(output_path)
-    conn = get_db_connection()
-    for query_dir in query_dirs:
-        if not query_dir["files"]["request"]:
-            print(f"Skipping {query_dir['query_id']}: Request file not found")
-            continue
+    with engine.begin() as conn:
+        for query_dir in query_dirs:
+            if not query_dir["files"]["request"]:
+                print(f"Skipping {query_dir['query_id']}: Request file not found")
+                continue
 
-        meta = load_output_metadata(conn, query_dir["query_id"])
-        print(query_dir["files"]["request"])
-        record = parse_dialogue_file(query_dir["files"]["request"])
-        citation = parse_citation_file(query_dir["files"]["citation"])
-        # 使用UUID生成唯一的conversation_id
-        import uuid
-        conversation_id = f"conversation_{uuid.uuid4().hex}"
-        record["conversation_id"] = conversation_id
-        record["platform"] = "deepseek"
-        record["keyword"] = meta["keyword"]
-        record["brand"] = meta["brand"]
-        record["category"] = meta["category"]
+            meta = load_output_metadata(conn, query_dir["query_id"])
+            print(query_dir["files"]["request"])
+            record = parse_dialogue_file(query_dir["files"]["request"])
+            citation = parse_citation_file(query_dir["files"]["citation"])
+            # 使用UUID生成唯一的conversation_id
+            import uuid
+            conversation_id = f"conversation_{uuid.uuid4().hex}"
+            record["conversation_id"] = conversation_id
+            record["platform"] = "deepseek"
+            record["keyword"] = meta["keyword"]
+            record["brand"] = meta["brand"]
+            record["category"] = meta["category"]
 
-        try:
             insert_llm_conversation(conn, meta["tenant_key"], meta["job_id"], record)
             insert_llm_conversation_references(
                 conn,
@@ -632,13 +630,6 @@ def main() -> None:
                 record,
                 citation,
             )
-            conn.commit()
-        except Exception:
-            conn.rollback()
-            conn.close()
-            raise
-
-    conn.close()
 
 if __name__ == "__main__":
     main()
