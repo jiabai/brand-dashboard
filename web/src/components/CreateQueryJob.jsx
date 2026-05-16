@@ -83,7 +83,15 @@ const CreateQueryJob = ({ tenantKey: propTenantKey, onNavigate }) => {
   };
 
   const generateRandomIds = () => {
-    const randomHex = (len) => [...Array(len)].map(() => Math.floor(Math.random() * 16).toString(16)).join('');
+    const randomHex = (len) => {
+      if (globalThis.crypto?.getRandomValues) {
+        const bytes = new Uint8Array(Math.ceil(len / 2));
+        globalThis.crypto.getRandomValues(bytes);
+        return Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('').slice(0, len);
+      }
+
+      return Date.now().toString(16).padEnd(len, '0').slice(0, len);
+    };
     const today = dayjs().format('YYYYMMDD_HHmmss');
     
     form.setFieldsValue({

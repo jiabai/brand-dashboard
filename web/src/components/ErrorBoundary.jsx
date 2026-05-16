@@ -14,6 +14,8 @@
 import React, { useCallback } from 'react';
 import { Button, Result, Typography } from 'antd';
 
+const isDevelopment = import.meta.env.DEV;
+
 /**
  * ErrorBoundary component that catches JavaScript errors in child components
  * and displays a fallback UI instead of crashing the entire app
@@ -115,7 +117,7 @@ class ErrorBoundaryClass extends React.Component {
             </Button>
           }
         >
-          {process.env.NODE_ENV === 'development' ? (
+          {isDevelopment ? (
             <Typography.Paragraph style={{ whiteSpace: 'pre-wrap', marginBottom: 0 }}>
               {this.state.error ? String(this.state.error) : null}
               {this.state.errorInfo?.componentStack

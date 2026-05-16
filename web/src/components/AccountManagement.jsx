@@ -30,6 +30,7 @@ import {
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { postJson } from '../utils';
+import '../styles/account-management.css';
 
 const { Title, Text } = Typography;
 
@@ -354,7 +355,7 @@ const AccountManagement = () => {
         ),
         children: (
           <Space direction="vertical" size="large" style={{ width: '100%' }}>
-            <Card className="account-subcard" bordered={false}>
+            <Card className="account-subcard" variant="borderless">
               <Space direction="vertical" size="middle" style={{ width: '100%' }}>
                 <div>
                   <Text className="account-section-title">邀请码核验</Text>
@@ -493,11 +494,11 @@ const AccountManagement = () => {
         </div>
       </div>
       <div className="account-grid">
-        <Card className="account-card" bordered={false}>
+        <Card className="account-card" variant="borderless">
           <Tabs items={tabs} />
         </Card>
         <Space direction="vertical" size="large" style={{ width: '100%' }}>
-          <Card className="account-sidecard" bordered={false}>
+          <Card className="account-sidecard" variant="borderless">
             <Space direction="vertical" size="middle" style={{ width: '100%' }}>
               <Text className="account-section-title">流程守护</Text>
               <Alert
@@ -524,7 +525,7 @@ const AccountManagement = () => {
               </Space>
             </Space>
           </Card>
-          <Card className="account-sidecard" bordered={false}>
+          <Card className="account-sidecard" variant="borderless">
             <Space direction="vertical" size="middle" style={{ width: '100%' }}>
               <Text className="account-section-title">最新响应</Text>
               <Space size="middle">

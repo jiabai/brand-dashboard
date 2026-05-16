@@ -28,7 +28,7 @@ const KeywordSection = ({ keywords = [], loading = false, selectedKeyword, onKey
 
   return (
     <Card
-      bordered={false}
+      variant="borderless"
       styles={{ body: { padding: token.paddingLG, display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 } }}
       style={{ boxShadow: token.boxShadowTertiary, borderRadius: token.borderRadiusLG, display: 'flex', flexDirection: 'column', ...style }}
     >

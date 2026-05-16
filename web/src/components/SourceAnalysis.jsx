@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Card, Typography, Tag, Table, Badge, theme, Flex, Button, Divider, Tooltip, Empty, Spin, Select, Popover } from 'antd';
 import dayjs from 'dayjs';
-import { 
+import {
   Download, 
   ExternalLink, 
   Globe, 
@@ -24,6 +24,7 @@ import {
   formatDateDisplay,
   getRangeByTimeframe,
 } from '@/utils';
+import { loadG2Chart } from '@/utils/loadG2Chart';
 import KeywordSection from './KeywordSection';
 
 const { Title, Text } = Typography;
@@ -76,9 +77,8 @@ const SourceAnalysisChart = ({
     const container = containerRef.current;
 
     const run = async () => {
-      const mod = await import('@antv/g2');
+      const Chart = await loadG2Chart();
       if (disposed) return;
-      const { Chart } = mod;
 
       const chart = new Chart({
         container,
@@ -138,7 +138,7 @@ const SourceAnalysisChart = ({
 
   return (
     <Card 
-      bordered={false} 
+      variant="borderless"
       styles={{ body: { padding: token.paddingLG } }}
       style={{ boxShadow: token.boxShadowTertiary, borderRadius: token.borderRadiusLG }}
     >
@@ -330,7 +330,7 @@ const MediaListTable = ({
 
   return (
     <Card 
-      bordered={false} 
+      variant="borderless"
       styles={{ body: { padding: 0 } }}
       style={{ boxShadow: token.boxShadowTertiary, borderRadius: token.borderRadiusLG, overflow: 'hidden' }}
     >

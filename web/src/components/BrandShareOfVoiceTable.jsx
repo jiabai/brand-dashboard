@@ -322,7 +322,7 @@ const BrandShareOfVoiceTable = ({
 
   return (
     <Card 
-      bordered={false}
+      variant="borderless"
       style={{ margin: 24, borderRadius: 8 }}
     >
       {!!error && (

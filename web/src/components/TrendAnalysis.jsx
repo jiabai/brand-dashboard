@@ -19,6 +19,7 @@ import {
   formatDateDisplay,
   getRangeByTimeframe,
 } from '@/utils';
+import { loadG2Chart } from '@/utils/loadG2Chart';
 
 import LoadingSpinner from './LoadingSpinner';
 import EmptyState from './EmptyState';
@@ -48,9 +49,8 @@ const TrendG2Chart = React.memo(function TrendG2Chart({ data, token }) {
     const container = containerRef.current;
 
     const run = async () => {
-      const mod = await import('@antv/g2');
+      const Chart = await loadG2Chart();
       if (disposed) return;
-      const { Chart } = mod;
 
       const chart = new Chart({
         container,

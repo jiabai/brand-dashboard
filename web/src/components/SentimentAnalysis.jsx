@@ -1,9 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Card, Flex, Typography, theme } from 'antd';
 import { SmileOutlined } from '@ant-design/icons';
-import { Chart } from '@antv/g2';
 import { CONFIG } from '@/config';
 import { buildQueryString, fetchJson } from '@/utils';
+import { loadG2Chart } from '@/utils/loadG2Chart';
 import KeywordSection from './KeywordSection';
 
 const { Title } = Typography;
@@ -16,24 +16,20 @@ const MOCK_SENTIMENT = [
   { name: '中性', value: 200 },
 ];
 
-const MOCK_DETAILS = Array.from({ length: 10 }).map((_, i) => ({
-  key: i,
-  content: [
-    '这款内衣真的很舒服，无痕效果满分！',
-    '颜色有点偏差，不过面料确实很亲肤。',
-    '发货速度太慢了，等了一周才到。',
-    '第二次购买了，依然很满意。',
-    '尺码偏小，建议大家买大一码。',
-    '运动时穿也很稳固，透气性不错。',
-    '包装很精美，送人也很合适。',
-    '价格偏贵，性价比一般般。',
-    '客服态度很好，处理问题很及时。',
-    '夏天穿正合适，一点都不闷热。'
-  ][i % 10],
-  sentiment: ['正面', '中性', '负面', '正面', '负面', '正面', '正面', '中性', '正面', '正面'][i % 10],
-  platform: ['小红书', '微博', '抖音', '知乎', '京东'][i % 5],
-  date: '2025-09-16',
-}));
+const WORD_CLOUD_DATA = [
+  { text: '品牌声量', value: 88 },
+  { text: '正面反馈', value: 72 },
+  { text: '体验', value: 66 },
+  { text: '信任', value: 58 },
+  { text: '价格', value: 52 },
+  { text: '服务', value: 46 },
+  { text: '质量', value: 44 },
+  { text: '推荐', value: 40 },
+  { text: '社媒讨论', value: 36 },
+  { text: '复购', value: 32 },
+  { text: '物流', value: 28 },
+  { text: '客服', value: 24 },
+];
 
 const SentimentDonutChart = ({ containerRef }) => {
   const { token } = theme.useToken();
@@ -42,66 +38,77 @@ const SentimentDonutChart = ({ containerRef }) => {
   useEffect(() => {
     if (!containerRef.current) return;
 
+    let disposed = false;
+    const container = containerRef.current;
+
     if (chartRef.current) {
       chartRef.current.destroy();
       chartRef.current = null;
     }
 
-    const total = MOCK_SENTIMENT.reduce((sum, item) => sum + item.value, 0);
+    const run = async () => {
+      const Chart = await loadG2Chart();
+      if (disposed) return;
 
-    const chart = new Chart({
-      container: containerRef.current,
-      autoFit: true,
-      height: (containerRef.current.clientHeight * 0.8) || 256,
-      theme: 'dark',
-      paddingTop: 40,
-    });
+      const total = MOCK_SENTIMENT.reduce((sum, item) => sum + item.value, 0);
 
-    chart.coordinate({ type: 'theta', innerRadius: 0.6 });
+      const chart = new Chart({
+        container,
+        autoFit: true,
+        height: (container.clientHeight * 0.8) || 256,
+        theme: 'dark',
+        paddingTop: 40,
+      });
 
-    chart
-      .interval()
-      .data(MOCK_SENTIMENT)
-      .transform({ type: 'stackY' })
-      .encode('y', 'value')
-      .encode('color', 'name')
-      .style('stroke', token.colorBgContainer)
-      .style('inset', 1)
-      .style('radius', 10)
-      .scale('color', {
-        domain: ['正面', '负面', '中性'],
-        range: ['#2582a1', '#c52125', '#f88c24'],
-      })
-      .label({
-        text: (d) => `${d.name}：${d.value}条`,
-        fontSize: 12,
-        fontWeight: 'bold',
-        fill: '#fff',
-        position: 'outside',
-      })
-      .label({
-        text: (d) => `${((d.value / total) * 100).toFixed(0)}%`,
-        fontSize: 14,
-        fill: '#fff',
-        position: 'inside',
-        fontWeight: 'bold',
-      })
-      .legend({
-        position: 'bottom',
-        layout: { justifyContent: 'center' },
-      })
-      .animate('enter', { type: 'waveIn' });
+      chart.coordinate({ type: 'theta', innerRadius: 0.6 });
 
-    chart.render();
-    chartRef.current = chart;
+      chart
+        .interval()
+        .data(MOCK_SENTIMENT)
+        .transform({ type: 'stackY' })
+        .encode('y', 'value')
+        .encode('color', 'name')
+        .style('stroke', token.colorBgContainer)
+        .style('inset', 1)
+        .style('radius', 10)
+        .scale('color', {
+          domain: ['正面', '负面', '中性'],
+          range: ['#2582a1', '#c52125', '#f88c24'],
+        })
+        .label({
+          text: (d) => `${d.name}：${d.value}条`,
+          fontSize: 12,
+          fontWeight: 'bold',
+          fill: '#fff',
+          position: 'outside',
+        })
+        .label({
+          text: (d) => `${((d.value / total) * 100).toFixed(0)}%`,
+          fontSize: 14,
+          fill: '#fff',
+          position: 'inside',
+          fontWeight: 'bold',
+        })
+        .legend({
+          position: 'bottom',
+          layout: { justifyContent: 'center' },
+        })
+        .animate('enter', { type: 'waveIn' });
+
+      chart.render();
+      chartRef.current = chart;
+    };
+
+    run().catch(() => {});
 
     return () => {
+      disposed = true;
       if (chartRef.current) {
         chartRef.current.destroy();
         chartRef.current = null;
       }
     };
-  }, [token]);
+  }, [containerRef, token.colorBgContainer]);
 
   return <div ref={containerRef} style={{ width: '100%', height: '100%' }} />;
 };
@@ -119,6 +126,7 @@ export default function SentimentAnalysis({
   const [error, setError] = useState(null);
   const donutRef = useRef(null);
   const wordCloudRef = useRef(null);
+  const wordCloudChartRef = useRef(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -162,32 +170,48 @@ export default function SentimentAnalysis({
   useEffect(() => {
     if (!wordCloudRef.current) return;
 
-    const chart = new Chart({
-      container: wordCloudRef.current,
-      autoFit: true,
-      paddingTop: 80,
-    });
+    let disposed = false;
+    const container = wordCloudRef.current;
 
-    chart
-      .wordCloud()
-      .data({
-        type: 'fetch',
-        value: 'https://assets.antv.antgroup.com/g2/philosophy-word.json',
-      })
-      .layout({
-        spiral: 'rectangular',
-        fontSize: [12, 48],
-      })
-      .encode('color', 'text')
-      .scale('color', {
-        range: ['#2582a1', '#c52125', '#f88c24'],
-      })
-      .legend(false);
+    if (wordCloudChartRef.current) {
+      wordCloudChartRef.current.destroy();
+      wordCloudChartRef.current = null;
+    }
 
-    chart.render();
+    const run = async () => {
+      const Chart = await loadG2Chart();
+      if (disposed) return;
 
+      const chart = new Chart({
+        container,
+        autoFit: true,
+        paddingTop: 80,
+      });
+
+      chart
+        .wordCloud()
+        .data(WORD_CLOUD_DATA)
+        .layout({
+          spiral: 'rectangular',
+          fontSize: [12, 48],
+        })
+        .encode('color', 'text')
+        .scale('color', {
+          range: ['#2582a1', '#c52125', '#f88c24'],
+        })
+        .legend(false);
+
+      chart.render();
+      wordCloudChartRef.current = chart;
+    };
+
+    run().catch(() => {});
     return () => {
-      chart.destroy();
+      disposed = true;
+      if (wordCloudChartRef.current) {
+        wordCloudChartRef.current.destroy();
+        wordCloudChartRef.current = null;
+      }
     };
   }, []);
 
@@ -195,7 +219,7 @@ export default function SentimentAnalysis({
     <Flex vertical gap="large" align="stretch" style={{ width: '100%', minHeight: 'calc(100vh - 112px)', height: '100%' }}>
       <KeywordSection keywords={keywords} loading={loading} style={{ flex: '0 0 auto' }} />
       <Card
-        bordered={false}
+        variant="borderless"
         styles={{ body: { padding: token.paddingLG, display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 } }}
         style={{ boxShadow: token.boxShadowTertiary, borderRadius: token.borderRadiusLG, display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}
       >

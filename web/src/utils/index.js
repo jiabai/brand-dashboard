@@ -196,6 +196,23 @@ export const formatDateDisplay = (value) => {
   return parsed.format('YYYY-MM-DD');
 };
 
+export const buildQueryJobStatusRowKey = (record = {}, index = 0) => {
+  const parts = [
+    record.tenant_key,
+    record.id,
+    record.query_job_id,
+    record.job_id,
+    record.brand,
+    record.query_content,
+    record.effective_from,
+    record.effective_to,
+  ]
+    .map((value) => String(value ?? '').trim())
+    .filter(Boolean);
+
+  return parts.length ? parts.join('::') : `query-job-${index}`;
+};
+
 export const getRangeByTimeframe = (timeframe, dateParam) => {
   const today = dayjs();
   if (timeframe === 'yesterday') {

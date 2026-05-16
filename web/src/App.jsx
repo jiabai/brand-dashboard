@@ -2,12 +2,20 @@ import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } fr
 import { Badge, ConfigProvider, Layout, Segmented, DatePicker, Space, Spin, Typography, theme } from 'antd';
 import dayjs from 'dayjs';
 
+import './styles/app-shell.css';
 import ErrorBoundary from './components/ErrorBoundary';
 import TaskName from './components/TaskName.jsx';
 import Sidebar from './components/Sidebar.jsx';
 
 import { CONFIG } from './config';
-import { fetchJson, getQueryParam, updateQueryParams } from './utils';
+import {
+  fetchJson,
+  formatDateDisplay,
+  formatDateParam,
+  getQueryParam,
+  parseDateInput,
+  updateQueryParams,
+} from './utils';
 
 const BrandMentionRate = React.lazy(() => import('./components/BrandMentionRate.jsx'));
 const PlatformMentionRates = React.lazy(() => import('./components/PlatformMentionRates.jsx'));
@@ -29,30 +37,6 @@ const TIME_OPTIONS = [
   { label: '过去30天', value: '30days' },
   { label: '指定日期', value: 'specific_day' }
 ];
-
-const parseDateInput = (value) => {
-  if (!value) return null;
-  const text = String(value);
-  if (/^\d{8}$/.test(text)) {
-    const parsed = dayjs(text, 'YYYYMMDD');
-    return parsed.isValid() ? parsed : null;
-  }
-  const parsed = dayjs(text);
-  return parsed.isValid() ? parsed : null;
-};
-
-const formatDateParam = (value) => {
-  if (!value) return '';
-  const parsed = dayjs.isDayjs(value) ? value : dayjs(value);
-  if (!parsed.isValid()) return '';
-  return parsed.format('YYYYMMDD');
-};
-
-const normalizeAvailableDate = (value) => {
-  const parsed = parseDateInput(value);
-  if (!parsed) return '';
-  return parsed.format('YYYY-MM-DD');
-};
 
 const LiveClock = React.memo(function LiveClock() {
   const [currentTime, setCurrentTime] = useState(() => new Date());
@@ -76,7 +60,6 @@ const LiveClock = React.memo(function LiveClock() {
  * Dashboard content component
  */
 function Dashboard() {
-  const { token } = theme.useToken();
   // State management
   const [currentView, setCurrentView] = useState(() => getQueryParam('view', 'home'));
   const [selectedFilter, setSelectedFilter] = useState(() => getQueryParam('timeframe', '30days'));
@@ -187,7 +170,7 @@ function Dashboard() {
       );
       const list = Array.isArray(result?.data) ? result.data : [];
       const normalized = list
-        .map((item) => normalizeAvailableDate(item))
+        .map((item) => formatDateDisplay(item))
         .filter(Boolean);
       setAvailableDates(normalized);
     };
@@ -263,7 +246,7 @@ function Dashboard() {
   const renderContent = () => {
     return (
       <ErrorBoundary>
-        <Suspense fallback={<Spin />}>
+        <Suspense fallback={<div className="app-shell-loading"><Spin /></div>}>
           {currentView === 'task-load' ? (
             <CreateQueryJob 
               tenantKey={tenantKey}
@@ -374,35 +357,18 @@ function Dashboard() {
   };
 
   return (
-    <Layout style={{ minHeight: '100vh', position: 'relative', zIndex: 1 }}>
+    <Layout className="app-shell">
       <Sidebar 
         collapsed={siderCollapsed} 
         onCollapse={setSiderCollapsed} 
         selectedKey={currentView}
         onMenuClick={setCurrentView}
       />
-      <Layout>
-        <Header
-          style={{
-            position: 'sticky',
-            top: 0,
-            zIndex: 10,
-            paddingInline: 24,
-            display: 'flex',
-            alignItems: 'center',
-            background: token.colorBgContainer,
-            borderBottom: `1px solid ${token.colorBorderSecondary}`
-          }}
-        >
-          <Space
-            size="middle"
-            style={{
-              width: '100%',
-              justifyContent: 'space-between'
-            }}
-          >
+      <Layout className="app-shell-main">
+        <Header className="app-shell-header">
+          <div className="app-shell-header-inner">
             <TaskName />
-            <Space size="middle" wrap>
+            <Space size="middle" wrap className="app-shell-controls">
               <Badge status="processing" text="实时数据" />
               <LiveClock />
               {latestAvailableDate ? (
@@ -414,7 +380,7 @@ function Dashboard() {
                 onChange={handleFilterChange}
               />
               {selectedFilter === 'specific_day' ? (
-                <Space size="small" wrap align="center">
+                <Space size="small" wrap align="center" className="app-shell-date-range">
                   <Typography.Text type="secondary">开始日期</Typography.Text>
                   <DatePicker
                     value={startDate}
@@ -450,10 +416,10 @@ function Dashboard() {
                 </Space>
               ) : null}
             </Space>
-          </Space>
+          </div>
         </Header>
 
-        <Content style={{ padding: 24 }}>
+        <Content className="app-shell-content">
           {renderContent()}
         </Content>
       </Layout>

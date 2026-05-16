@@ -20,7 +20,7 @@ const SubmissionSuccess = ({ result, onReset, onViewStatus }) => {
 
       <Card 
         className="w-full max-w-2xl mb-10 glass-card"
-        bordered={false}
+        variant="borderless"
       >
         <Descriptions column={1} bordered size="middle" labelStyle={{ width: '120px' }}>
           <Descriptions.Item label="任务 ID">

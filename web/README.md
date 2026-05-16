@@ -1,224 +1,84 @@
-# 品牌分析仪表板 (Brand Analysis Dashboard)
+# 品牌分析仪表板 Web
 
-一个基于 React 的现代化品牌分析仪表板，用于展示品牌提及率、模型提及率和相关数据参考表格。
+React + Vite 前端，用于品牌声量、趋势、分平台、信源、情感、任务加载和账户流程管理。前端只通过 `/api` REST 接口获取数据，不直接访问数据库。
 
 ## 技术栈
 
-### 前端框架
-- **React 18.2.0** - 使用最新的 React 特性，包括 Hooks 和并发特性
-- **Vite 5.0.8** - 现代化的前端构建工具，提供快速的开发体验和优化后的生产构建
+- React 18
+- Vite 5
+- Ant Design 5
+- Tailwind CSS 4
+- AntV G2，按图表视图懒加载
+- Lucide React 与 Ant Design Icons
 
-### UI 组件库
-- **Radix UI** - 无样式的可访问性组件库
-  - `@radix-ui/react-progress` - 进度条组件
-  - `@radix-ui/react-slot` - 灵活的组合组件
-- **shadcn/ui** - 基于 Radix UI 和 Tailwind CSS 的组件系统
-  - 风格：New York
-  - 支持暗色模式
-  - 使用 CSS 变量进行主题定制
+## 目录结构
 
-### 样式解决方案
-- **Tailwind CSS 4.1.17** - 原子化 CSS 框架
-  - 响应式设计
-  - 自定义主题配置
-  - CSS 变量集成
-- **PostCSS** - CSS 转换工具
-- **Autoprefixer** - 自动添加 CSS 前缀
-
-### 动画与交互
-- **tailwindcss-animate** - 为 Tailwind CSS 提供动画支持
-- **Lucide React** - 现代化的图标库
-- **class-variance-authority (CVA)** - 组件变体管理
-- **clsx & tailwind-merge** - 条件类名和 Tailwind 类名合并工具
-
-## 项目结构
-
-```
+```text
 web/
-├── public/                 # 静态资源
 ├── src/
-│   ├── components/        # React 组件
-│   │   ├── ui/           # shadcn/ui 基础组件
-│   │   │   ├── button.jsx
-│   │   │   ├── card.jsx
-│   │   │   ├── progress.jsx
-│   │   │   └── table.jsx
-│   │   ├── BrandMentionRate.jsx    # 品牌提及率组件
-│   │   ├── ModelMentionRates.jsx   # 模型提及率组件
-│   │   ├── ReferencesTable.jsx     # 参考数据表格
-│   │   ├── TaskName.jsx            # 任务名称组件
-│   │   ├── Sidebar.jsx             # 侧边栏组件
-│   │   ├── GooeyNav.jsx            # 粘性导航组件
-│   │   ├── Squares.jsx             # 背景动画
-│   │   ├── ErrorBoundary.jsx       # 错误边界
-│   │   ├── LoadingSpinner.jsx      # 加载动画
-│   │   ├── EmptyState.jsx          # 空状态
-│   │   ├── SpotlightCard.jsx       # 聚光灯卡片
-│   │   └── TimeFilter.jsx          # 时间筛选器
-│   ├── lib/
-│   │   └── cn.js           # 类名合并工具
-│   ├── styles/             # 组件特定样式
-│   │   ├── brand-mention-rate.css
-│   │   ├── model-mention-rates.css
-│   │   └── references-table.css
-│   ├── utils/
-│   │   └── index.js        # 工具函数
-│   ├── App.jsx             # 主应用组件
-│   ├── App.css             # 应用样式
-│   ├── index.css           # 全局样式
-│   └── main.jsx            # 应用入口
-├── mock/                   # Mock 数据
-│   └── index.js
-├── .env.local              # 环境变量
-├── vite.config.js          # Vite 配置
-├── tailwind.config.js      # Tailwind CSS 配置
-├── components.json         # shadcn/ui 配置
-├── postcss.config.js       # PostCSS 配置
-├── jsconfig.json           # JavaScript 项目配置
-└── package.json            # 项目依赖
+│   ├── components/           # 页面和业务组件
+│   ├── lib/cn.js             # 共享 className 合并工具
+│   ├── styles/               # 当前仍被组件显式 import 的 scoped 样式
+│   ├── utils/                # 查询、日期、数值、图表加载等共享工具
+│   ├── App.jsx               # 应用壳层、路由视图和全局筛选
+│   ├── index.css             # 全局 CSS 变量、Tailwind 和基础样式
+│   └── main.jsx              # 应用入口
+├── vite.config.js
+├── tailwind.config.js
+├── postcss.config.js
+└── package.json
 ```
 
-## 技术方案
+## 主要视图
 
-### 1. 组件化架构
-- 采用函数式组件和 Hooks 模式
-- 使用 Error Boundary 实现错误隔离
-- 组件间通过 props 和回调函数通信
+- `home`：品牌提及排名、平台提及率、引用媒介详情
+- `trend`：趋势分析
+- `platforms`：分平台分析
+- `sources`：信源分析
+- `sentiment`：情感分析
+- `task-load`：LLM 查询任务加载
+- `task-status`：任务状态监控
+- `accounts`：账户与注册管理
 
-### 2. 状态管理
-- 使用 React 内置的 `useState` 和 `useEffect` 进行本地状态管理
-- 实现了加载状态、时间筛选和数据刷新等状态逻辑
+## URL 参数
 
-### 3. 样式方案
-- **原子化 CSS**：使用 Tailwind CSS 实现快速样式开发
-- **主题系统**：通过 CSS 变量实现动态主题切换
-- **响应式设计**：支持移动端、平板和桌面端布局
+- `view`：当前视图，默认 `home`
+- `timeframe`：`yesterday` / `7days` / `30days` / `specific_day`
+- `start_date`、`end_date`、`date`：指定日期模式使用，格式为 `YYYYMMDD`
+- `tenant_key`：租户 Key
+- `job_id`：任务 ID
+- `brand`：品牌名称
+- `platform`：平台详情页的平台名称
+- `executor_id`：创建任务页执行器 ID
+- `include_deleted`：任务状态页是否包含已删除数据
 
-### 4. 路径别名配置
-```javascript
-// vite.config.js
-resolve: {
-  alias: {
-    '@': fileURLToPath(new URL('./src', import.meta.url)),
-    '@/components': fileURLToPath(new URL('./src/components', import.meta.url)),
-    '@/lib': fileURLToPath(new URL('./src/lib', import.meta.url))
-  }
-}
-```
+## 本地开发
 
-### 5. API 集成方案
-- 支持真实 API 和 Mock 数据两种模式
-- 通过环境变量控制：
-  - `VITE_USE_MOCK=true` - 使用 Mock 数据
-  - `VITE_API_TARGET` - 指定后端 API 地址
-- 开发环境自动代理 `/api` 请求到后端服务
-
-### 6. 构建与部署
-- **开发服务器**：`npm run dev` - 启动热重载开发服务器（端口 3000）
-- **生产构建**：`npm run build` - 生成优化的生产版本
-- **预览构建**：`npm run preview` - 预览生产构建结果
-- **Docker 支持**：包含 Dockerfile 和 nginx.conf 用于容器化部署
-
-### 7. 代码质量工具
-- **Husky** - Git hooks 管理
-- **Commitlint** - 提交信息规范化
-- **ESLint** - 代码质量检查（通过 Vite 集成）
-- **Prettier** - 代码格式化（通过 Vite 集成）
-
-## 核心功能特性
-
-### 1. 实时数据更新
-- 自动更新当前时间显示
-- 实时数据状态指示器
-- 带动画效果的数据刷新
-
-### 2. 交互式导航
-- 侧边栏导航与布局
-- 时间筛选器（昨天、过去7天、过去30天）
-- 平滑的页面过渡动画
-
-### 3. 数据可视化
-- **BrandMentionRate** - 品牌提及率可视化
-- **ModelMentionRates** - 多模型提及率对比
-- **ReferencesTable** - 详细数据表格展示
-
-### 4. 视觉效果
-- **LoadingSpinner** 加载状态动画
-- 响应式布局适配各种屏幕尺寸
-
-## 环境配置
-
-创建 `.env.local` 文件：
-
-```env
-# 使用 Mock 数据（开发模式）
-VITE_USE_MOCK=true
-
-# 后端 API 地址
-VITE_API_TARGET=http://localhost:8000
-
-# 默认业务参数
-VITE_DEFAULT_TENANT_KEY=tn_1b02b3ef4fbd
-VITE_DEFAULT_JOB_ID=job_20260127_223236_989cc4db
-VITE_DEFAULT_BRAND=哈基桃电竞
-```
-
-## 快速开始
-
-1. **安装依赖**
 ```bash
 npm install
-```
-
-2. **启动开发服务器**
-```bash
 npm run dev
-```
-
-### 浏览器访问
-
-- 前端开发服务器：`http://localhost:3000/`
-- 前端 URL 参数（Query String）：
-- `view`：页面视图，可选 `home` / `task-load` / `task-status`（默认 `home`）
-- `timeframe`：时间范围，可选 `yesterday` / `7days` / `30days`（默认 `7days`）
-- `tenant_key`：租户 Key（默认读取内置配置）
-- `job_id`：任务/作业 ID（默认读取内置配置）
-- `brand`：品牌名称（支持中文；URL 中会被自动编码；默认读取内置配置）
-- `platform`：平台名称（选填；不为空时进入平台详情页）
-- `executor_id`：创建任务页执行器 ID（`view=task-load` 时使用；默认 `exec_bbda021a`）
-- `include_deleted`：任务状态页是否包含已删除（`view=task-status` 时使用；`true`/`1` 表示启用，默认 `false`）
-- 示例（首页）：`http://localhost:3000/?view=home&timeframe=7days&tenant_key=tn_xxx&job_id=job_xxx&brand=%E6%96%B0%E4%B8%9C%E6%96%B9&platform=deepseek&executor_id=exec_bbda021a&include_deleted=false`
-- 示例（创建任务）：`http://localhost:3000/?view=task-load&tenant_key=tn_xxx&executor_id=exec_bbda021a`
-- 示例（任务状态）：`http://localhost:3000/?view=task-status&tenant_key=tn_xxx&include_deleted=1`
-- 后端 API（如已启动）：`http://localhost:8000/`
-- 后端接口文档 Swagger（如已启动）：`http://localhost:8000/docs`
-- 生产构建预览（执行 `npm run preview` 后按终端提示）：通常为 `http://localhost:4173/`
-
-3. **构建生产版本**
-```bash
+npm test
 npm run build
 ```
 
-4. **预览生产版本**
-```bash
-npm run preview
+开发服务器默认运行在 `http://localhost:3000/`。未启用 Mock 时，Vite 会把 `/api` 代理到 `VITE_API_TARGET`，默认 `http://localhost:8000`。
+
+## 环境变量
+
+```env
+VITE_USE_MOCK=false
+VITE_API_TARGET=http://localhost:8000
+VITE_DEFAULT_TENANT_KEY=tn_xxx
+VITE_DEFAULT_JOB_ID=job_xxx
+VITE_DEFAULT_BRAND=QuickCEP
+VITE_DEFAULT_EXECUTOR_ID=exec_xxx
+VITE_DEFAULT_INCLUDE_DELETED=false
 ```
 
-## 浏览器支持
+## 架构约定
 
-- Chrome/Edge 90+
-- Firefox 88+
-- Safari 14+
-- 支持 ES2020+ 特性的现代浏览器
-
-## 开发注意事项
-
-1. 组件开发遵循单一职责原则
-2. 使用 TypeScript 风格的 PropTypes 注释
-3. 保持组件的可复用性和可测试性
-4. 遵循 React Hooks 最佳实践
-5. 使用语义化的 HTML 标签
-
-## 许可证
-
-私有项目（Private）
+- 组件优先使用 Ant Design，避免混入第二套基础 UI 体系。
+- 共享逻辑放在 `src/utils/`，共享 className 工具放在 `src/lib/cn.js`。
+- 图表库通过 `src/utils/loadG2Chart.js` 懒加载，避免普通页面同步绑定大体积图表依赖。
+- 样式文件必须由组件或入口显式 import；未引用样式应删除。
+- 数据查询必须携带后端需要的租户和任务上下文参数。

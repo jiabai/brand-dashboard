@@ -23,7 +23,12 @@ import {
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { CONFIG } from '../config';
-import { fetchJson, getQueryParam, updateQueryParams } from '../utils';
+import {
+  buildQueryJobStatusRowKey,
+  fetchJson,
+  getQueryParam,
+  updateQueryParams,
+} from '../utils';
 
 const { Title, Text } = Typography;
 
@@ -34,6 +39,12 @@ const STATUS_MAP = {
   1: { text: '生效中', color: 'processing', icon: <SyncOutlined spin /> },
   2: { text: '已完成', color: 'success', icon: <CheckCircleOutlined /> },
   3: { text: '已失效', color: 'error', icon: <CloseCircleOutlined /> },
+};
+
+const formatDateTime = (value) => {
+  if (!value) return '-';
+  const parsed = dayjs(value);
+  return parsed.isValid() ? parsed.format('YYYY-MM-DD HH:mm') : '-';
 };
 
 const QueryJobStatus = ({ tenantKey: propTenantKey }) => {
@@ -144,11 +155,11 @@ const QueryJobStatus = ({ tenantKey: propTenantKey }) => {
       render: (_, record) => (
         <Space direction="vertical" size={0}>
           <Text type="secondary" style={{ fontSize: '12px' }}>
-            From: {dayjs(record.effective_from).format('YYYY-MM-DD HH:mm')}
+            From: {formatDateTime(record.effective_from)}
           </Text>
           {record.effective_to && (
             <Text type="secondary" style={{ fontSize: '12px' }}>
-              To: &nbsp;&nbsp;&nbsp;{dayjs(record.effective_to).format('YYYY-MM-DD HH:mm')}
+              To: &nbsp;&nbsp;&nbsp;{formatDateTime(record.effective_to)}
             </Text>
           )}
         </Space>
@@ -217,13 +228,13 @@ const QueryJobStatus = ({ tenantKey: propTenantKey }) => {
 
         <Card 
           className="glass-card" 
-          bordered={false} 
+          variant="borderless"
           bodyStyle={{ padding: 0 }}
         >
           <Table
             dataSource={data}
             columns={columns}
-            rowKey={(record) => `${record.tenant_key}-${record.effective_from}-${Math.random()}`} // Best effort key
+            rowKey={buildQueryJobStatusRowKey}
             loading={loading}
             pagination={{ pageSize: 10 }}
             locale={{ emptyText: <Empty description="暂无数据，请尝试查询" image={Empty.PRESENTED_IMAGE_SIMPLE} /> }}
