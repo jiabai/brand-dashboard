@@ -14,3 +14,4 @@
 | [20260206-122500-expand-allowed-hosts.md](20260206-122500-expand-allowed-hosts.md) | 扩展允许的主机列表 | 2026-02-06 |
 | [20260207-151700-adjust-wordcloud-position.md](20260207-151700-adjust-wordcloud-position.md) | 调整词云位置 | 2026-02-07 |
 | [20260207-152100-sync-wordcloud-colors.md](20260207-152100-sync-wordcloud-colors.md) | 同步词云颜色 | 2026-02-07 |
+| [20260517-000000-review-api-architecture.md](20260517-000000-review-api-architecture.md) | 审查并收敛 API 分层、任务上报与依赖验证 | 2026-05-17 |

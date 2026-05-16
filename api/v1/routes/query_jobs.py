@@ -7,7 +7,6 @@ from datetime import UTC
 from typing import Any, Dict, Iterable, Optional
 
 from fastapi import APIRouter, Body, Depends, Header, HTTPException, Query
-from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from api.v1.models.schemas import (
@@ -19,7 +18,21 @@ from api.v1.models.schemas import (
     QueryJobStatusResponse,
     ReportQueryJobResponse,
 )
-from api.v1.repositories.database import get_db
+from api.v1.repositories.connection import get_db
+from api.v1.repositories.executors import get_executor_credentials
+from api.v1.repositories.query_jobs import (
+    fetch_next_query_job,
+    get_query_job_runs,
+    increment_query_job_runs,
+    insert_query_jobs,
+)
+from api.v1.repositories.query_jobs import (
+    list_query_jobs_status as list_query_jobs_status_records,
+)
+from api.v1.repositories.query_jobs import (
+    sync_query_jobs_status as sync_query_jobs_status_records,
+)
+from api.v1.repositories.tenants import tenant_exists
 from api.v1.utils import get_logger
 
 router = APIRouter()
@@ -35,23 +48,7 @@ def sync_query_jobs_status(db: Session):
     """
     now = datetime.datetime.now(UTC)
     try:
-        db.execute(
-            text(
-                """
-                UPDATE llm_query_jobs 
-                SET query_status = CASE 
-                    WHEN query_status = 0 AND effective_from <= :now THEN 1
-                    WHEN query_status = 1 AND effective_to IS NOT NULL 
-                         AND effective_to < :now THEN 3
-                    ELSE query_status
-                END,
-                updated_at = :now
-                WHERE (query_status = 0 AND effective_from <= :now)
-                   OR (query_status = 1 AND effective_to IS NOT NULL AND effective_to < :now)
-                """
-            ),
-            {"now": now}
-        )
+        sync_query_jobs_status_records(db, now)
         db.commit()
     except Exception as e:
         db.rollback()
@@ -69,9 +66,7 @@ async def verify_executor(
     if not x_executor_key:
         raise HTTPException(status_code=401, detail="缺少执行器密钥 (X-Executor-Key)")
 
-    # 在数据库中查找执行器及其 API Key
-    query = text("SELECT api_key, status FROM executors WHERE executor_id = :executor_id")
-    executor = db.execute(query, {"executor_id": executor_id}).first()
+    executor = get_executor_credentials(db, executor_id)
 
     if not executor:
         raise HTTPException(status_code=404, detail="执行器不存在")
@@ -106,45 +101,12 @@ async def fetch_query_job(
     if not normalized_job_id:
         normalized_job_id = None
 
-    params: Dict[str, Any] = {"executor_id": executor_id}
-
-    where_clauses = ["executor_id = :executor_id"]
-
-    if normalized_tenant_key is not None:
-        where_clauses.append("tenant_key = :tenant_key")
-        params["tenant_key"] = normalized_tenant_key
-
-    if normalized_job_id is not None:
-        where_clauses.append("job_id = :job_id")
-        params["job_id"] = normalized_job_id
-
-    where_clauses.extend(
-        [
-            "query_status = 1",
-            "is_deleted = 0",
-            "executed_runs < total_runs",
-            "CURRENT_TIMESTAMP >= effective_from",
-            "(effective_to IS NULL OR CURRENT_TIMESTAMP <= effective_to)",
-            # 此处使用 <= CURRENT_DATE 是为了允许同一个任务在同一天内被多次拉取并执行，
-            # 只要总执行次数 executed_runs 未达到 total_runs 即可。
-            "(last_executed_date IS NULL OR last_executed_date <= CURRENT_DATE)",
-        ]
+    result = fetch_next_query_job(
+        db,
+        executor_id=executor_id,
+        tenant_key=normalized_tenant_key,
+        job_id=normalized_job_id,
     )
-
-    sql = text(
-        f"""
-        SELECT
-          id, job_id, tenant_key, category, brand, competitor, keyword, query_content
-        FROM llm_query_jobs
-        WHERE {" AND ".join(where_clauses)}
-        ORDER BY
-          executed_runs ASC,
-          id ASC
-        LIMIT 1;
-        """
-    )
-
-    result = db.execute(sql, params).first()
 
     if not result:
         return FetchQueryJobResponse(success=True, count=0, jobs=None)
@@ -181,16 +143,7 @@ async def report_query_job(
     仅更新 llm_query_jobs 表中的执行次数和日期。
     """
     # 1. 查找对应的任务记录，并校验执行器及执行次数
-    query_job = db.execute(
-        text(
-            """
-            SELECT executed_runs, total_runs
-            FROM llm_query_jobs
-            WHERE id = :id AND executor_id = :executor_id
-            """
-        ),
-        {"id": id, "executor_id": executor_id},
-    ).first()
+    query_job = get_query_job_runs(db, record_id=id, executor_id=executor_id)
 
     if not query_job:
         raise HTTPException(status_code=404, detail="任务记录不存在或不属于该执行器")
@@ -200,28 +153,16 @@ async def report_query_job(
 
     try:
         # 2. 更新任务执行次数，并根据次数自动更新状态为 2 (已完成)
-        result = db.execute(
-            text(
-                """
-                UPDATE llm_query_jobs 
-                SET executed_runs = executed_runs + 1,
-                    query_status = CASE 
-                        WHEN executed_runs + 1 >= total_runs THEN 2 
-                        ELSE query_status 
-                    END,
-                    last_executed_date = :today, 
-                    updated_at = :now 
-                WHERE id = :id AND executed_runs < total_runs
-                """
-            ),
-            {
-                "today": datetime.date.today(),
-                "now": datetime.datetime.now(UTC),
-                "id": id
-            }
+        now = datetime.datetime.now(UTC)
+        rowcount = increment_query_job_runs(
+            db,
+            record_id=id,
+            executor_id=executor_id,
+            today=now.date(),
+            now=now,
         )
 
-        if result.rowcount == 0:
+        if rowcount == 0:
             db.rollback()
             return ReportQueryJobResponse(
                 success=False,
@@ -246,46 +187,19 @@ async def list_query_jobs_status(
     # 同步任务状态
     sync_query_jobs_status(db)
 
-    tenant_check = db.execute(
-        text("SELECT 1 FROM tenants WHERE tenant_key = :tenant_key"),
-        {"tenant_key": tenant_key},
-    ).first()
-
-    if not tenant_check:
+    if not tenant_exists(db, tenant_key):
         raise HTTPException(status_code=400, detail=f"租户不存在: {tenant_key}")
 
     normalized_job_id = job_id.strip() if job_id else None
     if not normalized_job_id:
         normalized_job_id = None
 
-    params: Dict[str, Any] = {"tenant_key": tenant_key}
-
-    where_clauses = ["tenant_key = :tenant_key"]
-    if normalized_job_id is not None:
-        where_clauses.append("job_id = :job_id")
-        params["job_id"] = normalized_job_id
-
-    if not include_deleted:
-        where_clauses.append("is_deleted = 0")
-
-    sql = text(
-        f"""
-        SELECT
-          tenant_key,
-          job_id,
-          brand,
-          competitor,
-          query_content,
-          query_status,
-          effective_from,
-          effective_to
-        FROM llm_query_jobs
-        WHERE {" AND ".join(where_clauses)}
-        ORDER BY id DESC
-        """
+    rows = list_query_jobs_status_records(
+        db,
+        tenant_key=tenant_key,
+        job_id=normalized_job_id,
+        include_deleted=include_deleted,
     )
-
-    rows = db.execute(sql, params).fetchall()
 
     jobs = [
         QueryJobStatusItem(
@@ -364,12 +278,7 @@ async def load_query_jobs(
     接收原始JSON数据并加载到llm_query_jobs数据库表中.
     """
     # 1. 验证租户是否存在
-    tenant_check = db.execute(
-        text("SELECT 1 FROM tenants WHERE tenant_key = :tenant_key"),
-        {"tenant_key": request.tenant_key}
-    ).first()
-
-    if not tenant_check:
+    if not tenant_exists(db, request.tenant_key):
         raise HTTPException(
             status_code=400, 
             detail=f"租户不存在: {request.tenant_key}"
@@ -404,53 +313,12 @@ async def load_query_jobs(
                 message="没有生成任何记录",
             )
 
-        sql = text(
-            """
-        INSERT INTO llm_query_jobs (
-          tenant_key,
-          job_id,
-          category,
-          brand,
-          competitor,
-          keyword,
-          query_content,
-          query_status,
-          executor_id,
-          total_runs,
-          executed_runs,
-          last_executed_date,
-          effective_from,
-          effective_to,
-          created_at,
-          updated_at
-        )
-        VALUES (
-          :tenant_key,
-          :job_id,
-          :category,
-          :brand,
-          :competitor,
-          :keyword,
-          :query_content,
-          :query_status,
-          :executor_id,
-          :total_runs,
-          :executed_runs,
-          :last_executed_date,
-          :effective_from,
-          :effective_to,
-          :created_at,
-          :updated_at
-        )
-        """
-        )
-
-        result = db.execute(sql, rows)
+        inserted_rows = insert_query_jobs(db, rows)
         db.commit()
 
         return LoadQueryJobsResponse(
             success=True,
-            inserted_rows=result.rowcount,
+            inserted_rows=inserted_rows,
             message="LLM查询任务加载成功",
         )
 

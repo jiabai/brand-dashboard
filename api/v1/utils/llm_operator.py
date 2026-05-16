@@ -619,9 +619,9 @@ class LLMOperator:
             "presence_penalty": self.config.presence_penalty,
             "timeout": self.config.timeout,
             "max_retries": self.config.max_retries,
-            "enable_cache": self.config.enable_cache,
+            "enable_cache": self.config.use_cache,
             "cache_timeout_hours": self._cache_timeout.total_seconds() / 3600,
-            "enable_streaming": self.config.enable_streaming
+            "enable_streaming": self.config.stream,
         }
 
     async def health_check_async(self) -> Dict[str, Any]:

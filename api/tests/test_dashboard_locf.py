@@ -1,6 +1,6 @@
 import unittest
 from datetime import date
-from unittest.mock import patch
+from unittest.mock import ANY, patch
 
 from api.v1.routes import dashboard
 from fastapi import FastAPI
@@ -32,7 +32,7 @@ class TestBrandMentionTrendApi(unittest.TestCase):
         ]
 
         with patch(
-            "api.v1.routes.dashboard.query_brand_platform_keyword_daily_mention_rates",
+            "api.v1.services.dashboard_service.query_brand_platform_keyword_daily_mention_rates",
             return_value=rows,
         ):
             response = self.client.get(
@@ -79,7 +79,7 @@ class TestFilterMetadataApi(unittest.TestCase):
         ]
 
         with patch(
-            "api.v1.routes.dashboard.query_filter_metadata",
+            "api.v1.services.dashboard_service.query_filter_metadata",
             return_value=rows,
         ):
             response = self.client.get(
@@ -133,7 +133,7 @@ class TestKeywordPlatformBrandRatesApi(unittest.TestCase):
         ]
 
         with patch(
-            "api.v1.routes.dashboard.query_keyword_platform_brand_rates",
+            "api.v1.services.dashboard_service.query_keyword_platform_brand_rates",
             return_value=rows,
         ):
             response = self.client.get(
@@ -167,7 +167,7 @@ class TestKeywordPlatformBrandRatesApi(unittest.TestCase):
         ]
 
         with patch(
-            "api.v1.routes.dashboard.query_keyword_platform_brand_rates",
+            "api.v1.services.dashboard_service.query_keyword_platform_brand_rates",
             return_value=rows,
         ):
             response = self.client.get(
@@ -189,10 +189,12 @@ class TestKeywordPlatformBrandRatesApi(unittest.TestCase):
 
     def test_keyword_platform_brand_rates_uses_computed_date_range_for_non_specific_day(self):
         with patch(
-            "api.v1.routes.dashboard.get_date_range",
+            "api.v1.services.dashboard_service.get_date_range",
             return_value=(date(2026, 1, 1), date(2026, 1, 31)),
         ):
-            with patch("api.v1.routes.dashboard.query_keyword_platform_brand_rates") as query_mock:
+            with patch(
+                "api.v1.services.dashboard_service.query_keyword_platform_brand_rates"
+            ) as query_mock:
                 query_mock.return_value = []
                 response = self.client.get(
                     "/api/v1/dashboard/keyword-platform-brand-rates",
@@ -209,6 +211,7 @@ class TestKeywordPlatformBrandRatesApi(unittest.TestCase):
         self.assertEqual(payload["metadata"]["end_date"], "20260131")
 
         query_mock.assert_called_once_with(
+            ANY,
             tenant_key="tn_1b02b3ef4fbd",
             job_id="job_20260127_223236_989cc4db",
             start_date=date(2026, 1, 1),
@@ -248,10 +251,10 @@ class TestBrandMetricsApi(unittest.TestCase):
         ]
 
         with patch(
-            "api.v1.routes.dashboard.get_date_range",
+            "api.v1.services.dashboard_service.get_date_range",
             return_value=(date(2026, 1, 1), date(2026, 1, 31)),
         ):
-            with patch("api.v1.routes.dashboard.query_brand_metrics") as query_mock:
+            with patch("api.v1.services.dashboard_service.query_brand_metrics") as query_mock:
                 query_mock.return_value = rows
                 response = self.client.get(
                     "/api/v1/dashboard/brand-metrics",
@@ -270,6 +273,7 @@ class TestBrandMetricsApi(unittest.TestCase):
         self.assertEqual(payload["metadata"]["row_count"], 1)
 
         query_mock.assert_called_once_with(
+            ANY,
             tenant_key="tn_1b02b3ef4fbd",
             job_id="job_20260127_223236_989cc4db",
             start_date=date(2026, 1, 1),
@@ -281,7 +285,7 @@ class TestBrandMetricsApi(unittest.TestCase):
     def test_brand_metrics_uses_supplied_date_range_for_specific_day(self):
         rows = []
 
-        with patch("api.v1.routes.dashboard.query_brand_metrics") as query_mock:
+        with patch("api.v1.services.dashboard_service.query_brand_metrics") as query_mock:
             query_mock.return_value = rows
             response = self.client.get(
                 "/api/v1/dashboard/brand-metrics",
@@ -302,6 +306,7 @@ class TestBrandMetricsApi(unittest.TestCase):
         self.assertEqual(metadata["row_count"], 0)
 
         query_mock.assert_called_once_with(
+            ANY,
             tenant_key="tn_1b02b3ef4fbd",
             job_id="job_20260127_223236_989cc4db",
             start_date=date(2026, 1, 31),
@@ -352,10 +357,12 @@ class TestDomainCitationRateApi(unittest.TestCase):
         ]
 
         with patch(
-            "api.v1.routes.dashboard.get_date_range",
+            "api.v1.services.dashboard_service.get_date_range",
             return_value=(date(2026, 1, 1), date(2026, 1, 31)),
         ):
-            with patch("api.v1.routes.dashboard.query_domain_citation_rate") as query_mock:
+            with patch(
+                "api.v1.services.dashboard_service.query_domain_citation_rate"
+            ) as query_mock:
                 query_mock.return_value = rows
                 response = self.client.get(
                     "/api/v1/dashboard/citation-domain-stats",
@@ -383,6 +390,7 @@ class TestDomainCitationRateApi(unittest.TestCase):
         self.assertEqual(payload["domain_distribution"][0]["domain_citation_rate"], 8.96)
 
         query_mock.assert_called_once_with(
+            ANY,
             tenant_key="tn_1b02b3ef4fbd",
             job_id="job_20260127_223236_989cc4db",
             brand="学而思",
@@ -395,7 +403,7 @@ class TestDomainCitationRateApi(unittest.TestCase):
     def test_domain_citation_rate_uses_supplied_date_range_for_specific_day(self):
         rows = []
 
-        with patch("api.v1.routes.dashboard.query_domain_citation_rate") as query_mock:
+        with patch("api.v1.services.dashboard_service.query_domain_citation_rate") as query_mock:
             query_mock.return_value = rows
             response = self.client.get(
                 "/api/v1/dashboard/citation-domain-stats",
@@ -416,6 +424,7 @@ class TestDomainCitationRateApi(unittest.TestCase):
         self.assertEqual(payload["metadata"]["row_count"], 0)
 
         query_mock.assert_called_once_with(
+            ANY,
             tenant_key="tn_1b02b3ef4fbd",
             job_id="job_20260127_223236_989cc4db",
             brand="学而思",
@@ -428,7 +437,7 @@ class TestDomainCitationRateApi(unittest.TestCase):
 
     def test_domain_citation_rate_includes_keyword_in_params(self):
         rows = []
-        with patch("api.v1.routes.dashboard.query_domain_citation_rate") as query_mock:
+        with patch("api.v1.services.dashboard_service.query_domain_citation_rate") as query_mock:
             query_mock.return_value = rows
             response = self.client.get(
                 "/api/v1/dashboard/citation-domain-stats",
@@ -450,6 +459,7 @@ class TestDomainCitationRateApi(unittest.TestCase):
         self.assertEqual(payload["metadata"]["platform"], "deepseek")
 
         query_mock.assert_called_once_with(
+            ANY,
             tenant_key="tn_1b02b3ef4fbd",
             job_id="job_20260127_223236_989cc4db",
             brand="学而思",
@@ -487,10 +497,12 @@ class TestCitationTypeStatsApi(unittest.TestCase):
         ]
 
         with patch(
-            "api.v1.routes.dashboard.get_date_range",
+            "api.v1.services.dashboard_service.get_date_range",
             return_value=(date(2026, 1, 1), date(2026, 1, 31)),
         ):
-            with patch("api.v1.routes.dashboard.query_citation_type_stats") as query_mock:
+            with patch(
+                "api.v1.services.dashboard_service.query_citation_type_stats"
+            ) as query_mock:
                 query_mock.return_value = summary, stats
                 response = self.client.get(
                     "/api/v1/dashboard/citation-type-stats",
@@ -512,6 +524,7 @@ class TestCitationTypeStatsApi(unittest.TestCase):
         self.assertEqual(len(payload["citation_type_stats"]), 2)
 
         query_mock.assert_called_once_with(
+            ANY,
             tenant_key="tn_1b02b3ef4fbd",
             job_id="job_20260127_223236_989cc4db",
             start_date=date(2026, 1, 1),
@@ -546,11 +559,11 @@ class TestPlatformMetricsByBrandApi(unittest.TestCase):
         ]
 
         with patch(
-            "api.v1.routes.dashboard.get_date_range",
+            "api.v1.services.dashboard_service.get_date_range",
             return_value=(date(2026, 1, 1), date(2026, 1, 31)),
         ):
             with patch(
-                "api.v1.routes.dashboard.query_platform_metrics_by_brand"
+                "api.v1.services.dashboard_service.query_platform_metrics_by_brand"
             ) as query_mock:
                 query_mock.return_value = rows
                 response = self.client.get(
@@ -574,6 +587,7 @@ class TestPlatformMetricsByBrandApi(unittest.TestCase):
         self.assertEqual(payload["metadata"]["row_count"], 2)
 
         query_mock.assert_called_once_with(
+            ANY,
             tenant_key="tn_1b02b3ef4fbd",
             job_id="job_20260127_223236_989cc4db",
             brand="学而思",
@@ -584,7 +598,9 @@ class TestPlatformMetricsByBrandApi(unittest.TestCase):
     def test_platform_metrics_by_brand_uses_supplied_date_range_for_specific_day(self):
         rows = []
 
-        with patch("api.v1.routes.dashboard.query_platform_metrics_by_brand") as query_mock:
+        with patch(
+            "api.v1.services.dashboard_service.query_platform_metrics_by_brand"
+        ) as query_mock:
             query_mock.return_value = rows
             response = self.client.get(
                 "/api/v1/dashboard/platform-metrics-by-brand",
@@ -605,6 +621,7 @@ class TestPlatformMetricsByBrandApi(unittest.TestCase):
         self.assertEqual(payload["metadata"]["row_count"], 0)
 
         query_mock.assert_called_once_with(
+            ANY,
             tenant_key="tn_1b02b3ef4fbd",
             job_id="job_20260127_223236_989cc4db",
             brand="学而思",

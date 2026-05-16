@@ -7,10 +7,9 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
 from urllib.parse import urlparse
 
-from sqlalchemy import text
-
 from api.v1.repositories.connection import engine, get_dialect
 from api.v1.utils import get_logger
+from sqlalchemy import text
 
 logger = get_logger(__name__)
 

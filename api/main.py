@@ -12,6 +12,7 @@ from fastapi.responses import JSONResponse
 # from fastapi_structlog import LogSettings, setup_logger
 # from fastapi_structlog.middleware import AccessLogMiddleware, StructlogMiddleware
 from api.v1.models.schemas import HealthResponse
+from api.v1.repositories.init_db import init_db
 from api.v1.routes import (
     analysis,
     auth,
@@ -22,7 +23,6 @@ from api.v1.routes import (
     executors,
     query_jobs,
 )
-from api.v1.repositories.init_db import init_db
 from api.v1.services.job_reset_scheduler import start_scheduler
 
 

@@ -23,7 +23,7 @@ brand-dashboard/
 │   ├── v1/
 │   │   ├── routes/               # 路由层：dashboard, auth, analysis, brand_strategy, config, query_jobs, executors, conversation
 │   │   ├── models/schemas.py     # Pydantic 模型
-│   │   ├── repositories/         # 数据访问层：database.py, auth.py
+│   │   ├── repositories/         # 数据访问层：database.py, auth.py, query_jobs.py, executors.py, conversation.py, tenants.py
 │   │   ├── services/             # 业务逻辑层：llm_client.py
 │   │   └── utils/                # 工具层：security, llm_adapters, llm_operator, url_domain_resolver
 │   ├── database/                 # SQL Schema（schema.sql, schema_auth.sql, schema_business.sql）
@@ -43,6 +43,10 @@ brand-dashboard/
 | `api/v1/routes/dashboard.py` | 仪表板核心 API（品牌提及率、引用统计、平台指标） |
 | `api/v1/routes/auth.py` | 多租户认证（租户创建、用户注册、邀请码验证） |
 | `api/v1/repositories/database.py` | 数据访问层，所有 SQL 查询的入口 |
+| `api/v1/repositories/query_jobs.py` | 查询任务数据访问（状态同步、任务拉取、上报计数、批量加载） |
+| `api/v1/repositories/executors.py` | 执行器数据访问（创建、注册校验、列表、禁用） |
+| `api/v1/repositories/conversation.py` | 对话与引用数据入库访问 |
+| `api/v1/repositories/tenants.py` | 租户存在性校验等共享租户查询 |
 | `api/v1/models/schemas.py` | Pydantic 模型定义，API 请求/响应的数据契约 |
 | `api/database/schema.sql` | 完整数据库 Schema（租户 + 用户 + 业务表） |
 

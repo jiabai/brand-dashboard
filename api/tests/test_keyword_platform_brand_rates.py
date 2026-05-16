@@ -31,9 +31,7 @@ class TestKeywordPlatformBrandRates(unittest.TestCase):
             "is_mentioned", "is_first_mentioned", "is_top3_mentioned",
         }
 
-        original_engine = database.engine
-        database.engine = engine
-        try:
+        with patch("api.v1.repositories.database.get_engine", return_value=engine):
             with patch(
                 "api.v1.repositories.filter_metadata.get_columns",
                 return_value=fake_columns,
@@ -44,8 +42,6 @@ class TestKeywordPlatformBrandRates(unittest.TestCase):
                     start_date="20260101",
                     end_date="20260131",
                 )
-        finally:
-            database.engine = original_engine
 
         self.assertEqual(len(result), 1)
         self.assertEqual(result[0]["keyword"], "三角洲陪玩")

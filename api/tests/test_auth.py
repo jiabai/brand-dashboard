@@ -244,9 +244,10 @@ class TestCreateTenantRepository(unittest.TestCase):
             def __exit__(self, exc_type, exc, tb):
                 return False
 
-        with patch.object(auth_repository, "engine") as engine_mock:
-            engine_mock.begin.return_value = _ConnCtx()
-            result = auth_repository.create_tenant_with_admin(payload)
+        engine_mock = MagicMock()
+        engine_mock.begin.return_value = _ConnCtx()
+
+        result = auth_repository.create_tenant_with_admin(engine_mock, payload)
 
         self.assertEqual(result["tenantName"], "阿里巴巴集团")
         self.assertEqual(result["adminEmail"], "zhangsan@alibaba.com")
