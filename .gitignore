@@ -110,4 +110,7 @@ api/.venv
 *.tmp
 *.temp
 
+# Data directory (database, CSV exports, etc.)
+data/
+
 .trae/

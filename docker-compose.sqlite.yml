@@ -3,7 +3,7 @@
 #
 # 与 docker-compose.dev.yml 的区别：
 # - 不依赖外部 MySQL 服务
-# - 数据库文件持久化到 ./data/geo.db
+# - 数据库文件持久化到 ./data/geo_csv/geo.db
 # - 适合本地开发和轻量部署场景
 
 services:
@@ -20,7 +20,7 @@ services:
       - "8000:8000"
     environment:
       - DB_DIALECT=sqlite
-      - DB_SQLITE_PATH=/app/data/geo.db
+      - DB_SQLITE_PATH=/app/data/geo_csv/geo.db
 
   web:
     build:
