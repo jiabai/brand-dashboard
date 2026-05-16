@@ -82,7 +82,7 @@ const ReferencesTable = ({
           throw new Error('接口返回错误状态');
         }
 
-        const list = Array.isArray(result?.domain_distribution) ? result.domain_distribution : [];
+        const list = Array.isArray(result?.data) ? result.data : Array.isArray(result?.domain_distribution) ? result.domain_distribution : [];
 
         const normalized = list
           .map((item, index) => {

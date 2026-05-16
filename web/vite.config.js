@@ -67,6 +67,13 @@ export default defineConfig(({ mode, command }) => {
         target: apiTarget,
         changeOrigin: true,
         secure: false,
+        timeout: 120000,
+        proxyTimeout: 120000,
+        configure: (proxy) => {
+          proxy.on('error', (err) => {
+            console.error('[vite proxy error]', err.message);
+          });
+        },
       }
     }
   } else {
