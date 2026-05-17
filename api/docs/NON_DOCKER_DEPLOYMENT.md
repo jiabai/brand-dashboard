@@ -22,7 +22,7 @@
 
 - Python：建议 3.11+（与 Ruff 配置一致）
 - MySQL：8.0+，字符集 `utf8mb4`
-- 建议使用虚拟环境（venv/conda/uv 等任选其一）
+- uv：Python 包管理器（推荐）
 
 ## 部署步骤（通用）
 
@@ -31,35 +31,13 @@
 在 `d:\Github\brand-dashboard\api\` 目录执行：
 
 ```bash
-python -m venv .venv
+uv sync
 ```
 
-激活虚拟环境：
-
-- Windows PowerShell
+开发依赖（含测试）：
 
 ```bash
-.\.venv\Scripts\Activate.ps1
-```
-
-- Linux/macOS
-
-```bash
-source .venv/bin/activate
-```
-
-安装依赖：
-
-```bash
-pip install -r requirements.txt
-```
-
-额外依赖说明：
-
-- 代码中引用了 `python-dotenv`（用于加载 `api/.env`）与 `asgi-correlation-id`（请求链路 ID 中间件），但当前 `requirements.txt` 未包含它们。非 Docker 部署时需要额外安装：
-
-```bash
-pip install python-dotenv asgi-correlation-id
+uv sync --extra dev
 ```
 
 ### 2) 初始化 MySQL 数据库
@@ -187,26 +165,14 @@ server {
 
 ## 常见问题排查
 
-### 1) 启动时报错：ModuleNotFoundError: dotenv / asgi_correlation_id
+### 1) 启动时报错：ModuleNotFoundError
 
-原因：当前 `requirements.txt` 未包含对应依赖。执行：
+原因：依赖未正确安装。执行：
 
 ```bash
-pip install python-dotenv asgi-correlation-id
+uv sync
 ```
 
 ### 2) 数据库连接失败
 
 - 检查 MySQL 是否可达（host/port）、账号密码与库名是否正确
-- 确认已执行建表 SQL
-- 确认 `api/.env` 路径正确，且进程具备读取权限
-
-### 3) 前端跨域访问失败
-
-后端在 [main.py](file:///d:/Github/brand-dashboard/api/main.py) 中默认允许：
-
-- `http://localhost:3000`
-- `http://localhost:5173`
-
-如部署到其他域名/端口，需要调整 CORS 的 `allow_origins`。
-

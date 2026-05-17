@@ -5,8 +5,11 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# 安装 uv
+RUN pip install --no-cache-dir uv
+
+COPY pyproject.toml .
+RUN uv pip install --system .
 
 # 将代码复制到容器中
 COPY . ./api

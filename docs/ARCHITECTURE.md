@@ -29,7 +29,7 @@ brand-dashboard/
 │   │   └── utils/                # 工具层：security, llm_adapters, llm_operator, url_domain_resolver
 │   ├── database/                 # SQL Schema（schema.sql, schema_auth.sql, schema_business.sql）
 │   ├── main.py                   # FastAPI 应用入口
-│   └── requirements.txt
+│   └── pyproject.toml
 ├── docs/                         # 项目文档
 └── scripts/                      # 工具脚本
 ```

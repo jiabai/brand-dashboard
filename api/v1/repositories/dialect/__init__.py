@@ -26,14 +26,19 @@ def group_concat_expr(column: str, distinct: bool = True, separator: str = ",") 
     """生成 GROUP_CONCAT SQL 片段。
 
     MySQL: GROUP_CONCAT(DISTINCT <column> SEPARATOR '<sep>')
-    SQLite: GROUP_CONCAT(DISTINCT <column>, '<sep>')
+    SQLite (DISTINCT): GROUP_CONCAT(DISTINCT <column>)  — 不支持带分隔符参数
+    SQLite (非 DISTINCT): GROUP_CONCAT(<column>, '<sep>')
     """
     dist = "DISTINCT " if distinct else ""
     dialect = get_dialect()
     if dialect == "mysql":
         return f"GROUP_CONCAT({dist}{column} SEPARATOR '{separator}')"
     else:
-        return f"GROUP_CONCAT({dist}{column}, '{separator}')"
+        # SQLite: DISTINCT 聚合函数只允许一个参数，不能同时指定分隔符
+        # 默认分隔符就是 ','，所以 DISTINCT 模式下省略分隔符参数即可
+        if distinct:
+            return f"GROUP_CONCAT({dist}{column})"
+        return f"GROUP_CONCAT({column}, '{separator}')"
 
 
 def upsert_sql(

@@ -1,0 +1,12 @@
+README.md
+pyproject.toml
+brand_dashboard_api.egg-info/PKG-INFO
+brand_dashboard_api.egg-info/SOURCES.txt
+brand_dashboard_api.egg-info/dependency_links.txt
+brand_dashboard_api.egg-info/requires.txt
+brand_dashboard_api.egg-info/top_level.txt
+tests/test_auth.py
+tests/test_dashboard_locf.py
+tests/test_keyword_platform_brand_rates.py
+tests/test_llm_operator.py
+tests/test_query_jobs_repository.py

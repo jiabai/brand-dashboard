@@ -1,0 +1,14 @@
+fastapi<0.137,>=0.136
+starlette<2.0,>=1.0
+uvicorn[standard]<0.31,>=0.30
+pydantic<3.0,>=2.7
+sqlalchemy<3.0,>=2.0
+pymysql<2.0,>=1.1
+fastapi-structlog<1.0,>=0.6
+asgi-correlation-id<5.0,>=4.3
+python-dotenv<2.0,>=1.0
+structlog<26.0,>=24.0
+openai<3.0,>=1.0
+
+[dev]
+pytest<10.0,>=8.0

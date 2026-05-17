@@ -1,6 +1,6 @@
 $ProjectRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 $VenvPath = Join-Path $ProjectRoot ".venv"
-$RequirementsPath = Join-Path $ProjectRoot "requirements.txt"
+$PyprojectPath = Join-Path $ProjectRoot "api\pyproject.toml"
 
 # 1. 激活项目级虚拟环境（如果存在）
 if (Test-Path $VenvPath) {
@@ -12,10 +12,9 @@ if (Test-Path $VenvPath) {
 }
 
 # 2. 安装依赖
-if (Test-Path $RequirementsPath) {
-    Write-Host "Installing dependencies..." -ForegroundColor Cyan
-    pip install -r $RequirementsPath --quiet
-    pip install python-dotenv asgi-correlation-id --quiet
+if (Test-Path $PyprojectPath) {
+    Write-Host "Installing dependencies from pyproject.toml using uv..." -ForegroundColor Cyan
+    uv pip install -e "$ProjectRoot\api" --quiet
 }
 
 # 3. 切换到项目根目录并启动

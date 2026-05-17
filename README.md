@@ -75,13 +75,8 @@ cd brand-dashboard
 ### 2. 启动后端
 
 ```bash
-python -m venv .venv
-# Windows
-.venv\Scripts\activate
-# macOS / Linux
-source .venv/bin/activate
-
-pip install -r api/requirements.txt
+cd api
+uv sync
 uvicorn api.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
