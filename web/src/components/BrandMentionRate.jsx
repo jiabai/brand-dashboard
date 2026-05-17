@@ -23,23 +23,19 @@ import {
 } from '@ant-design/icons';
 
 // Utilities
-import { formatPercentage, buildQueryString, fetchJson, toPercent, clampPercent, roundTwoDecimals } from '@/utils';
+import { fetchBrandMetrics, fetchPostCitationRate } from '@/api';
+import { useDashboardRequestParams } from '@/hooks/useDashboardParams';
+import { formatPercentage, toPercent, clampPercent, roundTwoDecimals } from '@/utils';
 import { CONFIG } from '@/config';
 
 // Components
 import LoadingSpinner from './LoadingSpinner';
 import EmptyState from './EmptyState';
 
-const { DEFAULT_TENANT_KEY, DEFAULT_JOB_ID, DEFAULT_BRAND } = CONFIG;
+const { DEFAULT_BRAND } = CONFIG;
 
-const BrandMentionRate = ({
-  timeframe = '7days',
-  date = '',
-  endDate = '',
-  tenantKey = DEFAULT_TENANT_KEY,
-  jobId = DEFAULT_JOB_ID,
-  brand = DEFAULT_BRAND,
-}) => {
+const BrandMentionRate = () => {
+  const { timeframe, date, endDate, tenantKey, jobId, brand } = useDashboardRequestParams();
   const { token } = theme.useToken();
   const abortControllerRef = useRef(null);
 
@@ -51,31 +47,6 @@ const BrandMentionRate = ({
   });
   const [targetBrandData, setTargetBrandData] = useState(null);
   const [brandList, setBrandList] = useState([]);
-
-  const brandMetricsQueryString = useMemo(
-    () =>
-      buildQueryString({
-        tenant_key: tenantKey,
-        job_id: jobId,
-        timeframe,
-        start_date: timeframe === 'specific_day' ? date : undefined,
-        end_date: timeframe === 'specific_day' ? endDate || date : undefined,
-      }),
-    [tenantKey, jobId, timeframe, date, endDate],
-  );
-
-  const targetBrandQueryString = useMemo(
-    () =>
-      buildQueryString({
-        tenant_key: tenantKey,
-        job_id: jobId,
-        timeframe,
-        start_date: timeframe === 'specific_day' ? date : undefined,
-        end_date: timeframe === 'specific_day' ? endDate || date : undefined,
-        brand,
-      }),
-    [tenantKey, jobId, timeframe, date, endDate, brand],
-  );
 
   const handleTableChange = (_, __, sorter) => {
     const nextSorter = Array.isArray(sorter) ? sorter[0] : sorter;
@@ -196,12 +167,14 @@ const BrandMentionRate = ({
         setError(null);
 
         const [brandMetrics, postCitationRate] = await Promise.all([
-          fetchJson(`/api/v1/dashboard/brand-metrics?${brandMetricsQueryString}`, {
-            signal: controller.signal,
-          }),
-          fetchJson(`/api/v1/dashboard/post-citation-rate?${targetBrandQueryString}`, {
-            signal: controller.signal,
-          }),
+          fetchBrandMetrics(
+            { tenantKey, jobId, timeframe, startDate: date, endDate: endDate || date },
+            { signal: controller.signal },
+          ),
+          fetchPostCitationRate(
+            { tenantKey, jobId, timeframe, startDate: date, endDate: endDate || date, brand },
+            { signal: controller.signal },
+          ),
         ]);
 
         if (brandMetrics?.status && brandMetrics.status !== 'success') {
@@ -264,7 +237,7 @@ const BrandMentionRate = ({
     return () => {
       controller.abort();
     };
-  }, [brandMetricsQueryString, targetBrandQueryString]);
+  }, [brand, date, endDate, jobId, tenantKey, timeframe]);
 
   // Loading state
   if (isLoading) {

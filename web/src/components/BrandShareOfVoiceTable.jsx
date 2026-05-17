@@ -1,11 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, Empty, Table, Progress, Card, Tag, Space, Typography, Tooltip } from 'antd';
 import { InfoCircleOutlined } from '@ant-design/icons';
-import { CONFIG } from '@/config';
-import { buildQueryString, fetchJson } from '@/utils';
+import { fetchKeywordPlatformBrandRates } from '@/api';
+import { useDashboardRequestParams } from '@/hooks/useDashboardParams';
 
 const { Text } = Typography;
-const { DEFAULT_TENANT_KEY, DEFAULT_JOB_ID } = CONFIG;
 
 const COLUMN_WIDTH_STORAGE_KEY = 'BrandShareOfVoiceTable:columnWidths';
 const MIN_COLUMN_WIDTH = 96;
@@ -76,13 +75,8 @@ const ResizableHeaderCell = ({ onResize, width, style, children, ...restProps })
   );
 };
 
-const BrandShareOfVoiceTable = ({
-  timeframe = '7days',
-  startDate = '',
-  endDate = '',
-  tenantKey = DEFAULT_TENANT_KEY,
-  jobId = DEFAULT_JOB_ID,
-}) => {
+const BrandShareOfVoiceTable = () => {
+  const { timeframe, startDate, endDate, tenantKey, jobId } = useDashboardRequestParams();
   const abortControllerRef = useRef(null);
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -96,18 +90,6 @@ const BrandShareOfVoiceTable = ({
     }
   });
 
-  const queryString = useMemo(
-    () =>
-      buildQueryString({
-        tenant_key: tenantKey,
-        job_id: jobId,
-        timeframe,
-        start_date: timeframe === 'specific_day' ? startDate : '',
-        end_date: timeframe === 'specific_day' ? endDate : '',
-      }),
-    [tenantKey, jobId, timeframe, startDate, endDate],
-  );
-
   useEffect(() => {
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
@@ -119,8 +101,8 @@ const BrandShareOfVoiceTable = ({
       try {
         setLoading(true);
         setError('');
-        const result = await fetchJson(
-          `/api/v1/dashboard/keyword-platform-brand-rates?${queryString}`,
+        const result = await fetchKeywordPlatformBrandRates(
+          { tenantKey, jobId, timeframe, startDate, endDate },
           { signal: controller.signal },
         );
 
@@ -165,7 +147,7 @@ const BrandShareOfVoiceTable = ({
     return () => {
       controller.abort();
     };
-  }, [queryString]);
+  }, [endDate, jobId, startDate, tenantKey, timeframe]);
 
   const keywordFilters = useMemo(() => {
     const keywords = [...new Set(rows.map((item) => item.keyword).filter(Boolean))];

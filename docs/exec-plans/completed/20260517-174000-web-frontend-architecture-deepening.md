@@ -13,9 +13,9 @@ Decision Log, and Outcomes & Retrospective must be kept up to date as work proce
 
 - [x] 候选 #4：拆分 `src/utils/index.js` God Object（2026-05-17）
 - [x] 候选 #1：创建 `src/api/` Adapter 层（2026-05-17）
-- [ ] 候选 #2：拆分 `DashboardLayout` 职责（2026-05-17）
-- [ ] 候选 #3：消除 Prop Drilling（2026-05-17）
-- [ ] 候选 #5：统一路由配置（2026-05-17）
+- [x] 候选 #2：拆分 `DashboardLayout` 职责（2026-05-17）
+- [x] 候选 #3：消除 Prop Drilling（2026-05-17）
+- [x] 候选 #5：统一路由配置（2026-05-17）
 - [x] 运行文档结构验证（2026-05-17）
 
 ## Surprises & Discoveries
@@ -23,6 +23,7 @@ Decision Log, and Outcomes & Retrospective must be kept up to date as work proce
 - 项目已有完整的产品规范、设计决策和 ExecPlan 历史文档体系，说明之前团队重视文档治理
 - 已有 5 个单元测试文件在 `src/utils/__tests__/`，但测试覆盖率集中在工具函数，组件层无测试
 - `src/utils/routing.js` 没有任何测试覆盖路由构建的边界情况（如空 tenantKey、特殊字符）
+- API Adapter 层已存在但未被组件消费，实际架构收益需要随 Batch 3-5 一起把组件 URL 拼装迁移过去
 
 ## Decision Log
 
@@ -32,6 +33,9 @@ Decision Log, and Outcomes & Retrospective must be kept up to date as work proce
 | 不引入 TypeScript | 项目核心信念明确"无聊技术优先"，现有代码库全部是 JSX，引入 TS 会改变边界 | 2026-05-17 | AI Agent |
 | 使用 JSDoc 类型注解 | 在不引入 TS 的前提下提供 IDE 自动补全和类型检查能力 | 2026-05-17 | AI Agent |
 | 现有组件暂不迁移到 API Adapter 层 | Batch 1-2 只创建基础架构，组件迁移放在 Batch 3-5 中随重构一并执行，避免单次变更范围过大 | 2026-05-17 | AI Agent |
+| 新增 `useDashboardRequestParams` | 让业务组件直接从 hook 获取 tenant/job/brand/timeframe/date 上下文，避免 App/HomeView 继续做参数转发 | 2026-05-17 | AI Agent |
+| `routes.js` 作为路由和菜单单一真相源 | App、Sidebar、routing utils 共享同一份路由元数据，新增页面只需要先改配置 | 2026-05-17 | AI Agent |
+| Batch 3-5 顺带迁移组件 API 调用 | 若只抽 hook 和路由，Batch 2 的 API Adapter 仍是空架构；组件消费 Adapter 后才真正减少手写 URL 和查询参数重复 | 2026-05-17 | AI Agent |
 
 ## Outcomes & Retrospective
 
@@ -59,6 +63,34 @@ Decision Log, and Outcomes & Retrospective must be kept up to date as work proce
 - utils 拆分顺利，re-export 模式保证了零破坏性变更
 - API Adapter 层覆盖了项目中全部 17 个 API 端点
 - 命名参数解构 + `buildQueryString` 封装使得 API 调用签名更清晰
+
+### Batch 3-5 完成记录（2026-05-17）
+
+**Passed:**
+
+- `node --test web/src/hooks/__tests__/useTimeframeManager.test.js web/src/config/__tests__/routes.test.js web/src/utils/__tests__/routing.test.js` — 9/9 测试通过
+- `npm --prefix web test` — 14/14 测试通过
+- `npm --prefix web run build` — 构建成功（10.45s，0 errors）
+- `python scripts/validate_agents_docs.py --level ERROR` — 0 errors，0 warnings
+- `python scripts/validate_agents_docs.py --level WARN` — 0 errors，0 warnings
+- 浏览器冒烟验证 `http://localhost:3000/` — 默认跳转到 dashboard；侧栏跳转到趋势页、任务状态页、首页均成功；浏览器 console error 为 0
+
+**Not run:**
+
+- 后端 `ruff check api` — 本任务只修改 `web/` 与文档
+- 后端 pytest/API health — 未修改后端代码或 API contract
+
+**Residual risk:**
+
+- 浏览器验证复用了已监听的 `localhost:3000` 开发服务；构建已证明当前源码可生产打包，但未重新接管该服务进程
+- 分析页数据依赖后端真实数据质量，本轮验证覆盖路由、渲染入口、构建和 Adapter 调用边界，未做逐接口业务数据断言
+
+**回顾:**
+
+- `DashboardLayout.jsx` 已从时间状态实现中解耦，时间逻辑集中到 `useTimeframeManager`
+- `App.jsx` / `HomeView.jsx` 不再转发 tenant/job/brand/date props，业务组件通过 `useDashboardRequestParams` 自取上下文
+- `web/src/config/routes.js` 成为 App routes、Sidebar 菜单和 routing utils 的单一配置源
+- Batch 1-2 留下的 API Adapter 未消费风险已关闭，业务组件改为调用 `web/src/api/`
 
 ## Context and Orientation
 
@@ -96,9 +128,9 @@ Decision Log, and Outcomes & Retrospective must be kept up to date as work proce
 
 1. **Batch 1**: 拆分 `src/utils/index.js` → 6 个子模块 ✅
 2. **Batch 2**: 创建 `src/api/` 目录，按业务域组织 API 调用 ✅
-3. **Batch 3**: 提取 `useTimeframeManager` hook，简化 `DashboardLayout`
-4. **Batch 4**: 消除 Prop Drilling，组件直接调用 hook 获取参数
-5. **Batch 5**: 统一路由配置为单一真相源
+3. **Batch 3**: 提取 `useTimeframeManager` hook，简化 `DashboardLayout` ✅
+4. **Batch 4**: 消除 Prop Drilling，组件直接调用 hook 获取参数 ✅
+5. **Batch 5**: 统一路由配置为单一真相源 ✅
 
 ## Concrete Steps
 
@@ -264,12 +296,12 @@ python scripts/validate_agents_docs.py --level WARN
 
 | Gate | 状态 | 命令 / 说明 |
 |------|------|------------|
-| 受影响代码已 inspect | ✅ | Batch 1-2 只新增文件 + 修改 index.js re-export，无现有逻辑变更 |
-| 最小有效测试通过 | ✅ | `node --test` 8/8 通过 |
-| 文档结构验证 ERROR | ✅ | `validate_agents_docs.py --level ERROR` 0 errors |
-| 文档结构验证 WARN | ✅ | `validate_agents_docs.py --level WARN` 0 warnings |
-| ExecPlan Progress 已更新 | ✅ | 本文件 Progress 章节已反映 Batch 1-2 完成 |
-| durable docs 已同步 | ✅ | 无架构/安全/契约变更，仅内部模块组织变化 |
+| 受影响代码已 inspect | ✅ | `App.jsx`、`DashboardLayout.jsx`、Sidebar、业务组件、hooks、API Adapter、routing utils、相关 docs 均已 inspect |
+| 最小有效测试通过 | ✅ | `node --test web/src/hooks/__tests__/useTimeframeManager.test.js web/src/config/__tests__/routes.test.js web/src/utils/__tests__/routing.test.js` 9/9 通过 |
+| 文档结构验证 ERROR | ✅ | `python scripts/validate_agents_docs.py --level ERROR` 0 errors / 0 warnings |
+| 文档结构验证 WARN | ✅ | `python scripts/validate_agents_docs.py --level WARN` 0 errors / 0 warnings |
+| ExecPlan Progress 已更新 | ✅ | 本文件 Progress、Decision Log、Outcomes 已反映 Batch 1-5 完成 |
+| durable docs 已同步 | ✅ | `docs/ARCHITECTURE.md`、`docs/DESIGN.md`、`docs/design-docs/20260517-184500-web-frontend-architecture-deepening.md` 已同步 |
 | 前端构建 | ✅ | `npm --prefix web run build` 0 errors |
-| 手动浏览器验证 | ⏭️ | 跳过 — 未变更任何组件代码，向后兼容已通过构建验证 |
-| 更广范围回归测试 | ⏭️ | 跳过 — 现有测试覆盖了工具函数间接依赖路径 |
+| 手动浏览器验证 | ✅ | `localhost:3000` 默认跳转、趋势页、任务状态页、首页侧栏跳转均通过；browser console error 为 0 |
+| 更广范围回归测试 | ✅ | `npm --prefix web test` 14/14 通过 |

@@ -14,20 +14,33 @@ import {
   UnorderedListOutlined,
   UserOutlined
 } from '@ant-design/icons';
+import { getSidebarMenuRoutes, getTaskMenuRoutes } from '@/config/routes';
 import { useDashboardParams } from '@/hooks/useDashboardParams';
 import { buildRouteSearch, buildViewPath, getViewKeyFromPath } from '@/utils/routing';
 
-const MENU_ITEMS = [
-  { key: 'home', icon: <HomeOutlined />, label: '首页' },
-  { key: 'trend', icon: <LineChartOutlined />, label: '趋势分析' },
-  { key: 'platforms', icon: <BarChartOutlined />, label: '分平台分析' },
-  { key: 'sources', icon: <MessageOutlined />, label: '信源分析' },
-  { key: 'sentiment', icon: <SmileOutlined />, label: '情感分析' },
-  { key: 'snapshots', icon: <PictureOutlined />, label: '问答快照', disabled: true },
-  { key: 'settings', icon: <SettingOutlined />, label: '品牌设置', disabled: true },
-  { key: 'accounts', icon: <UserOutlined />, label: '账户管理' },
-  { key: 'subscribe', icon: <BookOutlined />, label: '订阅', disabled: true }
-];
+const MENU_ICON_MAP = {
+  BarChartOutlined: <BarChartOutlined />,
+  BookOutlined: <BookOutlined />,
+  HomeOutlined: <HomeOutlined />,
+  LineChartOutlined: <LineChartOutlined />,
+  MessageOutlined: <MessageOutlined />,
+  PictureOutlined: <PictureOutlined />,
+  PlusOutlined: <PlusOutlined />,
+  SettingOutlined: <SettingOutlined />,
+  SmileOutlined: <SmileOutlined />,
+  UnorderedListOutlined: <UnorderedListOutlined />,
+  UserOutlined: <UserOutlined />,
+};
+
+const toMenuItem = (route) => ({
+  key: route.viewKey,
+  icon: MENU_ICON_MAP[route.menuIcon],
+  label: route.menuLabel,
+  disabled: Boolean(route.disabled),
+});
+
+const MENU_ITEMS = getSidebarMenuRoutes().map(toMenuItem);
+const TASK_MENU_ITEMS = getTaskMenuRoutes().map(toMenuItem);
 
 const Sidebar = ({ collapsed, onCollapse }) => {
   const { token } = theme.useToken();
@@ -40,10 +53,6 @@ const Sidebar = ({ collapsed, onCollapse }) => {
   );
 
   const handleMenuClick = ({ key }) => {
-    // 禁用这些特定键的跳转
-    if (['snapshots', 'settings', 'subscribe'].includes(key)) {
-      return;
-    }
     const pathname = buildViewPath(key, { tenantKey, jobId });
     const search = buildRouteSearch({
       search: location.search,
@@ -116,18 +125,7 @@ const Sidebar = ({ collapsed, onCollapse }) => {
           mode="inline"
           selectedKeys={[selectedKey]}
           onClick={handleMenuClick}
-          items={[
-            {
-              key: 'task-load',
-              icon: <PlusOutlined />,
-              label: '新建任务'
-            },
-            {
-              key: 'task-status',
-              icon: <UnorderedListOutlined />,
-              label: '任务状态'
-            }
-          ]}
+          items={TASK_MENU_ITEMS}
           style={{ border: 'none' }}
         />
       </div>

@@ -29,7 +29,13 @@ import {
   UserOutlined
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
-import { postJson } from '../utils';
+import {
+  activateAuth,
+  createPlatformTenant,
+  login,
+  registerUser,
+  verifyInviteCode,
+} from '@/api';
 import '../styles/account-management.css';
 
 const { Title, Text } = Typography;
@@ -69,7 +75,7 @@ const AccountManagement = () => {
           ? dayjs(values.contractEndDate).format('YYYY-MM-DD')
           : undefined,
       };
-      const result = await postJson('/api/v1/platform/tenants', payload);
+      const result = await createPlatformTenant(payload);
       messageApi.success(result?.message || '租户创建成功');
       pushResponse('租户开通', 'success', result);
     } catch (error) {
@@ -83,7 +89,7 @@ const AccountManagement = () => {
   const handleActivateAdmin = async (values) => {
     setLoading('activate', true);
     try {
-      const result = await postJson('/api/v1/public/auth/activate', values);
+      const result = await activateAuth(values);
       messageApi.success(result?.message || '账号激活成功');
       pushResponse('管理员激活', 'success', result);
     } catch (error) {
@@ -97,7 +103,7 @@ const AccountManagement = () => {
   const handleVerifyInviteCode = async (values) => {
     setLoading('verify', true);
     try {
-      const result = await postJson('/api/v1/public/users/verify-invite-code', values);
+      const result = await verifyInviteCode(values);
       messageApi.success(result?.message || '邀请码有效');
       pushResponse('邀请码核验', 'success', result);
     } catch (error) {
@@ -111,7 +117,7 @@ const AccountManagement = () => {
   const handleRegisterEmployee = async (values) => {
     setLoading('register', true);
     try {
-      const result = await postJson('/api/v1/public/users/register', values);
+      const result = await registerUser(values);
       messageApi.success(result?.message || '注册成功');
       pushResponse('员工注册', 'success', result);
     } catch (error) {
@@ -125,7 +131,7 @@ const AccountManagement = () => {
   const handleLogin = async (values) => {
     setLoading('login', true);
     try {
-      const result = await postJson('/api/v1/public/auth/login', values);
+      const result = await login(values);
       messageApi.success(result?.message || '登录成功');
       pushResponse('账户登录', 'success', result);
     } catch (error) {
