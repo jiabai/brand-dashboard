@@ -12,10 +12,11 @@ brand-dashboard/
 │   ├── src/
 │   │   ├── components/           # 功能组件
 │   │   │   └── ui/               # 可复用 UI 原语（button, card, progress, table）
+│   │   ├── hooks/                # 前端共享 Hook（路由参数、筛选状态）
 │   │   ├── lib/                  # 共享工具（cn.js）
-│   │   ├── utils/                # 业务工具（domainCitationQuery, sourceAnalysis, trendChartConfig）
+│   │   ├── utils/                # 业务工具（domainCitationQuery, routing, sourceAnalysis, trendChartConfig）
 │   │   ├── styles/               # 组件级 CSS
-│   │   ├── App.jsx               # 根布局（路由 + 状态管理）
+│   │   ├── App.jsx               # React Router 路由入口 + 主题配置
 │   │   ├── config.js             # 环境变量配置
 │   │   └── main.jsx              # 挂载入口
 │   └── package.json
@@ -37,7 +38,10 @@ brand-dashboard/
 
 | 文件 | 职责 |
 |------|------|
-| `web/src/App.jsx` | 前端根布局，路由分发，全局状态（时间筛选、任务选择） |
+| `web/src/App.jsx` | 前端主题配置与 React Router 路由分发 |
+| `web/src/components/DashboardLayout.jsx` | 仪表板壳层，统一管理时间筛选、可用日期、侧边栏和路由查询串清理 |
+| `web/src/hooks/useDashboardParams.js` | 从路由路径和查询串读取租户、任务、品牌、时间筛选等共享参数 |
+| `web/src/utils/routing.js` | 前端路由路径构建、默认入口生成和查询参数清理 |
 | `web/src/config.js` | 环境变量入口，API 地址和默认业务参数 |
 | `api/main.py` | FastAPI 应用入口，CORS 配置，路由注册 |
 | `api/v1/routes/dashboard.py` | 仪表板核心 API（品牌提及率、引用统计、平台指标） |
@@ -57,6 +61,7 @@ brand-dashboard/
 - 分层依赖方向：Routes → Services → Repositories → Models，禁止反向依赖
 - API 版本化：所有路由挂载在 `/api/v1/` 前缀下
 - 组件懒加载：前端功能组件使用 `React.lazy()` 按需加载
+- 前端页面身份使用路径承载：分析页路径为 `/:view/:tenantKey/:jobId`，查询串只保留筛选条件；根路径和未知路径直接进入默认新入口，不再解析旧入口查询参数
 
 ## 架构边界
 
