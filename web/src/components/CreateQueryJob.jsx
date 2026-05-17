@@ -13,23 +13,39 @@ import {
   Alert
 } from 'antd';
 import { MinusCircleOutlined, PlusOutlined, UploadOutlined } from '@ant-design/icons';
-import { useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import dayjs from 'dayjs';
 import { CONFIG } from '../config';
-import { postJson } from '../utils';
+import { loadQueryJob } from '@/api';
+import { useDashboardParams } from '@/hooks/useDashboardParams';
+import { buildRouteSearch, buildViewPath } from '@/utils/routing';
 import SubmissionSuccess from './SubmissionSuccess';
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
 
-const CreateQueryJob = ({ tenantKey: propTenantKey, onNavigate }) => {
+const CreateQueryJob = () => {
   const [searchParams, setSearchParams] = useSearchParams();
+  const { tenantKey, jobId } = useDashboardParams();
+  const navigate = useNavigate();
+  const location = useLocation();
   const [form] = Form.useForm();
   const [messageApi, contextHolder] = message.useMessage();
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const executorId = searchParams.get('executor_id') || CONFIG.DEFAULT_EXECUTOR_ID;
-  const tenantKey = propTenantKey || searchParams.get('tenant_key') || CONFIG.DEFAULT_TENANT_KEY;
+
+  const handleNavigate = React.useCallback(
+    (viewKey) => {
+      const pathname = buildViewPath(viewKey, { tenantKey, jobId });
+      const search = buildRouteSearch({
+        search: location.search,
+        nextViewKey: viewKey,
+      });
+      navigate(`${pathname}${search}`);
+    },
+    [jobId, location.search, navigate, tenantKey],
+  );
 
   React.useEffect(() => {
     if (searchParams.get('executor_id')) return;
@@ -56,7 +72,7 @@ const CreateQueryJob = ({ tenantKey: propTenantKey, onNavigate }) => {
 
       let data;
       try {
-        data = await postJson('/api/v1/query-jobs/load', payload);
+        data = await loadQueryJob(payload);
       } catch (err) {
         data = { success: false, message: err.message };
       }
@@ -116,7 +132,7 @@ const CreateQueryJob = ({ tenantKey: propTenantKey, onNavigate }) => {
             setResult(null);
             generateRandomIds();
           }}
-          onViewStatus={() => onNavigate && onNavigate('task-status')}
+          onViewStatus={() => handleNavigate('task-status')}
         />
       </div>
     );

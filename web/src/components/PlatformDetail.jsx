@@ -1,19 +1,15 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Card, Table, Typography, Button, Tag, Progress, Spin, theme } from 'antd';
 import { ArrowLeftOutlined } from '@ant-design/icons';
-import { fetchJson, formatPercentage } from '../utils';
-import { buildQueryString } from '../utils';
+import { fetchBrandMetrics } from '@/api';
+import { useDashboardRequestParams } from '@/hooks/useDashboardParams';
+import { formatPercentage } from '../utils';
 
 const PlatformDetail = ({
   platformName,
-  tenantKey,
-  jobId,
-  brand,
-  timeframe,
-  startDate,
-  endDate,
   onBack,
 }) => {
+  const { tenantKey, jobId, brand, timeframe, startDate, endDate } = useDashboardRequestParams();
   const { token } = theme.useToken();
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState([]);
@@ -25,17 +21,16 @@ const PlatformDetail = ({
     const fetchData = async () => {
       setLoading(true);
       try {
-        const queryString = buildQueryString({
-          tenant_key: tenantKey,
-          job_id: jobId,
-          brand,
-          timeframe,
-          start_date: startDate,
-          end_date: endDate,
-          platform: platformName,
-        });
-        const result = await fetchJson(
-          `/api/v1/dashboard/brand-metrics?${queryString}`,
+        const result = await fetchBrandMetrics(
+          {
+            tenantKey,
+            jobId,
+            timeframe,
+            startDate,
+            endDate,
+            platform: platformName,
+            brand,
+          },
           { signal: controller.signal },
         );
         if (cancelled) return;

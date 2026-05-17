@@ -1,14 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Card, Flex, Typography, theme } from 'antd';
 import { SmileOutlined } from '@ant-design/icons';
-import { CONFIG } from '@/config';
-import { buildQueryString, fetchJson } from '@/utils';
+import { fetchFilterMetadata } from '@/api';
+import { useDashboardRequestParams } from '@/hooks/useDashboardParams';
 import { loadG2Chart } from '@/utils/loadG2Chart';
 import KeywordSection from './KeywordSection';
 
 const { Title } = Typography;
-
-const { DEFAULT_TENANT_KEY, DEFAULT_JOB_ID } = CONFIG;
 
 const MOCK_SENTIMENT = [
   { name: '正面', value: 600 },
@@ -113,13 +111,8 @@ const SentimentDonutChart = ({ containerRef }) => {
   return <div ref={containerRef} style={{ width: '100%', height: '100%' }} />;
 };
 
-export default function SentimentAnalysis({ 
-  timeframe = '30days',
-  date = '',
-  endDate = '',
-  tenantKey = DEFAULT_TENANT_KEY,
-  jobId = DEFAULT_JOB_ID,
-}) {
+export default function SentimentAnalysis() {
+  const { date, endDate, tenantKey, jobId } = useDashboardRequestParams();
   const { token } = theme.useToken();
   const [keywords, setKeywords] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -135,16 +128,10 @@ export default function SentimentAnalysis({
       setLoading(true);
       setError(null);
       try {
-        const queryParams = buildQueryString({
-          tenant_key: tenantKey,
-          job_id: jobId,
-          start_date: date,
-          end_date: endDate,
-        });
-
-        const result = await fetchJson(`/api/v1/dashboard/filter-metadata?${queryParams}`, {
-          signal: controller.signal
-        });
+        const result = await fetchFilterMetadata(
+          { tenantKey, jobId, startDate: date, endDate },
+          { signal: controller.signal },
+        );
 
         if (result?.code === 200 && result.data) {
           setKeywords(result.data.keywords || []);

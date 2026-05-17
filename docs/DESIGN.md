@@ -27,10 +27,11 @@
 
 ## 前端状态管理
 
-- 路由状态：`react-router-dom` 管理页面路径；`DashboardLayout.jsx` 管理顶层布局状态（时间筛选、平台下钻）
+- 路由状态：`react-router-dom` 管理页面路径；`web/src/config/routes.js` 是路由、侧栏菜单和任务入口的单一配置源
 - URL 参数：`useDashboardParams` 统一读取路径参数和查询参数，分析页路径携带 `tenantKey + jobId`，租户级页面路径携带 `tenantKey`
+- 时间筛选：`useTimeframeManager` 管理 timeframe、可用日期、日期范围归一化和 URL 日期参数同步，`DashboardLayout.jsx` 只负责渲染布局控件
 - 组件状态：各功能组件自管理局部状态
-- 数据获取：直接 fetch API，无全局状态库
+- 数据获取：业务组件通过 `web/src/api/` Adapter 调用后端端点，不在组件中手写 API URL；无全局状态库
 - 配置：`web/src/config.js` 从环境变量读取，提供默认值
 
 ## 命名约定

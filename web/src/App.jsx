@@ -1,13 +1,15 @@
-import React, { Suspense, useCallback, useEffect } from 'react';
+import React, { Suspense, useEffect } from 'react';
 import { ConfigProvider, Spin, theme } from 'antd';
-import { Navigate, Route, Routes, useNavigate, useOutletContext } from 'react-router-dom';
+import { Navigate, Route, Routes } from 'react-router-dom';
 
 import './styles/app-shell.css';
 import ErrorBoundary from './components/ErrorBoundary';
 import DashboardLayout from './components/DashboardLayout.jsx';
 import HomeView from './components/HomeView.jsx';
 
-import { buildRouteSearch, buildViewPath } from './utils/routing.js';
+import { getRoutableRoutes } from './config/routes.js';
+import { useDashboardRequestParams } from './hooks/useDashboardParams.js';
+import { buildViewPath } from './utils/routing.js';
 import { CONFIG } from './config.js';
 
 const BrandShareOfVoiceTable = React.lazy(() => import('./components/BrandShareOfVoiceTable.jsx'));
@@ -26,135 +28,48 @@ const RouteShell = ({ children }) => (
   </ErrorBoundary>
 );
 
-const PlatformsRoute = () => {
-  const {
-    tenantKey,
-    jobId,
-    timeframe,
-    selectedDateParam,
-    selectedEndDateParam,
-  } = useOutletContext();
+const DashboardLoadingRoute = ({ children }) => {
+  const { isLoading } = useDashboardRequestParams();
+  return <Spin spinning={isLoading}>{children}</Spin>;
+};
+
+const ROUTE_ELEMENT_FACTORIES = {
+  home: () => <HomeView />,
+  trend: () => (
+    <DashboardLoadingRoute>
+      <TrendAnalysis />
+    </DashboardLoadingRoute>
+  ),
+  platforms: () => <BrandShareOfVoiceTable />,
+  sources: () => <SourceAnalysis />,
+  sentiment: () => <SentimentAnalysis />,
+  accounts: () => <AccountManagement />,
+  'task-load': () => <CreateQueryJob />,
+  'task-status': () => <QueryJobStatus />,
+};
+
+const AppRoutes = () => {
+  const defaultPath = buildViewPath('home', {
+    tenantKey: CONFIG.DEFAULT_TENANT_KEY,
+    jobId: CONFIG.DEFAULT_JOB_ID,
+  });
 
   return (
-    <BrandShareOfVoiceTable
-      timeframe={timeframe}
-      startDate={selectedDateParam}
-      endDate={selectedEndDateParam}
-      tenantKey={tenantKey}
-      jobId={jobId}
-    />
+    <Routes>
+      <Route path="/" element={<Navigate to={defaultPath} replace />} />
+      <Route element={<DashboardLayout />}>
+        {getRoutableRoutes().map((route) => (
+          <Route
+            key={route.viewKey}
+            path={route.path}
+            element={<RouteShell>{ROUTE_ELEMENT_FACTORIES[route.viewKey]?.()}</RouteShell>}
+          />
+        ))}
+      </Route>
+      <Route path="*" element={<Navigate to={defaultPath} replace />} />
+    </Routes>
   );
 };
-
-const TrendRoute = () => {
-  const {
-    tenantKey,
-    jobId,
-    brand,
-    timeframe,
-    selectedDateParam,
-    selectedEndDateParam,
-    isLoading,
-  } = useOutletContext();
-
-  return (
-    <Spin spinning={isLoading}>
-      <TrendAnalysis
-        timeframe={timeframe}
-        date={selectedDateParam}
-        endDate={selectedEndDateParam}
-        tenantKey={tenantKey}
-        jobId={jobId}
-        brand={brand}
-      />
-    </Spin>
-  );
-};
-
-const SourceRoute = () => {
-  const {
-    tenantKey,
-    jobId,
-    brand,
-    timeframe,
-    selectedDateParam,
-    selectedEndDateParam,
-  } = useOutletContext();
-
-  return (
-    <SourceAnalysis
-      timeframe={timeframe}
-      date={selectedDateParam}
-      endDate={selectedEndDateParam}
-      tenantKey={tenantKey}
-      jobId={jobId}
-      brand={brand}
-    />
-  );
-};
-
-const SentimentRoute = () => {
-  const {
-    tenantKey,
-    jobId,
-    brand,
-    timeframe,
-    selectedDateParam,
-    selectedEndDateParam,
-  } = useOutletContext();
-
-  return (
-    <SentimentAnalysis
-      timeframe={timeframe}
-      date={selectedDateParam}
-      endDate={selectedEndDateParam}
-      tenantKey={tenantKey}
-      jobId={jobId}
-      brand={brand}
-    />
-  );
-};
-
-const CreateQueryJobRoute = () => {
-  const { tenantKey, jobId, searchParams } = useOutletContext();
-  const navigate = useNavigate();
-
-  const handleNavigate = useCallback(
-    (viewKey) => {
-      const pathname = buildViewPath(viewKey, { tenantKey, jobId });
-      const search = buildRouteSearch({
-        search: searchParams.toString(),
-        nextViewKey: viewKey,
-      });
-      navigate(`${pathname}${search}`);
-    },
-    [jobId, navigate, searchParams, tenantKey],
-  );
-
-  return <CreateQueryJob tenantKey={tenantKey} onNavigate={handleNavigate} />;
-};
-
-const QueryJobStatusRoute = () => {
-  const { tenantKey } = useOutletContext();
-  return <QueryJobStatus tenantKey={tenantKey} />;
-};
-
-const AppRoutes = () => (
-  <Routes>
-    <Route path="/" element={<Navigate to={`/dashboard/${CONFIG.DEFAULT_TENANT_KEY}/${CONFIG.DEFAULT_JOB_ID}`} replace />} />
-    <Route element={<DashboardLayout />}>
-      <Route path="/dashboard/:tenantKey/:jobId" element={<RouteShell><HomeView /></RouteShell>} />
-      <Route path="/trend/:tenantKey/:jobId" element={<RouteShell><TrendRoute /></RouteShell>} />
-      <Route path="/platforms/:tenantKey/:jobId" element={<RouteShell><PlatformsRoute /></RouteShell>} />
-      <Route path="/sources/:tenantKey/:jobId" element={<RouteShell><SourceRoute /></RouteShell>} />
-      <Route path="/sentiment/:tenantKey/:jobId" element={<RouteShell><SentimentRoute /></RouteShell>} />
-      <Route path="/accounts/:tenantKey" element={<RouteShell><AccountManagement /></RouteShell>} />
-      <Route path="/tasks/:tenantKey/new" element={<RouteShell><CreateQueryJobRoute /></RouteShell>} />
-      <Route path="/tasks/:tenantKey/status" element={<RouteShell><QueryJobStatusRoute /></RouteShell>} />
-    </Route>
-    <Route path="*" element={<Navigate to={`/dashboard/${CONFIG.DEFAULT_TENANT_KEY}/${CONFIG.DEFAULT_JOB_ID}`} replace />} />
-  </Routes>
-);
 
 function App() {
   useEffect(() => {

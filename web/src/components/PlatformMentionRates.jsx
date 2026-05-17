@@ -1,38 +1,19 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Card, List, Progress, Typography, Statistic, Tag, theme } from 'antd';
 import { TrophyOutlined, ArrowUpOutlined, ArrowDownOutlined } from '@ant-design/icons';
-import { CONFIG } from '@/config';
-import { getPlatformColor, buildQueryString, fetchJson, toPercent, clampPercent, roundTwoDecimals } from '@/utils';
-
-const { DEFAULT_TENANT_KEY, DEFAULT_JOB_ID, DEFAULT_BRAND } = CONFIG;
+import { fetchPlatformMetricsByBrand } from '@/api';
+import { useDashboardRequestParams } from '@/hooks/useDashboardParams';
+import { getPlatformColor, toPercent, clampPercent, roundTwoDecimals } from '@/utils';
 
 const PlatformMentionRates = ({
   onPlatformClick,
-  timeframe = '7days',
-  date = '',
-  endDate = '',
-  tenantKey = DEFAULT_TENANT_KEY,
-  jobId = DEFAULT_JOB_ID,
-  brand = DEFAULT_BRAND,
 }) => {
+  const { timeframe, date, endDate, tenantKey, jobId, brand } = useDashboardRequestParams();
   const { token } = theme.useToken();
   const abortControllerRef = useRef(null);
   const [platforms, setPlatforms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-
-  const queryString = useMemo(
-    () =>
-      buildQueryString({
-        tenant_key: tenantKey,
-        job_id: jobId,
-        brand,
-        timeframe,
-        start_date: timeframe === 'specific_day' ? date : undefined,
-        end_date: timeframe === 'specific_day' ? endDate || date : undefined,
-      }),
-    [tenantKey, jobId, brand, timeframe, date, endDate],
-  );
 
   useEffect(() => {
     if (abortControllerRef.current) {
@@ -46,8 +27,8 @@ const PlatformMentionRates = ({
         setLoading(true);
         setError(null);
 
-        const data = await fetchJson(
-          `/api/v1/dashboard/platform-metrics-by-brand?${queryString}`,
+        const data = await fetchPlatformMetricsByBrand(
+          { tenantKey, jobId, brand, timeframe, startDate: date, endDate: endDate || date },
           { signal: controller.signal },
         );
 
@@ -85,7 +66,7 @@ const PlatformMentionRates = ({
     return () => {
       controller.abort();
     };
-  }, [queryString, token.colorPrimary]);
+  }, [brand, date, endDate, jobId, tenantKey, timeframe, token.colorPrimary]);
 
   if (loading) {
     return (
