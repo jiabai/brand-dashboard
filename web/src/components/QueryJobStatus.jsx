@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Table,
   Select,
@@ -21,13 +21,12 @@ import {
   CloseCircleOutlined,
   SyncOutlined
 } from '@ant-design/icons';
+import { useSearchParams } from 'react-router-dom';
 import dayjs from 'dayjs';
 import { CONFIG } from '../config';
 import {
   buildQueryJobStatusRowKey,
   fetchJson,
-  getQueryParam,
-  updateQueryParams,
 } from '../utils';
 
 const { Title, Text } = Typography;
@@ -48,19 +47,33 @@ const formatDateTime = (value) => {
 };
 
 const QueryJobStatus = ({ tenantKey: propTenantKey }) => {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState([]);
-  const [tenantKey] = useState(() => propTenantKey || getQueryParam('tenant_key', CONFIG.DEFAULT_TENANT_KEY));
-  const [selectedJobId, setSelectedJobId] = useState(() => getQueryParam('job_id', ''));
   const [jobIdOptions, setJobIdOptions] = useState([]);
-  const [includeDeleted, setIncludeDeleted] = useState(() => {
-    const raw = getQueryParam('include_deleted', 'false');
+  const tenantKey = propTenantKey || searchParams.get('tenant_key') || CONFIG.DEFAULT_TENANT_KEY;
+  const selectedJobId = searchParams.get('job_id') || '';
+  const includeDeleted = useMemo(() => {
+    const raw = searchParams.get('include_deleted') || CONFIG.DEFAULT_INCLUDE_DELETED || 'false';
     return raw === 'true' || raw === '1';
-  });
+  }, [searchParams]);
 
-  useEffect(() => {
-    updateQueryParams({ include_deleted: includeDeleted });
-  }, [includeDeleted]);
+  const updateSearchParams = useCallback(
+    (updates) => {
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev);
+        Object.entries(updates).forEach(([key, value]) => {
+          if (value === null || value === undefined || value === '') {
+            next.delete(key);
+          } else {
+            next.set(key, String(value));
+          }
+        });
+        return next;
+      });
+    },
+    [setSearchParams],
+  );
 
   const fetchData = useCallback(async () => {
     if (!tenantKey) {
@@ -208,7 +221,7 @@ const QueryJobStatus = ({ tenantKey: propTenantKey }) => {
                 placeholder="选择任务 ID"
                 value={selectedJobId || undefined}
                 options={jobIdOptions.map((jobId) => ({ label: jobId, value: jobId }))}
-                onChange={(value) => setSelectedJobId(value || '')}
+                onChange={(value) => updateSearchParams({ job_id: value || null })}
                 style={{ width: 280 }}
                 suffixIcon={<SearchOutlined style={{ color: 'rgba(255,255,255,0.25)' }} />}
              />
@@ -217,7 +230,7 @@ const QueryJobStatus = ({ tenantKey: propTenantKey }) => {
                 <Switch 
                   size="small" 
                   checked={includeDeleted} 
-                  onChange={setIncludeDeleted} 
+                  onChange={(checked) => updateSearchParams({ include_deleted: checked ? 'true' : 'false' })}
                 />
              </Space>
              <Button type="primary" icon={<ReloadOutlined />} onClick={fetchData} loading={loading}>
@@ -229,7 +242,7 @@ const QueryJobStatus = ({ tenantKey: propTenantKey }) => {
         <Card 
           className="glass-card" 
           variant="borderless"
-          bodyStyle={{ padding: 0 }}
+          styles={{ body: { padding: 0 } }}
         >
           <Table
             dataSource={data}

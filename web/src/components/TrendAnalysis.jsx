@@ -1,13 +1,12 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Card, Space, Typography, Row, Col, Statistic, Tag, theme } from 'antd';
 import { LineChartOutlined } from '@ant-design/icons';
+import { useSearchParams } from 'react-router-dom';
 import dayjs from 'dayjs';
 
 import { CONFIG } from '@/config';
 import {
   formatPercentage,
-  getQueryParam,
-  updateQueryParams,
   getPlatformColor,
   buildQueryString,
   fetchJson,
@@ -132,16 +131,17 @@ const TrendAnalysis = ({
   brand = DEFAULT_BRAND,
 }) => {
   const { token } = theme.useToken();
+  const [searchParams, setSearchParams] = useSearchParams();
   const abortControllerRef = useRef(null);
   const metadataAbortRef = useRef(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [trendData, setTrendData] = useState([]);
   const [platform, setPlatform] = useState(() =>
-    getQueryParam('trend_platform', '全部'),
+    searchParams.get('trend_platform') || '全部',
   );
   const [keyword, setKeyword] = useState(() =>
-    getQueryParam('trend_keyword', '全部'),
+    searchParams.get('trend_keyword') || '全部',
   );
   const [metadataLoading, setMetadataLoading] = useState(false);
   const [metadataError, setMetadataError] = useState('');
@@ -150,18 +150,9 @@ const TrendAnalysis = ({
   const [combinations, setCombinations] = useState([]);
   const [reloadKey, setReloadKey] = useState(0);
 
-  const tenantKeyValue = useMemo(
-    () => getQueryParam('tenant_key', tenantKey || DEFAULT_TENANT_KEY),
-    [tenantKey],
-  );
-  const jobIdValue = useMemo(
-    () => getQueryParam('job_id', jobId || DEFAULT_JOB_ID),
-    [jobId],
-  );
-  const brandValue = useMemo(
-    () => getQueryParam('brand', brand || DEFAULT_BRAND),
-    [brand],
-  );
+  const tenantKeyValue = tenantKey || DEFAULT_TENANT_KEY;
+  const jobIdValue = jobId || DEFAULT_JOB_ID;
+  const brandValue = brand || DEFAULT_BRAND;
 
   const dateRange = useMemo(() => {
     if (timeframe === 'specific_day') {
@@ -191,11 +182,20 @@ const TrendAnalysis = ({
   );
 
   useEffect(() => {
-    updateQueryParams({
-      trend_platform: platform,
-      trend_keyword: keyword,
-    });
-  }, [platform, keyword]);
+    const nextPlatform = searchParams.get('trend_platform') || '全部';
+    const nextKeyword = searchParams.get('trend_keyword') || '全部';
+    setPlatform((current) => (current === nextPlatform ? current : nextPlatform));
+    setKeyword((current) => (current === nextKeyword ? current : nextKeyword));
+  }, [searchParams]);
+
+  useEffect(() => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.set('trend_platform', platform);
+      next.set('trend_keyword', keyword);
+      return next;
+    }, { replace: true });
+  }, [keyword, platform, setSearchParams]);
 
   useEffect(() => {
     if (!tenantKeyValue || !jobIdValue || !startDateParam || !endDateParam) {

@@ -15,7 +15,7 @@
 - 请求/响应模型使用 Pydantic BaseModel，定义在 `api/v1/models/schemas.py`
 - 错误响应统一使用 HTTPException + JSONResponse
 - 分页参数：`page`, `page_size`
-- 时间参数：`timeframe`（枚举：yesterday, 7days, 30days, specific_day）+ `date`（YYYYMMDD）
+- 时间参数：`timeframe`（枚举：yesterday, 7days, 30days, specific_day）+ `start_date` / `end_date`（YYYYMMDD）；旧前端 `date` 参数仅用于兼容重定向，不再生成新 URL
 
 ## 数据模型规范
 
@@ -27,7 +27,8 @@
 
 ## 前端状态管理
 
-- 全局状态：App.jsx 管理顶层状态（时间筛选、任务选择、平台切换）
+- 路由状态：`react-router-dom` 管理页面路径；`DashboardLayout.jsx` 管理顶层布局状态（时间筛选、平台下钻）
+- URL 参数：`useDashboardParams` 统一读取路径参数和查询参数，分析页路径携带 `tenantKey + jobId`，租户级页面路径携带 `tenantKey`
 - 组件状态：各功能组件自管理局部状态
 - 数据获取：直接 fetch API，无全局状态库
 - 配置：`web/src/config.js` 从环境变量读取，提供默认值
