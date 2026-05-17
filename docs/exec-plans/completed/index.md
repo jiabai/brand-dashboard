@@ -15,3 +15,5 @@
 | [20260207-151700-adjust-wordcloud-position.md](20260207-151700-adjust-wordcloud-position.md) | 调整词云位置 | 2026-02-07 |
 | [20260207-152100-sync-wordcloud-colors.md](20260207-152100-sync-wordcloud-colors.md) | 同步词云颜色 | 2026-02-07 |
 | [20260517-000000-review-api-architecture.md](20260517-000000-review-api-architecture.md) | 审查并收敛 API 分层、任务上报与依赖验证 | 2026-05-17 |
+| [20260517-000000-refactor-frontend-routing.md](20260517-000000-refactor-frontend-routing.md) | 前端 URL 路由改造：引入 react-router-dom，路径参数替代 query param 驱动 | 2026-05-17 |
+| [20260517-000000-refactor-frontend-routing-tasks.md](20260517-000000-refactor-frontend-routing-tasks.md) | 前端 URL 路由改造任务清单 | 2026-05-17 |
