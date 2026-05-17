@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Layout, Menu, Typography, theme } from 'antd';
+import { useLocation, useNavigate } from 'react-router-dom';
 import {
   BarChartOutlined,
   BookOutlined,
@@ -13,6 +14,8 @@ import {
   UnorderedListOutlined,
   UserOutlined
 } from '@ant-design/icons';
+import { useDashboardParams } from '@/hooks/useDashboardParams';
+import { buildRouteSearch, buildViewPath, getViewKeyFromPath } from '@/utils/routing';
 
 const MENU_ITEMS = [
   { key: 'home', icon: <HomeOutlined />, label: '首页' },
@@ -26,15 +29,27 @@ const MENU_ITEMS = [
   { key: 'subscribe', icon: <BookOutlined />, label: '订阅', disabled: true }
 ];
 
-const Sidebar = ({ collapsed, onCollapse, onMenuClick, selectedKey }) => {
+const Sidebar = ({ collapsed, onCollapse }) => {
   const { token } = theme.useToken();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { tenantKey, jobId } = useDashboardParams();
+  const selectedKey = useMemo(
+    () => getViewKeyFromPath(location.pathname),
+    [location.pathname],
+  );
 
   const handleMenuClick = ({ key }) => {
     // 禁用这些特定键的跳转
     if (['snapshots', 'settings', 'subscribe'].includes(key)) {
       return;
     }
-    onMenuClick && onMenuClick(key);
+    const pathname = buildViewPath(key, { tenantKey, jobId });
+    const search = buildRouteSearch({
+      search: location.search,
+      nextViewKey: key,
+    });
+    navigate(`${pathname}${search}`);
   };
 
   return (

@@ -1,3 +1,6 @@
 # Active ExecPlans
 
-（暂无进行中的执行计划）
+| File | Scope |
+|------|-------|
+| [20260517-refactor-frontend-routing.md](20260517-refactor-frontend-routing.md) | 前端 URL 路由改造：引入 react-router-dom，路径参数替代 query param 驱动 |
+| [refactor-frontend-routing-tasks.md](refactor-frontend-routing-tasks.md) | 前端 URL 路由改造任务清单 |

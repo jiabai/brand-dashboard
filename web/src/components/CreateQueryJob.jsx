@@ -13,25 +13,32 @@ import {
   Alert
 } from 'antd';
 import { MinusCircleOutlined, PlusOutlined, UploadOutlined } from '@ant-design/icons';
+import { useSearchParams } from 'react-router-dom';
 import dayjs from 'dayjs';
 import { CONFIG } from '../config';
-import { getQueryParam, postJson, updateQueryParams } from '../utils';
+import { postJson } from '../utils';
 import SubmissionSuccess from './SubmissionSuccess';
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
 
 const CreateQueryJob = ({ tenantKey: propTenantKey, onNavigate }) => {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [form] = Form.useForm();
   const [messageApi, contextHolder] = message.useMessage();
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
-  const executorId = getQueryParam('executor_id', 'exec_bbda021a');
-  const tenantKey = propTenantKey || getQueryParam('tenant_key', CONFIG.DEFAULT_TENANT_KEY);
+  const executorId = searchParams.get('executor_id') || CONFIG.DEFAULT_EXECUTOR_ID;
+  const tenantKey = propTenantKey || searchParams.get('tenant_key') || CONFIG.DEFAULT_TENANT_KEY;
 
   React.useEffect(() => {
-    updateQueryParams({ executor_id: executorId });
-  }, [executorId]);
+    if (searchParams.get('executor_id')) return;
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.set('executor_id', executorId);
+      return next;
+    }, { replace: true });
+  }, [executorId, searchParams, setSearchParams]);
 
   const onFinish = async (values) => {
     setLoading(true);
