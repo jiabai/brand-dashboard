@@ -30,13 +30,13 @@ Decision Log, and Outcomes & Retrospective must be kept up to date as work proce
 | 保留 start_date/end_date，去掉 date | API 层使用 start_date/end_date，前端应与之对齐；date 是历史遗留 | 2026-05-17 / agent |
 | 日期格式保持 YYYYMMDD | 与 API 的 `date` 参数格式一致，不引入格式转换层 | 2026-05-17 / agent |
 | 不引入状态管理库 | 项目当前无全局状态库，URL 作为单一数据源已足够；引入新库增加复杂度 | 2026-05-17 / agent |
-| 旧 URL 通过 LegacyRedirect 组件兼容 | 通配路由捕获旧格式，解析后 Navigate 重定向，不破坏现有书签 | 2026-05-17 / agent |
+| 旧 URL 兼容已移除 | 旧式 `?view=...&tenant_key=...&job_id=...` 查询参数 URL 不再支持；`/` 和 `*` 路由直接重定向到默认 dashboard | 2026-05-17 / agent |
 | 租户级页面不强制携带 jobId | 新建任务、任务状态、账户管理不是具体分析任务资源；任务状态的 job_id 是筛选条件，应保留在 query 中 | 2026-05-17 / agent |
 | 趋势筛选仅保留在趋势页 | `trend_platform`、`trend_keyword` 只影响趋势分析，跨页携带会污染任务状态等租户级 URL | 2026-05-17 / agent |
 
 ## Outcomes & Retrospective
 
-完成了前端路由改造：`App.jsx` 现在只负责主题和 Routes，`DashboardLayout` 承接原有壳层与时间筛选，`useDashboardParams` 统一读取路径/查询参数，`LegacyRedirect` 兼容旧 URL。旧 `date` 参数不再写入新 URL；任务状态页保留 `job_id` 作为筛选查询参数；趋势专属筛选离开趋势页时会被清理。
+完成了前端路由改造：`App.jsx` 现在只负责主题和 Routes，`DashboardLayout` 承接原有壳层与时间筛选，`useDashboardParams` 统一读取路径/查询参数。旧 URL 兼容（`LegacyRedirect`）已移除，`/` 和 `*` 路由直接重定向到默认 dashboard。旧 `date` 参数不再写入新 URL；任务状态页保留 `job_id` 作为筛选查询参数；趋势专属筛选离开趋势页时会被清理。
 
 验证记录：
 
@@ -72,7 +72,6 @@ Decision Log, and Outcomes & Retrospective must be kept up to date as work proce
 - **路径参数**：URL 路径中的动态段，如 `/dashboard/:tenantKey/:jobId`
 - **查询参数**：URL `?` 后的键值对，如 `?brand=QuickCEP&timeframe=30days`
 - **Outlet**：React Router v6 的嵌套路由渲染占位符
-- **LegacyRedirect**：旧 URL 兼容重定向组件
 
 ### 路由矩阵
 

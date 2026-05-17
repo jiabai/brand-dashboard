@@ -1,13 +1,14 @@
 import React, { Suspense, useCallback, useEffect } from 'react';
 import { ConfigProvider, Spin, theme } from 'antd';
-import { Route, Routes, useNavigate, useOutletContext } from 'react-router-dom';
+import { Navigate, Route, Routes, useNavigate, useOutletContext } from 'react-router-dom';
 
 import './styles/app-shell.css';
 import ErrorBoundary from './components/ErrorBoundary';
 import DashboardLayout from './components/DashboardLayout.jsx';
 import HomeView from './components/HomeView.jsx';
-import LegacyRedirect from './components/LegacyRedirect.jsx';
+
 import { buildRouteSearch, buildViewPath } from './utils/routing.js';
+import { CONFIG } from './config.js';
 
 const BrandShareOfVoiceTable = React.lazy(() => import('./components/BrandShareOfVoiceTable.jsx'));
 const CreateQueryJob = React.lazy(() => import('./components/CreateQueryJob.jsx'));
@@ -140,7 +141,7 @@ const QueryJobStatusRoute = () => {
 
 const AppRoutes = () => (
   <Routes>
-    <Route path="/" element={<LegacyRedirect />} />
+    <Route path="/" element={<Navigate to={`/dashboard/${CONFIG.DEFAULT_TENANT_KEY}/${CONFIG.DEFAULT_JOB_ID}`} replace />} />
     <Route element={<DashboardLayout />}>
       <Route path="/dashboard/:tenantKey/:jobId" element={<RouteShell><HomeView /></RouteShell>} />
       <Route path="/trend/:tenantKey/:jobId" element={<RouteShell><TrendRoute /></RouteShell>} />
@@ -151,7 +152,7 @@ const AppRoutes = () => (
       <Route path="/tasks/:tenantKey/new" element={<RouteShell><CreateQueryJobRoute /></RouteShell>} />
       <Route path="/tasks/:tenantKey/status" element={<RouteShell><QueryJobStatusRoute /></RouteShell>} />
     </Route>
-    <Route path="*" element={<LegacyRedirect />} />
+    <Route path="*" element={<Navigate to={`/dashboard/${CONFIG.DEFAULT_TENANT_KEY}/${CONFIG.DEFAULT_JOB_ID}`} replace />} />
   </Routes>
 );
 

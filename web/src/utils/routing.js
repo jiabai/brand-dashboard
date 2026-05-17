@@ -23,8 +23,6 @@ const SEGMENT_TO_VIEW = {
   accounts: 'accounts',
 };
 
-const LEGACY_KEYS = ['view', 'tenant_key', 'date'];
-
 const encodePathSegment = (value) => encodeURIComponent(String(value || '').trim());
 
 export const isAnalysisView = (viewKey) =>
@@ -68,8 +66,6 @@ export const buildRouteSearch = ({ search = '', nextViewKey }) => {
   const normalizedView = normalizeViewKey(nextViewKey);
   const params = new URLSearchParams(normalizeSearch(search));
 
-  LEGACY_KEYS.forEach((key) => params.delete(key));
-
   if (normalizedView !== 'task-status') {
     params.delete('job_id');
     params.delete('include_deleted');
@@ -90,24 +86,6 @@ export const buildRouteSearch = ({ search = '', nextViewKey }) => {
 
   const query = params.toString();
   return query ? `?${query}` : '';
-};
-
-export const buildLegacyRedirectUrl = ({ search = '', defaults = {} } = {}) => {
-  const params = new URLSearchParams(normalizeSearch(search));
-  const viewKey = normalizeViewKey(params.get('view') || DEFAULT_VIEW_KEY);
-  const tenantKey = params.get('tenant_key') || defaults.tenantKey || '';
-  const jobId = params.get('job_id') || defaults.jobId || '';
-  const path = buildViewPath(viewKey, { tenantKey, jobId, defaults });
-  const nextParams = new URLSearchParams(params);
-
-  LEGACY_KEYS.forEach((key) => nextParams.delete(key));
-
-  if (viewKey !== 'task-status') {
-    nextParams.delete('job_id');
-  }
-
-  const query = nextParams.toString();
-  return query ? `${path}?${query}` : path;
 };
 
 const normalizeSearch = (search) => {

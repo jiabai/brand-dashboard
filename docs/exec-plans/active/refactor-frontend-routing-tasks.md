@@ -35,7 +35,7 @@
 
 ### Phase 5: 兼容与验证
 
-- [x] 创建 LegacyRedirect 组件 ✅ `npm --prefix web run build` 构建通过
+- [x] ~~创建 LegacyRedirect 组件~~ → 已移除，旧 URL 兼容不再需要 ✅ `npm --prefix web run build` 构建通过
 - [x] 路由映射单元测试 ✅ `npm --prefix web test -- src/utils/__tests__/routing.test.js` 通过
 - [x] 构建验证 ✅ `npm --prefix web run build` 无 error
 - [x] 浏览器手动验证：旧 URL 自动重定向 ✅ 访问 `/?view=home&tenant_key=...&job_id=...` 跳转到 `/dashboard/.../...`

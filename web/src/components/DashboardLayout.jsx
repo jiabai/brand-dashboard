@@ -137,7 +137,6 @@ const DashboardLayout = () => {
       {
         start_date: selectedDateParam,
         end_date: selectedEndDateParam,
-        date: null,
       },
       { replace: true },
     );
@@ -169,7 +168,6 @@ const DashboardLayout = () => {
       {
         start_date: formatDateParam(latest),
         end_date: formatDateParam(latest),
-        date: null,
       },
       { replace: true },
     );
@@ -192,7 +190,6 @@ const DashboardLayout = () => {
           timeframe: filter,
           start_date: formatDateParam(nextStart),
           end_date: formatDateParam(normalizedEnd),
-          date: null,
         });
         return;
       }
@@ -201,7 +198,6 @@ const DashboardLayout = () => {
         timeframe: filter,
         start_date: null,
         end_date: null,
-        date: null,
       });
     },
     [endDateParam, latestAvailableDate, startDateParam, updateParams],
@@ -215,7 +211,6 @@ const DashboardLayout = () => {
         timeframe: 'specific_day',
         start_date: formatDateParam(nextStart),
         end_date: formatDateParam(nextEnd),
-        date: null,
       });
     },
     [end, updateParams],
@@ -229,7 +224,6 @@ const DashboardLayout = () => {
         timeframe: 'specific_day',
         start_date: formatDateParam(nextStart),
         end_date: formatDateParam(nextEnd),
-        date: null,
       });
     },
     [start, updateParams],

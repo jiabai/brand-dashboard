@@ -13,3 +13,4 @@ Design docs capture architectural decisions, refactoring rationale, and cross-cu
 | [20251210-160217-refactor.md](20251210-160217-refactor.md) | 后端重命名为 api、前端迁移到 web/、Docker 化部署 |
 | [20251210-173800-refactor-backend.md](20251210-173800-refactor-backend.md) | 后端代码重构：services 模块拆分、标准包导入 |
 | [20260122-004000-refactor-api-v1.md](20260122-004000-refactor-api-v1.md) | API 版本化：业务代码迁移到 v1 目录、路由前缀更新 |
+| [20260517-170200-remove-legacy-url-compat.md](20260517-170200-remove-legacy-url-compat.md) | 移除前端旧式 URL 兼容代码（LegacyRedirect） |

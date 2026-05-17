@@ -11,11 +11,9 @@ export const useDashboardParams = () => {
 
   const tenantKey =
     routeParams.tenantKey ||
-    searchParams.get('tenant_key') ||
     CONFIG.DEFAULT_TENANT_KEY;
   const jobId =
     routeParams.jobId ||
-    searchParams.get('job_id') ||
     CONFIG.DEFAULT_JOB_ID;
   const brand = searchParams.get('brand') || CONFIG.DEFAULT_BRAND;
   const timeframe = searchParams.get('timeframe') || DEFAULT_TIMEFRAME;
@@ -30,9 +28,6 @@ export const useDashboardParams = () => {
       const { replace = false } = options;
       setSearchParams((prev) => {
         const next = new URLSearchParams(prev);
-        next.delete('view');
-        next.delete('tenant_key');
-        next.delete('date');
 
         Object.entries(updates).forEach(([key, value]) => {
           if (value === null || value === undefined || value === '') {

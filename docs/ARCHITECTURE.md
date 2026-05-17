@@ -41,7 +41,6 @@ brand-dashboard/
 | `web/src/App.jsx` | 前端主题入口与 React Router 路由定义 |
 | `web/src/components/DashboardLayout.jsx` | 仪表板壳层，负责 Header、Sidebar、时间筛选和子路由 Outlet |
 | `web/src/hooks/useDashboardParams.js` | 统一读取路径参数与查询参数，提供 URL 查询参数更新入口 |
-| `web/src/components/LegacyRedirect.jsx` | 旧 query-param URL 到新路径路由的兼容重定向 |
 | `web/src/config.js` | 环境变量入口，API 地址和默认业务参数 |
 | `api/main.py` | FastAPI 应用入口，CORS 配置，路由注册 |
 | `api/v1/routes/dashboard.py` | 仪表板核心 API（品牌提及率、引用统计、平台指标） |
