@@ -21,12 +21,12 @@ import {
   CloseCircleOutlined,
   SyncOutlined
 } from '@ant-design/icons';
-import { useSearchParams } from 'react-router-dom';
 import dayjs from 'dayjs';
 import { CONFIG } from '../config';
+import { fetchQueryJobStatus } from '@/api';
+import { useDashboardParams } from '@/hooks/useDashboardParams';
 import {
   buildQueryJobStatusRowKey,
-  fetchJson,
 } from '../utils';
 
 const { Title, Text } = Typography;
@@ -46,33 +46,27 @@ const formatDateTime = (value) => {
   return parsed.isValid() ? parsed.format('YYYY-MM-DD HH:mm') : '-';
 };
 
-const QueryJobStatus = ({ tenantKey: propTenantKey }) => {
-  const [searchParams, setSearchParams] = useSearchParams();
+const QueryJobStatus = () => {
+  const {
+    tenantKey,
+    includeDeleted: includeDeletedParam,
+    searchParams,
+    updateParams,
+  } = useDashboardParams();
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState([]);
   const [jobIdOptions, setJobIdOptions] = useState([]);
-  const tenantKey = propTenantKey || searchParams.get('tenant_key') || CONFIG.DEFAULT_TENANT_KEY;
   const selectedJobId = searchParams.get('job_id') || '';
   const includeDeleted = useMemo(() => {
-    const raw = searchParams.get('include_deleted') || CONFIG.DEFAULT_INCLUDE_DELETED || 'false';
+    const raw = includeDeletedParam || CONFIG.DEFAULT_INCLUDE_DELETED || 'false';
     return raw === 'true' || raw === '1';
-  }, [searchParams]);
+  }, [includeDeletedParam]);
 
   const updateSearchParams = useCallback(
     (updates) => {
-      setSearchParams((prev) => {
-        const next = new URLSearchParams(prev);
-        Object.entries(updates).forEach(([key, value]) => {
-          if (value === null || value === undefined || value === '') {
-            next.delete(key);
-          } else {
-            next.set(key, String(value));
-          }
-        });
-        return next;
-      });
+      updateParams(updates);
     },
-    [setSearchParams],
+    [updateParams],
   );
 
   const fetchData = useCallback(async () => {
@@ -81,17 +75,13 @@ const QueryJobStatus = ({ tenantKey: propTenantKey }) => {
     }
     setLoading(true);
     try {
-      const params = new URLSearchParams({
-        tenant_key: tenantKey,
-        include_deleted: includeDeleted ? 'true' : 'false',
-      });
-      if (selectedJobId) {
-        params.set('job_id', selectedJobId);
-      }
-
       let result;
       try {
-        result = await fetchJson(`/api/v1/query-jobs/status?${params}`);
+        result = await fetchQueryJobStatus({
+          tenantKey,
+          jobId: selectedJobId,
+          includeDeleted,
+        });
       } catch {
         message.error('查询失败');
         return;

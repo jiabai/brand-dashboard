@@ -11,11 +11,10 @@ import {
   TrendingUp,
   Hash
 } from 'lucide-react';
-import { CONFIG } from '@/config';
+import { fetchCitationDomainStats, fetchCitationTypeStats, fetchFilterMetadata } from '@/api';
+import { useDashboardRequestParams } from '@/hooks/useDashboardParams';
 import { normalizeCitationTypeStats } from '@/utils/sourceAnalysis';
 import {
-  buildQueryString,
-  fetchJson,
   clampPercent,
   roundTwoDecimals,
   normalizeListValue,
@@ -28,8 +27,6 @@ import { loadG2Chart } from '@/utils/loadG2Chart';
 import KeywordSection from './KeywordSection';
 
 const { Title, Text } = Typography;
-
-const { DEFAULT_TENANT_KEY, DEFAULT_JOB_ID, DEFAULT_BRAND } = CONFIG;
 
 const buildSourceUrl = (domain) => {
   if (!domain) return '';
@@ -385,14 +382,8 @@ const MediaListTable = ({
   );
 };
 
-export default function SourceAnalysis({ 
-  timeframe = '30days',
-  date = '',
-  endDate = '',
-  tenantKey = DEFAULT_TENANT_KEY,
-  jobId = DEFAULT_JOB_ID,
-  brand = DEFAULT_BRAND,
-}) {
+export default function SourceAnalysis() {
+  const { timeframe, date, endDate, tenantKey, jobId, brand } = useDashboardRequestParams();
   const [keywords, setKeywords] = useState([]);
   const [selectedKeyword, setSelectedKeyword] = useState('');
   const [selectedPlatform, setSelectedPlatform] = useState('');
@@ -448,16 +439,10 @@ export default function SourceAnalysis({
       setLoading(true);
       setError(null);
       try {
-        const queryParams = buildQueryString({
-          tenant_key: tenantKey,
-          job_id: jobId,
-          start_date: startDateParam,
-          end_date: endDateParam,
-        });
-
-        const result = await fetchJson(`/api/v1/dashboard/filter-metadata?${queryParams}`, {
-          signal: controller.signal
-        });
+        const result = await fetchFilterMetadata(
+          { tenantKey, jobId, startDate: startDateParam, endDate: endDateParam },
+          { signal: controller.signal },
+        );
 
         if (result?.code === 200 && result.data) {
           setKeywords(result.data.keywords || []);
@@ -505,17 +490,17 @@ export default function SourceAnalysis({
       setCitationLoading(true);
       setCitationError('');
       try {
-        const queryParams = buildQueryString({
-          tenant_key: tenantKey,
-          job_id: jobId,
-          timeframe,
-          start_date: timeframe === 'specific_day' ? startDateParam : undefined,
-          end_date: timeframe === 'specific_day' ? endDateParam : undefined,
-        });
-
-        const result = await fetchJson(`/api/v1/dashboard/citation-type-stats?${queryParams}`, {
-          signal: controller.signal,
-        });
+        const result = await fetchCitationTypeStats(
+          {
+            tenantKey,
+            jobId,
+            brand,
+            timeframe,
+            startDate: startDateParam,
+            endDate: endDateParam,
+          },
+          { signal: controller.signal },
+        );
 
         if (result?.status && result.status !== 'success') {
           throw new Error('接口返回错误状态');
@@ -540,7 +525,7 @@ export default function SourceAnalysis({
     return () => {
       controller.abort();
     };
-  }, [tenantKey, jobId, timeframe, startDateParam, endDateParam]);
+  }, [tenantKey, jobId, brand, timeframe, startDateParam, endDateParam]);
 
   useEffect(() => {
     if (!tenantKey || !jobId || !brand) {
@@ -560,20 +545,19 @@ export default function SourceAnalysis({
       setMediaLoading(true);
       setMediaError('');
       try {
-        const queryParams = buildQueryString({
-          tenant_key: tenantKey,
-          job_id: jobId,
-          brand,
-          timeframe,
-          start_date: timeframe === 'specific_day' ? startDateParam : undefined,
-          end_date: timeframe === 'specific_day' ? endDateParam : undefined,
-          keyword: selectedKeyword || undefined,
-          platform: selectedPlatform || undefined,
-        });
-
-        const result = await fetchJson(`/api/v1/dashboard/citation-domain-stats?${queryParams}`, {
-          signal: controller.signal,
-        });
+        const result = await fetchCitationDomainStats(
+          {
+            tenantKey,
+            jobId,
+            brand,
+            timeframe,
+            startDate: startDateParam,
+            endDate: endDateParam,
+            keyword: selectedKeyword || undefined,
+            platform: selectedPlatform || undefined,
+          },
+          { signal: controller.signal },
+        );
 
         if (result?.status && result.status !== 'success') {
           throw new Error('接口返回错误状态');

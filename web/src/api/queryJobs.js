@@ -1,15 +1,15 @@
 import { fetchJson as fetch, postJson as post } from './client.js';
 import { buildQueryString } from '../utils/url.js';
 
-export const loadQueryJob = (payload) => {
-  return post('/api/v1/query-jobs/load', payload);
+export const loadQueryJob = (payload, options) => {
+  return post('/api/v1/query-jobs/load', payload, options);
 };
 
-export const fetchQueryJobStatus = ({ tenantKey, jobId, includeDeleted = false }) => {
+export const fetchQueryJobStatus = ({ tenantKey, jobId, includeDeleted = false }, options) => {
   const params = buildQueryString({
     tenant_key: tenantKey,
     job_id: jobId || undefined,
     include_deleted: includeDeleted ? 'true' : 'false',
   });
-  return fetch(`/api/v1/query-jobs/status?${params}`);
+  return fetch(`/api/v1/query-jobs/status?${params}`, options);
 };

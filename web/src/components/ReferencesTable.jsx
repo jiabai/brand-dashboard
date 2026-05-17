@@ -5,11 +5,9 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { Button, Card, Empty, Table, Typography } from 'antd';
-import { CONFIG } from '@/config';
-import { buildDomainCitationQueryString } from '@/utils/domainCitationQuery';
-import { fetchJson, clampPercent, roundTwoDecimals } from '@/utils';
-
-const { DEFAULT_TENANT_KEY, DEFAULT_JOB_ID, DEFAULT_BRAND } = CONFIG;
+import { fetchCitationDomainSummary } from '@/api';
+import { useDashboardRequestParams } from '@/hooks/useDashboardParams';
+import { clampPercent, roundTwoDecimals } from '@/utils';
 
 const MIN_COLUMN_WIDTH = 80;
 
@@ -40,16 +38,11 @@ const ResizableHeaderCell = ({ onResize, width, children, ...restProps }) => {
 };
 
 const ReferencesTable = ({
-  timeframe = '7days',
-  date = '',
-  endDate = '',
-  tenantKey = DEFAULT_TENANT_KEY,
-  jobId = DEFAULT_JOB_ID,
-  brand = DEFAULT_BRAND,
   referencesData,
   isLoading,
   error,
 }) => {
+  const { timeframe, date, endDate, tenantKey, jobId, brand } = useDashboardRequestParams();
   const hasExternalData = Array.isArray(referencesData);
   const [data, setData] = useState([]);
   const [internalLoading, setInternalLoading] = useState(!hasExternalData);
@@ -64,17 +57,8 @@ const ReferencesTable = ({
         setInternalLoading(true);
         setInternalError(null);
 
-        const queryString = buildDomainCitationQueryString({
-          tenantKey,
-          jobId,
-          brand,
-          timeframe,
-          startDate: date,
-          endDate,
-        });
-
-        const result = await fetchJson(
-          `/api/v1/dashboard/citation-domain-summary?${queryString}`,
+        const result = await fetchCitationDomainSummary(
+          { tenantKey, jobId, brand, timeframe, startDate: date, endDate },
           { signal: controller.signal },
         );
 

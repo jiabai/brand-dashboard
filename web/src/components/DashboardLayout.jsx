@@ -1,21 +1,13 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Badge, DatePicker, Layout, Segmented, Space, Typography } from 'antd';
 import { Outlet } from 'react-router-dom';
-import dayjs from 'dayjs';
 
 import TaskName from './TaskName.jsx';
 import Sidebar from './Sidebar.jsx';
-import { fetchJson, formatDateDisplay, formatDateParam, parseDateInput } from '@/utils';
 import { useDashboardParams } from '@/hooks/useDashboardParams';
+import { TIME_OPTIONS, useTimeframeManager } from '@/hooks/useTimeframeManager';
 
 const { Header, Content } = Layout;
-
-const TIME_OPTIONS = [
-  { label: '昨天', value: 'yesterday' },
-  { label: '过去7天', value: '7days' },
-  { label: '过去30天', value: '30days' },
-  { label: '指定日期', value: 'specific_day' },
-];
 
 const LiveClock = React.memo(function LiveClock() {
   const [currentTime, setCurrentTime] = useState(() => new Date());
@@ -35,199 +27,26 @@ const LiveClock = React.memo(function LiveClock() {
   );
 });
 
-const getNormalizedDateRange = (startDateParam, endDateParam) => {
-  const start = parseDateInput(startDateParam) || dayjs();
-  const rawEnd = parseDateInput(endDateParam) || start;
-  const end = rawEnd.isBefore(start, 'day') ? start : rawEnd;
-  return { start, end };
-};
-
 const DashboardLayout = () => {
   const dashboardParams = useDashboardParams();
   const {
-    tenantKey,
-    jobId,
     timeframe,
-    startDateParam,
-    endDateParam,
     selectedPlatform,
     updateParams,
   } = dashboardParams;
   const [siderCollapsed, setSiderCollapsed] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [availableDates, setAvailableDates] = useState([]);
-  const loadingTimerRef = useRef(null);
-
-  const { start, end } = useMemo(
-    () => getNormalizedDateRange(startDateParam, endDateParam),
-    [startDateParam, endDateParam],
-  );
-
-  const selectedDateParam = useMemo(() => {
-    if (timeframe !== 'specific_day') return '';
-    return formatDateParam(start);
-  }, [start, timeframe]);
-
-  const selectedEndDateParam = useMemo(() => {
-    if (timeframe !== 'specific_day') return '';
-    return formatDateParam(end);
-  }, [end, timeframe]);
-
-  const availableDateSet = useMemo(() => new Set(availableDates), [availableDates]);
-
-  const latestAvailableDate = useMemo(() => {
-    if (!availableDates.length) return '';
-    return availableDates.reduce((latest, current) => {
-      if (!latest) return current;
-      return dayjs(current).isAfter(dayjs(latest), 'day') ? current : latest;
-    }, '');
-  }, [availableDates]);
-
-  const isDateDisabled = useCallback(
-    (current) => {
-      if (!current || availableDates.length === 0) return false;
-      return !availableDateSet.has(current.format('YYYY-MM-DD'));
-    },
-    [availableDateSet, availableDates.length],
-  );
-
-  useEffect(() => {
-    if (!tenantKey) {
-      setAvailableDates([]);
-      return;
-    }
-    const controller = new AbortController();
-    const params = new URLSearchParams();
-    params.set('tenant_key', tenantKey);
-    if (jobId) {
-      params.set('job_id', jobId);
-    }
-    const run = async () => {
-      const result = await fetchJson(
-        `/api/v1/dashboard/available-dates?${params.toString()}`,
-        { signal: controller.signal },
-      );
-      const list = Array.isArray(result?.data) ? result.data : [];
-      const normalized = list
-        .map((item) => formatDateDisplay(item))
-        .filter(Boolean);
-      setAvailableDates(normalized);
-    };
-    run().catch(() => {
-      if (controller.signal.aborted) return;
-      setAvailableDates([]);
-    });
-    return () => {
-      controller.abort();
-    };
-  }, [tenantKey, jobId]);
-
-  useEffect(() => {
-    return () => {
-      if (loadingTimerRef.current) {
-        clearTimeout(loadingTimerRef.current);
-      }
-    };
-  }, []);
-
-  useEffect(() => {
-    if (timeframe !== 'specific_day') return;
-    if (startDateParam && endDateParam && !end.isBefore(start, 'day')) return;
-    updateParams(
-      {
-        start_date: selectedDateParam,
-        end_date: selectedEndDateParam,
-      },
-      { replace: true },
-    );
-  }, [
+  const {
     end,
-    endDateParam,
+    handleEndDateChange,
+    handleFilterChange,
+    handleStartDateChange,
+    isDateDisabled,
+    isLoading,
+    latestAvailableDate,
     selectedDateParam,
     selectedEndDateParam,
     start,
-    startDateParam,
-    timeframe,
-    updateParams,
-  ]);
-
-  useEffect(() => {
-    if (timeframe !== 'specific_day') return;
-    if (!latestAvailableDate) return;
-    const latest = dayjs(latestAvailableDate, 'YYYY-MM-DD');
-    if (!latest.isValid()) return;
-
-    const startKey = start.format('YYYY-MM-DD');
-    const endKey = end.format('YYYY-MM-DD');
-    const hasValidStart = availableDateSet.has(startKey);
-    const hasValidEnd = availableDateSet.has(endKey);
-
-    if (hasValidStart && hasValidEnd) return;
-
-    updateParams(
-      {
-        start_date: formatDateParam(latest),
-        end_date: formatDateParam(latest),
-      },
-      { replace: true },
-    );
-  }, [availableDateSet, end, latestAvailableDate, start, timeframe, updateParams]);
-
-  const handleFilterChange = useCallback(
-    (filter) => {
-      if (loadingTimerRef.current) {
-        clearTimeout(loadingTimerRef.current);
-      }
-
-      setIsLoading(true);
-      loadingTimerRef.current = setTimeout(() => setIsLoading(false), 800);
-
-      if (filter === 'specific_day') {
-        const nextStart = parseDateInput(startDateParam) || parseDateInput(latestAvailableDate) || dayjs();
-        const nextEnd = parseDateInput(endDateParam) || nextStart;
-        const normalizedEnd = nextEnd.isBefore(nextStart, 'day') ? nextStart : nextEnd;
-        updateParams({
-          timeframe: filter,
-          start_date: formatDateParam(nextStart),
-          end_date: formatDateParam(normalizedEnd),
-        });
-        return;
-      }
-
-      updateParams({
-        timeframe: filter,
-        start_date: null,
-        end_date: null,
-      });
-    },
-    [endDateParam, latestAvailableDate, startDateParam, updateParams],
-  );
-
-  const handleStartDateChange = useCallback(
-    (nextValue) => {
-      const nextStart = nextValue || end || dayjs();
-      const nextEnd = end && !end.isBefore(nextStart, 'day') ? end : nextStart;
-      updateParams({
-        timeframe: 'specific_day',
-        start_date: formatDateParam(nextStart),
-        end_date: formatDateParam(nextEnd),
-      });
-    },
-    [end, updateParams],
-  );
-
-  const handleEndDateChange = useCallback(
-    (nextValue) => {
-      const nextEnd = nextValue || start || dayjs();
-      const nextStart = start && !nextEnd.isBefore(start, 'day') ? start : nextEnd;
-      updateParams({
-        timeframe: 'specific_day',
-        start_date: formatDateParam(nextStart),
-        end_date: formatDateParam(nextEnd),
-      });
-    },
-    [start, updateParams],
-  );
+  } = useTimeframeManager(dashboardParams);
 
   const handlePlatformClick = useCallback(
     (platform) => {

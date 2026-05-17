@@ -1,35 +1,20 @@
-const DEFAULT_VIEW_KEY = 'home';
-
-const ANALYSIS_ROUTE_SEGMENTS = {
-  home: 'dashboard',
-  trend: 'trend',
-  platforms: 'platforms',
-  sources: 'sources',
-  sentiment: 'sentiment',
-};
-
-const TENANT_ROUTE_BUILDERS = {
-  accounts: ({ tenantKey }) => `/accounts/${encodePathSegment(tenantKey)}`,
-  'task-load': ({ tenantKey }) => `/tasks/${encodePathSegment(tenantKey)}/new`,
-  'task-status': ({ tenantKey }) => `/tasks/${encodePathSegment(tenantKey)}/status`,
-};
-
-const SEGMENT_TO_VIEW = {
-  dashboard: 'home',
-  trend: 'trend',
-  platforms: 'platforms',
-  sources: 'sources',
-  sentiment: 'sentiment',
-  accounts: 'accounts',
-};
+import {
+  DEFAULT_VIEW_KEY,
+  getRouteByPathSegment,
+  getRouteByTaskAction,
+  getRouteByViewKey,
+} from '../config/routes.js';
 
 const encodePathSegment = (value) => encodeURIComponent(String(value || '').trim());
 
-export const isAnalysisView = (viewKey) =>
-  Object.prototype.hasOwnProperty.call(ANALYSIS_ROUTE_SEGMENTS, viewKey);
+export const isAnalysisView = (viewKey) => {
+  const route = getRouteByViewKey(viewKey);
+  return Boolean(route?.requiresJobId && route?.path && !route?.disabled);
+};
 
 export const normalizeViewKey = (viewKey) => {
-  if (isAnalysisView(viewKey) || TENANT_ROUTE_BUILDERS[viewKey]) {
+  const route = getRouteByViewKey(viewKey);
+  if (route?.viewKey === viewKey && route.path && !route.disabled) {
     return viewKey;
   }
   return DEFAULT_VIEW_KEY;
@@ -37,15 +22,19 @@ export const normalizeViewKey = (viewKey) => {
 
 export const buildViewPath = (viewKey, { tenantKey, jobId, defaults = {} } = {}) => {
   const normalizedView = normalizeViewKey(viewKey);
+  const route = getRouteByViewKey(normalizedView);
   const nextTenantKey = tenantKey || defaults.tenantKey || '';
   const nextJobId = jobId || defaults.jobId || '';
 
-  if (isAnalysisView(normalizedView)) {
-    const routeSegment = ANALYSIS_ROUTE_SEGMENTS[normalizedView];
-    return `/${routeSegment}/${encodePathSegment(nextTenantKey)}/${encodePathSegment(nextJobId)}`;
+  if (route.parentSegment === 'tasks') {
+    return `/${route.parentSegment}/${encodePathSegment(nextTenantKey)}/${route.taskAction}`;
   }
 
-  return TENANT_ROUTE_BUILDERS[normalizedView]({ tenantKey: nextTenantKey });
+  if (route.requiresJobId) {
+    return `/${route.routeSegment}/${encodePathSegment(nextTenantKey)}/${encodePathSegment(nextJobId)}`;
+  }
+
+  return `/${route.routeSegment}/${encodePathSegment(nextTenantKey)}`;
 };
 
 export const getViewKeyFromPath = (pathname = '') => {
@@ -55,11 +44,10 @@ export const getViewKeyFromPath = (pathname = '') => {
     .filter(Boolean);
 
   if (segments[0] === 'tasks') {
-    if (segments[2] === 'new') return 'task-load';
-    if (segments[2] === 'status') return 'task-status';
+    return getRouteByTaskAction(segments[2])?.viewKey || DEFAULT_VIEW_KEY;
   }
 
-  return SEGMENT_TO_VIEW[segments[0]] || DEFAULT_VIEW_KEY;
+  return getRouteByPathSegment(segments[0])?.viewKey || DEFAULT_VIEW_KEY;
 };
 
 export const buildRouteSearch = ({ search = '', nextViewKey }) => {

@@ -4,12 +4,11 @@ import { LineChartOutlined } from '@ant-design/icons';
 import { useSearchParams } from 'react-router-dom';
 import dayjs from 'dayjs';
 
-import { CONFIG } from '@/config';
+import { fetchBrandMentionTrend, fetchFilterMetadata } from '@/api';
+import { useDashboardRequestParams } from '@/hooks/useDashboardParams';
 import {
   formatPercentage,
   getPlatformColor,
-  buildQueryString,
-  fetchJson,
   toPercent,
   toFraction,
   roundTwoDecimals,
@@ -22,8 +21,6 @@ import { loadG2Chart } from '@/utils/loadG2Chart';
 
 import LoadingSpinner from './LoadingSpinner';
 import EmptyState from './EmptyState';
-
-const { DEFAULT_TENANT_KEY, DEFAULT_JOB_ID, DEFAULT_BRAND } = CONFIG;
 
 const TrendG2Chart = React.memo(function TrendG2Chart({ data, token }) {
   const containerRef = useRef(null);
@@ -122,14 +119,8 @@ const TrendG2Chart = React.memo(function TrendG2Chart({ data, token }) {
   return <div ref={containerRef} style={{ width: '100%', height: '100%' }} />;
 });
 
-const TrendAnalysis = ({
-  timeframe = '7days',
-  date = '',
-  endDate = '',
-  tenantKey = DEFAULT_TENANT_KEY,
-  jobId = DEFAULT_JOB_ID,
-  brand = DEFAULT_BRAND,
-}) => {
+const TrendAnalysis = () => {
+  const { timeframe, date, endDate, tenantKey, jobId, brand } = useDashboardRequestParams();
   const { token } = theme.useToken();
   const [searchParams, setSearchParams] = useSearchParams();
   const abortControllerRef = useRef(null);
@@ -150,9 +141,9 @@ const TrendAnalysis = ({
   const [combinations, setCombinations] = useState([]);
   const [reloadKey, setReloadKey] = useState(0);
 
-  const tenantKeyValue = tenantKey || DEFAULT_TENANT_KEY;
-  const jobIdValue = jobId || DEFAULT_JOB_ID;
-  const brandValue = brand || DEFAULT_BRAND;
+  const tenantKeyValue = tenantKey;
+  const jobIdValue = jobId;
+  const brandValue = brand;
 
   const dateRange = useMemo(() => {
     if (timeframe === 'specific_day') {
@@ -216,13 +207,13 @@ const TrendAnalysis = ({
       try {
         setMetadataLoading(true);
         setMetadataError('');
-        const result = await fetchJson(
-          `/api/v1/dashboard/filter-metadata?${buildQueryString({
-            tenant_key: tenantKeyValue,
-            job_id: jobIdValue,
-            start_date: startDateParam,
-            end_date: endDateParam,
-          })}`,
+        const result = await fetchFilterMetadata(
+          {
+            tenantKey: tenantKeyValue,
+            jobId: jobIdValue,
+            startDate: startDateParam,
+            endDate: endDateParam,
+          },
           { signal: controller.signal },
         );
 
@@ -256,30 +247,6 @@ const TrendAnalysis = ({
     };
   }, [tenantKeyValue, jobIdValue, startDateParam, endDateParam]);
 
-  const queryString = useMemo(
-    () =>
-      buildQueryString({
-        tenant_key: tenantKeyValue,
-        job_id: jobIdValue,
-        brand: brandValue,
-        platform,
-        keyword,
-        timeframe,
-        start_date: startDateParam,
-        end_date: endDateParam,
-      }),
-    [
-      tenantKeyValue,
-      jobIdValue,
-      brandValue,
-      platform,
-      keyword,
-      timeframe,
-      startDateParam,
-      endDateParam,
-    ],
-  );
-
   useEffect(() => {
     if (!platform || !keyword || !startDateParam || !endDateParam) {
       setTrendData([]);
@@ -297,8 +264,17 @@ const TrendAnalysis = ({
       try {
         setIsLoading(true);
         setError('');
-        const result = await fetchJson(
-          `/api/v1/dashboard/brand-mention-trend?${queryString}`,
+        const result = await fetchBrandMentionTrend(
+          {
+            tenantKey: tenantKeyValue,
+            jobId: jobIdValue,
+            brand: brandValue,
+            platform,
+            keyword,
+            timeframe,
+            startDate: startDateParam,
+            endDate: endDateParam,
+          },
           { signal: controller.signal },
         );
 
@@ -334,7 +310,17 @@ const TrendAnalysis = ({
     return () => {
       controller.abort();
     };
-  }, [platform, keyword, startDateParam, endDateParam, queryString, reloadKey]);
+  }, [
+    brandValue,
+    endDateParam,
+    jobIdValue,
+    keyword,
+    platform,
+    reloadKey,
+    startDateParam,
+    tenantKeyValue,
+    timeframe,
+  ]);
 
   const chartData = useMemo(() => {
     if (!startDateParam || !endDateParam) return [];

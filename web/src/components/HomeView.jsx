@@ -1,7 +1,7 @@
 import React from 'react';
 import { Spin } from 'antd';
-import { useOutletContext } from 'react-router-dom';
 
+import { useDashboardRequestParams } from '@/hooks/useDashboardParams';
 import PlatformDetail from './PlatformDetail.jsx';
 
 const BrandMentionRate = React.lazy(() => import('./BrandMentionRate.jsx'));
@@ -10,29 +10,17 @@ const ReferencesTable = React.lazy(() => import('./ReferencesTable.jsx'));
 
 const HomeView = () => {
   const {
-    tenantKey,
-    jobId,
-    brand,
-    timeframe,
-    selectedDateParam,
-    selectedEndDateParam,
     selectedPlatform,
     isLoading,
     onPlatformClick,
     onBackFromPlatform,
-  } = useOutletContext();
+  } = useDashboardRequestParams();
 
   return (
     <Spin spinning={isLoading}>
       {selectedPlatform ? (
         <PlatformDetail
           platformName={selectedPlatform}
-          tenantKey={tenantKey}
-          jobId={jobId}
-          brand={brand}
-          timeframe={timeframe}
-          startDate={selectedDateParam}
-          endDate={selectedEndDateParam}
           onBack={onBackFromPlatform}
         />
       ) : (
@@ -44,35 +32,15 @@ const HomeView = () => {
           }}
         >
           <div style={{ minWidth: 0 }}>
-            <BrandMentionRate
-              timeframe={timeframe}
-              date={selectedDateParam}
-              endDate={selectedEndDateParam}
-              tenantKey={tenantKey}
-              jobId={jobId}
-              brand={brand}
-            />
+            <BrandMentionRate />
           </div>
           <div style={{ minWidth: 0 }}>
             <PlatformMentionRates
-              timeframe={timeframe}
-              date={selectedDateParam}
-              endDate={selectedEndDateParam}
-              tenantKey={tenantKey}
-              jobId={jobId}
-              brand={brand}
               onPlatformClick={onPlatformClick}
             />
           </div>
           <div style={{ minWidth: 0 }}>
-            <ReferencesTable
-              timeframe={timeframe}
-              date={selectedDateParam}
-              endDate={selectedEndDateParam}
-              tenantKey={tenantKey}
-              jobId={jobId}
-              brand={brand}
-            />
+            <ReferencesTable />
           </div>
         </div>
       )}

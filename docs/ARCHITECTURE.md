@@ -10,11 +10,13 @@ Brand Analysis Dashboard 是一个品牌分析仪表板应用，前端 React 18 
 brand-dashboard/
 ├── web/                          # 前端（React 18 + Vite）
 │   ├── src/
+│   │   ├── api/                  # 前端 API Adapter（dashboard, queryJobs, auth）
 │   │   ├── components/           # 功能组件
 │   │   │   └── ui/               # 可复用 UI 原语（button, card, progress, table）
+│   │   ├── config/               # 前端路由等静态配置（routes.js）
 │   │   ├── lib/                  # 共享工具（cn.js）
 │   │   ├── utils/                # 业务工具（domainCitationQuery, sourceAnalysis, trendChartConfig）
-│   │   ├── hooks/                # 路由与页面级 hooks（useDashboardParams）
+│   │   ├── hooks/                # 路由与页面级 hooks（useDashboardParams, useTimeframeManager）
 │   │   ├── styles/               # 组件级 CSS
 │   │   ├── App.jsx               # 路由定义与主题入口
 │   │   ├── config.js             # 环境变量配置
@@ -39,8 +41,11 @@ brand-dashboard/
 | 文件 | 职责 |
 |------|------|
 | `web/src/App.jsx` | 前端主题入口与 React Router 路由定义 |
-| `web/src/components/DashboardLayout.jsx` | 仪表板壳层，负责 Header、Sidebar、时间筛选和子路由 Outlet |
+| `web/src/config/routes.js` | 前端路由、菜单、任务入口的单一配置源 |
+| `web/src/api/index.js` | 前端 API Adapter 出口，统一封装 dashboard/query-jobs/auth 请求 |
+| `web/src/components/DashboardLayout.jsx` | 仪表板壳层，负责 Header、Sidebar、时间筛选控件和子路由 Outlet |
 | `web/src/hooks/useDashboardParams.js` | 统一读取路径参数与查询参数，提供 URL 查询参数更新入口 |
+| `web/src/hooks/useTimeframeManager.js` | 仪表板时间范围、可用日期、日期参数同步逻辑 |
 | `web/src/config.js` | 环境变量入口，API 地址和默认业务参数 |
 | `api/main.py` | FastAPI 应用入口，CORS 配置，路由注册 |
 | `api/v1/routes/dashboard.py` | 仪表板核心 API（品牌提及率、引用统计、平台指标） |
