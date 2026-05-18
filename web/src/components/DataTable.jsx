@@ -42,6 +42,9 @@ const SortIcon = ({ order }) => {
 };
 
 const ResizableHandle = ({ onResize }) => {
+  const rafRef = React.useRef(null);
+  const pendingWidthRef = React.useRef(null);
+
   const handleMouseDown = (event) => {
     event.preventDefault();
     event.stopPropagation();
@@ -55,7 +58,13 @@ const ResizableHandle = ({ onResize }) => {
     document.body.style.userSelect = 'none';
 
     const handleMouseMove = (moveEvent) => {
-      onResize?.(startWidth + moveEvent.clientX - startX);
+      pendingWidthRef.current = startWidth + moveEvent.clientX - startX;
+      if (rafRef.current == null) {
+        rafRef.current = requestAnimationFrame(() => {
+          onResize?.(pendingWidthRef.current);
+          rafRef.current = null;
+        });
+      }
     };
 
     const handleMouseUp = () => {
@@ -63,6 +72,12 @@ const ResizableHandle = ({ onResize }) => {
       document.body.style.userSelect = previousUserSelect;
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
+      // 确保最后一帧被渲染
+      if (rafRef.current != null) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
+      onResize?.(pendingWidthRef.current);
     };
 
     document.addEventListener('mousemove', handleMouseMove);
@@ -85,23 +100,23 @@ const HeaderCell = ({ column, width, sortState, onSort, onFilter, onResize }) =>
 
   return (
     <TableHead
-      className="relative align-top"
+      className="relative"
       style={width ? { width, minWidth: width } : undefined}
     >
-      <div className="flex min-w-0 flex-col gap-1">
-        <div className="flex min-w-0 items-center gap-1">
+      <div className="flex min-w-0 flex-col gap-1.5">
+        <div className="flex min-w-0 items-center">
           {column.sorter ? (
             <Button
               variant="ghost"
               size="sm"
-              className="h-auto min-w-0 justify-start px-0 text-xs font-semibold"
+              className="h-auto min-w-0 justify-start px-0 text-sm font-semibold"
               onClick={() => onSort(column)}
             >
               <span className="truncate">{title}</span>
               <SortIcon order={isSorted ? sortState.order : ''} />
             </Button>
           ) : (
-            <span className="truncate text-xs font-semibold">{title}</span>
+            <span className="truncate text-sm font-semibold">{title}</span>
           )}
         </div>
         {Array.isArray(column.filters) && column.filters.length ? (
@@ -109,7 +124,7 @@ const HeaderCell = ({ column, width, sortState, onSort, onFilter, onResize }) =>
             value={column.filterValue || '__all__'}
             onValueChange={(value) => onFilter(column, value === '__all__' ? '' : value)}
           >
-            <SelectTrigger size="sm" className="w-full">
+            <SelectTrigger className="w-full">
               <SelectValue placeholder="全部" />
             </SelectTrigger>
             <SelectContent>

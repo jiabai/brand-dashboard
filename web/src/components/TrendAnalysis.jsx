@@ -87,14 +87,20 @@ const TrendSvgChart = ({ data }) => {
   });
   const labelStep = Math.max(1, Math.ceil(points.length / 7));
 
+  // 屏幕阅读器摘要
+  const srSummary = points.length
+    ? `趋势图共${points.length}个数据点，时间范围${points[0]?.dateStr}至${points[points.length - 1]?.dateStr}，平均值${formatPercentage(roundTwoDecimals(points.reduce((s, p) => s + p.value, 0) / points.length))}`
+    : '无趋势数据';
+
   return (
-    <div className="h-[420px] w-full overflow-hidden rounded-md border bg-card p-4 2xl:h-[460px]">
+    <div className="h-[360px] w-full 2xl:h-[400px]">
+      <p className="sr-only">{srSummary}</p>
       <svg
         viewBox={`0 0 ${width} ${height}`}
         role="img"
         aria-label="品牌提及率趋势图"
         className="size-full"
-        preserveAspectRatio="none"
+        preserveAspectRatio="xMidYMid meet"
       >
         <defs>
           <linearGradient id="trend-fill" x1="0" x2="0" y1="0" y2="1">
@@ -113,7 +119,15 @@ const TrendSvgChart = ({ data }) => {
               stroke="var(--border)"
               strokeDasharray="4 4"
             />
-            <text x={padding.left - 12} y={tick.y + 4} textAnchor="end" className="fill-muted-foreground text-[11px]">
+            <text
+              x={padding.left - 12}
+              y={tick.y}
+              textAnchor="end"
+              dominantBaseline="central"
+              fill="var(--muted-foreground)"
+              fontSize={12}
+              fontFamily="system-ui, sans-serif"
+            >
               {formatPercentage(roundTwoDecimals(tick.value))}
             </text>
           </g>
@@ -132,14 +146,27 @@ const TrendSvgChart = ({ data }) => {
 
         {points.map((point, index) => (
           <g key={point.date}>
-            <circle cx={point.x} cy={point.y} r="4.5" fill="var(--card)" stroke="var(--primary)" strokeWidth="2" />
+            {/* 不可见的交互区域 — 扩大点击/触摸目标至44px */}
+            <circle
+              cx={point.x} cy={point.y} r="22"
+              fill="transparent"
+              tabIndex={0}
+              role="graphics-symbol"
+              aria-label={`${point.dateStr}: ${formatPercentage(roundTwoDecimals(point.value))}`}
+              className="outline-none focus:stroke-[var(--ring)] focus:stroke-[3px]"
+            />
+            {/* 可见数据点 */}
+            <circle cx={point.x} cy={point.y} r="4.5" fill="var(--card)" stroke="var(--primary)" strokeWidth="2" pointerEvents="none" />
             <title>{`${point.dateStr}: ${formatPercentage(roundTwoDecimals(point.value))}`}</title>
             {index % labelStep === 0 || index === points.length - 1 ? (
               <text
                 x={point.x}
                 y={height - 18}
                 textAnchor="middle"
-                className="fill-muted-foreground text-[11px]"
+                dominantBaseline="hanging"
+                fill="var(--muted-foreground)"
+                fontSize={12}
+                fontFamily="system-ui, sans-serif"
               >
                 {point.dateStr.slice(5)}
               </text>
@@ -490,7 +517,13 @@ const TrendAnalysis = () => {
       </Card>
 
       <Card>
-        <CardContent className="p-4">
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <LineChart className="size-5 text-primary" />
+            <CardTitle>提及率趋势</CardTitle>
+          </div>
+        </CardHeader>
+        <CardContent>
           {isLoading ? (
             <LoadingSpinner text="正在加载趋势数据..." />
           ) : error ? (

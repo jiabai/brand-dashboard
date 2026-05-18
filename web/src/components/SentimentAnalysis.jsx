@@ -38,13 +38,22 @@ const SentimentDonut = () => {
     return `${item.color} ${start}% ${end}%`;
   });
 
+  // 形状图标辅助色盲区分
+  const legendShapes = [
+    <span key="shape" className="size-2.5 rounded-full" />,
+    <span key="shape" className="size-2.5 rotate-45 rounded-sm" />,
+    <span key="shape" className="size-0 border-x-[5px] border-b-[8px] border-x-transparent border-b-current" />,
+  ];
+
   return (
     <div className="flex flex-col items-center gap-5">
       <div
-        className="grid size-64 place-items-center rounded-full"
+        className="grid size-48 place-items-center rounded-full sm:size-56 lg:size-64"
         style={{ background: `conic-gradient(${segments.join(', ')})` }}
+        role="img"
+        aria-label={`情感分布: ${MOCK_SENTIMENT.map((s) => `${s.name} ${Math.round((s.value / total) * 100)}%`).join('，')}`}
       >
-        <div className="grid size-36 place-items-center rounded-full bg-card text-center">
+        <div className="grid size-28 place-items-center rounded-full bg-card text-center sm:size-32 lg:size-36">
           <div>
             <div className="text-3xl font-semibold text-foreground">{total.toLocaleString()}</div>
             <div className="text-sm text-muted-foreground">分析样本</div>
@@ -52,9 +61,11 @@ const SentimentDonut = () => {
         </div>
       </div>
       <div className="flex flex-wrap justify-center gap-3">
-        {MOCK_SENTIMENT.map((item) => (
+        {MOCK_SENTIMENT.map((item, idx) => (
           <div key={item.name} className="flex items-center gap-2 rounded-md border px-3 py-1 text-sm">
-            <span className="size-2.5 rounded-full" style={{ background: item.color }} />
+            <span className="flex items-center justify-center" style={{ color: item.color }}>
+              {legendShapes[idx % legendShapes.length]}
+            </span>
             <span className="font-medium text-foreground">{item.name}</span>
             <span className="text-muted-foreground">{Math.round((item.value / total) * 100)}%</span>
           </div>
@@ -69,15 +80,20 @@ const WordCloud = () => {
   const min = Math.min(...WORD_CLOUD_DATA.map((item) => item.value));
 
   return (
-    <div className="flex min-h-72 flex-wrap items-center justify-center gap-x-5 gap-y-4 rounded-md bg-muted/25 p-6">
-      {WORD_CLOUD_DATA.map((item, index) => {
+    <div
+      className="flex min-h-72 flex-wrap items-center justify-center gap-x-5 gap-y-4 rounded-md bg-muted/25 p-6"
+      role="img"
+      aria-label={`热词云: ${WORD_CLOUD_DATA.map((w) => w.text).join('、')}`}
+    >
+      {WORD_CLOUD_DATA.map((item) => {
         const ratio = (item.value - min) / Math.max(1, max - min);
         const fontSize = 14 + ratio * 26;
-        const colors = ['text-primary', 'text-chart-2', 'text-destructive', 'text-chart-4', 'text-muted-foreground'];
+        // 基于权重大小使用语义色彩：高权重=primary强调，低权重=柔和
+        const tone = ratio > 0.6 ? 'text-primary' : ratio > 0.3 ? 'text-foreground' : 'text-muted-foreground';
         return (
           <span
             key={item.text}
-            className={`font-semibold ${colors[index % colors.length]}`}
+            className={`font-semibold ${tone} transition-opacity hover:opacity-70`}
             style={{ fontSize }}
           >
             {item.text}

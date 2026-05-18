@@ -7,12 +7,21 @@ import TaskName from './TaskName.jsx';
 import Sidebar from './Sidebar.jsx';
 import { Badge } from './ui/badge.jsx';
 import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from './ui/select.jsx';
+import {
   SidebarInset,
   SidebarProvider,
   SidebarTrigger,
 } from './ui/sidebar.jsx';
 import { ToggleGroup, ToggleGroupItem } from './ui/toggle-group.jsx';
 import { useDashboardParams } from '@/hooks/useDashboardParams';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { TIME_OPTIONS, useTimeframeManager } from '@/hooks/useTimeframeManager';
 
 const LiveClock = React.memo(function LiveClock() {
@@ -21,7 +30,7 @@ const LiveClock = React.memo(function LiveClock() {
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentTime(new Date());
-    }, 1000);
+    }, 30000);
 
     return () => clearInterval(timer);
   }, []);
@@ -48,6 +57,7 @@ const DatePickerControl = ({ label, value, onChange }) => (
 );
 
 const DashboardLayout = () => {
+  const isMobile = useIsMobile();
   const dashboardParams = useDashboardParams();
   const {
     timeframe,
@@ -119,23 +129,46 @@ const DashboardLayout = () => {
               {latestAvailableDate ? (
                 <span className="text-xs text-muted-foreground">数据更新至: {latestAvailableDate}</span>
               ) : null}
-              <ToggleGroup
-                type="single"
-                value={timeframe}
-                onValueChange={(nextValue) => {
-                  if (nextValue) handleFilterChange(nextValue);
-                }}
-                variant="outline"
-                size="sm"
-                spacing={1}
-                className="flex-wrap rounded-lg border border-border bg-card p-1 shadow-[var(--shadow-sm)]"
-              >
-                {TIME_OPTIONS.map((option) => (
-                  <ToggleGroupItem key={option.value} value={option.value} className="mx-0.5 h-7 rounded-md border-0 px-2.5 text-xs font-medium data-[state=on]:bg-primary data-[state=on]:text-primary-foreground">
-                    {option.label}
-                  </ToggleGroupItem>
-                ))}
-              </ToggleGroup>
+              {/* 条件渲染：避免 Radix Portal 在 display:none 容器中调用 getBoundingClientRect 报错 */}
+              {isMobile ? (
+                <Select
+                  value={timeframe}
+                  onValueChange={(nextValue) => {
+                    if (nextValue) handleFilterChange(nextValue);
+                  }}
+                >
+                  <SelectTrigger className="h-8 w-auto min-w-[7rem] rounded-lg border-border bg-card text-xs font-medium shadow-[var(--shadow-sm)]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      {TIME_OPTIONS.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              ) : (
+                <ToggleGroup
+                  type="single"
+                  value={timeframe}
+                  onValueChange={(nextValue) => {
+                    if (nextValue) handleFilterChange(nextValue);
+                  }}
+                  variant="outline"
+                  size="sm"
+                  spacing={1}
+                  className="flex-wrap rounded-lg border border-border bg-card p-1 shadow-[var(--shadow-sm)]"
+                >
+                  {TIME_OPTIONS.map((option) => (
+                    <ToggleGroupItem key={option.value} value={option.value} className="mx-0.5 h-7 rounded-md border-0 px-2.5 text-xs font-medium data-[state=on]:bg-primary data-[state=on]:text-primary-foreground">
+                      {option.label}
+                    </ToggleGroupItem>
+                  ))}
+                </ToggleGroup>
+              )}
               {timeframe === 'specific_day' ? (
                 <div className="app-shell-date-range">
                   <DatePickerControl

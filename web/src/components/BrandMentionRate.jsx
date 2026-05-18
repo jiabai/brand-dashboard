@@ -29,7 +29,6 @@ import LoadingSpinner from './LoadingSpinner';
 import { Badge } from './ui/badge.jsx';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card.jsx';
 import { Progress } from './ui/progress.jsx';
-import { Separator } from './ui/separator.jsx';
 
 const { DEFAULT_BRAND } = CONFIG;
 
@@ -47,12 +46,12 @@ const MetricCircle = ({ label, value, tone = 'primary' }) => {
   return (
     <div className="flex min-w-0 flex-col items-center gap-2 text-center">
       <div
-        className="grid size-14 place-items-center rounded-full"
+        className="grid size-24 place-items-center rounded-full"
         style={{
           background: `conic-gradient(${color} ${safeValue * 3.6}deg, var(--muted) 0deg)`,
         }}
       >
-        <div className="grid size-10 place-items-center rounded-full bg-card text-[11px] font-semibold text-foreground ring-1 ring-border">
+        <div className="grid size-16 place-items-center rounded-full bg-card text-sm font-semibold text-foreground ring-1 ring-border">
           {formatPercentage(safeValue)}
         </div>
       </div>
@@ -93,6 +92,7 @@ const BrandMentionRate = () => {
   const [error, setError] = useState(null);
   const [targetBrandData, setTargetBrandData] = useState(null);
   const [brandList, setBrandList] = useState([]);
+  const [reloadKey, setReloadKey] = useState(0);
 
   const targetBrandName = targetBrandData?.name ?? brand;
 
@@ -250,16 +250,19 @@ const BrandMentionRate = () => {
     return () => {
       controller.abort();
     };
-  }, [brand, date, endDate, jobId, tenantKey, timeframe]);
+  }, [brand, date, endDate, jobId, tenantKey, timeframe, reloadKey]);
 
   if (isLoading) {
     return (
       <Card>
-        <CardHeader>
+      <CardHeader>
+        <div className="flex items-center gap-2">
+          <Trophy className="size-5 text-primary" />
           <CardTitle>品牌提及排名</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <LoadingSpinner text="正在加载品牌数据..." />
+        </div>
+      </CardHeader>
+      <CardContent>
+        <LoadingSpinner text="正在加载品牌数据..." />
         </CardContent>
       </Card>
     );
@@ -269,14 +272,17 @@ const BrandMentionRate = () => {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>品牌提及排名</CardTitle>
+          <div className="flex items-center gap-2">
+            <Trophy className="size-5 text-primary" />
+            <CardTitle>品牌提及排名</CardTitle>
+          </div>
         </CardHeader>
         <CardContent>
           <EmptyState
             title="数据加载失败"
             description={error}
             actionText="重试"
-            onAction={() => window.location.reload()}
+            onAction={() => setReloadKey((prev) => prev + 1)}
           />
         </CardContent>
       </Card>
@@ -287,14 +293,17 @@ const BrandMentionRate = () => {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>品牌提及排名</CardTitle>
+          <div className="flex items-center gap-2">
+            <Trophy className="size-5 text-primary" />
+            <CardTitle>品牌提及排名</CardTitle>
+          </div>
         </CardHeader>
         <CardContent>
           <EmptyState
             title="暂无数据"
             description="接口未返回可展示的数据"
             actionText="重试"
-            onAction={() => window.location.reload()}
+            onAction={() => setReloadKey((prev) => prev + 1)}
           />
         </CardContent>
       </Card>
@@ -302,45 +311,55 @@ const BrandMentionRate = () => {
   }
 
   return (
-    <Card className="h-full">
-      <CardHeader>
-        <CardTitle>品牌提及排名</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <section className="flex flex-col gap-3 rounded-md bg-muted/35 p-4 sm:flex-row sm:items-center">
-          <div className="flex min-w-14 flex-row items-center gap-2 sm:flex-col sm:gap-0">
-              <Trophy className="size-5 text-chart-3" />
-              <span className="text-xl font-semibold leading-none text-chart-3">
-                {typeof targetBrandRank === 'number' ? `#${targetBrandRank}` : '--'}
-              </span>
+    <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+      <Card className="h-full">
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Trophy className="size-5 text-primary" />
+            <CardTitle>目标品牌核心指标</CardTitle>
           </div>
-          <div className="min-w-0 space-y-2">
-              <h3 className="truncate text-base font-semibold leading-tight text-foreground">
-                目标品牌: {targetBrandData.name}
-              </h3>
-              <Badge variant="secondary" className="gap-1 rounded-md">
-                <Tags className="size-3" />
-                {targetBrandData.coveredKeywordsCount} 覆盖关键词
-              </Badge>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <section className="flex flex-col gap-3 rounded-md bg-muted/35 p-4 sm:flex-row sm:items-center">
+            <div className="flex min-w-14 flex-row items-center gap-2 sm:flex-col sm:gap-0">
+                <Trophy className="size-5 text-chart-3" />
+                <span className="text-xl font-semibold leading-none text-chart-3">
+                  {typeof targetBrandRank === 'number' ? `#${targetBrandRank}` : '--'}
+                </span>
+            </div>
+            <div className="min-w-0 space-y-2">
+                <h3 className="truncate text-base font-semibold leading-tight text-foreground">
+                  目标品牌: {targetBrandData.name}
+                </h3>
+                <Badge variant="secondary" className="gap-1 rounded-md">
+                  <Tags className="size-3" />
+                  {targetBrandData.coveredKeywordsCount} 覆盖关键词
+                </Badge>
+            </div>
+          </section>
+
+          <section className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+            <MetricCircle label="总提及率" value={targetBrandData.mentionRate} />
+            <MetricCircle label="首位提及率" value={targetBrandData.firstMentionRate} tone="info" />
+            <MetricCircle label="前3提及率" value={targetBrandData.top3MentionRate} tone="warning" />
+            <MetricCircle label="发文引用率" value={targetBrandData.articleCitationRate} tone="success" />
+          </section>
+
+          <section className="grid grid-cols-2 gap-3">
+            <StatTile icon={MessageCircle} label="问题总数" value={targetBrandData.promptValue} />
+            <StatTile icon={Link} label="引用信源数量" value={targetBrandData.citationSourceValue} />
+          </section>
+        </CardContent>
+      </Card>
+
+      <Card className="h-full">
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Trophy className="size-5 text-muted-foreground" />
+            <CardTitle>竞品品牌对比</CardTitle>
           </div>
-        </section>
-
-        <section className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-          <MetricCircle label="总提及率" value={targetBrandData.mentionRate} />
-          <MetricCircle label="首位提及率" value={targetBrandData.firstMentionRate} tone="info" />
-          <MetricCircle label="前3提及率" value={targetBrandData.top3MentionRate} tone="warning" />
-          <MetricCircle label="发文引用率" value={targetBrandData.articleCitationRate} tone="success" />
-        </section>
-
-        <section className="grid grid-cols-2 gap-3">
-          <StatTile icon={MessageCircle} label="问题总数" value={targetBrandData.promptValue} />
-          <StatTile icon={Link} label="引用信源数量" value={targetBrandData.citationSourceValue} />
-        </section>
-
-        <Separator />
-
-        <section className="space-y-3">
-          <h3 className="text-[15px] font-semibold leading-tight text-foreground">其他品牌对比</h3>
+        </CardHeader>
+        <CardContent>
           <DataTable
             data={otherBrandsData}
             columns={columns}
@@ -348,9 +367,9 @@ const BrandMentionRate = () => {
             rowKey="name"
             emptyDescription="暂无其他品牌数据"
           />
-        </section>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+    </div>
   );
 };
 

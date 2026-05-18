@@ -125,7 +125,7 @@ const PlatformMentionRates = ({
             <button
               key={platform.name}
               type="button"
-              className="w-full rounded-md border border-border/80 bg-muted/25 p-3 text-left transition-colors hover:border-primary/35 hover:bg-muted/55 data-[featured=true]:bg-muted/40"
+              className="w-full rounded-md border border-border/80 bg-muted/25 p-3 text-left transition-colors hover:border-primary/35 hover:bg-muted/55 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none data-[featured=true]:bg-muted/40"
               data-featured={index < 3}
               onClick={() => onPlatformClick?.(platform)}
             >

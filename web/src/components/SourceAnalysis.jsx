@@ -117,32 +117,62 @@ const SourceAnalysisChart = ({
         </div>
       </CardHeader>
       <CardContent className="space-y-5">
-        <div className="ml-0 h-4 overflow-hidden rounded-full bg-muted sm:ml-7">
-          {safeStats.length ? (
-            <div className="flex h-full w-full">
-              {safeStats.map((item) => (
-                <div
-                  key={item.type}
-                  className="h-full"
-                  style={{
-                    width: `${clampPercent(item.value)}%`,
-                    background: item.color,
-                  }}
-                  title={`${item.type}: ${item.value}%`}
-                />
-              ))}
-            </div>
-          ) : null}
+        {/* 屏幕阅读器摘要 */}
+        <p className="sr-only">
+          {safeStats.length
+            ? `信源分布: ${safeStats.map((s) => `${s.type} ${s.value}%`).join('，')}`
+            : '暂无信源数据'}
+        </p>
+
+        {/* Y轴刻度参考线 */}
+        <div className="relative ml-0 sm:ml-7">
+          <div className="flex h-4 overflow-hidden rounded-full bg-muted">
+            {safeStats.length ? (
+              <div className="flex h-full w-full">
+                {safeStats.map((item) => (
+                  <div
+                    key={item.type}
+                    className="h-full"
+                    style={{
+                      width: `${clampPercent(item.value)}%`,
+                      background: item.color,
+                    }}
+                    title={`${item.type}: ${item.value}%`}
+                    role="graphics-symbol"
+                    aria-label={`${item.type}: ${item.value}%`}
+                  />
+                ))}
+              </div>
+            ) : null}
+          </div>
+          {/* 百分比刻度标注 */}
+          <div className="mt-1.5 flex justify-between text-[10px] text-muted-foreground">
+            <span>0%</span>
+            <span>25%</span>
+            <span>50%</span>
+            <span>75%</span>
+            <span>100%</span>
+          </div>
         </div>
 
+        {/* 图例 — 使用不同形状辅助色盲区分 */}
         <div className="flex flex-wrap justify-center gap-4">
-          {safeStats.map((item) => (
-            <div key={item.type} className="flex items-center gap-2 rounded-md px-3 py-1 text-sm hover:bg-muted">
-              <span className="size-2.5 rounded-full" style={{ background: item.color }} />
-              <span className="font-semibold text-foreground">{item.type}</span>
-              <span className="text-muted-foreground">{item.value}%</span>
-            </div>
-          ))}
+          {safeStats.map((item, idx) => {
+            const shapes = [
+              <span key="shape" className="size-2.5 rounded-full" style={{ background: item.color }} />,
+              <span key="shape" className="size-2.5 rounded-sm" style={{ background: item.color }} />,
+              <span key="shape" className="size-0 border-x-[5px] border-b-[8px] border-x-transparent border-b-current" style={{ color: item.color }} />,
+              <span key="shape" className="size-2.5 rotate-45 rounded-sm" style={{ background: item.color }} />,
+              <span key="shape" className="size-2.5 rounded-full border-2" style={{ borderColor: item.color }} />,
+            ];
+            return (
+              <div key={item.type} className="flex items-center gap-2 rounded-md px-3 py-1 text-sm hover:bg-muted">
+                {shapes[idx % shapes.length]}
+                <span className="font-semibold text-foreground">{item.type}</span>
+                <span className="text-muted-foreground">{item.value}%</span>
+              </div>
+            );
+          })}
         </div>
       </CardContent>
     </Card>
@@ -291,13 +321,18 @@ const MediaListTable = ({
               </Select>
             </PopoverContent>
           </Popover>
-          <Button>
-            <Download className="size-4" />
-            导出报告
-          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button disabled>
+                <Download className="size-4" />
+                导出报告
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>功能开发中，即将上线</TooltipContent>
+          </Tooltip>
         </div>
       </CardHeader>
-      <CardContent className="p-4">
+      <CardContent>
         {error ? <p className="mb-3 text-sm text-destructive">{error}</p> : null}
         <DataTable
           columns={columns}
