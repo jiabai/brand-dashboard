@@ -12,10 +12,10 @@ const SubmissionSuccess = ({ result, onReset, onViewStatus }) => {
     <div className="flex flex-col items-center justify-center py-12 fade-in min-h-[60vh]">
       <div className="relative mb-6">
         <div className="absolute inset-0 bg-green-500/20 blur-3xl rounded-full animate-pulse"></div>
-        <CheckCircle className="relative z-10 size-16 text-chart-3" />
+        <CheckCircle className="relative z-10 size-16 text-chart-4" />
       </div>
       
-      <h2 className="mb-2 text-2xl font-semibold text-foreground">任务提交成功</h2>
+      <h2 className="mb-2 text-2xl font-medium text-foreground">任务提交成功</h2>
       <p className="mb-8 text-lg text-muted-foreground">您的查询任务已成功进入队列</p>
 
       <Card 
@@ -26,7 +26,7 @@ const SubmissionSuccess = ({ result, onReset, onViewStatus }) => {
             <dt className="text-muted-foreground">任务 ID</dt>
             <dd className="min-w-0 font-mono text-foreground">{result.job_id || 'N/A'}</dd>
             <dt className="text-muted-foreground">插入行数</dt>
-            <dd className="font-semibold text-foreground">{result.inserted_rows}</dd>
+            <dd className="font-medium text-foreground">{result.inserted_rows}</dd>
             <dt className="text-muted-foreground">提交时间</dt>
             <dd className="text-foreground">{dayjs().format('YYYY-MM-DD HH:mm:ss')}</dd>
           {result.message && (

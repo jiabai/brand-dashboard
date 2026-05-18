@@ -8,16 +8,18 @@
 :root {
   --background: #faf9f5;
   --foreground: #141413;
-  --card: #fffdf8;
+  --card: #faf9f5;
   --card-foreground: #141413;
-  --popover: #fffdf8;
+  --popover: #efe9de;
   --popover-foreground: #141413;
   --primary: #cc785c;
   --primary-foreground: #ffffff;
   --secondary: #f5f0e8;
   --secondary-foreground: #252523;
   --muted: #f5f0e8;
-  --muted-foreground: #5a5852;
+  --muted-foreground: #6c6a64;
+  --body: #3d3d3a;
+  --body-strong: #252523;
   --accent: #efe9de;
   --accent-foreground: #252523;
   --destructive: #c64545;
@@ -30,7 +32,7 @@
   --chart-3: #e8a55a;
   --chart-4: #5db872;
   --chart-5: #c64545;
-  --radius: 0.5rem;
+  --radius: 0.75rem;
   --sidebar: #181715;
   --sidebar-foreground: #faf9f5;
   --sidebar-primary: #cc785c;
@@ -54,6 +56,8 @@
   --secondary-foreground: #faf9f5;
   --muted: #1f1e1b;
   --muted-foreground: #a09d96;
+  --body: #a09d96;
+  --body-strong: #d4d1ca;
   --accent: #34312d;
   --accent-foreground: #faf9f5;
   --destructive: #c64545;
@@ -82,12 +86,20 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-family: var(--font-family-primary);
+    line-height: var(--leading-base);
   }
   button:not(:disabled), [role="button"]:not(:disabled) {
     cursor: pointer;
   }
   html {
     @apply font-sans;
+    line-height: var(--leading-base);
+  }
+  h1, h2, h3, h4, h5, h6,
+  .text-2xl, .text-3xl, .text-4xl {
+    line-height: var(--leading-snug);
+    font-weight: var(--font-weight-medium);
   }
 }
 
@@ -97,15 +109,21 @@
 
 /* Custom CSS Variables for consistent theming */
 :root {
-  /* Typography */
-  --font-family-primary: ui-sans-serif, -apple-system, BlinkMacSystemFont,
+  /* Typography - 遵循 ui-ux-pro-max 规范 */
+  --font-family-primary: 'Inter', ui-sans-serif, -apple-system, BlinkMacSystemFont,
     'Segoe UI', 'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC',
     'Helvetica Neue', sans-serif;
   --font-weight-normal: 400;
   --font-weight-medium: 500;
-  --font-weight-semibold: 600;
-  --font-weight-bold: 700;
-  --line-height-base: 1.6;
+
+  /* 字体大小层级系统 - 12/14/16/18/20/24/32 */
+  --font-size-xs: 0.75rem;    /* 12px - 标签、辅助文字 */
+  --font-size-sm: 0.875rem;   /* 14px - 次要正文 */
+  --font-size-base: 1rem;     /* 16px - 正文 */
+  --font-size-lg: 1.125rem;   /* 18px - 小标题 */
+  --font-size-xl: 1.25rem;    /* 20px - 卡片标题 */
+  --font-size-2xl: 1.5rem;    /* 24px - 页面标题 */
+  --font-size-3xl: 2rem;      /* 32px - 大标题 */
 
   /* Gradients */
   --gradient-primary: linear-gradient(135deg, #cc785c 0%, #a9583e 100%);
@@ -131,13 +149,27 @@
   --radius-xl: 24px;
   --radius-full: 999px;
 
-  /* Spacing */
-  --spacing-xs: 0.25rem;
-  --spacing-sm: 0.5rem;
-  --spacing-md: 1rem;
-  --spacing-lg: 1.5rem;
-  --spacing-xl: 2rem;
-  --spacing-2xl: 3rem;
+  /* Spacing - 4pt/8dp 增量系统 (Material Design) */
+  --spacing-0: 0;
+  --spacing-1: 0.25rem;   /* 4px */
+  --spacing-2: 0.5rem;    /* 8px */
+  --spacing-3: 0.75rem;   /* 12px */
+  --spacing-4: 1rem;      /* 16px */
+  --spacing-5: 1.25rem;   /* 20px */
+  --spacing-6: 1.5rem;    /* 24px */
+  --spacing-8: 2rem;      /* 32px */
+  --spacing-10: 2.5rem;   /* 40px */
+  --spacing-12: 3rem;     /* 48px */
+  --spacing-16: 4rem;     /* 64px */
+
+  /* 间距层级 - 用于组件内部和 Section 间距 */
+  --space-component-xs: 0.25rem;  /* 4px - 图标与文字间距 */
+  --space-component-sm: 0.5rem;   /* 8px - 紧凑组件内部 */
+  --space-component-md: 0.75rem;  /* 12px - 标准组件内部 */
+  --space-component-lg: 1rem;     /* 16px - 宽松组件内部 */
+  --space-section-sm: 1rem;       /* 16px - 小节间距 */
+  --space-section-md: 1.5rem;     /* 24px - 标准 Section 间距 */
+  --space-section-lg: 2rem;       /* 32px - 大 Section 间距 */
 
   /* Transitions */
   --transition-fast: 0.2s ease;
@@ -189,6 +221,8 @@ html {
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
+  --color-body: var(--body);
+  --color-body-strong: var(--body-strong);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
@@ -213,6 +247,15 @@ html {
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+@theme {
+  --leading-none: 1;
+  --leading-tight: 1.25;
+  --leading-snug: 1.375;
+  --leading-base: 1.5;
+  --leading-relaxed: 1.625;
+  --leading-loose: 1.75;
 }
 
 @layer base {

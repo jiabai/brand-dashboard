@@ -55,7 +55,7 @@ const SentimentDonut = () => {
       >
         <div className="grid size-28 place-items-center rounded-full bg-card text-center sm:size-32 lg:size-36">
           <div>
-            <div className="text-3xl font-semibold text-foreground">{total.toLocaleString()}</div>
+            <div className="text-2xl font-medium text-foreground">{total.toLocaleString()}</div>
             <div className="text-sm text-muted-foreground">分析样本</div>
           </div>
         </div>
@@ -93,7 +93,7 @@ const WordCloud = () => {
         return (
           <span
             key={item.text}
-            className={`font-semibold ${tone} transition-opacity hover:opacity-70`}
+            className={`font-medium ${tone} transition-opacity hover:opacity-70`}
             style={{ fontSize }}
           >
             {item.text}
@@ -169,7 +169,7 @@ export default function SentimentAnalysis() {
             {stats.map((item) => (
               <span key={item.label} className="text-muted-foreground">
                 {item.label}：
-                <strong className="font-semibold text-foreground">{item.value}</strong>
+                <strong className="font-medium text-foreground">{item.value}</strong>
               </span>
             ))}
           </div>

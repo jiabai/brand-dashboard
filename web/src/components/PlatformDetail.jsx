@@ -81,7 +81,7 @@ const PlatformDetail = ({
         dataIndex: 'name',
         key: 'name',
         width: 120,
-        render: (text) => <span className="font-semibold text-foreground">{text}</span>,
+        render: (text) => <span className="font-medium text-foreground">{text}</span>,
       },
       {
         title: '提及率',

@@ -189,7 +189,7 @@ const AccountManagement = () => {
       <div className="account-hero">
         <div>
           <span className="account-kicker">Account Command Center</span>
-          <h2 className="account-title text-2xl font-semibold text-foreground">账户与注册管理</h2>
+          <h2 className="account-title text-2xl font-medium text-foreground">账户与注册管理</h2>
           <p className="account-subtitle text-sm text-muted-foreground">
             租户开通、管理员激活、员工注册与登录流程都集中在这里管理
           </p>
@@ -269,7 +269,7 @@ const AccountManagement = () => {
                   </div>
 
                   <details className="account-collapse rounded-md border bg-muted/20 p-4">
-                    <summary className="cursor-pointer text-sm font-semibold text-foreground">
+                    <summary className="cursor-pointer text-sm font-medium text-foreground">
                       补充企业与合同信息
                     </summary>
                     <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">

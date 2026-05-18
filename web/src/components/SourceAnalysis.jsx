@@ -109,7 +109,7 @@ const SourceAnalysisChart = ({
           ].map((item) => (
             <span key={item.label} className="text-muted-foreground">
               {item.label}：
-              <strong className="font-semibold text-foreground">
+              <strong className="font-medium text-foreground">
                 {loading ? '加载中' : item.value}
               </strong>
             </span>
@@ -146,7 +146,7 @@ const SourceAnalysisChart = ({
             ) : null}
           </div>
           {/* 百分比刻度标注 */}
-          <div className="mt-1.5 flex justify-between text-[10px] text-muted-foreground">
+          <div className="mt-1.5 flex justify-between text-xs text-muted-foreground">
             <span>0%</span>
             <span>25%</span>
             <span>50%</span>
@@ -168,7 +168,7 @@ const SourceAnalysisChart = ({
             return (
               <div key={item.type} className="flex items-center gap-2 rounded-md px-3 py-1 text-sm hover:bg-muted">
                 {shapes[idx % shapes.length]}
-                <span className="font-semibold text-foreground">{item.type}</span>
+                <span className="font-medium text-foreground">{item.type}</span>
                 <span className="text-muted-foreground">{item.value}%</span>
               </div>
             );
@@ -206,7 +206,7 @@ const MediaListTable = ({
           <div className="space-y-1">
             <div className="flex items-center gap-2">
               <Globe className="size-4 text-muted-foreground" />
-              <span className="font-semibold text-foreground">{record.sourceName}</span>
+              <span className="font-medium text-foreground">{record.sourceName}</span>
             </div>
             <span className="block text-xs text-muted-foreground">{record.domain}</span>
           </div>
@@ -250,7 +250,7 @@ const MediaListTable = ({
                   style={{ width: `${clampPercent(value)}%`, background: tone }}
                 />
               </div>
-              <span className="min-w-10 text-sm font-semibold" style={{ color: tone }}>
+              <span className="min-w-10 text-sm font-medium" style={{ color: tone }}>
                 {value}%
               </span>
             </div>

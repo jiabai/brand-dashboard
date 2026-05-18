@@ -119,7 +119,7 @@ const QueryJobStatus = () => {
       width: 250,
       render: (_, record) => (
         <div className="flex min-w-52 flex-col gap-1">
-          <span className="text-base font-semibold text-foreground">{record.brand}</span>
+          <span className="text-base font-medium text-foreground">{record.brand}</span>
           <div className="flex flex-wrap gap-1">
             {record.competitor?.map((comp, idx) => (
               <Badge key={idx} variant="secondary">
@@ -200,7 +200,7 @@ const QueryJobStatus = () => {
       <div className="flex w-full flex-col gap-6">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <h2 className="mb-1 text-2xl font-semibold text-foreground">任务状态监控</h2>
+            <h2 className="mb-1 text-2xl font-medium text-foreground">任务状态监控</h2>
             <p className="m-0 text-sm text-muted-foreground">实时追踪 LLM 查询任务的执行与生效情况</p>
           </div>
           <div className="flex flex-wrap items-center gap-3">

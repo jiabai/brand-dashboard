@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ArrowDown, ArrowUp, ChevronsUpDown } from 'lucide-react';
+import { AlertCircle, ArrowDown, ArrowUp, ChevronsUpDown } from 'lucide-react';
 
 import EmptyState from './EmptyState.jsx';
 import LoadingSpinner from './LoadingSpinner.jsx';
@@ -109,14 +109,14 @@ const HeaderCell = ({ column, width, sortState, onSort, onFilter, onResize }) =>
             <Button
               variant="ghost"
               size="sm"
-              className="h-auto min-w-0 justify-start px-0 text-sm font-semibold"
+              className="h-auto min-w-0 justify-start px-0 text-sm font-normal"
               onClick={() => onSort(column)}
             >
               <span className="truncate">{title}</span>
               <SortIcon order={isSorted ? sortState.order : ''} />
             </Button>
           ) : (
-            <span className="truncate text-sm font-semibold">{title}</span>
+            <span className="truncate text-sm font-medium">{title}</span>
           )}
         </div>
         {Array.isArray(column.filters) && column.filters.length ? (
@@ -124,7 +124,7 @@ const HeaderCell = ({ column, width, sortState, onSort, onFilter, onResize }) =>
             value={column.filterValue || '__all__'}
             onValueChange={(value) => onFilter(column, value === '__all__' ? '' : value)}
           >
-            <SelectTrigger className="w-full">
+            <SelectTrigger className="w-full" size="sm">
               <SelectValue placeholder="全部" />
             </SelectTrigger>
             <SelectContent>
@@ -231,7 +231,7 @@ const DataTable = ({
   }
 
   if (error) {
-    return <EmptyState title="数据加载失败" description={error} icon="!" />;
+    return <EmptyState title="数据加载失败" description={error} icon={AlertCircle} />;
   }
 
   if (!visibleRows.length) {

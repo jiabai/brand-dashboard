@@ -29,7 +29,7 @@ const HomeView = () => {
           onBack={onBackFromPlatform}
         />
       ) : (
-        <div className="flex min-w-0 flex-col gap-5">
+        <div className="flex min-w-0 flex-col gap-6">
           <div className="min-w-0">
             <BrandMentionRate />
           </div>

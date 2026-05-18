@@ -7,7 +7,7 @@ function Table({
   ...props
 }) {
   return (
-    <div data-slot="table-container" className="relative w-full overflow-x-auto rounded-md border border-border/80">
+    <div data-slot="table-container" className="relative w-full overflow-x-auto rounded-md border border-border">
       <table
         data-slot="table"
         className={cn("w-full caption-bottom text-sm", className)}
@@ -75,7 +75,7 @@ function TableHead({
     <th
       data-slot="table-head"
       className={cn(
-        "h-11 bg-muted/45 px-4 text-left align-middle text-xs font-semibold whitespace-nowrap text-muted-foreground [&:has([role=checkbox])]:pr-0",
+        "h-auto min-h-12 bg-muted px-5 py-2 text-left align-middle text-sm font-medium whitespace-nowrap text-muted-foreground leading-snug [&:has([role=checkbox])]:pr-0",
         className
       )}
       {...props} />
@@ -90,7 +90,7 @@ function TableCell({
     <td
       data-slot="table-cell"
       className={cn(
-        "px-4 py-3 align-middle whitespace-nowrap [&:has([role=checkbox])]:pr-0",
+        "px-4 py-2.5 align-middle whitespace-nowrap leading-relaxed text-body [&:has([role=checkbox])]:pr-0",
         className
       )}
       {...props} />

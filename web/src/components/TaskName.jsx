@@ -95,7 +95,7 @@ const TaskName = () => {
           <TooltipContent>{error}</TooltipContent>
         </Tooltip>
       ) : (
-        <span className="max-w-80 truncate text-sm font-semibold text-foreground">
+        <span className="max-w-80 truncate text-sm font-medium text-foreground">
           {taskName}
         </span>
       )}

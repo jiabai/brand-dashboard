@@ -5,7 +5,7 @@ import { useDashboardRequestParams } from '@/hooks/useDashboardParams';
 import DataTable from './DataTable.jsx';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert.jsx';
 import { Badge } from './ui/badge.jsx';
-import { Card, CardContent } from './ui/card.jsx';
+import { Card, CardContent, CardHeader, CardTitle } from './ui/card.jsx';
 import { Progress } from './ui/progress.jsx';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip.jsx';
 
@@ -18,7 +18,7 @@ const RateHeader = ({ label, description }) => (
     {label}
     <Tooltip>
       <TooltipTrigger asChild>
-        <Info className="text-muted-foreground" />
+        <Info className="size-4 text-muted-foreground" />
       </TooltipTrigger>
       <TooltipContent>{description}</TooltipContent>
     </Tooltip>
@@ -27,7 +27,7 @@ const RateHeader = ({ label, description }) => (
 
 const RateCell = ({ value, className = '[&_[data-slot=progress-indicator]]:bg-primary' }) => (
   <div className="flex min-w-40 flex-col gap-1.5">
-    <span className="text-xs font-medium text-muted-foreground">{(value * 100).toFixed(2)}%</span>
+    <span className="text-sm font-medium text-muted-foreground">{(value * 100).toFixed(2)}%</span>
     <Progress value={value * 100} className={className} />
   </div>
 );
@@ -139,7 +139,7 @@ const BrandShareOfVoiceTable = () => {
   const columns = useMemo(() => {
     const defs = [
       {
-        title: 'Platform',
+        title: '平台',
         dataIndex: 'platform',
         key: 'platform',
         filters: platformFilters,
@@ -148,23 +148,23 @@ const BrandShareOfVoiceTable = () => {
         width: columnWidths.platform ?? 160,
       },
       {
-        title: 'Keyword',
+        title: '关键词',
         dataIndex: 'keyword',
         key: 'keyword',
         filters: keywordFilters,
         onFilter: (value, record) => record.keyword === value,
-        render: (text) => <span className="font-semibold text-foreground">{text}</span>,
+        render: (text) => <span className="font-medium text-foreground">{text}</span>,
         width: columnWidths.keyword ?? 300,
       },
       {
-        title: 'Brand',
+        title: '品牌',
         dataIndex: 'brand',
         key: 'brand',
         render: (text) => <span className="text-foreground">{text}</span>,
         width: columnWidths.brand ?? 240,
       },
       {
-        title: <RateHeader label="Mention Rate" description="Percentage of conversations where the brand was mentioned" />,
+        title: <RateHeader label="提及率" description="品牌被提及的对话占比" />,
         dataIndex: 'mention_rate',
         key: 'mention_rate',
         sorter: (a, b) => a.mention_rate - b.mention_rate,
@@ -173,7 +173,7 @@ const BrandShareOfVoiceTable = () => {
         width: columnWidths.mention_rate ?? 280,
       },
       {
-        title: <RateHeader label="First Mention Rate" description="Percentage of conversations where the brand was mentioned first" />,
+        title: <RateHeader label="首提率" description="品牌被首先提及的对话占比" />,
         dataIndex: 'first_mention_rate',
         key: 'first_mention_rate',
         sorter: (a, b) => a.first_mention_rate - b.first_mention_rate,
@@ -181,7 +181,7 @@ const BrandShareOfVoiceTable = () => {
         width: columnWidths.first_mention_rate ?? 280,
       },
       {
-        title: <RateHeader label="Top 3 Mention Rate" description="Percentage of conversations where the brand was mentioned in the top 3 positions" />,
+        title: <RateHeader label="前三提及率" description="品牌在前三位置被提及的对话占比" />,
         dataIndex: 'top3_mention_rate',
         key: 'top3_mention_rate',
         sorter: (a, b) => a.top3_mention_rate - b.top3_mention_rate,
@@ -198,7 +198,10 @@ const BrandShareOfVoiceTable = () => {
 
   return (
     <Card>
-      <CardContent className="p-5">
+      <CardHeader>
+        <CardTitle>品牌声量份额</CardTitle>
+      </CardHeader>
+      <CardContent className="p-8">
       {!!error && (
         <Alert variant="destructive" className="mb-3">
           <AlertTitle>数据加载失败</AlertTitle>

@@ -53,7 +53,7 @@ const FilterChips = ({ label, options, value, onChange, getColor }) => (
 const StatCard = ({ label, value }) => (
   <div className="rounded-md border bg-muted/35 p-4">
     <div className="text-sm text-muted-foreground">{label}</div>
-    <div className="mt-2 text-2xl font-semibold text-foreground">{value}</div>
+    <div className="mt-2 text-2xl font-medium text-foreground">{value}</div>
   </div>
 );
 
@@ -468,7 +468,7 @@ const TrendAnalysis = () => {
   }, [chartData]);
 
   return (
-    <div className="flex w-full flex-col gap-5">
+    <div className="flex w-full flex-col gap-6">
       <Card>
         <CardHeader className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
           <div className="space-y-1">
@@ -546,7 +546,7 @@ const TrendAnalysis = () => {
               description="当前筛选条件下没有可展示的数据"
               actionText="刷新"
               onAction={() => setReloadKey((prev) => prev + 1)}
-              icon={<RefreshCw className="size-6" />}
+              icon={RefreshCw}
             />
           )}
         </CardContent>

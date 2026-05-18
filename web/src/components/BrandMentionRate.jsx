@@ -51,7 +51,7 @@ const MetricCircle = ({ label, value, tone = 'primary' }) => {
           background: `conic-gradient(${color} ${safeValue * 3.6}deg, var(--muted) 0deg)`,
         }}
       >
-        <div className="grid size-16 place-items-center rounded-full bg-card text-sm font-semibold text-foreground ring-1 ring-border">
+        <div className="grid size-16 place-items-center rounded-full bg-card text-sm font-medium text-foreground ring-1 ring-border">
           {formatPercentage(safeValue)}
         </div>
       </div>
@@ -66,7 +66,7 @@ const StatTile = ({ icon: Icon, label, value }) => (
       <Icon className="size-4" />
       {label}
     </div>
-    <div className="mt-1 text-lg font-semibold leading-none text-foreground">{value}</div>
+    <div className="mt-1 text-lg font-medium leading-snug text-foreground">{value}</div>
   </div>
 );
 
@@ -322,13 +322,13 @@ const BrandMentionRate = () => {
         <CardContent className="space-y-4">
           <section className="flex flex-col gap-3 rounded-md bg-muted/35 p-4 sm:flex-row sm:items-center">
             <div className="flex min-w-14 flex-row items-center gap-2 sm:flex-col sm:gap-0">
-                <Trophy className="size-5 text-chart-3" />
-                <span className="text-xl font-semibold leading-none text-chart-3">
+                <Trophy className="size-5 text-foreground" />
+                <span className="text-xl font-medium leading-none text-foreground">
                   {typeof targetBrandRank === 'number' ? `#${targetBrandRank}` : '--'}
                 </span>
             </div>
             <div className="min-w-0 space-y-2">
-                <h3 className="truncate text-base font-semibold leading-tight text-foreground">
+                <h3 className="truncate text-base font-medium leading-snug text-foreground">
                   目标品牌: {targetBrandData.name}
                 </h3>
                 <Badge variant="secondary" className="gap-1 rounded-md">

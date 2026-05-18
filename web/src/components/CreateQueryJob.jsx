@@ -54,7 +54,7 @@ const Field = ({ label, required = false, children, error }) => (
 const SectionTitle = ({ children }) => (
   <div className="flex items-center gap-3 py-2">
     <Separator className="flex-1" />
-    <span className="text-sm font-semibold text-muted-foreground">{children}</span>
+    <span className="text-sm font-medium text-muted-foreground">{children}</span>
     <Separator className="flex-1" />
   </div>
 );

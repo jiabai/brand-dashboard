@@ -111,7 +111,7 @@ class ErrorBoundaryClass extends React.Component {
       // Default error fallback UI
       return (
         <div className="flex min-h-80 items-center justify-center p-6">
-          <Alert variant="destructive" className="max-w-2xl">
+          <Alert variant="destructive" className="w-[456px] h-[388px]">
             <AlertTitle>出错了</AlertTitle>
             <AlertDescription className="flex flex-col gap-3">
               <span>组件渲染时遇到了问题。</span>

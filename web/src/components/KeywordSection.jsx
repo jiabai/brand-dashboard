@@ -73,7 +73,7 @@ const KeywordSection = ({ keywords = [], loading = false, selectedKeyword, onKey
             })}
           </div>
         ) : (
-          <EmptyState title="暂无关键词" description="当前筛选条件下没有关键词数据" icon="#" />
+          <EmptyState title="暂无关键词" description="当前筛选条件下没有关键词数据" icon={Hash} />
         )}
       </CardContent>
     </Card>

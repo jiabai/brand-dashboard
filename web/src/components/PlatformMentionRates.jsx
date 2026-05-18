@@ -78,7 +78,7 @@ const PlatformMentionRates = ({
         <CardHeader>
           <CardTitle>各平台提及率 ({brand})</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-8">
           <LoadingSpinner text="正在加载平台数据..." />
         </CardContent>
       </Card>
@@ -91,7 +91,7 @@ const PlatformMentionRates = ({
         <CardHeader>
           <CardTitle>各平台提及率 ({brand})</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-8">
           <Alert variant="destructive">
             <AlertTitle>平台数据加载失败</AlertTitle>
             <AlertDescription>{error}</AlertDescription>
@@ -107,7 +107,7 @@ const PlatformMentionRates = ({
         <CardHeader>
           <CardTitle>各平台提及率 ({brand})</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-8">
           <EmptyState title="暂无平台数据" description="当前筛选条件下没有平台提及率数据" />
         </CardContent>
       </Card>
@@ -119,7 +119,7 @@ const PlatformMentionRates = ({
       <CardHeader>
         <CardTitle>各平台提及率 ({brand})</CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="p-8">
         <div className="flex flex-col gap-3">
           {platforms.map((platform, index) => (
             <button
@@ -138,11 +138,11 @@ const PlatformMentionRates = ({
                       {index + 1}
                       </Badge>
                   )}
-                    <span className="truncate text-sm font-semibold text-foreground">
+                    <span className="truncate text-base font-medium text-foreground">
                     {platform.name}
                     </span>
                 </div>
-                  <span className="shrink-0 text-xl font-semibold leading-none" style={{ color: platform.color }}>
+                  <span className="shrink-0 text-xl font-medium leading-none" style={{ color: platform.color }}>
                     {platform.rate.toFixed(2)}%
                   </span>
               </div>
@@ -154,7 +154,7 @@ const PlatformMentionRates = ({
               {platform.change !== 0 && (
                   <div className="flex items-center gap-1 text-xs text-muted-foreground">
                   {platform.change > 0 ? (
-                      <ArrowUp data-icon="inline-start" className="text-chart-3" />
+                      <ArrowUp data-icon="inline-start" className="text-success" />
                   ) : (
                       <ArrowDown data-icon="inline-start" className="text-destructive" />
                   )}
