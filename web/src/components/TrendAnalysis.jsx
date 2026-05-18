@@ -88,8 +88,14 @@ const TrendSvgChart = ({ data }) => {
   const labelStep = Math.max(1, Math.ceil(points.length / 7));
 
   return (
-    <div className="w-full overflow-x-auto rounded-md border bg-card p-3">
-      <svg viewBox={`0 0 ${width} ${height}`} role="img" aria-label="品牌提及率趋势图" className="min-w-[720px]">
+    <div className="h-[420px] w-full overflow-hidden rounded-md border bg-card p-4 2xl:h-[460px]">
+      <svg
+        viewBox={`0 0 ${width} ${height}`}
+        role="img"
+        aria-label="品牌提及率趋势图"
+        className="size-full"
+        preserveAspectRatio="none"
+      >
         <defs>
           <linearGradient id="trend-fill" x1="0" x2="0" y1="0" y2="1">
             <stop offset="0%" stopColor="var(--primary)" stopOpacity="0.22" />
@@ -107,7 +113,7 @@ const TrendSvgChart = ({ data }) => {
               stroke="var(--border)"
               strokeDasharray="4 4"
             />
-            <text x={padding.left - 12} y={tick.y + 4} textAnchor="end" className="fill-muted-foreground text-xs">
+            <text x={padding.left - 12} y={tick.y + 4} textAnchor="end" className="fill-muted-foreground text-[11px]">
               {formatPercentage(roundTwoDecimals(tick.value))}
             </text>
           </g>
@@ -133,7 +139,7 @@ const TrendSvgChart = ({ data }) => {
                 x={point.x}
                 y={height - 18}
                 textAnchor="middle"
-                className="fill-muted-foreground text-xs"
+                className="fill-muted-foreground text-[11px]"
               >
                 {point.dateStr.slice(5)}
               </text>
@@ -435,7 +441,7 @@ const TrendAnalysis = () => {
   }, [chartData]);
 
   return (
-    <div className="flex w-full flex-col gap-6">
+    <div className="flex w-full flex-col gap-5">
       <Card>
         <CardHeader className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
           <div className="space-y-1">

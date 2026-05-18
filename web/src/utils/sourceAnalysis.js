@@ -12,19 +12,25 @@ const DEFAULT_TYPE_LABELS = {
 };
 
 const DEFAULT_TYPE_COLORS = {
-  ecommerce: '#2582a1',
-  news: '#f88c24',
-  qa: '#c52125',
-  official_site: '#87f4d0',
-  social_media: '#a062d4',
-  tech_review: '#2582a1',
-  gov_report: '#87f4d0',
-  forum: '#c52125',
-  blog: '#f88c24',
-  review: '#a062d4',
+  ecommerce: 'var(--chart-2)',
+  news: 'var(--chart-3)',
+  qa: 'var(--chart-5)',
+  official_site: 'var(--chart-4)',
+  social_media: 'var(--chart-1)',
+  tech_review: 'var(--chart-2)',
+  gov_report: 'var(--chart-4)',
+  forum: 'var(--chart-5)',
+  blog: 'var(--chart-3)',
+  review: 'var(--chart-1)',
 };
 
-const FALLBACK_COLORS = ['#2582a1', '#f88c24', '#c52125', '#87f4d0', '#a062d4'];
+const FALLBACK_COLORS = [
+  'var(--chart-1)',
+  'var(--chart-2)',
+  'var(--chart-3)',
+  'var(--chart-4)',
+  'var(--chart-5)',
+];
 
 const toPercent = (value) => {
   const num = Number(value);

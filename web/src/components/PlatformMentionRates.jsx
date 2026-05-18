@@ -115,7 +115,7 @@ const PlatformMentionRates = ({
   }
 
   return (
-    <Card>
+    <Card className="min-h-[220px]">
       <CardHeader>
         <CardTitle>各平台提及率 ({brand})</CardTitle>
       </CardHeader>
@@ -125,30 +125,30 @@ const PlatformMentionRates = ({
             <button
               key={platform.name}
               type="button"
-              className="w-full rounded-lg border border-transparent p-3 text-left transition-colors hover:border-border hover:bg-muted/60 data-[featured=true]:border-border data-[featured=true]:bg-muted/40"
+              className="w-full rounded-md border border-border/80 bg-muted/25 p-3 text-left transition-colors hover:border-primary/35 hover:bg-muted/55 data-[featured=true]:bg-muted/40"
               data-featured={index < 3}
               onClick={() => onPlatformClick?.(platform)}
             >
-              <div className="flex w-full flex-col gap-2">
+              <div className="flex w-full flex-col gap-2.5">
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex min-w-0 items-center gap-2">
                   {index < 3 && (
-                      <Badge variant="secondary" className="gap-1">
+                      <Badge variant="secondary" className="h-6 gap-1 rounded-md px-2">
                         <Trophy data-icon="inline-start" />
                       {index + 1}
                       </Badge>
                   )}
-                    <span className="truncate font-semibold text-foreground">
+                    <span className="truncate text-sm font-semibold text-foreground">
                     {platform.name}
                     </span>
                 </div>
-                  <span className="shrink-0 text-xl font-bold" style={{ color: platform.color }}>
+                  <span className="shrink-0 text-xl font-semibold leading-none" style={{ color: platform.color }}>
                     {platform.rate.toFixed(2)}%
                   </span>
               </div>
               <Progress
                   value={platform.rate}
-                  className="h-2 [&_[data-slot=progress-indicator]]:bg-[var(--platform-color)]"
+                  className="h-2.5 [&_[data-slot=progress-indicator]]:bg-[var(--platform-color)]"
                   style={{ '--platform-color': platform.color }}
               />
               {platform.change !== 0 && (

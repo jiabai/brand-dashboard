@@ -1,14 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import dayjs from 'dayjs';
-import { CalendarIcon } from 'lucide-react';
+import { CircleDot } from 'lucide-react';
 import { Outlet } from 'react-router-dom';
 
 import TaskName from './TaskName.jsx';
 import Sidebar from './Sidebar.jsx';
 import { Badge } from './ui/badge.jsx';
-import { Button } from './ui/button.jsx';
-import { Calendar } from './ui/calendar.jsx';
-import { Popover, PopoverContent, PopoverTrigger } from './ui/popover.jsx';
 import {
   SidebarInset,
   SidebarProvider,
@@ -30,36 +27,23 @@ const LiveClock = React.memo(function LiveClock() {
   }, []);
 
   return (
-    <span className="text-sm text-muted-foreground">
+    <span className="text-xs text-muted-foreground">
       更新: {currentTime.toLocaleTimeString()}
     </span>
   );
 });
 
-const formatCalendarLabel = (value) =>
-  value && value.isValid() ? value.format('YYYY-MM-DD') : '选择日期';
-
-const toDate = (value) => (value && value.isValid() ? value.toDate() : undefined);
-
-const DatePickerControl = ({ label, value, onChange, isDateDisabled }) => (
+const DatePickerControl = ({ label, value, onChange }) => (
   <div className="flex items-center gap-2">
-    <span className="text-sm text-muted-foreground">{label}</span>
-    <Popover>
-      <PopoverTrigger asChild>
-        <Button variant="outline" size="sm" className="min-w-32 justify-start">
-          <CalendarIcon data-icon="inline-start" />
-          {formatCalendarLabel(value)}
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-auto p-0" align="start">
-        <Calendar
-          mode="single"
-          selected={toDate(value)}
-          onSelect={(nextDate) => onChange(nextDate ? dayjs(nextDate) : null)}
-          disabled={(date) => isDateDisabled(dayjs(date))}
-        />
-      </PopoverContent>
-    </Popover>
+    <label className="text-xs font-medium text-muted-foreground">
+      {label}
+    </label>
+    <input
+      type="date"
+      value={value && value.isValid() ? value.format('YYYY-MM-DD') : ''}
+      onChange={(event) => onChange(event.target.value ? dayjs(event.target.value) : null)}
+      className="h-8 min-w-[8.5rem] rounded-md border border-input bg-card px-2.5 text-xs font-medium text-foreground shadow-[var(--shadow-sm)] outline-none transition-colors focus:border-ring focus:ring-3 focus:ring-ring/25"
+    />
   </div>
 );
 
@@ -76,7 +60,6 @@ const DashboardLayout = () => {
     handleEndDateChange,
     handleFilterChange,
     handleStartDateChange,
-    isDateDisabled,
     isLoading,
     latestAvailableDate,
     selectedDateParam,
@@ -123,18 +106,18 @@ const DashboardLayout = () => {
         <SidebarInset className="app-shell-main">
           <header className="app-shell-header">
           <div className="app-shell-header-inner">
-            <div className="flex min-w-0 items-center gap-2">
+            <div className="flex min-w-0 items-center gap-3">
               <SidebarTrigger />
               <TaskName />
             </div>
             <div className="app-shell-controls">
-              <Badge variant="outline" className="gap-1.5">
-                <span className="size-2 rounded-full bg-primary" aria-hidden="true" />
+              <Badge variant="secondary" className="gap-1.5 rounded-md border border-border bg-card px-2.5 py-1 text-xs font-medium text-foreground">
+                <CircleDot className="size-3 text-primary" aria-hidden="true" />
                 实时数据
               </Badge>
               <LiveClock />
               {latestAvailableDate ? (
-                <span className="text-sm text-muted-foreground">数据更新至: {latestAvailableDate}</span>
+                <span className="text-xs text-muted-foreground">数据更新至: {latestAvailableDate}</span>
               ) : null}
               <ToggleGroup
                 type="single"
@@ -144,10 +127,11 @@ const DashboardLayout = () => {
                 }}
                 variant="outline"
                 size="sm"
-                spacing={0}
+                spacing={1}
+                className="flex-wrap rounded-lg border border-border bg-card p-1 shadow-[var(--shadow-sm)]"
               >
                 {TIME_OPTIONS.map((option) => (
-                  <ToggleGroupItem key={option.value} value={option.value}>
+                  <ToggleGroupItem key={option.value} value={option.value} className="mx-0.5 h-7 rounded-md border-0 px-2.5 text-xs font-medium data-[state=on]:bg-primary data-[state=on]:text-primary-foreground">
                     {option.label}
                   </ToggleGroupItem>
                 ))}
@@ -158,13 +142,11 @@ const DashboardLayout = () => {
                     label="开始日期"
                     value={start}
                     onChange={handleStartDateChange}
-                    isDateDisabled={isDateDisabled}
                   />
                   <DatePickerControl
                     label="结束日期"
                     value={end}
                     onChange={handleEndDateChange}
-                    isDateDisabled={isDateDisabled}
                   />
                 </div>
               ) : null}

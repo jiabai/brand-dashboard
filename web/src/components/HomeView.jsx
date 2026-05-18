@@ -29,7 +29,7 @@ const HomeView = () => {
           onBack={onBackFromPlatform}
         />
       ) : (
-        <div className="grid min-w-0 grid-cols-1 gap-4">
+        <div className="grid min-w-0 grid-cols-1 items-start gap-5 xl:grid-cols-[minmax(0,1.5fr)_minmax(340px,0.9fr)]">
           <div className="min-w-0">
             <BrandMentionRate />
           </div>
@@ -38,7 +38,7 @@ const HomeView = () => {
               onPlatformClick={onPlatformClick}
             />
           </div>
-          <div className="min-w-0">
+          <div className="min-w-0 xl:col-span-2">
             <ReferencesTable />
           </div>
         </div>

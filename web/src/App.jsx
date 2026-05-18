@@ -1,4 +1,4 @@
-import React, { Suspense, useEffect } from 'react';
+import React, { Suspense } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 
 import './styles/app-shell.css';
@@ -76,10 +76,6 @@ const AppRoutes = () => {
 };
 
 function App() {
-  useEffect(() => {
-    document.documentElement.classList.add('dark');
-  }, []);
-
   return (
     <TooltipProvider>
       <AppRoutes />

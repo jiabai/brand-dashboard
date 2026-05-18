@@ -26,8 +26,8 @@ const RateHeader = ({ label, description }) => (
 );
 
 const RateCell = ({ value, className = '[&_[data-slot=progress-indicator]]:bg-primary' }) => (
-  <div className="flex min-w-32 flex-col gap-1">
-    <span className="text-xs text-muted-foreground">{(value * 100).toFixed(2)}%</span>
+  <div className="flex min-w-40 flex-col gap-1.5">
+    <span className="text-xs font-medium text-muted-foreground">{(value * 100).toFixed(2)}%</span>
     <Progress value={value * 100} className={className} />
   </div>
 );
@@ -145,7 +145,7 @@ const BrandShareOfVoiceTable = () => {
         filters: platformFilters,
         onFilter: (value, record) => record.platform === value,
         render: (text) => <Badge variant="secondary">{text}</Badge>,
-        width: columnWidths.platform ?? 140,
+        width: columnWidths.platform ?? 160,
       },
       {
         title: 'Keyword',
@@ -154,14 +154,14 @@ const BrandShareOfVoiceTable = () => {
         filters: keywordFilters,
         onFilter: (value, record) => record.keyword === value,
         render: (text) => <span className="font-semibold text-foreground">{text}</span>,
-        width: columnWidths.keyword ?? 240,
+        width: columnWidths.keyword ?? 300,
       },
       {
         title: 'Brand',
         dataIndex: 'brand',
         key: 'brand',
         render: (text) => <span className="text-foreground">{text}</span>,
-        width: columnWidths.brand ?? 200,
+        width: columnWidths.brand ?? 240,
       },
       {
         title: <RateHeader label="Mention Rate" description="Percentage of conversations where the brand was mentioned" />,
@@ -170,7 +170,7 @@ const BrandShareOfVoiceTable = () => {
         sorter: (a, b) => a.mention_rate - b.mention_rate,
         defaultSortOrder: 'descend',
         render: (value) => <RateCell value={value} />,
-        width: columnWidths.mention_rate ?? 200,
+        width: columnWidths.mention_rate ?? 280,
       },
       {
         title: <RateHeader label="First Mention Rate" description="Percentage of conversations where the brand was mentioned first" />,
@@ -178,7 +178,7 @@ const BrandShareOfVoiceTable = () => {
         key: 'first_mention_rate',
         sorter: (a, b) => a.first_mention_rate - b.first_mention_rate,
         render: (value) => <RateCell value={value} className="[&_[data-slot=progress-indicator]]:bg-chart-4" />,
-        width: columnWidths.first_mention_rate ?? 200,
+        width: columnWidths.first_mention_rate ?? 280,
       },
       {
         title: <RateHeader label="Top 3 Mention Rate" description="Percentage of conversations where the brand was mentioned in the top 3 positions" />,
@@ -186,7 +186,7 @@ const BrandShareOfVoiceTable = () => {
         key: 'top3_mention_rate',
         sorter: (a, b) => a.top3_mention_rate - b.top3_mention_rate,
         render: (value) => <RateCell value={value} className="[&_[data-slot=progress-indicator]]:bg-chart-2" />,
-        width: columnWidths.top3_mention_rate ?? 200,
+        width: columnWidths.top3_mention_rate ?? 280,
       },
     ];
 
@@ -197,8 +197,8 @@ const BrandShareOfVoiceTable = () => {
   }, [columnWidths, handleResize, keywordFilters, platformFilters]);
 
   return (
-    <Card className="m-6">
-      <CardContent className="pt-4">
+    <Card>
+      <CardContent className="p-5">
       {!!error && (
         <Alert variant="destructive" className="mb-3">
           <AlertTitle>数据加载失败</AlertTitle>
@@ -211,6 +211,7 @@ const BrandShareOfVoiceTable = () => {
         rowKey={(record) => `${record.keyword}-${record.platform}-${record.brand}`}
         loading={loading}
         error=""
+        className="[&_table]:min-w-[1280px]"
         pagination={{ pageSize: 10 }}
         emptyDescription={error ? '加载失败，请检查URL参数或稍后重试' : '暂无数据'}
       />

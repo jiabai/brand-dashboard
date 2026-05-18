@@ -94,14 +94,14 @@ const HeaderCell = ({ column, width, sortState, onSort, onFilter, onResize }) =>
             <Button
               variant="ghost"
               size="sm"
-              className="h-auto min-w-0 justify-start px-0 font-medium"
+              className="h-auto min-w-0 justify-start px-0 text-xs font-semibold"
               onClick={() => onSort(column)}
             >
               <span className="truncate">{title}</span>
               <SortIcon order={isSorted ? sortState.order : ''} />
             </Button>
           ) : (
-            <span className="truncate font-medium">{title}</span>
+            <span className="truncate text-xs font-semibold">{title}</span>
           )}
         </div>
         {Array.isArray(column.filters) && column.filters.length ? (
@@ -257,7 +257,7 @@ const DataTable = ({
         </TableBody>
       </Table>
       {pageSize && paginated.pageCount > 1 ? (
-        <div className="flex items-center justify-end gap-2">
+        <div className="flex items-center justify-end gap-2 px-1">
           <Button variant="outline" size="sm" disabled={paginated.page <= 1} onClick={() => setPage((value) => value - 1)}>
             上一页
           </Button>

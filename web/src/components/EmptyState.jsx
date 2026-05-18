@@ -14,12 +14,12 @@ const EmptyState = ({
   actionText,
   onAction 
 }) => (
-  <div className="flex min-h-48 flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-border bg-card/60 p-8 text-center">
-    <div className="flex size-12 items-center justify-center rounded-full bg-muted text-2xl" aria-hidden="true">
+  <div className="flex min-h-32 flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-border bg-muted/35 p-5 text-center">
+    <div className="flex size-9 items-center justify-center rounded-full bg-background text-lg text-muted-foreground ring-1 ring-border" aria-hidden="true">
       {icon}
     </div>
     <div className="flex flex-col gap-1">
-      <h3 className="text-base font-semibold text-foreground">{title}</h3>
+      <h3 className="text-sm font-semibold text-foreground">{title}</h3>
       <p className="m-0 text-sm text-muted-foreground">{description}</p>
     </div>
     {actionText && onAction ? (

@@ -45,34 +45,34 @@ const MetricCircle = ({ label, value, tone = 'primary' }) => {
   const color = metricTones[tone] || metricTones.primary;
 
   return (
-    <div className="flex flex-col items-center gap-2 text-center">
+    <div className="flex min-w-0 flex-col items-center gap-2 text-center">
       <div
-        className="grid size-20 place-items-center rounded-full"
+        className="grid size-14 place-items-center rounded-full"
         style={{
           background: `conic-gradient(${color} ${safeValue * 3.6}deg, var(--muted) 0deg)`,
         }}
       >
-        <div className="grid size-16 place-items-center rounded-full bg-card text-sm font-semibold text-foreground">
+        <div className="grid size-10 place-items-center rounded-full bg-card text-[11px] font-semibold text-foreground ring-1 ring-border">
           {formatPercentage(safeValue)}
         </div>
       </div>
-      <span className="text-sm font-medium text-foreground">{label}</span>
+      <span className="text-xs font-medium text-muted-foreground">{label}</span>
     </div>
   );
 };
 
 const StatTile = ({ icon: Icon, label, value }) => (
-  <div className="rounded-md border bg-muted/40 p-4">
-    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+  <div className="rounded-md bg-muted/45 px-3 py-2.5">
+    <div className="flex items-center gap-2 text-xs text-muted-foreground">
       <Icon className="size-4" />
       {label}
     </div>
-    <div className="mt-2 text-2xl font-semibold text-foreground">{value}</div>
+    <div className="mt-1 text-lg font-semibold leading-none text-foreground">{value}</div>
   </div>
 );
 
 const RateCell = ({ value, tone = 'primary' }) => (
-  <div className="w-32 space-y-1">
+  <div className="w-[7.5rem] space-y-1">
     <Progress
       value={value}
       className={{
@@ -306,35 +306,33 @@ const BrandMentionRate = () => {
       <CardHeader>
         <CardTitle>品牌提及排名</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-6">
-        <section className="rounded-md border bg-muted/35 p-4">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-            <div className="flex min-w-20 flex-col items-center">
-              <Trophy className="size-8 text-chart-4" />
-              <span className="text-3xl font-semibold text-chart-4">
+      <CardContent className="space-y-4">
+        <section className="flex flex-col gap-3 rounded-md bg-muted/35 p-4 sm:flex-row sm:items-center">
+          <div className="flex min-w-14 flex-row items-center gap-2 sm:flex-col sm:gap-0">
+              <Trophy className="size-5 text-chart-3" />
+              <span className="text-xl font-semibold leading-none text-chart-3">
                 {typeof targetBrandRank === 'number' ? `#${targetBrandRank}` : '--'}
               </span>
-            </div>
-            <div className="space-y-2">
-              <h3 className="text-lg font-semibold text-foreground">
+          </div>
+          <div className="min-w-0 space-y-2">
+              <h3 className="truncate text-base font-semibold leading-tight text-foreground">
                 目标品牌: {targetBrandData.name}
               </h3>
-              <Badge variant="secondary" className="gap-1">
+              <Badge variant="secondary" className="gap-1 rounded-md">
                 <Tags className="size-3" />
                 {targetBrandData.coveredKeywordsCount} 覆盖关键词
               </Badge>
-            </div>
           </div>
         </section>
 
-        <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <section className="grid grid-cols-2 gap-3 xl:grid-cols-4">
           <MetricCircle label="总提及率" value={targetBrandData.mentionRate} />
           <MetricCircle label="首位提及率" value={targetBrandData.firstMentionRate} tone="info" />
           <MetricCircle label="前3提及率" value={targetBrandData.top3MentionRate} tone="warning" />
           <MetricCircle label="发文引用率" value={targetBrandData.articleCitationRate} tone="success" />
         </section>
 
-        <section className="grid gap-4 sm:grid-cols-2">
+        <section className="grid grid-cols-2 gap-3">
           <StatTile icon={MessageCircle} label="问题总数" value={targetBrandData.promptValue} />
           <StatTile icon={Link} label="引用信源数量" value={targetBrandData.citationSourceValue} />
         </section>
@@ -342,7 +340,7 @@ const BrandMentionRate = () => {
         <Separator />
 
         <section className="space-y-3">
-          <h3 className="text-sm font-semibold text-foreground">其他品牌对比</h3>
+          <h3 className="text-[15px] font-semibold leading-tight text-foreground">其他品牌对比</h3>
           <DataTable
             data={otherBrandsData}
             columns={columns}

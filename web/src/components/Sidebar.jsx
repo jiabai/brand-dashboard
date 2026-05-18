@@ -93,18 +93,21 @@ const Sidebar = () => {
   };
 
   return (
-    <UiSidebar collapsible="icon">
+    <UiSidebar collapsible="icon" className="border-sidebar-border">
       <SidebarHeader className="px-3 py-4">
-        <div className="flex min-w-0 flex-col gap-1 group-data-[collapsible=icon]:items-center">
-          <div className="flex items-baseline gap-1.5">
-            <span className="shrink-0 text-base font-bold text-sidebar-foreground">明察</span>
-            <span className="truncate text-sm font-medium text-sidebar-primary group-data-[collapsible=icon]:hidden">
+        <div className="flex min-w-0 items-center gap-2 rounded-lg border border-sidebar-border bg-sidebar-accent/70 p-2 group-data-[collapsible=icon]:justify-center">
+          <div className="grid size-8 shrink-0 place-items-center rounded-md bg-sidebar-primary text-sm font-semibold text-sidebar-primary-foreground">
+            明
+          </div>
+          <div className="flex min-w-0 flex-col gap-0.5 group-data-[collapsible=icon]:hidden">
+            <span className="truncate text-sm font-semibold text-sidebar-foreground">明察</span>
+            <span className="truncate text-xs font-medium text-sidebar-primary">
               InsightFlow
             </span>
+            <span className="truncate text-[11px] text-sidebar-foreground/55">
+              Monitor · Analyze · Report
+            </span>
           </div>
-          <span className="truncate text-xs text-sidebar-foreground/60 group-data-[collapsible=icon]:hidden">
-            监控 · 分析 · 报告
-          </span>
         </div>
       </SidebarHeader>
       <SidebarContent>

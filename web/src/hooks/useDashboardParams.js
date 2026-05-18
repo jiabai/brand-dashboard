@@ -1,9 +1,15 @@
 import { useCallback, useMemo } from 'react';
 import { useOutletContext, useParams, useSearchParams } from 'react-router-dom';
 
-import { CONFIG } from '@/config';
+import { CONFIG } from '../config.js';
 
 export const DEFAULT_TIMEFRAME = '30days';
+
+export const resolveRouteParam = (value, fallback, placeholderValues = []) => {
+  const normalized = String(value || '').trim();
+  if (!normalized) return fallback;
+  return placeholderValues.includes(normalized) ? fallback : normalized;
+};
 
 /**
  * @returns {{
@@ -24,12 +30,16 @@ export const useDashboardParams = () => {
   const routeParams = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const tenantKey =
-    routeParams.tenantKey ||
-    CONFIG.DEFAULT_TENANT_KEY;
-  const jobId =
-    routeParams.jobId ||
-    CONFIG.DEFAULT_JOB_ID;
+  const tenantKey = resolveRouteParam(
+    routeParams.tenantKey,
+    CONFIG.DEFAULT_TENANT_KEY,
+    ['default'],
+  );
+  const jobId = resolveRouteParam(
+    routeParams.jobId,
+    CONFIG.DEFAULT_JOB_ID,
+    ['latest'],
+  );
   const brand = searchParams.get('brand') || CONFIG.DEFAULT_BRAND;
   const timeframe = searchParams.get('timeframe') || DEFAULT_TIMEFRAME;
   const startDateParam = searchParams.get('start_date') || '';
