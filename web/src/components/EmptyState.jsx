@@ -4,7 +4,8 @@
  */
 
 import React from 'react';
-import { Button, Empty } from 'antd';
+
+import { Button } from './ui/button.jsx';
 
 const EmptyState = ({ 
   title = '暂无数据', 
@@ -12,21 +13,22 @@ const EmptyState = ({
   icon = '📊',
   actionText,
   onAction 
-}) => {
-  return (
-    <Empty
-      image={Empty.PRESENTED_IMAGE_SIMPLE}
-      description={
-        <div>
-          <div style={{ fontWeight: 600 }}>{title}</div>
-          <div style={{ color: 'rgba(0, 0, 0, 0.45)' }}>{description}</div>
-        </div>
-      }
-    >
-      {actionText && onAction ? <Button onClick={onAction}>{actionText}</Button> : null}
-    </Empty>
-  );
-};
+}) => (
+  <div className="flex min-h-48 flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-border bg-card/60 p-8 text-center">
+    <div className="flex size-12 items-center justify-center rounded-full bg-muted text-2xl" aria-hidden="true">
+      {icon}
+    </div>
+    <div className="flex flex-col gap-1">
+      <h3 className="text-base font-semibold text-foreground">{title}</h3>
+      <p className="m-0 text-sm text-muted-foreground">{description}</p>
+    </div>
+    {actionText && onAction ? (
+      <Button variant="outline" onClick={onAction}>
+        {actionText}
+      </Button>
+    ) : null}
+  </div>
+);
 
 
 export default EmptyState;

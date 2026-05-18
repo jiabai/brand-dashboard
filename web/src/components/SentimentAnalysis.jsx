@@ -1,17 +1,16 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { Card, Flex, Typography, theme } from 'antd';
-import { SmileOutlined } from '@ant-design/icons';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Smile } from 'lucide-react';
+
 import { fetchFilterMetadata } from '@/api';
 import { useDashboardRequestParams } from '@/hooks/useDashboardParams';
-import { loadG2Chart } from '@/utils/loadG2Chart';
-import KeywordSection from './KeywordSection';
 
-const { Title } = Typography;
+import KeywordSection from './KeywordSection';
+import { Card, CardContent, CardHeader, CardTitle } from './ui/card.jsx';
 
 const MOCK_SENTIMENT = [
-  { name: '正面', value: 600 },
-  { name: '负面', value: 200 },
-  { name: '中性', value: 200 },
+  { name: '正面', value: 600, color: 'var(--chart-2)' },
+  { name: '负面', value: 200, color: 'var(--destructive)' },
+  { name: '中性', value: 200, color: 'var(--chart-4)' },
 ];
 
 const WORD_CLOUD_DATA = [
@@ -29,101 +28,87 @@ const WORD_CLOUD_DATA = [
   { text: '客服', value: 24 },
 ];
 
-const SentimentDonutChart = ({ containerRef }) => {
-  const { token } = theme.useToken();
-  const chartRef = useRef(null);
+const SentimentDonut = () => {
+  const total = MOCK_SENTIMENT.reduce((sum, item) => sum + item.value, 0);
+  let cursor = 0;
+  const segments = MOCK_SENTIMENT.map((item) => {
+    const start = cursor;
+    const end = start + (item.value / total) * 100;
+    cursor = end;
+    return `${item.color} ${start}% ${end}%`;
+  });
 
-  useEffect(() => {
-    if (!containerRef.current) return;
+  return (
+    <div className="flex flex-col items-center gap-5">
+      <div
+        className="grid size-64 place-items-center rounded-full"
+        style={{ background: `conic-gradient(${segments.join(', ')})` }}
+      >
+        <div className="grid size-36 place-items-center rounded-full bg-card text-center">
+          <div>
+            <div className="text-3xl font-semibold text-foreground">{total.toLocaleString()}</div>
+            <div className="text-sm text-muted-foreground">分析样本</div>
+          </div>
+        </div>
+      </div>
+      <div className="flex flex-wrap justify-center gap-3">
+        {MOCK_SENTIMENT.map((item) => (
+          <div key={item.name} className="flex items-center gap-2 rounded-md border px-3 py-1 text-sm">
+            <span className="size-2.5 rounded-full" style={{ background: item.color }} />
+            <span className="font-medium text-foreground">{item.name}</span>
+            <span className="text-muted-foreground">{Math.round((item.value / total) * 100)}%</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
 
-    let disposed = false;
-    const container = containerRef.current;
+const WordCloud = () => {
+  const max = Math.max(...WORD_CLOUD_DATA.map((item) => item.value));
+  const min = Math.min(...WORD_CLOUD_DATA.map((item) => item.value));
 
-    if (chartRef.current) {
-      chartRef.current.destroy();
-      chartRef.current = null;
-    }
-
-    const run = async () => {
-      const Chart = await loadG2Chart();
-      if (disposed) return;
-
-      const total = MOCK_SENTIMENT.reduce((sum, item) => sum + item.value, 0);
-
-      const chart = new Chart({
-        container,
-        autoFit: true,
-        height: (container.clientHeight * 0.8) || 256,
-        theme: 'dark',
-        paddingTop: 40,
-      });
-
-      chart.coordinate({ type: 'theta', innerRadius: 0.6 });
-
-      chart
-        .interval()
-        .data(MOCK_SENTIMENT)
-        .transform({ type: 'stackY' })
-        .encode('y', 'value')
-        .encode('color', 'name')
-        .style('stroke', token.colorBgContainer)
-        .style('inset', 1)
-        .style('radius', 10)
-        .scale('color', {
-          domain: ['正面', '负面', '中性'],
-          range: ['#2582a1', '#c52125', '#f88c24'],
-        })
-        .label({
-          text: (d) => `${d.name}：${d.value}条`,
-          fontSize: 12,
-          fontWeight: 'bold',
-          fill: '#fff',
-          position: 'outside',
-        })
-        .label({
-          text: (d) => `${((d.value / total) * 100).toFixed(0)}%`,
-          fontSize: 14,
-          fill: '#fff',
-          position: 'inside',
-          fontWeight: 'bold',
-        })
-        .legend({
-          position: 'bottom',
-          layout: { justifyContent: 'center' },
-        })
-        .animate('enter', { type: 'waveIn' });
-
-      chart.render();
-      chartRef.current = chart;
-    };
-
-    run().catch(() => {});
-
-    return () => {
-      disposed = true;
-      if (chartRef.current) {
-        chartRef.current.destroy();
-        chartRef.current = null;
-      }
-    };
-  }, [containerRef, token.colorBgContainer]);
-
-  return <div ref={containerRef} style={{ width: '100%', height: '100%' }} />;
+  return (
+    <div className="flex min-h-72 flex-wrap items-center justify-center gap-x-5 gap-y-4 rounded-md bg-muted/25 p-6">
+      {WORD_CLOUD_DATA.map((item, index) => {
+        const ratio = (item.value - min) / Math.max(1, max - min);
+        const fontSize = 14 + ratio * 26;
+        const colors = ['text-primary', 'text-chart-2', 'text-destructive', 'text-chart-4', 'text-muted-foreground'];
+        return (
+          <span
+            key={item.text}
+            className={`font-semibold ${colors[index % colors.length]}`}
+            style={{ fontSize }}
+          >
+            {item.text}
+          </span>
+        );
+      })}
+    </div>
+  );
 };
 
 export default function SentimentAnalysis() {
   const { date, endDate, tenantKey, jobId } = useDashboardRequestParams();
-  const { token } = theme.useToken();
   const [keywords, setKeywords] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const donutRef = useRef(null);
-  const wordCloudRef = useRef(null);
-  const wordCloudChartRef = useRef(null);
+
+  const stats = useMemo(() => {
+    const total = MOCK_SENTIMENT.reduce((sum, item) => sum + item.value, 0);
+    const positive = MOCK_SENTIMENT.find((item) => item.name === '正面')?.value ?? 0;
+    const negative = MOCK_SENTIMENT.find((item) => item.name === '负面')?.value ?? 0;
+
+    return [
+      { label: '分析样本数', value: total.toLocaleString() },
+      { label: '正面情感占比', value: `${Math.round((positive / total) * 100)}%` },
+      { label: '负面情感占比', value: `${Math.round((negative / total) * 100)}%` },
+    ];
+  }, []);
 
   useEffect(() => {
     const controller = new AbortController();
-    
+
     const fetchMetadata = async () => {
       setLoading(true);
       setError(null);
@@ -154,91 +139,32 @@ export default function SentimentAnalysis() {
     };
   }, [tenantKey, jobId, date, endDate]);
 
-  useEffect(() => {
-    if (!wordCloudRef.current) return;
-
-    let disposed = false;
-    const container = wordCloudRef.current;
-
-    if (wordCloudChartRef.current) {
-      wordCloudChartRef.current.destroy();
-      wordCloudChartRef.current = null;
-    }
-
-    const run = async () => {
-      const Chart = await loadG2Chart();
-      if (disposed) return;
-
-      const chart = new Chart({
-        container,
-        autoFit: true,
-        paddingTop: 80,
-      });
-
-      chart
-        .wordCloud()
-        .data(WORD_CLOUD_DATA)
-        .layout({
-          spiral: 'rectangular',
-          fontSize: [12, 48],
-        })
-        .encode('color', 'text')
-        .scale('color', {
-          range: ['#2582a1', '#c52125', '#f88c24'],
-        })
-        .legend(false);
-
-      chart.render();
-      wordCloudChartRef.current = chart;
-    };
-
-    run().catch(() => {});
-    return () => {
-      disposed = true;
-      if (wordCloudChartRef.current) {
-        wordCloudChartRef.current.destroy();
-        wordCloudChartRef.current = null;
-      }
-    };
-  }, []);
-
   return (
-    <Flex vertical gap="large" align="stretch" style={{ width: '100%', minHeight: 'calc(100vh - 112px)', height: '100%' }}>
-      <KeywordSection keywords={keywords} loading={loading} style={{ flex: '0 0 auto' }} />
-      <Card
-        variant="borderless"
-        styles={{ body: { padding: token.paddingLG, display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 } }}
-        style={{ boxShadow: token.boxShadowTertiary, borderRadius: token.borderRadiusLG, display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}
-      >
-        <Flex vertical gap="small" style={{ marginBottom: token.marginLG }}>
-          <Flex align="center" gap="small">
-            <SmileOutlined style={{ color: token.colorPrimary, fontSize: 18 }} />
-            <Title level={4} style={{ margin: 0, fontWeight: 700 }}>情感分析</Title>
-          </Flex>
-          
-          <Flex gap="large" align="center" style={{ paddingLeft: 24 }}>
-            {[
-              { label: '分析样本数', value: '1,280' },
-              { label: '正面情感占比', value: '60%' },
-              { label: '负面情感占比', value: '20%' }
-            ].map(item => (
-              <Flex key={item.label} align="center" gap="xs">
-                <Typography.Text type="secondary" style={{ fontSize: token.fontSizeSM }}>{item.label}：</Typography.Text>
-                <Typography.Text strong style={{ fontSize: token.fontSize }}>{item.value}</Typography.Text>
-              </Flex>
+    <div className="flex min-h-[calc(100vh-112px)] w-full flex-col gap-6">
+      <KeywordSection keywords={keywords} loading={loading} />
+      {error ? <p className="text-sm text-destructive">{error}</p> : null}
+      <Card className="flex flex-1 flex-col">
+        <CardHeader className="space-y-3">
+          <div className="flex items-center gap-2">
+            <Smile className="size-5 text-primary" />
+            <CardTitle>情感分析</CardTitle>
+          </div>
+          <div className="flex flex-wrap gap-x-6 gap-y-2 pl-0 text-sm sm:pl-7">
+            {stats.map((item) => (
+              <span key={item.label} className="text-muted-foreground">
+                {item.label}：
+                <strong className="font-semibold text-foreground">{item.value}</strong>
+              </span>
             ))}
-          </Flex>
-        </Flex>
-
-        <Flex gap="large" align="stretch" style={{ width: '100%', flex: 1, minHeight: 0 }}>
-          <div style={{ flex: 1, minWidth: 0, minHeight: 0, paddingTop: token.paddingLG }}>
-            <SentimentDonutChart containerRef={donutRef} />
           </div>
-          <div style={{ flex: 0.8, minWidth: 0, minHeight: 0, paddingTop: token.paddingLG, transform: 'translate(-10%, -10%)' }}>
-            <div ref={wordCloudRef} style={{ width: '100%', height: '100%' }} />
+        </CardHeader>
+        <CardContent className="grid flex-1 gap-6 lg:grid-cols-[1fr_0.8fr]">
+          <div className="flex min-h-80 items-center justify-center">
+            <SentimentDonut />
           </div>
-        </Flex>
+          <WordCloud />
+        </CardContent>
       </Card>
-    </Flex>
+    </div>
   );
 }

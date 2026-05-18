@@ -11,13 +11,13 @@
   justify-content: space-between;
   gap: 16px;
   padding-bottom: 16px;
-  border-bottom: 1px solid var(--ant-color-border-secondary);
+  border-bottom: 1px solid var(--border);
 }
 
 .account-kicker {
   display: block;
   margin-bottom: 4px;
-  color: var(--ant-color-text-tertiary);
+  color: var(--muted-foreground);
   font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.08em;
@@ -40,11 +40,6 @@
   flex-wrap: wrap;
 }
 
-.account-hero-tags .ant-tag {
-  margin-inline-end: 0;
-  border-radius: 6px;
-}
-
 .account-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.5fr) minmax(300px, 0.8fr);
@@ -55,29 +50,9 @@
 .account-card,
 .account-sidecard,
 .account-subcard {
-  border-radius: 8px !important;
-  border: 1px solid var(--ant-color-border-secondary) !important;
-  box-shadow: none !important;
-}
-
-.account-card .ant-tabs-nav {
-  margin-bottom: 16px;
-}
-
-.account-card .ant-tabs-tab {
-  padding: 8px 10px;
-}
-
-.account-form .ant-form-item {
-  margin-bottom: 16px;
-}
-
-.account-form .ant-input,
-.account-form .ant-input-affix-wrapper,
-.account-form .ant-input-number,
-.account-form .ant-picker,
-.account-form .ant-select-selector {
-  border-radius: 6px !important;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  box-shadow: none;
 }
 
 .account-collapse {
@@ -95,14 +70,14 @@
   max-height: 320px;
   overflow: auto;
   padding: 12px;
-  border: 1px solid var(--ant-color-border-secondary);
+  border: 1px solid var(--border);
   border-radius: 8px;
-  background: var(--ant-color-bg-layout);
+  background: var(--muted);
 }
 
 .account-response pre {
   margin: 0;
-  color: var(--ant-color-text-secondary);
+  color: var(--muted-foreground);
   font-size: 12px;
   line-height: 1.6;
   white-space: pre-wrap;
@@ -125,12 +100,4 @@
     justify-content: flex-start;
   }
 
-  .account-management .ant-form-inline {
-    display: block;
-  }
-
-  .account-management .ant-form-inline .ant-form-item {
-    margin-right: 0;
-    margin-bottom: 12px;
-  }
 }

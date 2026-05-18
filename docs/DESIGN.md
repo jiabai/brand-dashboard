@@ -2,12 +2,13 @@
 
 ## UI 设计规范
 
-- 组件库：Ant Design 5.x 为主，Radix UI 补充（Progress, Slot）
-- 图表：@ant-design/charts（基于 @antv/g2）
-- 样式：Tailwind CSS 工具类优先，自定义 CSS 仅放 `web/src/styles/`
-- 图标：Lucide React + @ant-design/icons
-- 布局：Ant Design Layout（Header + Sidebar + Content），响应式适配
-- 主题：Ant Design ConfigProvider 统一主题，支持暗色模式扩展
+- 组件库：shadcn/ui 源码组件为主，组件源码位于 `web/src/components/ui/`
+- 图表：使用 React/SVG/CSS 原生组合实现轻量图表，不引入 G2 或第二套图表运行时
+- 样式：Tailwind CSS v4 semantic tokens 优先，自定义 CSS 仅放 `web/src/styles/`
+- 图标：Lucide React
+- 布局：shadcn Sidebar + React 组件组合（Header + Sidebar + Content），响应式适配
+- 主题：`web/src/index.css` 中的 CSS variables + Tailwind `@theme inline` 统一主题，支持暗色模式扩展
+- 共享工具：条件 class 合并统一使用 `web/src/lib/cn.js`
 
 ## API 设计规范
 

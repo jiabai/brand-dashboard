@@ -2,7 +2,9 @@
   min-height: 100vh;
   position: relative;
   z-index: 1;
-  background: var(--ant-color-bg-layout);
+  display: flex;
+  width: 100%;
+  background: var(--background);
 }
 
 .app-shell-main {
@@ -19,8 +21,9 @@
   line-height: normal;
   display: flex;
   align-items: center;
-  background: var(--ant-color-bg-container);
-  border-bottom: 1px solid var(--ant-color-border-secondary);
+  background: color-mix(in srgb, var(--background) 90%, transparent);
+  border-bottom: 1px solid var(--border);
+  backdrop-filter: blur(12px);
 }
 
 .app-shell-header-inner {
@@ -34,11 +37,19 @@
 
 .app-shell-controls {
   min-width: 0;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
   justify-content: flex-end;
 }
 
 .app-shell-date-range {
   max-width: 100%;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .app-shell-content {
@@ -51,10 +62,6 @@
   display: flex;
   align-items: center;
   justify-content: center;
-}
-
-.app-shell-header .ant-segmented {
-  max-width: 100%;
 }
 
 @media (max-width: 960px) {
@@ -72,9 +79,6 @@
     justify-content: flex-start;
   }
 
-  .app-shell-header .ant-segmented {
-    overflow-x: auto;
-  }
 }
 
 @media (max-width: 640px) {
@@ -86,7 +90,7 @@
     width: 100%;
   }
 
-  .app-shell-date-range .ant-picker {
+  .app-shell-date-range > * {
     flex: 1 1 160px;
   }
 }

@@ -1,7 +1,7 @@
 import React from 'react';
-import { Spin } from 'antd';
 
 import { useDashboardRequestParams } from '@/hooks/useDashboardParams';
+import LoadingSpinner from './LoadingSpinner.jsx';
 import PlatformDetail from './PlatformDetail.jsx';
 
 const BrandMentionRate = React.lazy(() => import('./BrandMentionRate.jsx'));
@@ -17,34 +17,33 @@ const HomeView = () => {
   } = useDashboardRequestParams();
 
   return (
-    <Spin spinning={isLoading}>
+    <>
+      {isLoading ? (
+        <div className="app-shell-loading">
+          <LoadingSpinner text="正在加载首页数据..." />
+        </div>
+      ) : null}
       {selectedPlatform ? (
         <PlatformDetail
           platformName={selectedPlatform}
           onBack={onBackFromPlatform}
         />
       ) : (
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'minmax(0, 1fr)',
-            gap: 16,
-          }}
-        >
-          <div style={{ minWidth: 0 }}>
+        <div className="grid min-w-0 grid-cols-1 gap-4">
+          <div className="min-w-0">
             <BrandMentionRate />
           </div>
-          <div style={{ minWidth: 0 }}>
+          <div className="min-w-0">
             <PlatformMentionRates
               onPlatformClick={onPlatformClick}
             />
           </div>
-          <div style={{ minWidth: 0 }}>
+          <div className="min-w-0">
             <ReferencesTable />
           </div>
         </div>
       )}
-    </Spin>
+    </>
   );
 };
 

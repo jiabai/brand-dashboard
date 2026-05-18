@@ -1,95 +1,93 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tw-animate-css";
+@import "tailwindcss";
+@import "shadcn/tailwind.css";
 
 @custom-variant dark (&:is(.dark *));
 
 /* Custom CSS Variables for consistent theming */
 :root {
-  /* Light Theme Ant Design Variables */
-  --ant-color-primary: #fa8c16;
-  --ant-color-primary-hover: #ffa940;
-  --ant-color-primary-active: #d46b08;
-  --ant-color-bg-layout: #fff7e6;
-  --ant-color-bg-container: #ffffff;
-  --ant-color-border: #d9d9d9;
-  --ant-color-border-secondary: #f0f0f0;
-  --ant-color-text: rgba(0, 0, 0, 0.88);
-  --ant-color-text-secondary: rgba(0, 0, 0, 0.65);
-  --ant-color-text-tertiary: rgba(0, 0, 0, 0.45);
-  --ant-color-success: #52c41a;
-  --ant-color-warning: #faad14;
-  --ant-color-error: #ff4d4f;
-  --ant-color-link: #fa8c16;
-  --ant-color-link-hover: #ffa940;
-  --ant-color-link-active: #d46b08;
+  --background: #fff7e6;
+  --foreground: rgba(0, 0, 0, 0.88);
+  --card: #ffffff;
+  --card-foreground: rgba(0, 0, 0, 0.88);
+  --popover: #ffffff;
+  --popover-foreground: rgba(0, 0, 0, 0.88);
+  --primary: #fa8c16;
+  --primary-foreground: #ffffff;
+  --secondary: #fff1d6;
+  --secondary-foreground: rgba(0, 0, 0, 0.88);
+  --muted: #fff1d6;
+  --muted-foreground: rgba(0, 0, 0, 0.58);
+  --accent: #ffe7ba;
+  --accent-foreground: rgba(0, 0, 0, 0.88);
+  --destructive: #ff4d4f;
+  --destructive-foreground: #ffffff;
+  --border: #ead7bd;
+  --input: #ead7bd;
+  --ring: #fa8c16;
+  --chart-1: #fa8c16;
+  --chart-2: #13c2c2;
+  --chart-3: #52c41a;
+  --chart-4: #faad14;
+  --chart-5: #eb2f96;
+  --radius: 0.5rem;
+  --sidebar: #150c24;
+  --sidebar-foreground: rgba(255, 255, 255, 0.86);
+  --sidebar-primary: #fa8c16;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: rgba(250, 140, 22, 0.14);
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: rgba(255, 255, 255, 0.12);
+  --sidebar-ring: #fa8c16;
 }
 
 .dark {
-  /* Dark Theme Ant Design Variables */
-  --ant-color-primary: #fa8c16;
-  --ant-color-primary-hover: #ffa940;
-  --ant-color-primary-active: #d46b08;
-  --ant-color-bg-layout: #0a0512;
-  --ant-color-bg-container: #150c24;
-  --ant-color-border: #434343;
-  --ant-color-border-secondary: #272727;
-  --ant-color-text: rgba(255, 255, 255, 0.85);
-  --ant-color-text-secondary: rgba(255, 255, 255, 0.65);
-  --ant-color-text-tertiary: rgba(255, 255, 255, 0.45);
-  --ant-color-success: #52c41a;
-  --ant-color-warning: #faad14;
-  --ant-color-error: #ff4d4f;
-  --ant-color-link: #fa8c16;
-  --ant-color-link-hover: #ffa940;
-  --ant-color-link-active: #d46b08;
+  --background: #0a0512;
+  --foreground: rgba(255, 255, 255, 0.9);
+  --card: #150c24;
+  --card-foreground: rgba(255, 255, 255, 0.9);
+  --popover: #150c24;
+  --popover-foreground: rgba(255, 255, 255, 0.9);
+  --primary: #fa8c16;
+  --primary-foreground: #ffffff;
+  --secondary: #241835;
+  --secondary-foreground: rgba(255, 255, 255, 0.86);
+  --muted: #241835;
+  --muted-foreground: rgba(255, 255, 255, 0.62);
+  --accent: #312044;
+  --accent-foreground: rgba(255, 255, 255, 0.9);
+  --destructive: #ff4d4f;
+  --destructive-foreground: #ffffff;
+  --border: #352646;
+  --input: #352646;
+  --ring: #fa8c16;
+  --chart-1: #fa8c16;
+  --chart-2: #13c2c2;
+  --chart-3: #52c41a;
+  --chart-4: #faad14;
+  --chart-5: #eb2f96;
+  --sidebar: #0a0512;
+  --sidebar-foreground: rgba(255, 255, 255, 0.86);
+  --sidebar-primary: #fa8c16;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: rgba(250, 140, 22, 0.16);
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: rgba(255, 255, 255, 0.12);
+  --sidebar-ring: #fa8c16;
 }
 
 @layer base {
-  :root {
-    --background: var(--ant-color-bg-layout);
-    --foreground: var(--ant-color-text);
-    --card: var(--ant-color-bg-container);
-    --card-foreground: var(--ant-color-text);
-    --popover: var(--ant-color-bg-container);
-    --popover-foreground: var(--ant-color-text);
-    --primary: var(--ant-color-primary);
-    --primary-foreground: var(--ant-color-text);
-    --secondary: var(--ant-color-text-secondary);
-    --secondary-foreground: var(--ant-color-text);
-    --muted: var(--ant-color-text-tertiary);
-    --muted-foreground: var(--ant-color-text);
-    --accent: var(--ant-color-primary-hover);
-    --accent-foreground: var(--ant-color-text);
-    --destructive: var(--ant-color-error);
-    --destructive-foreground: var(--ant-color-text);
-    --border: var(--ant-color-border);
-    --input: var(--ant-color-border);
-    --ring: var(--ant-color-primary);
-    --radius: 0.5rem;
+  * {
+    @apply border-border outline-ring/50;
   }
-
-  .dark {
-    --background: var(--ant-color-bg-layout);
-    --foreground: var(--ant-color-text);
-    --card: var(--ant-color-bg-container);
-    --card-foreground: var(--ant-color-text);
-    --popover: var(--ant-color-bg-container);
-    --popover-foreground: var(--ant-color-text);
-    --primary: var(--ant-color-primary);
-    --primary-foreground: var(--ant-color-text);
-    --secondary: var(--ant-color-text-secondary);
-    --secondary-foreground: var(--ant-color-text);
-    --muted: var(--ant-color-text-tertiary);
-    --muted-foreground: var(--ant-color-text);
-    --accent: var(--ant-color-primary-hover);
-    --accent-foreground: var(--ant-color-text);
-    --destructive: var(--ant-color-error);
-    --destructive-foreground: var(--ant-color-text);
-    --border: var(--ant-color-border);
-    --input: var(--ant-color-border);
-    --ring: var(--ant-color-primary);
-    --radius: 0.5rem;
+  body {
+    @apply bg-background text-foreground;
+  }
+  button:not(:disabled), [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+  html {
+    @apply font-sans;
   }
 }
 
@@ -122,7 +120,7 @@
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
   --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.15);
   --shadow-xl: 0 20px 50px rgba(0, 0, 0, 0.2);
-  
+
   /* Chart Colors */
   --chart-1: #52c41a;
   --chart-2: #722ED1;
@@ -160,34 +158,14 @@
    RESET & BASE STYLES
    ======================================== */
 
-/* Ant Design Input Background Fix for Dark Mode */
-.dark .ant-input,
-.dark .ant-input-number-input,
-.dark .ant-input-affix-wrapper,
-.dark .ant-input-number,
-.dark .ant-picker,
-.dark .ant-input-status-success,
-.dark .ant-input-status-warning,
-.dark .ant-input-status-error,
-.dark .ant-input-status-validating {
-  background-color: var(--ant-color-bg-layout) !important;
-  color: var(--ant-color-text) !important;
-}
-
-/* Ensure placeholder text is visible but muted */
-.dark .ant-input::placeholder {
-  color: var(--ant-color-text-tertiary) !important;
-  opacity: 1;
-}
-
 /* Chrome Autofill Fix - Forces the background to stay dark */
 .dark input:-webkit-autofill,
 .dark input:-webkit-autofill:hover,
 .dark input:-webkit-autofill:focus,
 .dark input:-webkit-autofill:active {
-  -webkit-box-shadow: 0 0 0 1000px var(--ant-color-bg-layout) inset !important;
-  -webkit-text-fill-color: var(--ant-color-text) !important;
-  caret-color: var(--ant-color-text);
+  -webkit-box-shadow: 0 0 0 1000px var(--background) inset !important;
+  -webkit-text-fill-color: var(--foreground) !important;
+  caret-color: var(--foreground);
   transition: background-color 5000s ease-in-out 0s;
 }
 
@@ -208,9 +186,9 @@ body {
   padding: 0;
   min-width: 320px;
   min-height: 100vh;
-  background: var(--ant-color-bg-layout);
+  background: var(--background);
   font-family: var(--font-family-primary);
-  color: var(--ant-color-text);
+  color: var(--foreground);
   overflow-x: hidden;
 }
 
@@ -223,7 +201,6 @@ body {
 /* ========================================
    UTILITY CLASSES
    ======================================== */
-
 
 /* Screen reader only content */
 .sr-only {
@@ -258,7 +235,6 @@ body {
 .align-start { align-items: flex-start; }
 .align-end { align-items: flex-end; }
 
-
 /* Modern typography */
 h1, h2, h3, h4, h5, h6 {
   margin: 0;
@@ -287,17 +263,17 @@ p {
 /* Link styles */
 a {
   font-weight: 500;
-  color: var(--ant-color-link);
+  color: var(--primary);
   text-decoration: none;
   transition: color 0.3s ease;
 }
 
 a:hover {
-  color: var(--ant-color-link-hover);
+  color: color-mix(in srgb, var(--primary) 80%, white);
 }
 
 a:active {
-  color: var(--ant-color-link-active);
+  color: color-mix(in srgb, var(--primary) 80%, black);
 }
 
 @theme inline {
@@ -336,6 +312,11 @@ a:active {
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+  --font-heading: var(--font-sans);
+  --font-sans: var(--font-family-primary);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
 }
 
 @layer base {
