@@ -96,8 +96,7 @@
     @apply font-sans;
     line-height: var(--leading-base);
   }
-  h1, h2, h3, h4, h5, h6,
-  .text-2xl, .text-3xl, .text-4xl {
+  h1, h2, h3, h4, h5, h6 {
     line-height: var(--leading-snug);
     font-weight: var(--font-weight-medium);
   }

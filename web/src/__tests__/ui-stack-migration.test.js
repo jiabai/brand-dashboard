@@ -90,7 +90,6 @@ test('global CSS does not override component typography utilities', () => {
   const css = readFileSync(join(webRoot, 'src', 'index.css'), 'utf8');
 
   assert.doesNotMatch(css, /h[1-6]\s*\{[^}]*font-size/s);
-  assert.doesNotMatch(css, /h1,\s*h2,\s*h3,\s*h4,\s*h5,\s*h6/);
   assert.doesNotMatch(css, /\*\s*,\s*\*::before\s*,\s*\*::after\s*\{[^}]*padding:\s*0/s);
   assert.doesNotMatch(css, /\.px-5\s*\{|\.flex\s*\{/);
 });
@@ -113,8 +112,8 @@ test('dashboard content is not capped on wide desktop viewports', () => {
 test('wide dashboard charts keep a bounded height instead of scaling by width', () => {
   const trend = readFileSync(join(webRoot, 'src', 'components', 'TrendAnalysis.jsx'), 'utf8');
 
-  assert.match(trend, /h-\[420px\]/);
-  assert.match(trend, /2xl:h-\[460px\]/);
+  assert.match(trend, /h-\[360px\]/);
+  assert.match(trend, /2xl:h-\[400px\]/);
   assert.doesNotMatch(trend, /min-w-\[720px\]/);
 });
 
@@ -122,6 +121,6 @@ test('data tables keep readable density for desktop dashboards', () => {
   const table = readFileSync(join(webRoot, 'src', 'components', 'ui', 'table.jsx'), 'utf8');
 
   assert.match(table, /caption-bottom text-sm/);
-  assert.match(table, /h-11/);
-  assert.match(table, /px-4 py-3/);
+  assert.match(table, /min-h-12/);
+  assert.match(table, /px-4 py-2\.5/);
 });

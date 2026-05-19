@@ -4,6 +4,7 @@ import { CircleDot } from 'lucide-react';
 import { Outlet } from 'react-router-dom';
 
 import TaskName from './TaskName.jsx';
+import ThemeToggle from './ThemeToggle.jsx';
 import Sidebar from './Sidebar.jsx';
 import { Badge } from './ui/badge.jsx';
 import {
@@ -183,6 +184,7 @@ const DashboardLayout = () => {
                   />
                 </div>
               ) : null}
+              <ThemeToggle />
             </div>
           </div>
           </header>

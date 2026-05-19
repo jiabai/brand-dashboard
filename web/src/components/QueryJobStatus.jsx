@@ -191,9 +191,9 @@ const QueryJobStatus = () => {
           to { opacity: 1; transform: translateY(0); }
         }
         .glass-card {
-          background: rgba(255, 255, 255, 0.02);
+          background: color-mix(in srgb, var(--foreground) 2%, transparent);
           backdrop-filter: blur(10px);
-          border: 1px solid rgba(255, 255, 255, 0.06);
+          border: 1px solid color-mix(in srgb, var(--foreground) 6%, transparent);
         }
       `}</style>
       
