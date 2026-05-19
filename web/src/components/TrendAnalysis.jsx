@@ -23,6 +23,11 @@ import LoadingSpinner from './LoadingSpinner';
 import { Badge } from './ui/badge.jsx';
 import { Button } from './ui/button.jsx';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card.jsx';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from './ui/tooltip.jsx';
 
 const FilterChips = ({ label, options, value, onChange, getColor }) => (
   <div className="space-y-2">
@@ -146,18 +151,24 @@ const TrendSvgChart = ({ data }) => {
 
         {points.map((point, index) => (
           <g key={point.date}>
-            {/* 不可见的交互区域 — 扩大点击/触摸目标至44px */}
-            <circle
-              cx={point.x} cy={point.y} r="22"
-              fill="transparent"
-              tabIndex={0}
-              role="graphics-symbol"
-              aria-label={`${point.dateStr}: ${formatPercentage(roundTwoDecimals(point.value))}`}
-              className="outline-none focus:stroke-[var(--ring)] focus:stroke-[3px]"
-            />
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <circle
+                  cx={point.x} cy={point.y} r="22"
+                  fill="transparent"
+                  tabIndex={0}
+                  role="graphics-symbol"
+                  aria-label={`${point.dateStr}: ${formatPercentage(roundTwoDecimals(point.value))}`}
+                  className="outline-none focus:stroke-[var(--ring)] focus:stroke-[3px]"
+                />
+              </TooltipTrigger>
+              <TooltipContent side="top" align="center" sideOffset={12}>
+                <span className="font-medium">{point.dateStr}</span>
+                <span className="ml-2">{formatPercentage(roundTwoDecimals(point.value))}</span>
+              </TooltipContent>
+            </Tooltip>
             {/* 可见数据点 */}
             <circle cx={point.x} cy={point.y} r="4.5" fill="var(--card)" stroke="var(--primary)" strokeWidth="2" pointerEvents="none" />
-            <title>{`${point.dateStr}: ${formatPercentage(roundTwoDecimals(point.value))}`}</title>
             {index % labelStep === 0 || index === points.length - 1 ? (
               <text
                 x={point.x}
@@ -538,8 +549,13 @@ const TrendAnalysis = () => {
               title="请输入筛选条件"
               description="选择平台与关键词后即可查看趋势"
             />
-          ) : chartData.length ? (
+          ) : chartData.length && chartData.some((d) => d.mention_rate > 0) ? (
             <TrendSvgChart data={chartData} />
+          ) : chartData.length ? (
+            <EmptyState
+              title="当前周期内无品牌提及数据"
+              description="当前筛选条件下所有数据均为零，暂无品牌提及记录"
+            />
           ) : (
             <EmptyState
               title="暂无趋势数据"

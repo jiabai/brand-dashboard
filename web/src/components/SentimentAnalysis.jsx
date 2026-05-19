@@ -1,5 +1,6 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { Smile } from 'lucide-react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
+import { Smile, ThumbsUp, ThumbsDown, Minus } from 'lucide-react';
+import { ReactWordcloud } from '@cp949/react-wordcloud';
 
 import { fetchFilterMetadata } from '@/api';
 import { useDashboardRequestParams } from '@/hooks/useDashboardParams';
@@ -13,19 +14,25 @@ const MOCK_SENTIMENT = [
   { name: '中性', value: 200, color: 'var(--chart-4)' },
 ];
 
+const SENTIMENT = {
+  POSITIVE: 'positive',
+  NEGATIVE: 'negative',
+  NEUTRAL: 'neutral',
+};
+
 const WORD_CLOUD_DATA = [
-  { text: '品牌声量', value: 88 },
-  { text: '正面反馈', value: 72 },
-  { text: '体验', value: 66 },
-  { text: '信任', value: 58 },
-  { text: '价格', value: 52 },
-  { text: '服务', value: 46 },
-  { text: '质量', value: 44 },
-  { text: '推荐', value: 40 },
-  { text: '社媒讨论', value: 36 },
-  { text: '复购', value: 32 },
-  { text: '物流', value: 28 },
-  { text: '客服', value: 24 },
+  { text: '品牌声量', value: 88, sentiment: SENTIMENT.POSITIVE },
+  { text: '正面反馈', value: 72, sentiment: SENTIMENT.POSITIVE },
+  { text: '体验', value: 66, sentiment: SENTIMENT.POSITIVE },
+  { text: '信任', value: 58, sentiment: SENTIMENT.POSITIVE },
+  { text: '价格', value: 52, sentiment: SENTIMENT.NEGATIVE },
+  { text: '服务', value: 46, sentiment: SENTIMENT.NEGATIVE },
+  { text: '质量', value: 44, sentiment: SENTIMENT.POSITIVE },
+  { text: '推荐', value: 40, sentiment: SENTIMENT.POSITIVE },
+  { text: '社媒讨论', value: 36, sentiment: SENTIMENT.NEUTRAL },
+  { text: '复购', value: 32, sentiment: SENTIMENT.POSITIVE },
+  { text: '物流', value: 28, sentiment: SENTIMENT.NEGATIVE },
+  { text: '客服', value: 24, sentiment: SENTIMENT.NEGATIVE },
 ];
 
 const SentimentDonut = () => {
@@ -75,31 +82,122 @@ const SentimentDonut = () => {
   );
 };
 
+const SENTIMENT_META = {
+  [SENTIMENT.POSITIVE]: {
+    label: '正面',
+    tone: 'text-emerald-600',
+    bg: 'bg-emerald-50',
+    border: 'border-emerald-200',
+    icon: ThumbsUp,
+  },
+  [SENTIMENT.NEGATIVE]: {
+    label: '负面',
+    tone: 'text-red-600',
+    bg: 'bg-red-50',
+    border: 'border-red-200',
+    icon: ThumbsDown,
+  },
+  [SENTIMENT.NEUTRAL]: {
+    label: '中性',
+    tone: 'text-slate-600',
+    bg: 'bg-slate-50',
+    border: 'border-slate-200',
+    icon: Minus,
+  },
+};
+
+const SENTIMENT_COLORS = {
+  [SENTIMENT.POSITIVE]: '#059669', // emerald-600
+  [SENTIMENT.NEGATIVE]: '#dc2626', // red-600
+  [SENTIMENT.NEUTRAL]: '#475569', // slate-600
+};
+
 const WordCloud = () => {
-  const max = Math.max(...WORD_CLOUD_DATA.map((item) => item.value));
-  const min = Math.min(...WORD_CLOUD_DATA.map((item) => item.value));
+  const [activeWord, setActiveWord] = useState(null);
+
+  const words = useMemo(
+    () =>
+      WORD_CLOUD_DATA.map((item) => ({
+        text: item.text,
+        value: item.value,
+        sentiment: item.sentiment,
+      })),
+    [],
+  );
+
+  const getWordColor = useCallback(
+    (word) => {
+      const meta = SENTIMENT_META[word.sentiment] || SENTIMENT_META[SENTIMENT.NEUTRAL];
+      // 如果词语被激活，使用对应情感颜色；否则使用 muted 颜色
+      if (activeWord && activeWord !== word.text) {
+        return '#94a3b8'; // slate-400 for inactive
+      }
+      return SENTIMENT_COLORS[word.sentiment] || '#475569';
+    },
+    [activeWord],
+  );
+
+  const getWordTooltip = useCallback((word) => {
+    const meta = SENTIMENT_META[word.sentiment] || SENTIMENT_META[SENTIMENT.NEUTRAL];
+    return `${word.text} · ${meta.label} · 权重: ${word.value}`;
+  }, []);
+
+  const handleWordClick = useCallback(
+    (word) => {
+      setActiveWord((prev) => (prev === word.text ? null : word.text));
+    },
+    [],
+  );
+
+  const callbacks = useMemo(
+    () => ({
+      getWordColor,
+      getWordTooltip,
+      onWordClick: handleWordClick,
+    }),
+    [getWordColor, getWordTooltip, handleWordClick],
+  );
+
+  const options = useMemo(
+    () => ({
+      colors: Object.values(SENTIMENT_COLORS),
+      deterministic: true,
+      enableTooltip: true,
+      fontFamily: 'system-ui, -apple-system, sans-serif',
+      fontSizes: [14, 40],
+      fontStyle: 'normal',
+      fontWeight: '600',
+      padding: 3,
+      rotationAngles: [-45, 45],
+      rotations: 3,
+      scale: 'sqrt',
+      spiral: 'archimedean',
+      transitionDuration: 500,
+    }),
+    [],
+  );
 
   return (
     <div
-      className="flex min-h-72 flex-wrap items-center justify-center gap-x-5 gap-y-4 rounded-md bg-muted/25 p-6"
+      className="relative min-h-72 overflow-hidden rounded-md bg-muted/25 p-4"
       role="img"
-      aria-label={`热词云: ${WORD_CLOUD_DATA.map((w) => w.text).join('、')}`}
+      aria-label={`热词云: ${words.map((w) => w.text).join('、')}`}
     >
-      {WORD_CLOUD_DATA.map((item) => {
-        const ratio = (item.value - min) / Math.max(1, max - min);
-        const fontSize = 14 + ratio * 26;
-        // 基于权重大小使用语义色彩：高权重=primary强调，低权重=柔和
-        const tone = ratio > 0.6 ? 'text-primary' : ratio > 0.3 ? 'text-foreground' : 'text-muted-foreground';
-        return (
-          <span
-            key={item.text}
-            className={`font-medium ${tone} transition-opacity hover:opacity-70`}
-            style={{ fontSize }}
-          >
-            {item.text}
-          </span>
-        );
-      })}
+      <ReactWordcloud words={words} callbacks={callbacks} options={options} />
+      {/* 图例 */}
+      <div className="mt-3 flex flex-wrap justify-center gap-3">
+        {Object.entries(SENTIMENT_META).map(([key, meta]) => {
+          const Icon = meta.icon;
+          return (
+            <div key={key} className="flex items-center gap-1.5 text-xs">
+              <span className={`inline-flex size-4 items-center justify-center rounded-full ${meta.bg} ${meta.border} border`}>
+                <Icon className="size-2.5" />
+              </span>
+              <span className={meta.tone}>{meta.label}</span>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 };

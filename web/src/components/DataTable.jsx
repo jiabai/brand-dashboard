@@ -41,9 +41,17 @@ const SortIcon = ({ order }) => {
   return <ChevronsUpDown data-icon="inline-end" />;
 };
 
+const RESIZE_STEP = 10;
+
 const ResizableHandle = ({ onResize }) => {
   const rafRef = React.useRef(null);
   const pendingWidthRef = React.useRef(null);
+  const handleRef = React.useRef(null);
+
+  const commitResize = React.useCallback((nextWidth) => {
+    const width = Math.max(80, Math.round(nextWidth));
+    onResize?.(width);
+  }, [onResize]);
 
   const handleMouseDown = (event) => {
     event.preventDefault();
@@ -61,7 +69,7 @@ const ResizableHandle = ({ onResize }) => {
       pendingWidthRef.current = startWidth + moveEvent.clientX - startX;
       if (rafRef.current == null) {
         rafRef.current = requestAnimationFrame(() => {
-          onResize?.(pendingWidthRef.current);
+          commitResize(pendingWidthRef.current);
           rafRef.current = null;
         });
       }
@@ -72,24 +80,50 @@ const ResizableHandle = ({ onResize }) => {
       document.body.style.userSelect = previousUserSelect;
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
-      // 确保最后一帧被渲染
       if (rafRef.current != null) {
         cancelAnimationFrame(rafRef.current);
         rafRef.current = null;
       }
-      onResize?.(pendingWidthRef.current);
+      commitResize(pendingWidthRef.current);
     };
 
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleMouseUp);
   };
 
+  const handleKeyDown = (event) => {
+    const parent = handleRef.current?.parentElement;
+    if (!parent) return;
+
+    const currentWidth = parent.getBoundingClientRect().width;
+
+    switch (event.key) {
+      case 'ArrowLeft':
+        event.preventDefault();
+        commitResize(currentWidth - RESIZE_STEP);
+        break;
+      case 'ArrowRight':
+        event.preventDefault();
+        commitResize(currentWidth + RESIZE_STEP);
+        break;
+      case 'Home':
+        event.preventDefault();
+        commitResize(160);
+        break;
+    }
+  };
+
   return (
     <span
+      ref={handleRef}
       role="separator"
+      tabIndex={0}
       aria-orientation="vertical"
-      className="absolute right-0 top-0 h-full w-2 cursor-col-resize select-none"
+      aria-label="调整列宽，按左右方向键调整"
+      aria-roledescription="可拖拽调整大小的分隔条"
+      className="absolute right-0 top-0 h-full w-2 cursor-col-resize select-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:outline-none"
       onMouseDown={handleMouseDown}
+      onKeyDown={handleKeyDown}
     />
   );
 };

@@ -10,6 +10,7 @@ import { clampPercent, roundTwoDecimals } from '@/utils';
 import DataTable from './DataTable.jsx';
 import EmptyState from './EmptyState.jsx';
 import LoadingSpinner from './LoadingSpinner.jsx';
+import { Link } from 'lucide-react';
 import { Button } from './ui/button.jsx';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card.jsx';
 
@@ -149,7 +150,12 @@ const ReferencesTable = ({
     return (
       <Card>
         <CardHeader>
-          <CardTitle>引用媒介详情</CardTitle>
+          <CardTitle>
+          <span className="flex items-center gap-2">
+            <Link className="size-5 text-primary" />
+            引用媒介详情
+          </span>
+        </CardTitle>
         </CardHeader>
         <CardContent>
           <LoadingSpinner text="正在加载引用媒介..." />
@@ -163,7 +169,12 @@ const ReferencesTable = ({
     return (
       <Card>
         <CardHeader>
-          <CardTitle>引用媒介详情</CardTitle>
+          <CardTitle>
+          <span className="flex items-center gap-2">
+            <Link className="size-5 text-primary" />
+            引用媒介详情
+          </span>
+        </CardTitle>
         </CardHeader>
         <CardContent>
           <EmptyState
@@ -183,7 +194,12 @@ const ReferencesTable = ({
     return (
       <Card>
         <CardHeader>
-          <CardTitle>引用媒介详情</CardTitle>
+          <CardTitle>
+          <span className="flex items-center gap-2">
+            <Link className="size-5 text-primary" />
+            引用媒介详情
+          </span>
+        </CardTitle>
         </CardHeader>
         <CardContent>
           <EmptyState title="暂无引用媒介" description="当前时间范围内没有可用的引用链接数据" />
@@ -195,7 +211,12 @@ const ReferencesTable = ({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>引用媒介详情</CardTitle>
+        <CardTitle>
+          <span className="flex items-center gap-2">
+            <Link className="size-5 text-primary" />
+            引用媒介详情
+          </span>
+        </CardTitle>
       </CardHeader>
       <CardContent>
       <DataTable

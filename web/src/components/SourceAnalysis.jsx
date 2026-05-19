@@ -130,28 +130,36 @@ const SourceAnalysisChart = ({
             {safeStats.length ? (
               <div className="flex h-full w-full">
                 {safeStats.map((item) => (
-                  <div
-                    key={item.type}
-                    className="h-full"
-                    style={{
-                      width: `${clampPercent(item.value)}%`,
-                      background: item.color,
-                    }}
-                    title={`${item.type}: ${item.value}%`}
-                    role="graphics-symbol"
-                    aria-label={`${item.type}: ${item.value}%`}
-                  />
+                  <Tooltip key={item.type}>
+                    <TooltipTrigger asChild>
+                      <div
+                        className="h-full"
+                        style={{
+                          width: `${clampPercent(item.value)}%`,
+                          background: item.color,
+                        }}
+                        role="graphics-symbol"
+                        aria-label={`${item.type}: ${item.value}%`}
+                      />
+                    </TooltipTrigger>
+                    <TooltipContent side="top" align="center">
+                      {item.type}: {item.value}%
+                    </TooltipContent>
+                  </Tooltip>
                 ))}
               </div>
             ) : null}
           </div>
           {/* 百分比刻度标注 */}
-          <div className="mt-1.5 flex justify-between text-xs text-muted-foreground">
-            <span>0%</span>
-            <span>25%</span>
-            <span>50%</span>
-            <span>75%</span>
-            <span>100%</span>
+          <div className="mt-1.5 flex items-center gap-1.5 text-xs text-muted-foreground">
+            <span className="shrink-0">占比</span>
+            <span className="flex flex-1 justify-between">
+              <span>0%</span>
+              <span>25%</span>
+              <span>50%</span>
+              <span>75%</span>
+              <span>100%</span>
+            </span>
           </div>
         </div>
 
