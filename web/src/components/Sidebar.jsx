@@ -1,49 +1,80 @@
 import React, { useMemo } from 'react';
-import { Layout, Menu, Typography, theme } from 'antd';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
-  BarChartOutlined,
-  BookOutlined,
-  HomeOutlined,
-  LineChartOutlined,
-  MessageOutlined,
-  PictureOutlined,
-  PlusOutlined,
-  SmileOutlined,
-  SettingOutlined,
-  UnorderedListOutlined,
-  UserOutlined
-} from '@ant-design/icons';
+  BarChart3,
+  BookOpen,
+  Home,
+  Image,
+  List,
+  MessageSquare,
+  Plus,
+  Settings,
+  Smile,
+  TrendingUp,
+  User,
+} from 'lucide-react';
+import {
+  Sidebar as UiSidebar,
+  SidebarContent,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarSeparator,
+} from './ui/sidebar.jsx';
 import { getSidebarMenuRoutes, getTaskMenuRoutes } from '@/config/routes';
 import { useDashboardParams } from '@/hooks/useDashboardParams';
 import { buildRouteSearch, buildViewPath, getViewKeyFromPath } from '@/utils/routing';
 
 const MENU_ICON_MAP = {
-  BarChartOutlined: <BarChartOutlined />,
-  BookOutlined: <BookOutlined />,
-  HomeOutlined: <HomeOutlined />,
-  LineChartOutlined: <LineChartOutlined />,
-  MessageOutlined: <MessageOutlined />,
-  PictureOutlined: <PictureOutlined />,
-  PlusOutlined: <PlusOutlined />,
-  SettingOutlined: <SettingOutlined />,
-  SmileOutlined: <SmileOutlined />,
-  UnorderedListOutlined: <UnorderedListOutlined />,
-  UserOutlined: <UserOutlined />,
+  BarChartOutlined: BarChart3,
+  BookOutlined: BookOpen,
+  HomeOutlined: Home,
+  LineChartOutlined: TrendingUp,
+  MessageOutlined: MessageSquare,
+  PictureOutlined: Image,
+  PlusOutlined: Plus,
+  SettingOutlined: Settings,
+  SmileOutlined: Smile,
+  UnorderedListOutlined: List,
+  UserOutlined: User,
 };
 
-const toMenuItem = (route) => ({
-  key: route.viewKey,
-  icon: MENU_ICON_MAP[route.menuIcon],
-  label: route.menuLabel,
-  disabled: Boolean(route.disabled),
-});
+const MENU_ITEMS = getSidebarMenuRoutes();
+const TASK_MENU_ITEMS = getTaskMenuRoutes();
 
-const MENU_ITEMS = getSidebarMenuRoutes().map(toMenuItem);
-const TASK_MENU_ITEMS = getTaskMenuRoutes().map(toMenuItem);
+const SidebarMenuSection = ({ label, items, selectedKey, onSelect }) => (
+  <SidebarGroup>
+    <SidebarGroupLabel>{label}</SidebarGroupLabel>
+    <SidebarGroupContent>
+      <SidebarMenu>
+        {items.map((item) => {
+          const Icon = MENU_ICON_MAP[item.menuIcon] || Home;
+          return (
+            <SidebarMenuItem key={item.viewKey}>
+              <SidebarMenuButton
+                isActive={selectedKey === item.viewKey}
+                disabled={Boolean(item.disabled)}
+                tooltip={item.menuLabel}
+                onClick={() => {
+                  if (!item.disabled) onSelect(item.viewKey);
+                }}
+              >
+                <Icon />
+                <span>{item.menuLabel}</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          );
+        })}
+      </SidebarMenu>
+    </SidebarGroupContent>
+  </SidebarGroup>
+);
 
-const Sidebar = ({ collapsed, onCollapse }) => {
-  const { token } = theme.useToken();
+const Sidebar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { tenantKey, jobId } = useDashboardParams();
@@ -52,92 +83,51 @@ const Sidebar = ({ collapsed, onCollapse }) => {
     [location.pathname],
   );
 
-  const handleMenuClick = ({ key }) => {
-    const pathname = buildViewPath(key, { tenantKey, jobId });
+  const handleMenuSelect = (viewKey) => {
+    const pathname = buildViewPath(viewKey, { tenantKey, jobId });
     const search = buildRouteSearch({
       search: location.search,
-      nextViewKey: key,
+      nextViewKey: viewKey,
     });
     navigate(`${pathname}${search}`);
   };
 
   return (
-    <Layout.Sider
-      width={240}
-      collapsible
-      collapsed={collapsed}
-      onCollapse={onCollapse}
-      style={{
-        borderRight: `1px solid ${token.colorBorderSecondary}`,
-        position: 'sticky',
-        top: 0,
-        height: '100vh',
-        background: token.colorBgContainer
-      }}
-    >
-      <div style={{ 
-        padding: collapsed ? `${token.padding}px 0` : token.padding,
-        display: 'flex',
-        justifyContent: 'center'
-      }}>
-        <div style={{ 
-          display: 'flex', 
-          flexDirection: 'column', 
-          gap: 4,
-          alignItems: collapsed ? 'center' : 'flex-start',
-          width: '100%'
-        }}>
-          <div style={{ 
-            display: 'flex', 
-            alignItems: 'baseline', 
-            gap: 6,
-            justifyContent: collapsed ? 'center' : 'flex-start'
-          }}>
-            <Typography.Text style={{ 
-              fontSize: 16, 
-              fontWeight: 700, 
-              color: token.colorText,
-              flexShrink: 0
-            }}>
-              明察
-            </Typography.Text>
-            {!collapsed && (
-              <Typography.Text style={{ 
-                fontSize: 15, 
-                fontWeight: 500, 
-                color: token.colorPrimary,
-                whiteSpace: 'nowrap'
-              }}>
-                InsightFlow
-              </Typography.Text>
-            )}
+    <UiSidebar collapsible="icon" className="border-sidebar-border">
+      <SidebarHeader className="px-3 py-5">
+        <div className="flex min-w-0 items-center gap-2 rounded-lg border border-sidebar-border bg-sidebar-accent/70 p-2 group-data-[collapsible=icon]:justify-center">
+          <div className="grid size-8 shrink-0 place-items-center rounded-md bg-sidebar-primary text-sm font-medium text-sidebar-primary-foreground">
+            明
           </div>
-          {!collapsed ? (
-            <Typography.Text type="secondary" style={{ fontSize: 12, whiteSpace: 'nowrap' }}>
-              监控 · 分析 · 报告
-            </Typography.Text>
-          ) : null}
+          <div className="flex min-w-0 flex-col gap-0.5 group-data-[collapsible=icon]:hidden">
+            <div className="flex items-baseline gap-1.5 truncate">
+              <span className="text-sm font-medium text-sidebar-foreground">明察</span>
+              <span className="text-xs font-medium text-sidebar-primary">
+                InsightFlow
+              </span>
+            </div>
+            <span className="truncate text-xs text-sidebar-foreground/70">
+              Monitor · Analyze · Report
+            </span>
+          </div>
         </div>
-      </div>
-
-      <div style={{ paddingInline: token.paddingSM, paddingBottom: token.paddingSM }}>
-        <Menu
-          mode="inline"
-          selectedKeys={[selectedKey]}
-          onClick={handleMenuClick}
+      </SidebarHeader>
+      <SidebarContent>
+        <SidebarMenuSection
+          label="任务"
           items={TASK_MENU_ITEMS}
-          style={{ border: 'none' }}
+          selectedKey={selectedKey}
+          onSelect={handleMenuSelect}
         />
-      </div>
-
-      <Menu
-        mode="inline"
-        selectedKeys={[selectedKey]}
-        onClick={handleMenuClick}
-        items={MENU_ITEMS}
-        style={{ border: 'none' }}
-      />
-    </Layout.Sider>
+        <SidebarSeparator />
+        <SidebarMenuSection
+          label="分析"
+          items={MENU_ITEMS}
+          selectedKey={selectedKey}
+          onSelect={handleMenuSelect}
+        />
+      </SidebarContent>
+    </UiSidebar>
   );
 };
 

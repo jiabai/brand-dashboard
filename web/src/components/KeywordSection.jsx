@@ -1,11 +1,15 @@
 import React, { useState } from 'react';
-import { Card, Typography, Tag, Divider, Flex, Spin, Empty, theme } from 'antd';
 import { Hash } from 'lucide-react';
 
-const { Title } = Typography;
+import EmptyState from './EmptyState.jsx';
+import LoadingSpinner from './LoadingSpinner.jsx';
+import { Badge } from './ui/badge.jsx';
+import { Button } from './ui/button.jsx';
+import { Card, CardContent, CardHeader, CardTitle } from './ui/card.jsx';
+import { Separator } from './ui/separator.jsx';
+import { cn } from '@/lib/cn';
 
 const KeywordSection = ({ keywords = [], loading = false, selectedKeyword, onKeywordChange, style }) => {
-  const { token } = theme.useToken();
   const [internalKeyword, setInternalKeyword] = useState('');
 
   const isControlled = selectedKeyword !== undefined;
@@ -27,60 +31,51 @@ const KeywordSection = ({ keywords = [], loading = false, selectedKeyword, onKey
   };
 
   return (
-    <Card
-      variant="borderless"
-      styles={{ body: { padding: token.paddingLG, display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 } }}
-      style={{ boxShadow: token.boxShadowTertiary, borderRadius: token.borderRadiusLG, display: 'flex', flexDirection: 'column', ...style }}
-    >
-      <Spin spinning={loading}>
-        <Flex vertical gap="middle" style={{ flex: 1 }}>
-          <Flex align="center" gap="small">
-            <Hash size={20} color={token.colorPrimary} />
-            <Title level={4} style={{ margin: 0, fontWeight: 700 }}>品牌关键词</Title>
-            {currentKeyword ? (
-              <Tag
-                closable
-                onClose={handleClear}
-                color="processing"
-                style={{ marginLeft: token.marginSM }}
-              >
-                已选: {currentKeyword}
-              </Tag>
-            ) : null}
-          </Flex>
+    <Card className="min-h-full" style={style}>
+      <CardHeader>
+        <div className="flex flex-wrap items-center gap-2">
+          <Hash className="text-primary" />
+          <CardTitle>品牌关键词</CardTitle>
+          {currentKeyword ? (
+            <Badge variant="secondary" className="gap-2">
+              已选: {currentKeyword}
+              <Button variant="ghost" size="icon-xs" onClick={handleClear} aria-label="清除关键词">
+                x
+              </Button>
+            </Badge>
+          ) : null}
+        </div>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-4">
+        <Separator />
 
-          <Divider style={{ margin: '4px 0' }} />
-
-          {keywords.length > 0 ? (
-            <Flex wrap="wrap" gap="small">
-              {keywords.map((kw) => {
-                const isSelected = currentKeyword === kw;
-                return (
-                  <Tag
-                    key={kw}
-                    bordered={false}
-                    onClick={() => handleSelect(kw)}
-                    style={{
-                      borderRadius: token.borderRadiusLG,
-                      backgroundColor: isSelected ? token.colorPrimary : token.colorFillTertiary,
-                      color: isSelected ? '#fff' : token.colorTextDescription,
-                      padding: '4px 12px',
-                      cursor: 'pointer',
-                      transition: 'all 0.3s',
-                      margin: 0,
-                    }}
-                    className={!isSelected ? 'hover:bg-blue-50 hover:text-blue-600' : ''}
-                  >
-                    {kw}
-                  </Tag>
-                );
-              })}
-            </Flex>
-          ) : !loading && (
-            <Empty description="暂无关键词" image={Empty.PRESENTED_IMAGE_SIMPLE} />
-          )}
-        </Flex>
-      </Spin>
+        {loading ? (
+          <LoadingSpinner text="正在加载关键词..." />
+        ) : keywords.length > 0 ? (
+          <div className="flex flex-wrap gap-2">
+            {keywords.map((kw) => {
+              const isSelected = currentKeyword === kw;
+              return (
+                <button
+                  key={kw}
+                  type="button"
+                  onClick={() => handleSelect(kw)}
+                  className={cn(
+                    'rounded-lg px-3 py-1 text-sm transition-colors',
+                    isSelected
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-muted text-muted-foreground hover:bg-accent hover:text-accent-foreground',
+                  )}
+                >
+                  {kw}
+                </button>
+              );
+            })}
+          </div>
+        ) : (
+          <EmptyState title="暂无关键词" description="当前筛选条件下没有关键词数据" icon={Hash} />
+        )}
+      </CardContent>
     </Card>
   );
 };

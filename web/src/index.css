@@ -1,95 +1,104 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tw-animate-css";
+@import "tailwindcss";
+@import "shadcn/tailwind.css";
 
 @custom-variant dark (&:is(.dark *));
 
-/* Custom CSS Variables for consistent theming */
+/* Warm operational dashboard tokens */
 :root {
-  /* Light Theme Ant Design Variables */
-  --ant-color-primary: #fa8c16;
-  --ant-color-primary-hover: #ffa940;
-  --ant-color-primary-active: #d46b08;
-  --ant-color-bg-layout: #fff7e6;
-  --ant-color-bg-container: #ffffff;
-  --ant-color-border: #d9d9d9;
-  --ant-color-border-secondary: #f0f0f0;
-  --ant-color-text: rgba(0, 0, 0, 0.88);
-  --ant-color-text-secondary: rgba(0, 0, 0, 0.65);
-  --ant-color-text-tertiary: rgba(0, 0, 0, 0.45);
-  --ant-color-success: #52c41a;
-  --ant-color-warning: #faad14;
-  --ant-color-error: #ff4d4f;
-  --ant-color-link: #fa8c16;
-  --ant-color-link-hover: #ffa940;
-  --ant-color-link-active: #d46b08;
+  --background: #faf9f5;
+  --foreground: #141413;
+  --card: #faf9f5;
+  --card-foreground: #141413;
+  --popover: #efe9de;
+  --popover-foreground: #141413;
+  --primary: #cc785c;
+  --primary-foreground: #ffffff;
+  --secondary: #f5f0e8;
+  --secondary-foreground: #252523;
+  --muted: #f5f0e8;
+  --muted-foreground: #6c6a64;
+  --body: #3d3d3a;
+  --body-strong: #252523;
+  --accent: #efe9de;
+  --accent-foreground: #252523;
+  --destructive: #c64545;
+  --destructive-foreground: #ffffff;
+  --border: #e6dfd8;
+  --input: #e6dfd8;
+  --ring: #cc785c;
+  --chart-1: #cc785c;
+  --chart-2: #5db8a6;
+  --chart-3: #e8a55a;
+  --chart-4: #5db872;
+  --chart-5: #c64545;
+  --radius: 0.75rem;
+  --sidebar: #181715;
+  --sidebar-foreground: #faf9f5;
+  --sidebar-primary: #cc785c;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #252320;
+  --sidebar-accent-foreground: #faf9f5;
+  --sidebar-border: #34312d;
+  --sidebar-ring: #cc785c;
 }
 
 .dark {
-  /* Dark Theme Ant Design Variables */
-  --ant-color-primary: #fa8c16;
-  --ant-color-primary-hover: #ffa940;
-  --ant-color-primary-active: #d46b08;
-  --ant-color-bg-layout: #0a0512;
-  --ant-color-bg-container: #150c24;
-  --ant-color-border: #434343;
-  --ant-color-border-secondary: #272727;
-  --ant-color-text: rgba(255, 255, 255, 0.85);
-  --ant-color-text-secondary: rgba(255, 255, 255, 0.65);
-  --ant-color-text-tertiary: rgba(255, 255, 255, 0.45);
-  --ant-color-success: #52c41a;
-  --ant-color-warning: #faad14;
-  --ant-color-error: #ff4d4f;
-  --ant-color-link: #fa8c16;
-  --ant-color-link-hover: #ffa940;
-  --ant-color-link-active: #d46b08;
+  --background: #181715;
+  --foreground: #faf9f5;
+  --card: #252320;
+  --card-foreground: #faf9f5;
+  --popover: #252320;
+  --popover-foreground: #faf9f5;
+  --primary: #cc785c;
+  --primary-foreground: #ffffff;
+  --secondary: #1f1e1b;
+  --secondary-foreground: #faf9f5;
+  --muted: #1f1e1b;
+  --muted-foreground: #a09d96;
+  --body: #a09d96;
+  --body-strong: #d4d1ca;
+  --accent: #34312d;
+  --accent-foreground: #faf9f5;
+  --destructive: #c64545;
+  --destructive-foreground: #ffffff;
+  --border: #34312d;
+  --input: #34312d;
+  --ring: #cc785c;
+  --chart-1: #cc785c;
+  --chart-2: #5db8a6;
+  --chart-3: #e8a55a;
+  --chart-4: #5db872;
+  --chart-5: #c64545;
+  --sidebar: #181715;
+  --sidebar-foreground: #faf9f5;
+  --sidebar-primary: #cc785c;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #252320;
+  --sidebar-accent-foreground: #faf9f5;
+  --sidebar-border: #34312d;
+  --sidebar-ring: #cc785c;
 }
 
 @layer base {
-  :root {
-    --background: var(--ant-color-bg-layout);
-    --foreground: var(--ant-color-text);
-    --card: var(--ant-color-bg-container);
-    --card-foreground: var(--ant-color-text);
-    --popover: var(--ant-color-bg-container);
-    --popover-foreground: var(--ant-color-text);
-    --primary: var(--ant-color-primary);
-    --primary-foreground: var(--ant-color-text);
-    --secondary: var(--ant-color-text-secondary);
-    --secondary-foreground: var(--ant-color-text);
-    --muted: var(--ant-color-text-tertiary);
-    --muted-foreground: var(--ant-color-text);
-    --accent: var(--ant-color-primary-hover);
-    --accent-foreground: var(--ant-color-text);
-    --destructive: var(--ant-color-error);
-    --destructive-foreground: var(--ant-color-text);
-    --border: var(--ant-color-border);
-    --input: var(--ant-color-border);
-    --ring: var(--ant-color-primary);
-    --radius: 0.5rem;
+  * {
+    @apply border-border outline-ring/50;
   }
-
-  .dark {
-    --background: var(--ant-color-bg-layout);
-    --foreground: var(--ant-color-text);
-    --card: var(--ant-color-bg-container);
-    --card-foreground: var(--ant-color-text);
-    --popover: var(--ant-color-bg-container);
-    --popover-foreground: var(--ant-color-text);
-    --primary: var(--ant-color-primary);
-    --primary-foreground: var(--ant-color-text);
-    --secondary: var(--ant-color-text-secondary);
-    --secondary-foreground: var(--ant-color-text);
-    --muted: var(--ant-color-text-tertiary);
-    --muted-foreground: var(--ant-color-text);
-    --accent: var(--ant-color-primary-hover);
-    --accent-foreground: var(--ant-color-text);
-    --destructive: var(--ant-color-error);
-    --destructive-foreground: var(--ant-color-text);
-    --border: var(--ant-color-border);
-    --input: var(--ant-color-border);
-    --ring: var(--ant-color-primary);
-    --radius: 0.5rem;
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-family-primary);
+    line-height: var(--leading-base);
+  }
+  button:not(:disabled), [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+  html {
+    @apply font-sans;
+    line-height: var(--leading-base);
+  }
+  h1, h2, h3, h4, h5, h6 {
+    line-height: var(--leading-snug);
+    font-weight: var(--font-weight-medium);
   }
 }
 
@@ -99,41 +108,38 @@
 
 /* Custom CSS Variables for consistent theming */
 :root {
-  /* Typography */
-  --font-family-primary: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI',
-    'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans',
+  /* Typography - 遵循 ui-ux-pro-max 规范 */
+  --font-family-primary: 'Inter', ui-sans-serif, -apple-system, BlinkMacSystemFont,
+    'Segoe UI', 'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC',
     'Helvetica Neue', sans-serif;
   --font-weight-normal: 400;
   --font-weight-medium: 500;
-  --font-weight-semibold: 600;
-  --font-weight-bold: 700;
-  --line-height-base: 1.6;
+
+  /* 字体大小层级系统 - 12/14/16/18/20/24/32 */
+  --font-size-xs: 0.75rem;    /* 12px - 标签、辅助文字 */
+  --font-size-sm: 0.875rem;   /* 14px - 次要正文 */
+  --font-size-base: 1rem;     /* 16px - 正文 */
+  --font-size-lg: 1.125rem;   /* 18px - 小标题 */
+  --font-size-xl: 1.25rem;    /* 20px - 卡片标题 */
+  --font-size-2xl: 1.5rem;    /* 24px - 页面标题 */
+  --font-size-3xl: 2rem;      /* 32px - 大标题 */
 
   /* Gradients */
-  --gradient-primary: linear-gradient(135deg, #722ED1 0%, #531dab 100%);
-  --gradient-background: linear-gradient(120deg, #fdfbfb 0%, #ebedee 100%);
-  --gradient-hero:
-    radial-gradient(at 0% 0%, hsla(253,16%,7%,1) 0, transparent 50%),
-    radial-gradient(at 50% 0%, hsla(225,39%,30%,1) 0, transparent 50%),
-    radial-gradient(at 100% 0%, hsla(339,49%,30%,1) 0, transparent 50%);
+  --gradient-primary: linear-gradient(135deg, #cc785c 0%, #a9583e 100%);
+  --gradient-background: linear-gradient(180deg, #faf9f5 0%, #f5f0e8 100%);
 
   /* Shadows */
-  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
-  --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.15);
-  --shadow-xl: 0 20px 50px rgba(0, 0, 0, 0.2);
-  
+  --shadow-sm: 0 1px 2px rgba(20, 20, 19, 0.05);
+  --shadow-md: 0 8px 20px rgba(20, 20, 19, 0.08);
+  --shadow-lg: 0 16px 40px rgba(20, 20, 19, 0.1);
+  --shadow-xl: 0 24px 56px rgba(20, 20, 19, 0.12);
+
   /* Chart Colors */
-  --chart-1: #52c41a;
-  --chart-2: #722ED1;
-  --chart-3: #faad14;
-  --chart-4: #ff4d4f;
-  --chart-5: #722ed1;
-  --chart-6: #13c2c2;
-  --chart-7: #2f54eb;
-  --chart-8: #fa8c16;
-  --chart-9: #eb2f96;
-  --chart-10: #8c8c8c;
+  --chart-6: #8e8b82;
+  --chart-7: #3d3d3a;
+  --chart-8: #a9583e;
+  --chart-9: #d4a017;
+  --chart-10: #6c6a64;
 
   /* Border Radius */
   --radius-sm: 8px;
@@ -142,13 +148,27 @@
   --radius-xl: 24px;
   --radius-full: 999px;
 
-  /* Spacing */
-  --spacing-xs: 0.25rem;
-  --spacing-sm: 0.5rem;
-  --spacing-md: 1rem;
-  --spacing-lg: 1.5rem;
-  --spacing-xl: 2rem;
-  --spacing-2xl: 3rem;
+  /* Spacing - 4pt/8dp 增量系统 (Material Design) */
+  --spacing-0: 0;
+  --spacing-1: 0.25rem;   /* 4px */
+  --spacing-2: 0.5rem;    /* 8px */
+  --spacing-3: 0.75rem;   /* 12px */
+  --spacing-4: 1rem;      /* 16px */
+  --spacing-5: 1.25rem;   /* 20px */
+  --spacing-6: 1.5rem;    /* 24px */
+  --spacing-8: 2rem;      /* 32px */
+  --spacing-10: 2.5rem;   /* 40px */
+  --spacing-12: 3rem;     /* 48px */
+  --spacing-16: 4rem;     /* 64px */
+
+  /* 间距层级 - 用于组件内部和 Section 间距 */
+  --space-component-xs: 0.25rem;  /* 4px - 图标与文字间距 */
+  --space-component-sm: 0.5rem;   /* 8px - 紧凑组件内部 */
+  --space-component-md: 0.75rem;  /* 12px - 标准组件内部 */
+  --space-component-lg: 1rem;     /* 16px - 宽松组件内部 */
+  --space-section-sm: 1rem;       /* 16px - 小节间距 */
+  --space-section-md: 1.5rem;     /* 24px - 标准 Section 间距 */
+  --space-section-lg: 2rem;       /* 32px - 大 Section 间距 */
 
   /* Transitions */
   --transition-fast: 0.2s ease;
@@ -160,58 +180,19 @@
    RESET & BASE STYLES
    ======================================== */
 
-/* Ant Design Input Background Fix for Dark Mode */
-.dark .ant-input,
-.dark .ant-input-number-input,
-.dark .ant-input-affix-wrapper,
-.dark .ant-input-number,
-.dark .ant-picker,
-.dark .ant-input-status-success,
-.dark .ant-input-status-warning,
-.dark .ant-input-status-error,
-.dark .ant-input-status-validating {
-  background-color: var(--ant-color-bg-layout) !important;
-  color: var(--ant-color-text) !important;
-}
-
-/* Ensure placeholder text is visible but muted */
-.dark .ant-input::placeholder {
-  color: var(--ant-color-text-tertiary) !important;
-  opacity: 1;
-}
-
 /* Chrome Autofill Fix - Forces the background to stay dark */
 .dark input:-webkit-autofill,
 .dark input:-webkit-autofill:hover,
 .dark input:-webkit-autofill:focus,
 .dark input:-webkit-autofill:active {
-  -webkit-box-shadow: 0 0 0 1000px var(--ant-color-bg-layout) inset !important;
-  -webkit-text-fill-color: var(--ant-color-text) !important;
-  caret-color: var(--ant-color-text);
+  -webkit-box-shadow: 0 0 0 1000px var(--background) inset !important;
+  -webkit-text-fill-color: var(--foreground) !important;
+  caret-color: var(--foreground);
   transition: background-color 5000s ease-in-out 0s;
-}
-
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
 }
 
 html {
   scroll-behavior: smooth;
-}
-
-body {
-  margin: 0;
-  padding: 0;
-  min-width: 320px;
-  min-height: 100vh;
-  background: var(--ant-color-bg-layout);
-  font-family: var(--font-family-primary);
-  color: var(--ant-color-text);
-  overflow-x: hidden;
 }
 
 #root {
@@ -220,85 +201,7 @@ body {
   flex-direction: column;
 }
 
-/* ========================================
-   UTILITY CLASSES
-   ======================================== */
-
-
-/* Screen reader only content */
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
-}
-
-/* Text utilities */
-.text-center { text-align: center; }
-.text-left { text-align: left; }
-.text-right { text-align: right; }
-
-.font-normal { font-weight: var(--font-weight-normal); }
-.font-medium { font-weight: var(--font-weight-medium); }
-.font-semibold { font-weight: var(--font-weight-semibold); }
-.font-bold { font-weight: var(--font-weight-bold); }
-
-/* Flex utilities */
-.flex { display: flex; }
-.flex-column { flex-direction: column; }
-.flex-wrap { flex-wrap: wrap; }
-.justify-center { justify-content: center; }
-.justify-between { justify-content: space-between; }
-.align-center { align-items: center; }
-.align-start { align-items: flex-start; }
-.align-end { align-items: flex-end; }
-
-
-/* Modern typography */
-h1, h2, h3, h4, h5, h6 {
-  margin: 0;
-  font-weight: 600;
-  line-height: 1.3;
-}
-
-h1 {
-  font-size: 2.5rem;
-  font-weight: 700;
-}
-
-h2 {
-  font-size: 2rem;
-}
-
-h3 {
-  font-size: 1.5rem;
-}
-
-p {
-  margin: 0 0 1em 0;
-  line-height: 1.6;
-}
-
-/* Link styles */
-a {
-  font-weight: 500;
-  color: var(--ant-color-link);
-  text-decoration: none;
-  transition: color 0.3s ease;
-}
-
-a:hover {
-  color: var(--ant-color-link-hover);
-}
-
-a:active {
-  color: var(--ant-color-link-active);
-}
+/* Component typography and utility behavior are controlled by Tailwind. */
 
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
@@ -317,6 +220,8 @@ a:active {
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
+  --color-body: var(--body);
+  --color-body-strong: var(--body-strong);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
@@ -336,6 +241,20 @@ a:active {
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+  --font-heading: var(--font-sans);
+  --font-sans: var(--font-family-primary);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+@theme {
+  --leading-none: 1;
+  --leading-tight: 1.25;
+  --leading-snug: 1.375;
+  --leading-base: 1.5;
+  --leading-relaxed: 1.625;
+  --leading-loose: 1.75;
 }
 
 @layer base {

@@ -26,27 +26,27 @@ export const DEFAULT_REFERENCES_DATA = [
 ];
 
 export const PLATFORM_COLORS = {
-  chatgpt: '#10b981',
-  gemini: '#3b82f6',
-  claude: '#f59e0b',
-  '通义千问': '#ef4444',
-  qwen: '#ef4444',
-  '豆包': '#8b5cf6',
-  doubao: '#8b5cf6',
-  deepseek: '#06b6d4',
-  kimi: '#a855f7',
-  '元宝': '#f97316',
-  yuanbao: '#f97316',
-  '夸克': '#ec4899',
-  quark: '#ec4899',
-  '文心一言': '#6b7280',
-  ernie: '#6b7280',
-  'ernie bot': '#6b7280',
+  chatgpt: 'var(--chart-4)',
+  gemini: 'var(--chart-2)',
+  claude: 'var(--chart-1)',
+  '通义千问': 'var(--chart-5)',
+  qwen: 'var(--chart-5)',
+  '豆包': 'var(--chart-3)',
+  doubao: 'var(--chart-3)',
+  deepseek: 'var(--chart-2)',
+  kimi: 'var(--chart-8)',
+  '元宝': 'var(--chart-3)',
+  yuanbao: 'var(--chart-3)',
+  '夸克': 'var(--chart-1)',
+  quark: 'var(--chart-1)',
+  '文心一言': 'var(--chart-10)',
+  ernie: 'var(--chart-10)',
+  'ernie bot': 'var(--chart-10)',
 };
 
 export const getPlatformColor = (name) => {
   const raw = String(name || '').trim();
-  if (!raw) return '#6b7280';
+  if (!raw) return 'var(--chart-10)';
   const keyLower = raw.toLowerCase();
-  return PLATFORM_COLORS[keyLower] || PLATFORM_COLORS[raw] || '#6b7280';
+  return PLATFORM_COLORS[keyLower] || PLATFORM_COLORS[raw] || 'var(--chart-10)';
 };

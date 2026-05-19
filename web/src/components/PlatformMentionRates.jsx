@@ -1,15 +1,19 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Card, List, Progress, Typography, Statistic, Tag, theme } from 'antd';
-import { TrophyOutlined, ArrowUpOutlined, ArrowDownOutlined } from '@ant-design/icons';
+import { ArrowDown, ArrowUp, Trophy } from 'lucide-react';
 import { fetchPlatformMetricsByBrand } from '@/api';
 import { useDashboardRequestParams } from '@/hooks/useDashboardParams';
 import { getPlatformColor, toPercent, clampPercent, roundTwoDecimals } from '@/utils';
+import EmptyState from './EmptyState.jsx';
+import LoadingSpinner from './LoadingSpinner.jsx';
+import { Alert, AlertDescription, AlertTitle } from './ui/alert.jsx';
+import { Badge } from './ui/badge.jsx';
+import { Card, CardContent, CardHeader, CardTitle } from './ui/card.jsx';
+import { Progress } from './ui/progress.jsx';
 
 const PlatformMentionRates = ({
   onPlatformClick,
 }) => {
   const { timeframe, date, endDate, tenantKey, jobId, brand } = useDashboardRequestParams();
-  const { token } = theme.useToken();
   const abortControllerRef = useRef(null);
   const [platforms, setPlatforms] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -45,7 +49,7 @@ const PlatformMentionRates = ({
             return {
               name,
               rate,
-              color: getPlatformColor(name) || token.colorPrimary,
+              color: getPlatformColor(name) || 'var(--primary)',
               change: 0,
             };
           })
@@ -66,92 +70,102 @@ const PlatformMentionRates = ({
     return () => {
       controller.abort();
     };
-  }, [brand, date, endDate, jobId, tenantKey, timeframe, token.colorPrimary]);
+  }, [brand, date, endDate, jobId, tenantKey, timeframe]);
 
   if (loading) {
     return (
-      <Card title={`各平台提及率 (${brand})`} loading />
+      <Card>
+        <CardHeader>
+          <CardTitle>各平台提及率 ({brand})</CardTitle>
+        </CardHeader>
+        <CardContent className="p-8">
+          <LoadingSpinner text="正在加载平台数据..." />
+        </CardContent>
+      </Card>
     );
   }
 
   if (error) {
     return (
-      <Card title={`各平台提及率 (${brand})`}>
-        <Typography.Text type="danger">{error}</Typography.Text>
+      <Card>
+        <CardHeader>
+          <CardTitle>各平台提及率 ({brand})</CardTitle>
+        </CardHeader>
+        <CardContent className="p-8">
+          <Alert variant="destructive">
+            <AlertTitle>平台数据加载失败</AlertTitle>
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        </CardContent>
       </Card>
     );
   }
 
   if (platforms.length === 0) {
     return (
-      <Card title={`各平台提及率 (${brand})`}>
-        <Typography.Text type="secondary">暂无平台数据</Typography.Text>
+      <Card>
+        <CardHeader>
+          <CardTitle>各平台提及率 ({brand})</CardTitle>
+        </CardHeader>
+        <CardContent className="p-8">
+          <EmptyState title="暂无平台数据" description="当前筛选条件下没有平台提及率数据" />
+        </CardContent>
       </Card>
     );
   }
 
   return (
-    <Card title={`各平台提及率 (${brand})`}>
-      <List
-        dataSource={platforms}
-        renderItem={(platform, index) => (
-          <List.Item
-            style={{
-              padding: token.padding,
-              marginBottom: token.marginSM,
-              borderRadius: token.borderRadiusLG,
-              background: index < 3 ? token.colorFillAlter : 'transparent',
-              border: index < 3 ? `1px solid ${token.colorBorderSecondary}` : 'none',
-              transition: 'all 0.3s ease',
-              cursor: 'pointer'
-            }}
-            onClick={() => {
-              if (onPlatformClick) {
-                onPlatformClick(platform);
-              }
-            }}
-          >
-            <div style={{ width: '100%' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: token.marginXS }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: token.marginSM }}>
+    <Card className="min-h-[220px]">
+      <CardHeader>
+        <CardTitle>各平台提及率 ({brand})</CardTitle>
+      </CardHeader>
+      <CardContent className="p-8">
+        <div className="flex flex-col gap-3">
+          {platforms.map((platform, index) => (
+            <button
+              key={platform.name}
+              type="button"
+              className="w-full rounded-md border border-border/80 bg-muted/25 p-3 text-left transition-colors hover:border-primary/35 hover:bg-muted/55 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none data-[featured=true]:bg-muted/40"
+              data-featured={index < 3}
+              onClick={() => onPlatformClick?.(platform)}
+            >
+              <div className="flex w-full flex-col gap-2.5">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex min-w-0 items-center gap-2">
                   {index < 3 && (
-                    <Tag color={platform.color} icon={<TrophyOutlined />}>
+                      <Badge variant="secondary" className="h-6 gap-1 rounded-md px-2">
+                        <Trophy data-icon="inline-start" />
                       {index + 1}
-                    </Tag>
+                      </Badge>
                   )}
-                  <Typography.Text strong style={{ fontSize: index < 3 ? token.fontSizeLG : token.fontSize }}>
+                    <span className="truncate text-base font-medium text-foreground">
                     {platform.name}
-                  </Typography.Text>
+                    </span>
                 </div>
-                <Statistic
-                  value={platform.rate}
-                  suffix="%"
-                  precision={2}
-                  valueStyle={{ color: platform.color, fontSize: token.fontSizeXL, fontWeight: 'bold' }}
-                />
+                  <span className="shrink-0 text-xl font-medium leading-none" style={{ color: platform.color }}>
+                    {platform.rate.toFixed(2)}%
+                  </span>
               </div>
               <Progress
-                percent={platform.rate}
-                showInfo={false}
-                strokeColor={platform.color}
-                size={['100%', 8]}
+                  value={platform.rate}
+                  className="h-2.5 [&_[data-slot=progress-indicator]]:bg-[var(--platform-color)]"
+                  style={{ '--platform-color': platform.color }}
               />
               {platform.change !== 0 && (
-                <div style={{ marginTop: token.marginXS, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
                   {platform.change > 0 ? (
-                    <ArrowUpOutlined style={{ color: token.colorSuccess, fontSize: token.fontSizeSM }} />
+                      <ArrowUp data-icon="inline-start" className="text-success" />
                   ) : (
-                    <ArrowDownOutlined style={{ color: token.colorError, fontSize: token.fontSizeSM }} />
+                      <ArrowDown data-icon="inline-start" className="text-destructive" />
                   )}
-                  <Typography.Text type={platform.change > 0 ? 'success' : 'danger'} style={{ fontSize: token.fontSizeSM }}>
                     {Math.abs(platform.change)}%
-                  </Typography.Text>
                 </div>
               )}
             </div>
-          </List.Item>
-        )}
-      />
+            </button>
+          ))}
+        </div>
+      </CardContent>
     </Card>
   );
 };

@@ -14,13 +14,7 @@
  */
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Card, Table, Typography, Statistic, Row, Col, Divider, Tag, Progress, Space, theme } from 'antd';
-import { 
-  TrophyOutlined, 
-  MessageOutlined, 
-  LinkOutlined, 
-  TagsOutlined 
-} from '@ant-design/icons';
+import { Link, MessageCircle, Tags, Trophy } from 'lucide-react';
 
 // Utilities
 import { fetchBrandMetrics, fetchPostCitationRate } from '@/api';
@@ -29,96 +23,76 @@ import { formatPercentage, toPercent, clampPercent, roundTwoDecimals } from '@/u
 import { CONFIG } from '@/config';
 
 // Components
-import LoadingSpinner from './LoadingSpinner';
+import DataTable from './DataTable.jsx';
 import EmptyState from './EmptyState';
+import LoadingSpinner from './LoadingSpinner';
+import { Badge } from './ui/badge.jsx';
+import { Card, CardContent, CardHeader, CardTitle } from './ui/card.jsx';
+import { Progress } from './ui/progress.jsx';
 
 const { DEFAULT_BRAND } = CONFIG;
 
+const metricTones = {
+  primary: 'var(--primary)',
+  info: 'var(--chart-2)',
+  warning: 'var(--chart-4)',
+  success: 'var(--chart-3)',
+};
+
+const MetricCircle = ({ label, value, tone = 'primary' }) => {
+  const safeValue = clampPercent(Number(value) || 0);
+  const color = metricTones[tone] || metricTones.primary;
+
+  return (
+    <div className="flex min-w-0 flex-col items-center gap-2 text-center">
+      <div
+        className="grid size-24 place-items-center rounded-full"
+        style={{
+          background: `conic-gradient(${color} ${safeValue * 3.6}deg, var(--muted) 0deg)`,
+        }}
+      >
+        <div className="grid size-16 place-items-center rounded-full bg-card text-sm font-medium text-foreground ring-1 ring-border">
+          {formatPercentage(safeValue)}
+        </div>
+      </div>
+      <span className="text-xs font-medium text-muted-foreground">{label}</span>
+    </div>
+  );
+};
+
+const StatTile = ({ icon: Icon, label, value }) => (
+  <div className="rounded-md bg-muted/45 px-3 py-2.5">
+    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+      <Icon className="size-4" />
+      {label}
+    </div>
+    <div className="mt-1 text-lg font-medium leading-snug text-foreground">{value}</div>
+  </div>
+);
+
+const RateCell = ({ value, tone = 'primary' }) => (
+  <div className="w-[7.5rem] space-y-1">
+    <Progress
+      value={value}
+      className={{
+        primary: '[&_[data-slot=progress-indicator]]:bg-primary',
+        info: '[&_[data-slot=progress-indicator]]:bg-chart-2',
+        warning: '[&_[data-slot=progress-indicator]]:bg-chart-4',
+      }[tone]}
+    />
+    <span className="text-xs text-muted-foreground">{formatPercentage(value)}</span>
+  </div>
+);
+
 const BrandMentionRate = () => {
   const { timeframe, date, endDate, tenantKey, jobId, brand } = useDashboardRequestParams();
-  const { token } = theme.useToken();
   const abortControllerRef = useRef(null);
 
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [sortedInfo, setSortedInfo] = useState({
-    columnKey: 'mentionRate',
-    order: 'descend',
-  });
   const [targetBrandData, setTargetBrandData] = useState(null);
   const [brandList, setBrandList] = useState([]);
-
-  const handleTableChange = (_, __, sorter) => {
-    const nextSorter = Array.isArray(sorter) ? sorter[0] : sorter;
-    if (!nextSorter || !nextSorter.columnKey) {
-      return;
-    }
-    setSortedInfo({
-      columnKey: nextSorter.columnKey,
-      order: nextSorter.order || 'descend',
-    });
-  };
-
-  const columns = [
-    {
-      title: '排名',
-      dataIndex: 'rank',
-      key: 'rank',
-      width: 60,
-      render: (rank) => (
-        <div style={{ display: 'flex', justifyContent: 'center' }}>
-          <Tag color={rank <= 3 ? 'blue' : 'default'} style={{ margin: 0 }}>{rank}</Tag>
-        </div>
-      ),
-    },
-    {
-      title: '品牌',
-      dataIndex: 'name',
-      key: 'name',
-      width: 80,
-      render: (text) => <Typography.Text strong>{text}</Typography.Text>,
-    },
-    {
-      title: '总提及率',
-      dataIndex: 'mentionRate',
-      key: 'mentionRate',
-      render: (val) => (
-        <div style={{ width: 120 }}>
-          <Progress percent={val} size="small" showInfo={false} strokeColor={token.colorPrimary} />
-          <Typography.Text type="secondary" style={{ fontSize: 12 }}>{formatPercentage(val)}</Typography.Text>
-        </div>
-      ),
-      sorter: (a, b) => a.mentionRate - b.mentionRate,
-      defaultSortOrder: 'descend',
-      sortOrder: sortedInfo.columnKey === 'mentionRate' ? sortedInfo.order : null,
-    },
-    {
-      title: '首位提及率',
-      dataIndex: 'firstMentionRate',
-      key: 'firstMentionRate',
-      render: (val) => (
-        <div style={{ width: 120 }}>
-          <Progress percent={val} size="small" showInfo={false} strokeColor={token.colorInfo} />
-          <Typography.Text type="secondary" style={{ fontSize: 12 }}>{formatPercentage(val)}</Typography.Text>
-        </div>
-      ),
-      sorter: (a, b) => a.firstMentionRate - b.firstMentionRate,
-      sortOrder: sortedInfo.columnKey === 'firstMentionRate' ? sortedInfo.order : null,
-    },
-    {
-      title: '前3提及率',
-      dataIndex: 'top3MentionRate',
-      key: 'top3MentionRate',
-      render: (val) => (
-        <div style={{ width: 120 }}>
-          <Progress percent={val} size="small" showInfo={false} strokeColor={token.colorWarning} />
-          <Typography.Text type="secondary" style={{ fontSize: 12 }}>{formatPercentage(val)}</Typography.Text>
-        </div>
-      ),
-      sorter: (a, b) => a.top3MentionRate - b.top3MentionRate,
-      sortOrder: sortedInfo.columnKey === 'top3MentionRate' ? sortedInfo.order : null,
-    },
-  ];
+  const [reloadKey, setReloadKey] = useState(0);
 
   const targetBrandName = targetBrandData?.name ?? brand;
 
@@ -127,31 +101,70 @@ const BrandMentionRate = () => {
       return { otherBrandsData: [], targetBrandRank: null };
     }
 
-    const metricKey =
-      sortedInfo.columnKey === 'firstMentionRate' ? 'firstMentionRate' : 'mentionRate';
-    const order = sortedInfo.order || 'descend';
-
-    const listWithMetric = brandList.filter(
-      (item) => typeof item[metricKey] === 'number',
-    );
-
-    const sorted = [...listWithMetric].sort((a, b) => {
-      const diff = (a[metricKey] || 0) - (b[metricKey] || 0);
-      return order === 'ascend' ? diff : -diff;
-    });
-
-    const ranked = sorted.map((item, index) => ({
-      ...item,
-      rank: index + 1,
-    }));
+    const ranked = [...brandList]
+      .filter((item) => typeof item.mentionRate === 'number')
+      .sort((a, b) => (b.mentionRate || 0) - (a.mentionRate || 0))
+      .map((item, index) => ({
+        ...item,
+        rank: index + 1,
+      }));
 
     const targetIndex = ranked.findIndex((item) => item.name === targetBrandName);
     const rankValue = targetIndex === -1 ? null : ranked[targetIndex].rank;
-
     const others = ranked.filter((item) => item.name !== targetBrandName);
 
     return { otherBrandsData: others, targetBrandRank: rankValue };
-  }, [brandList, sortedInfo, targetBrandName]);
+  }, [brandList, targetBrandName]);
+
+  const columns = useMemo(
+    () => [
+      {
+        title: '排名',
+        dataIndex: 'rank',
+        key: 'rank',
+        width: 72,
+        render: (rank) => (
+          <div className="flex justify-center">
+            <Badge variant={rank <= 3 ? 'default' : 'secondary'}>{rank}</Badge>
+          </div>
+        ),
+        sorter: (a, b) => a.rank - b.rank,
+      },
+      {
+        title: '品牌',
+        dataIndex: 'name',
+        key: 'name',
+        width: 120,
+        render: (text) => <span className="font-medium text-foreground">{text}</span>,
+      },
+      {
+        title: '总提及率',
+        dataIndex: 'mentionRate',
+        key: 'mentionRate',
+        width: 160,
+        render: (val) => <RateCell value={val} />,
+        sorter: (a, b) => a.mentionRate - b.mentionRate,
+        defaultSortOrder: 'descend',
+      },
+      {
+        title: '首位提及率',
+        dataIndex: 'firstMentionRate',
+        key: 'firstMentionRate',
+        width: 160,
+        render: (val) => <RateCell value={val} tone="info" />,
+        sorter: (a, b) => a.firstMentionRate - b.firstMentionRate,
+      },
+      {
+        title: '前3提及率',
+        dataIndex: 'top3MentionRate',
+        key: 'top3MentionRate',
+        width: 160,
+        render: (val) => <RateCell value={val} tone="warning" />,
+        sorter: (a, b) => a.top3MentionRate - b.top3MentionRate,
+      },
+    ],
+    [],
+  );
 
   useEffect(() => {
     if (abortControllerRef.current) {
@@ -187,8 +200,8 @@ const BrandMentionRate = () => {
         const brandMetricsList = Array.isArray(brandMetrics?.data)
           ? brandMetrics.data
           : Array.isArray(brandMetrics)
-          ? brandMetrics
-          : [];
+            ? brandMetrics
+            : [];
         const postCitationRateData = postCitationRate?.data?.[0] ?? postCitationRate;
 
         const normalizedBrandItems = brandMetricsList.map((item) => ({
@@ -237,178 +250,127 @@ const BrandMentionRate = () => {
     return () => {
       controller.abort();
     };
-  }, [brand, date, endDate, jobId, tenantKey, timeframe]);
+  }, [brand, date, endDate, jobId, tenantKey, timeframe, reloadKey]);
 
-  // Loading state
   if (isLoading) {
     return (
-      <Card title="品牌提及排名">
+      <Card>
+      <CardHeader>
+        <div className="flex items-center gap-2">
+          <Trophy className="size-5 text-primary" />
+          <CardTitle>品牌提及排名</CardTitle>
+        </div>
+      </CardHeader>
+      <CardContent>
         <LoadingSpinner text="正在加载品牌数据..." />
+        </CardContent>
       </Card>
     );
   }
 
-  // Error state
   if (error) {
     return (
-      <Card title="品牌提及排名">
-        <EmptyState
-          title="数据加载失败"
-          description={error}
-          actionText="重试"
-          onAction={() => window.location.reload()}
-        />
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Trophy className="size-5 text-primary" />
+            <CardTitle>品牌提及排名</CardTitle>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <EmptyState
+            title="数据加载失败"
+            description={error}
+            actionText="重试"
+            onAction={() => setReloadKey((prev) => prev + 1)}
+          />
+        </CardContent>
       </Card>
     );
   }
 
   if (!targetBrandData) {
     return (
-      <Card title="品牌提及排名">
-        <EmptyState
-          title="暂无数据"
-          description="接口未返回可展示的数据"
-          actionText="重试"
-          onAction={() => window.location.reload()}
-        />
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Trophy className="size-5 text-primary" />
+            <CardTitle>品牌提及排名</CardTitle>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <EmptyState
+            title="暂无数据"
+            description="接口未返回可展示的数据"
+            actionText="重试"
+            onAction={() => setReloadKey((prev) => prev + 1)}
+          />
+        </CardContent>
       </Card>
     );
   }
 
   return (
-    <Card title="品牌提及排名" className="h-full">
-      <div className="mb-6">
-        <Row gutter={[24, 24]} align="middle">
-          {/* Rank & Name */}
-          <Col span={24}>
-             <div style={{ 
-               display: 'flex', 
-               alignItems: 'center', 
-               background: token.colorFillAlter, 
-               padding: '16px', 
-               borderRadius: token.borderRadiusLG,
-               border: `1px solid ${token.colorBorderSecondary}`
-             }}>
-                <div style={{ 
-                  display: 'flex', 
-                  flexDirection: 'column', 
-                  alignItems: 'center', 
-                  marginRight: 24,
-                  minWidth: 80
-                }}>
-                  <TrophyOutlined style={{ fontSize: 32, color: token.colorWarning }} />
-                  <Typography.Title level={2} style={{ margin: 0, color: token.colorWarning }}>
-                    {typeof targetBrandRank === 'number' ? `#${targetBrandRank}` : '--'}
-                  </Typography.Title>
-                </div>
-                <div>
-                  <Typography.Title level={4} style={{ margin: 0 }}>
-                    目标品牌: {targetBrandData.name}
-                  </Typography.Title>
-                  <Space size="small" style={{ marginTop: 4 }}>
-                    <Tag icon={<TagsOutlined />} color="processing">
-                       {targetBrandData.coveredKeywordsCount} 覆盖关键词
-                    </Tag>
-                  </Space>
-                </div>
-             </div>
-          </Col>
+    <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+      <Card className="h-full">
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Trophy className="size-5 text-primary" />
+            <CardTitle>目标品牌核心指标</CardTitle>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <section className="flex flex-col gap-3 rounded-md bg-muted/35 p-4 sm:flex-row sm:items-center">
+            <div className="flex min-w-14 flex-row items-center gap-2 sm:flex-col sm:gap-0">
+                <Trophy className="size-5 text-foreground" />
+                <span className="text-xl font-medium leading-none text-foreground">
+                  {typeof targetBrandRank === 'number' ? `#${targetBrandRank}` : '--'}
+                </span>
+            </div>
+            <div className="min-w-0 space-y-2">
+                <h3 className="truncate text-base font-medium leading-snug text-foreground">
+                  目标品牌: {targetBrandData.name}
+                </h3>
+                <Badge variant="secondary" className="gap-1 rounded-md">
+                  <Tags className="size-3" />
+                  {targetBrandData.coveredKeywordsCount} 覆盖关键词
+                </Badge>
+            </div>
+          </section>
 
-          {/* Key Rates - Circular Progress */}
-          <Col span={6} style={{ display: 'flex', justifyContent: 'center' }}>
-            <div style={{ textAlign: 'center' }}>
-              <Progress
-                type="circle"
-                percent={targetBrandData.mentionRate}
-                size={80}
-                strokeColor={token.colorPrimary}
-                status="normal"
-                format={(percent) => formatPercentage(percent)}
-              />
-              <div style={{ marginTop: 8, fontWeight: 500 }}>总提及率</div>
-            </div>
-          </Col>
-          <Col span={6} style={{ display: 'flex', justifyContent: 'center' }}>
-            <div style={{ textAlign: 'center' }}>
-              <Progress
-                type="circle"
-                percent={targetBrandData.firstMentionRate}
-                size={80}
-                strokeColor={token.colorInfo}
-                status="normal"
-                format={(percent) => formatPercentage(percent)}
-              />
-              <div style={{ marginTop: 8, fontWeight: 500 }}>首位提及率</div>
-            </div>
-          </Col>
-          <Col span={6} style={{ display: 'flex', justifyContent: 'center' }}>
-            <div style={{ textAlign: 'center' }}>
-              <Progress
-                type="circle"
-                percent={targetBrandData.top3MentionRate}
-                size={80}
-                strokeColor={token.colorWarning}
-                status="normal"
-                format={(percent) => formatPercentage(percent)}
-              />
-              <div style={{ marginTop: 8, fontWeight: 500 }}>前3提及率</div>
-            </div>
-          </Col>
-          <Col span={6} style={{ display: 'flex', justifyContent: 'center' }}>
-            <div style={{ textAlign: 'center' }}>
-              <Progress
-                type="circle"
-                percent={targetBrandData.articleCitationRate}
-                size={80}
-                strokeColor={token.colorSuccess}
-                status="normal"
-                format={(percent) => formatPercentage(percent)}
-              />
-              <div style={{ marginTop: 8, fontWeight: 500 }}>发文引用率</div>
-            </div>
-          </Col>
+          <section className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+            <MetricCircle label="总提及率" value={targetBrandData.mentionRate} />
+            <MetricCircle label="首位提及率" value={targetBrandData.firstMentionRate} tone="info" />
+            <MetricCircle label="前3提及率" value={targetBrandData.top3MentionRate} tone="warning" />
+            <MetricCircle label="发文引用率" value={targetBrandData.articleCitationRate} tone="success" />
+          </section>
 
-          {/* Other Metrics - Grid */}
-          <Col span={24}>
-            <Row gutter={[16, 16]}>
-              <Col span={12}>
-                <Card size="small" variant="borderless" style={{ background: token.colorFillQuaternary }}>
-                  <Statistic 
-                    title="问题总数" 
-                    value={targetBrandData.promptValue} 
-                    prefix={<MessageOutlined />} 
-                    valueStyle={{ fontSize: 18 }}
-                  />
-                </Card>
-              </Col>
-              <Col span={12}>
-                <Card size="small" variant="borderless" style={{ background: token.colorFillQuaternary }}>
-                  <Statistic 
-                    title="引用信源数量" 
-                    value={targetBrandData.citationSourceValue} 
-                    prefix={<LinkOutlined />} 
-                    valueStyle={{ fontSize: 18 }}
-                  />
-                </Card>
-              </Col>
-            </Row>
-          </Col>
-        </Row>
-      </div>
-      
-      <Divider orientation="left" style={{ margin: '12px 0' }}>其他品牌对比</Divider>
-      
-      <Table 
-        dataSource={otherBrandsData} 
-        columns={columns} 
-        pagination={false} 
-        size="small"
-        rowKey="name"
-        scroll={{ x: 'max-content' }}
-        onChange={handleTableChange}
-      />
-    </Card>
+          <section className="grid grid-cols-2 gap-3">
+            <StatTile icon={MessageCircle} label="问题总数" value={targetBrandData.promptValue} />
+            <StatTile icon={Link} label="引用信源数量" value={targetBrandData.citationSourceValue} />
+          </section>
+        </CardContent>
+      </Card>
+
+      <Card className="h-full">
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Trophy className="size-5 text-muted-foreground" />
+            <CardTitle>竞品品牌对比</CardTitle>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <DataTable
+            data={otherBrandsData}
+            columns={columns}
+            pagination={false}
+            rowKey="name"
+            emptyDescription="暂无其他品牌数据"
+          />
+        </CardContent>
+      </Card>
+    </div>
   );
-}
+};
 
 export default React.memo(BrandMentionRate);

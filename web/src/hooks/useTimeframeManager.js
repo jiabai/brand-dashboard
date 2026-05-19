@@ -47,6 +47,34 @@ export const getLatestAvailableDate = (availableDates) => {
   }, '');
 };
 
+export const getLatestAvailableDateParams = (latestAvailableDate) => {
+  const latest = parseDateInput(latestAvailableDate);
+  if (!latest) return null;
+
+  const dateParam = formatDateParam(latest);
+  return {
+    timeframe: 'specific_day',
+    start_date: dateParam,
+    end_date: dateParam,
+  };
+};
+
+export const shouldDisableCalendarDate = (
+  current,
+  availableDates,
+  { restrictToAvailableDates = false } = {},
+) => {
+  if (!current || !restrictToAvailableDates) return false;
+  if (!Array.isArray(availableDates) || availableDates.length === 0) return false;
+
+  const normalized = dayjs.isDayjs(current)
+    ? current.format('YYYY-MM-DD')
+    : formatDateDisplay(current);
+  if (!normalized) return false;
+
+  return !new Set(availableDates).has(normalized);
+};
+
 export const useTimeframeManager = ({
   tenantKey,
   jobId,
@@ -54,6 +82,7 @@ export const useTimeframeManager = ({
   startDateParam,
   endDateParam,
   updateParams,
+  searchParams,
 }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [availableDates, setAvailableDates] = useState([]);
@@ -74,13 +103,13 @@ export const useTimeframeManager = ({
     () => getLatestAvailableDate(availableDates),
     [availableDates],
   );
+  const hasExplicitTimeframe = searchParams?.has?.('timeframe') ?? false;
 
   const isDateDisabled = useCallback(
     (current) => {
-      if (!current || availableDates.length === 0) return false;
-      return !availableDateSet.has(current.format('YYYY-MM-DD'));
+      return shouldDisableCalendarDate(current, availableDates);
     },
-    [availableDateSet, availableDates.length],
+    [availableDates],
   );
 
   useEffect(() => {
@@ -136,6 +165,15 @@ export const useTimeframeManager = ({
     timeframe,
     updateParams,
   ]);
+
+  useEffect(() => {
+    if (hasExplicitTimeframe) return;
+    if (timeframe === 'specific_day') return;
+    const latestParams = getLatestAvailableDateParams(latestAvailableDate);
+    if (!latestParams) return;
+
+    updateParams(latestParams, { replace: true });
+  }, [hasExplicitTimeframe, latestAvailableDate, timeframe, updateParams]);
 
   useEffect(() => {
     if (timeframe !== 'specific_day') return;

@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Card, Space, Typography, Row, Col, Statistic, Tag, theme } from 'antd';
-import { LineChartOutlined } from '@ant-design/icons';
+import { LineChart, RefreshCw } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import dayjs from 'dayjs';
 
@@ -17,111 +16,181 @@ import {
   formatDateDisplay,
   getRangeByTimeframe,
 } from '@/utils';
-import { loadG2Chart } from '@/utils/loadG2Chart';
+import { cn } from '@/lib/cn';
 
-import LoadingSpinner from './LoadingSpinner';
 import EmptyState from './EmptyState';
+import LoadingSpinner from './LoadingSpinner';
+import { Badge } from './ui/badge.jsx';
+import { Button } from './ui/button.jsx';
+import { Card, CardContent, CardHeader, CardTitle } from './ui/card.jsx';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from './ui/tooltip.jsx';
 
-const TrendG2Chart = React.memo(function TrendG2Chart({ data, token }) {
-  const containerRef = useRef(null);
-  const chartRef = useRef(null);
+const FilterChips = ({ label, options, value, onChange, getColor }) => (
+  <div className="space-y-2">
+    <div className="text-sm text-muted-foreground">{label}</div>
+    <div className="flex flex-wrap gap-2">
+      {options.map((item) => {
+        const checked = value === item;
+        const color = getColor?.(item) || 'var(--primary)';
+        return (
+          <button
+            key={`${label}-${item}`}
+            type="button"
+            className={cn(
+              'rounded-md border px-3 py-1 text-sm transition-colors',
+              checked ? 'text-primary-foreground' : 'bg-background text-muted-foreground hover:bg-muted',
+            )}
+            style={checked ? { borderColor: color, background: color } : undefined}
+            onClick={() => onChange(item)}
+          >
+            {item}
+          </button>
+        );
+      })}
+    </div>
+  </div>
+);
 
-  useEffect(() => {
-    if (!containerRef.current) return;
+const StatCard = ({ label, value }) => (
+  <div className="rounded-md border bg-muted/35 p-4">
+    <div className="text-sm text-muted-foreground">{label}</div>
+    <div className="mt-2 text-2xl font-medium text-foreground">{value}</div>
+  </div>
+);
 
-    let disposed = false;
+const TrendSvgChart = ({ data }) => {
+  const width = 900;
+  const height = 360;
+  const padding = { top: 28, right: 28, bottom: 54, left: 64 };
+  const innerWidth = width - padding.left - padding.right;
+  const innerHeight = height - padding.top - padding.bottom;
 
-    if (chartRef.current) {
-      chartRef.current.destroy();
-      chartRef.current = null;
-    }
+  const values = data.map((item) => toPercent(item.mention_rate));
+  const maxValue = Math.max(1, ...values);
+  const minValue = Math.min(0, ...values);
+  const range = Math.max(1, maxValue - minValue);
+  const xStep = data.length > 1 ? innerWidth / (data.length - 1) : innerWidth;
 
-    if (!Array.isArray(data) || data.length === 0) {
-      return () => {
-        disposed = true;
-      };
-    }
+  const points = data.map((item, index) => {
+    const value = toPercent(item.mention_rate);
+    const x = padding.left + index * xStep;
+    const y = padding.top + innerHeight - ((value - minValue) / range) * innerHeight;
+    return { ...item, value, x, y };
+  });
 
-    const container = containerRef.current;
-
-    const run = async () => {
-      const Chart = await loadG2Chart();
-      if (disposed) return;
-
-      const chart = new Chart({
-        container,
-        autoFit: true,
-      });
-      chartRef.current = chart;
-
-      chart.theme({ type: 'academy' });
-
-      chart.data(data);
-
-      chart
-        .interval()
-        .encode('x', 'dateStr')
-        .encode('y', 'mention_rate')
-        .axis('x', {
-          title: false,
-          labelFill: '#A6A6A6',
-          titleFill: '#A6A6A6',
-        })
-        .axis('y', {
-          title: '提及率 (Mention Rate)',
-          titleFill: '#5B8FF9',
-          labelFormatter: (d) => `${(Number(d) * 100).toFixed(1)}%`,
-          labelFill: '#A6A6A6',
-        })
-        .tooltip({
-          title: (d) => d.dateStr,
-          items: [
-            {
-              field: 'mention_rate',
-              name: '提及率',
-              valueFormatter: (d) => `${(Number(d) * 100).toFixed(2)}%`,
-            },
-          ],
-        });
-
-      chart
-        .line()
-        .encode('x', 'dateStr')
-        .encode('y', 'mention_rate')
-        .encode('shape', 'smooth')
-        .style('stroke', '#fdae6b')
-        .style('lineWidth', 3)
-        .tooltip(false);
-
-      chart
-        .point()
-        .encode('x', 'dateStr')
-        .encode('y', 'mention_rate')
-        .encode('shape', 'point')
-        .style('fill', '#fdae6b')
-        .style('r', 5)
-        .tooltip(false);
-
-      chart.render();
+  const line = points.map((point) => `${point.x},${point.y}`).join(' ');
+  const yTicks = [0, 0.25, 0.5, 0.75, 1].map((ratio) => {
+    const value = minValue + ratio * range;
+    return {
+      value,
+      y: padding.top + innerHeight - ratio * innerHeight,
     };
+  });
+  const labelStep = Math.max(1, Math.ceil(points.length / 7));
 
-    run().catch(() => {});
+  // 屏幕阅读器摘要
+  const srSummary = points.length
+    ? `趋势图共${points.length}个数据点，时间范围${points[0]?.dateStr}至${points[points.length - 1]?.dateStr}，平均值${formatPercentage(roundTwoDecimals(points.reduce((s, p) => s + p.value, 0) / points.length))}`
+    : '无趋势数据';
 
-    return () => {
-      disposed = true;
-      if (chartRef.current) {
-        chartRef.current.destroy();
-        chartRef.current = null;
-      }
-    };
-  }, [data, token]);
+  return (
+    <div className="h-[360px] w-full 2xl:h-[400px]">
+      <p className="sr-only">{srSummary}</p>
+      <svg
+        viewBox={`0 0 ${width} ${height}`}
+        role="img"
+        aria-label="品牌提及率趋势图"
+        className="size-full"
+        preserveAspectRatio="xMidYMid meet"
+      >
+        <defs>
+          <linearGradient id="trend-fill" x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0%" stopColor="var(--primary)" stopOpacity="0.22" />
+            <stop offset="100%" stopColor="var(--primary)" stopOpacity="0" />
+          </linearGradient>
+        </defs>
 
-  return <div ref={containerRef} style={{ width: '100%', height: '100%' }} />;
-});
+        {yTicks.map((tick) => (
+          <g key={tick.value}>
+            <line
+              x1={padding.left}
+              x2={width - padding.right}
+              y1={tick.y}
+              y2={tick.y}
+              stroke="var(--border)"
+              strokeDasharray="4 4"
+            />
+            <text
+              x={padding.left - 12}
+              y={tick.y}
+              textAnchor="end"
+              dominantBaseline="central"
+              fill="var(--muted-foreground)"
+              fontSize={12}
+              fontFamily="system-ui, sans-serif"
+            >
+              {formatPercentage(roundTwoDecimals(tick.value))}
+            </text>
+          </g>
+        ))}
+
+        <polyline
+          points={[
+            `${padding.left},${padding.top + innerHeight}`,
+            line,
+            `${width - padding.right},${padding.top + innerHeight}`,
+          ].join(' ')}
+          fill="url(#trend-fill)"
+          stroke="none"
+        />
+        <polyline points={line} fill="none" stroke="var(--primary)" strokeWidth="3" strokeLinejoin="round" strokeLinecap="round" />
+
+        {points.map((point, index) => (
+          <g key={point.date}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <circle
+                  cx={point.x} cy={point.y} r="22"
+                  fill="transparent"
+                  tabIndex={0}
+                  role="graphics-symbol"
+                  aria-label={`${point.dateStr}: ${formatPercentage(roundTwoDecimals(point.value))}`}
+                  className="outline-none focus:stroke-[var(--ring)] focus:stroke-[3px]"
+                />
+              </TooltipTrigger>
+              <TooltipContent side="top" align="center" sideOffset={12}>
+                <span className="font-medium">{point.dateStr}</span>
+                <span className="ml-2">{formatPercentage(roundTwoDecimals(point.value))}</span>
+              </TooltipContent>
+            </Tooltip>
+            {/* 可见数据点 */}
+            <circle cx={point.x} cy={point.y} r="4.5" fill="var(--card)" stroke="var(--primary)" strokeWidth="2" pointerEvents="none" />
+            {index % labelStep === 0 || index === points.length - 1 ? (
+              <text
+                x={point.x}
+                y={height - 18}
+                textAnchor="middle"
+                dominantBaseline="hanging"
+                fill="var(--muted-foreground)"
+                fontSize={12}
+                fontFamily="system-ui, sans-serif"
+              >
+                {point.dateStr.slice(5)}
+              </text>
+            ) : null}
+          </g>
+        ))}
+      </svg>
+    </div>
+  );
+};
 
 const TrendAnalysis = () => {
   const { timeframe, date, endDate, tenantKey, jobId, brand } = useDashboardRequestParams();
-  const { token } = theme.useToken();
   const [searchParams, setSearchParams] = useSearchParams();
   const abortControllerRef = useRef(null);
   const metadataAbortRef = useRef(null);
@@ -410,146 +479,95 @@ const TrendAnalysis = () => {
   }, [chartData]);
 
   return (
-    <Space direction="vertical" size="large" style={{ width: '100%' }}>
-      <Card
-        title={
-          <Space direction="vertical" size={2}>
-            <Space>
-              <LineChartOutlined />
-              <span>品牌提及率分析</span>
-            </Space>
-            <Typography.Text type="secondary">
+    <div className="flex w-full flex-col gap-6">
+      <Card>
+        <CardHeader className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <LineChart className="size-5 text-primary" />
+              <CardTitle>品牌提及率分析</CardTitle>
+            </div>
+            <p className="text-sm text-muted-foreground">
               品牌: {brandValue} | 平台: {platform} | 关键词: {keyword}
-            </Typography.Text>
-          </Space>
-        }
-        extra={
-          <Space wrap>
-            <Tag color="geekblue">
-              {displayStart || '--'} - {displayEnd || '--'}
-            </Tag>
-          </Space>
-        }
-      >
-        <Space direction="vertical" size="middle" style={{ width: '100%' }}>
-          <Row gutter={[16, 16]} align="middle">
-            <Col flex="auto">
-              <Space direction="vertical" size="middle" style={{ width: '100%' }}>
-                {metadataLoading ? (
-                  <Typography.Text type="secondary">筛选项加载中...</Typography.Text>
-                ) : metadataError ? (
-                  <Typography.Text type="danger">{metadataError}</Typography.Text>
-                ) : (
-                  <Space direction="vertical" size="small" style={{ width: '100%' }}>
-                    <Space direction="vertical" size={4}>
-                      <Typography.Text type="secondary">平台</Typography.Text>
-                      <Space wrap>
-                        {availablePlatforms.map((item) => {
-                          const checked = platform === item;
-                          const color = item === '全部' ? token.colorPrimary : getPlatformColor(item);
-                          return (
-                            <Tag.CheckableTag
-                              key={`platform-${item}`}
-                              checked={checked}
-                              onChange={() => setPlatform(item)}
-                              style={{
-                                paddingInline: 12,
-                                paddingBlock: 4,
-                                borderRadius: 999,
-                                border: `1px solid ${checked ? color : token.colorBorderSecondary}`,
-                                color: checked ? token.colorText : color,
-                                background: checked ? color : 'transparent',
-                                marginInlineEnd: 0,
-                              }}
-                            >
-                              {item}
-                            </Tag.CheckableTag>
-                          );
-                        })}
-                      </Space>
-                    </Space>
-                    <Space direction="vertical" size={4}>
-                      <Typography.Text type="secondary">关键词</Typography.Text>
-                      <Space wrap>
-                        {availableKeywords.map((item) => {
-                          const checked = keyword === item;
-                          return (
-                            <Tag.CheckableTag
-                              key={`keyword-${item}`}
-                              checked={checked}
-                              onChange={() => setKeyword(item)}
-                              style={{
-                                paddingInline: 12,
-                                paddingBlock: 4,
-                                borderRadius: 8,
-                                border: `1px solid ${checked ? token.colorPrimary : token.colorBorderSecondary}`,
-                                color: checked ? token.colorText : token.colorTextSecondary,
-                                background: checked ? token.colorPrimary : 'rgba(255, 255, 255, 0.08)',
-                                marginInlineEnd: 0,
-                              }}
-                            >
-                              {item}
-                            </Tag.CheckableTag>
-                          );
-                        })}
-                      </Space>
-                    </Space>
-                  </Space>
-                )}
-              </Space>
-            </Col>
-            <Col />
-          </Row>
-          <Row gutter={[16, 16]}>
-            <Col xs={12} sm={12} md={6}>
-              <Statistic title="平均提及率" value={formatPercentage(stats.avg)} />
-            </Col>
-            <Col xs={12} sm={12} md={6}>
-              <Statistic title="最高提及率" value={formatPercentage(stats.max)} />
-            </Col>
-            <Col xs={12} sm={12} md={6}>
-              <Statistic title="最低提及率" value={formatPercentage(stats.min)} />
-            </Col>
-            <Col xs={12} sm={12} md={6}>
-              <Statistic
-                title="点位数"
-                value={stats.total || '--'}
+            </p>
+          </div>
+          <Badge variant="secondary">
+            {displayStart || '--'} - {displayEnd || '--'}
+          </Badge>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          {metadataLoading ? (
+            <p className="text-sm text-muted-foreground">筛选项加载中...</p>
+          ) : metadataError ? (
+            <p className="text-sm text-destructive">{metadataError}</p>
+          ) : (
+            <div className="space-y-4">
+              <FilterChips
+                label="平台"
+                options={availablePlatforms}
+                value={platform}
+                onChange={setPlatform}
+                getColor={(item) => (item === '全部' ? 'var(--primary)' : getPlatformColor(item))}
               />
-            </Col>
-          </Row>
-        </Space>
+              <FilterChips
+                label="关键词"
+                options={availableKeywords}
+                value={keyword}
+                onChange={setKeyword}
+              />
+            </div>
+          )}
+
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <StatCard label="平均提及率" value={formatPercentage(stats.avg)} />
+            <StatCard label="最高提及率" value={formatPercentage(stats.max)} />
+            <StatCard label="最低提及率" value={formatPercentage(stats.min)} />
+            <StatCard label="点位数" value={stats.total || '--'} />
+          </div>
+        </CardContent>
       </Card>
 
       <Card>
-        {isLoading ? (
-          <LoadingSpinner text="正在加载趋势数据..." />
-        ) : error ? (
-          <EmptyState
-            title="数据加载失败"
-            description={error}
-            actionText="重试"
-            onAction={() => setReloadKey((prev) => prev + 1)}
-          />
-        ) : !platform || !keyword || !startDateParam || !endDateParam ? (
-          <EmptyState
-            title="请输入筛选条件"
-            description="选择平台与关键词后即可查看趋势"
-          />
-        ) : (
-          <div
-            style={{
-              height: 500,
-              padding: 20,
-              borderRadius: 8,
-              background: token.colorBgElevated,
-              boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
-            }}
-          >
-            <TrendG2Chart data={chartData} token={token} />
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <LineChart className="size-5 text-primary" />
+            <CardTitle>提及率趋势</CardTitle>
           </div>
-        )}
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <LoadingSpinner text="正在加载趋势数据..." />
+          ) : error ? (
+            <EmptyState
+              title="数据加载失败"
+              description={error}
+              actionText="重试"
+              onAction={() => setReloadKey((prev) => prev + 1)}
+            />
+          ) : !platform || !keyword || !startDateParam || !endDateParam ? (
+            <EmptyState
+              title="请输入筛选条件"
+              description="选择平台与关键词后即可查看趋势"
+            />
+          ) : chartData.length && chartData.some((d) => d.mention_rate > 0) ? (
+            <TrendSvgChart data={chartData} />
+          ) : chartData.length ? (
+            <EmptyState
+              title="当前周期内无品牌提及数据"
+              description="当前筛选条件下所有数据均为零，暂无品牌提及记录"
+            />
+          ) : (
+            <EmptyState
+              title="暂无趋势数据"
+              description="当前筛选条件下没有可展示的数据"
+              actionText="刷新"
+              onAction={() => setReloadKey((prev) => prev + 1)}
+              icon={RefreshCw}
+            />
+          )}
+        </CardContent>
       </Card>
-    </Space>
+    </div>
   );
 };
 

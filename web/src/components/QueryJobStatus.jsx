@@ -1,26 +1,11 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
-  Table,
-  Select,
-  Switch,
-  Card,
-  Tag,
-  Typography,
-  Space,
-  Button,
-  Tooltip,
-  Badge,
-  Empty,
-  message
-} from 'antd';
-import {
-  SearchOutlined,
-  ReloadOutlined,
-  ClockCircleOutlined,
-  CheckCircleOutlined,
-  CloseCircleOutlined,
-  SyncOutlined
-} from '@ant-design/icons';
+  CheckCircle,
+  Clock,
+  RefreshCw,
+  Search,
+  XCircle,
+} from 'lucide-react';
 import dayjs from 'dayjs';
 import { CONFIG } from '../config';
 import { fetchQueryJobStatus } from '@/api';
@@ -28,16 +13,29 @@ import { useDashboardParams } from '@/hooks/useDashboardParams';
 import {
   buildQueryJobStatusRowKey,
 } from '../utils';
-
-const { Title, Text } = Typography;
+import DataTable from './DataTable.jsx';
+import { Alert, AlertDescription, AlertTitle } from './ui/alert.jsx';
+import { Badge } from './ui/badge.jsx';
+import { Button } from './ui/button.jsx';
+import { Card, CardContent } from './ui/card.jsx';
+import { Checkbox } from './ui/checkbox.jsx';
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from './ui/select.jsx';
+import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip.jsx';
 
 // Mapping status codes to visual elements
 // Assuming 1 is active/effective based on context, adjusting as needed
 const STATUS_MAP = {
-  0: { text: '未生效', color: 'default', icon: <ClockCircleOutlined /> },
-  1: { text: '生效中', color: 'processing', icon: <SyncOutlined spin /> },
-  2: { text: '已完成', color: 'success', icon: <CheckCircleOutlined /> },
-  3: { text: '已失效', color: 'error', icon: <CloseCircleOutlined /> },
+  0: { text: '未生效', variant: 'secondary', Icon: Clock },
+  1: { text: '生效中', variant: 'default', Icon: RefreshCw, iconClassName: 'animate-spin' },
+  2: { text: '已完成', variant: 'secondary', Icon: CheckCircle },
+  3: { text: '已失效', variant: 'destructive', Icon: XCircle },
 };
 
 const formatDateTime = (value) => {
@@ -56,6 +54,7 @@ const QueryJobStatus = () => {
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState([]);
   const [jobIdOptions, setJobIdOptions] = useState([]);
+  const [feedback, setFeedback] = useState('');
   const selectedJobId = searchParams.get('job_id') || '';
   const includeDeleted = useMemo(() => {
     const raw = includeDeletedParam || CONFIG.DEFAULT_INCLUDE_DELETED || 'false';
@@ -83,11 +82,12 @@ const QueryJobStatus = () => {
           includeDeleted,
         });
       } catch {
-        message.error('查询失败');
+        setFeedback('查询失败');
         return;
       }
 
       if (result?.success) {
+        setFeedback('');
         const jobs = Array.isArray(result.jobs) ? result.jobs : [];
         setData(jobs);
         const nextJobIds = jobs.map((job) => job?.job_id).filter(Boolean);
@@ -98,11 +98,11 @@ const QueryJobStatus = () => {
           return Array.from(new Set(nextJobIds));
         });
       } else {
-        message.error(result?.message || '查询失败');
+        setFeedback(result?.message || '查询失败');
       }
     } catch (error) {
       console.error('Fetch error:', error);
-      message.error('网络请求错误');
+      setFeedback('网络请求错误');
     } finally {
       setLoading(false);
     }
@@ -118,16 +118,16 @@ const QueryJobStatus = () => {
       key: 'brand_info',
       width: 250,
       render: (_, record) => (
-        <Space direction="vertical" size={0}>
-          <Text strong style={{ fontSize: '16px' }}>{record.brand}</Text>
-          <Space wrap size={[0, 4]} style={{ marginTop: 4 }}>
+        <div className="flex min-w-52 flex-col gap-1">
+          <span className="text-base font-medium text-foreground">{record.brand}</span>
+          <div className="flex flex-wrap gap-1">
             {record.competitor?.map((comp, idx) => (
-              <Tag key={idx} bordered={false} style={{ background: 'rgba(255,255,255,0.08)', marginRight: 4 }}>
+              <Badge key={idx} variant="secondary">
                 {comp}
-              </Tag>
+              </Badge>
             ))}
-          </Space>
-        </Space>
+          </div>
+        </div>
       ),
     },
     {
@@ -135,19 +135,13 @@ const QueryJobStatus = () => {
       dataIndex: 'query_content',
       key: 'query_content',
       render: (text) => (
-        <Tooltip title={text} placement="topLeft">
-          <Text
-            style={{ 
-              maxWidth: 400, 
-              display: 'block', 
-              overflow: 'hidden', 
-              textOverflow: 'ellipsis', 
-              whiteSpace: 'nowrap',
-              fontFamily: "'JetBrains Mono', 'Fira Code', monospace" // Technical feel
-            }}
-          >
-            {text}
-          </Text>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className="block max-w-md truncate font-mono text-sm text-foreground">
+              {text}
+            </span>
+          </TooltipTrigger>
+          <TooltipContent className="max-w-lg">{text}</TooltipContent>
         </Tooltip>
       ),
     },
@@ -156,16 +150,16 @@ const QueryJobStatus = () => {
       key: 'time',
       width: 200,
       render: (_, record) => (
-        <Space direction="vertical" size={0}>
-          <Text type="secondary" style={{ fontSize: '12px' }}>
+        <div className="flex min-w-44 flex-col text-xs text-muted-foreground">
+          <span>
             From: {formatDateTime(record.effective_from)}
-          </Text>
+          </span>
           {record.effective_to && (
-            <Text type="secondary" style={{ fontSize: '12px' }}>
+            <span>
               To: &nbsp;&nbsp;&nbsp;{formatDateTime(record.effective_to)}
-            </Text>
+            </span>
           )}
-        </Space>
+        </div>
       ),
     },
     {
@@ -174,9 +168,13 @@ const QueryJobStatus = () => {
       key: 'query_status',
       width: 120,
       render: (status) => {
-        const statusConfig = STATUS_MAP[status] || { text: '未知', color: 'default' };
+        const statusConfig = STATUS_MAP[status] || { text: '未知', variant: 'secondary', Icon: Clock };
+        const Icon = statusConfig.Icon;
         return (
-          <Badge status={statusConfig.color} text={statusConfig.text} />
+          <Badge variant={statusConfig.variant} className="gap-1">
+            <Icon data-icon="inline-start" className={statusConfig.iconClassName} />
+            {statusConfig.text}
+          </Badge>
         );
       },
     },
@@ -193,58 +191,70 @@ const QueryJobStatus = () => {
           to { opacity: 1; transform: translateY(0); }
         }
         .glass-card {
-          background: rgba(255, 255, 255, 0.02);
+          background: color-mix(in srgb, var(--foreground) 2%, transparent);
           backdrop-filter: blur(10px);
-          border: 1px solid rgba(255, 255, 255, 0.06);
+          border: 1px solid color-mix(in srgb, var(--foreground) 6%, transparent);
         }
       `}</style>
       
-      <Space direction="vertical" size="large" style={{ width: '100%' }}>
-        <div className="flex justify-between items-center">
+      <div className="flex w-full flex-col gap-6">
+        <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <Title level={2} style={{ marginBottom: 0 }}>任务状态监控</Title>
-            <Text type="secondary">实时追踪 LLM 查询任务的执行与生效情况</Text>
+            <h2 className="mb-1 text-2xl font-medium text-foreground">任务状态监控</h2>
+            <p className="m-0 text-sm text-muted-foreground">实时追踪 LLM 查询任务的执行与生效情况</p>
           </div>
-          <Space>
+          <div className="flex flex-wrap items-center gap-3">
              <Select
-                allowClear
-                placeholder="选择任务 ID"
-                value={selectedJobId || undefined}
-                options={jobIdOptions.map((jobId) => ({ label: jobId, value: jobId }))}
-                onChange={(value) => updateSearchParams({ job_id: value || null })}
-                style={{ width: 280 }}
-                suffixIcon={<SearchOutlined style={{ color: 'rgba(255,255,255,0.25)' }} />}
-             />
-             <Space size="small">
-                <Text type="secondary" style={{ fontSize: 12 }}>包含已删除</Text>
-                <Switch 
-                  size="small" 
-                  checked={includeDeleted} 
-                  onChange={(checked) => updateSearchParams({ include_deleted: checked ? 'true' : 'false' })}
+                value={selectedJobId || '__all__'}
+                onValueChange={(value) => updateSearchParams({ job_id: value === '__all__' ? null : value })}
+             >
+               <SelectTrigger className="w-72">
+                 <Search data-icon="inline-start" />
+                 <SelectValue placeholder="选择任务 ID" />
+               </SelectTrigger>
+               <SelectContent>
+                 <SelectGroup>
+                   <SelectItem value="__all__">全部任务</SelectItem>
+                   {jobIdOptions.map((jobId) => (
+                     <SelectItem key={jobId} value={jobId}>{jobId}</SelectItem>
+                   ))}
+                 </SelectGroup>
+               </SelectContent>
+             </Select>
+             <label className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Checkbox
+                  checked={includeDeleted}
+                  onCheckedChange={(checked) => updateSearchParams({ include_deleted: checked ? 'true' : 'false' })}
                 />
-             </Space>
-             <Button type="primary" icon={<ReloadOutlined />} onClick={fetchData} loading={loading}>
+                包含已删除
+             </label>
+             <Button onClick={fetchData} disabled={loading}>
+                <RefreshCw data-icon="inline-start" className={loading ? 'animate-spin' : ''} />
                 查询
              </Button>
-          </Space>
+          </div>
         </div>
 
-        <Card 
-          className="glass-card" 
-          variant="borderless"
-          styles={{ body: { padding: 0 } }}
-        >
-          <Table
-            dataSource={data}
+        {feedback ? (
+          <Alert variant="destructive">
+            <AlertTitle>查询失败</AlertTitle>
+            <AlertDescription>{feedback}</AlertDescription>
+          </Alert>
+        ) : null}
+
+        <Card className="glass-card">
+          <CardContent className="p-0">
+          <DataTable
+            data={data}
             columns={columns}
             rowKey={buildQueryJobStatusRowKey}
             loading={loading}
             pagination={{ pageSize: 10 }}
-            locale={{ emptyText: <Empty description="暂无数据，请尝试查询" image={Empty.PRESENTED_IMAGE_SIMPLE} /> }}
-            rowClassName="hover:bg-white/5 transition-colors duration-200"
+            emptyDescription="暂无数据，请尝试查询"
           />
+          </CardContent>
         </Card>
-      </Space>
+      </div>
     </div>
   );
 };

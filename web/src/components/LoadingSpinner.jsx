@@ -4,20 +4,20 @@
  */
 
 import React from 'react';
-import { Spin } from 'antd';
+
+import { Spinner } from './ui/spinner.jsx';
+import { cn } from '@/lib/cn';
 
 const LoadingSpinner = ({ size = 'medium', text = '加载中...' }) => {
   const sizeMap = {
-    small: 'small',
-    medium: 'default',
-    large: 'large'
+    small: 'size-4',
+    medium: 'size-5',
+    large: 'size-7'
   };
 
-  const spinnerSize = sizeMap[size] || sizeMap.medium;
-
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-      <Spin size={spinnerSize} />
+    <div className="inline-flex items-center gap-2 text-sm text-muted-foreground">
+      <Spinner className={cn(sizeMap[size] || sizeMap.medium)} />
       <span>{text}</span>
     </div>
   );

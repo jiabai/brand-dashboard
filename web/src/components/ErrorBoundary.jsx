@@ -12,7 +12,10 @@
  */
 
 import React, { useCallback } from 'react';
-import { Button, Result, Typography } from 'antd';
+
+import { Alert, AlertDescription, AlertTitle } from './ui/alert.jsx';
+import { Button } from './ui/button.jsx';
+import { cn } from '@/lib/cn';
 
 const isDevelopment = import.meta.env.DEV;
 
@@ -107,29 +110,29 @@ class ErrorBoundaryClass extends React.Component {
 
       // Default error fallback UI
       return (
-        <Result
-          status="error"
-          title="出错了"
-          subTitle="组件渲染时遇到了问题"
-          extra={
-            <Button type="primary" onClick={this.handleReset}>
-              重试
-            </Button>
-          }
-        >
-          {isDevelopment ? (
-            <Typography.Paragraph style={{ whiteSpace: 'pre-wrap', marginBottom: 0 }}>
-              {this.state.error ? String(this.state.error) : null}
-              {this.state.errorInfo?.componentStack
-                ? `\n\n${this.state.errorInfo.componentStack}`
-                : null}
-            </Typography.Paragraph>
-          ) : null}
-        </Result>
+        <div className="flex min-h-80 items-center justify-center p-6">
+          <Alert variant="destructive" className="w-[456px] h-[388px]">
+            <AlertTitle>出错了</AlertTitle>
+            <AlertDescription className="flex flex-col gap-3">
+              <span>组件渲染时遇到了问题。</span>
+              <Button className="w-fit" variant="outline" onClick={this.handleReset}>
+                重试
+              </Button>
+              {isDevelopment ? (
+                <pre className="max-h-64 overflow-auto whitespace-pre-wrap rounded-md bg-muted p-3 text-xs text-foreground">
+                  {this.state.error ? String(this.state.error) : null}
+                  {this.state.errorInfo?.componentStack
+                    ? `\n\n${this.state.errorInfo.componentStack}`
+                    : null}
+                </pre>
+              ) : null}
+            </AlertDescription>
+          </Alert>
+        </div>
       );
     }
 
-    return <div className={this.props.className}>{this.props.children}</div>;
+    return <div className={cn(this.props.className)}>{this.props.children}</div>;
   }
 }
 

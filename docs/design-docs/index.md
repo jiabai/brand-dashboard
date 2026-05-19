@@ -15,3 +15,5 @@ Design docs capture architectural decisions, refactoring rationale, and cross-cu
 | [20260122-004000-refactor-api-v1.md](20260122-004000-refactor-api-v1.md) | API 版本化：业务代码迁移到 v1 目录、路由前缀更新 |
 | [20260517-170200-remove-legacy-url-compat.md](20260517-170200-remove-legacy-url-compat.md) | 移除前端旧式 URL 兼容代码（LegacyRedirect） |
 | [20260517-184500-web-frontend-architecture-deepening.md](20260517-184500-web-frontend-architecture-deepening.md) | Web 前端架构深化：时间 hook、API Adapter 消费、统一路由配置 |
+| [20260517-200000-migration-to-shadcn.md](20260517-200000-migration-to-shadcn.md) | Ant Design → shadcn/ui 迁移设计评审与修订：分阶段策略、依赖边界、验收门禁 |
+| [20260518-145556-dashboard-ui-visual-optimization.md](20260518-145556-dashboard-ui-visual-optimization.md) | 仪表板 UI 视觉优化：warm canvas、coral accent、信息密度与空状态策略 |

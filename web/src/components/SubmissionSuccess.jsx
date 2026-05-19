@@ -1,9 +1,9 @@
 import React from 'react';
-import { Button, Card, Typography, Descriptions, Space } from 'antd';
-import { CheckCircleOutlined, PlusOutlined, FileSearchOutlined } from '@ant-design/icons';
+import { CheckCircle, FileSearch, Plus } from 'lucide-react';
 import dayjs from 'dayjs';
 
-const { Title, Text } = Typography;
+import { Button } from './ui/button.jsx';
+import { Card, CardContent } from './ui/card.jsx';
 
 const SubmissionSuccess = ({ result, onReset, onViewStatus }) => {
   if (!result) return null;
@@ -12,59 +12,57 @@ const SubmissionSuccess = ({ result, onReset, onViewStatus }) => {
     <div className="flex flex-col items-center justify-center py-12 fade-in min-h-[60vh]">
       <div className="relative mb-6">
         <div className="absolute inset-0 bg-green-500/20 blur-3xl rounded-full animate-pulse"></div>
-        <CheckCircleOutlined className="text-[64px] text-[#52c41a] relative z-10" />
+        <CheckCircle className="relative z-10 size-16 text-chart-4" />
       </div>
       
-      <Title level={2} style={{ marginBottom: 8 }}>任务提交成功</Title>
-      <Text type="secondary" className="mb-8 text-lg">您的查询任务已成功进入队列</Text>
+      <h2 className="mb-2 text-2xl font-medium text-foreground">任务提交成功</h2>
+      <p className="mb-8 text-lg text-muted-foreground">您的查询任务已成功进入队列</p>
 
       <Card 
         className="w-full max-w-2xl mb-10 glass-card"
-        variant="borderless"
       >
-        <Descriptions column={1} bordered size="middle" labelStyle={{ width: '120px' }}>
-          <Descriptions.Item label="任务 ID">
-            <Text copyable code>{result.job_id || 'N/A'}</Text>
-          </Descriptions.Item>
-          <Descriptions.Item label="插入行数">
-            <Text strong>{result.inserted_rows}</Text>
-          </Descriptions.Item>
-          <Descriptions.Item label="提交时间">
-            {dayjs().format('YYYY-MM-DD HH:mm:ss')}
-          </Descriptions.Item>
+        <CardContent>
+          <dl className="grid grid-cols-[120px_minmax(0,1fr)] gap-x-4 gap-y-3 text-sm">
+            <dt className="text-muted-foreground">任务 ID</dt>
+            <dd className="min-w-0 font-mono text-foreground">{result.job_id || 'N/A'}</dd>
+            <dt className="text-muted-foreground">插入行数</dt>
+            <dd className="font-medium text-foreground">{result.inserted_rows}</dd>
+            <dt className="text-muted-foreground">提交时间</dt>
+            <dd className="text-foreground">{dayjs().format('YYYY-MM-DD HH:mm:ss')}</dd>
           {result.message && (
-             <Descriptions.Item label="系统消息">
-                {result.message}
-             </Descriptions.Item>
+              <>
+                <dt className="text-muted-foreground">系统消息</dt>
+                <dd className="text-foreground">{result.message}</dd>
+              </>
           )}
-        </Descriptions>
+          </dl>
+        </CardContent>
       </Card>
 
-      <Space size="large">
+      <div className="flex flex-wrap justify-center gap-4">
         <Button 
-          size="large" 
-          icon={<PlusOutlined />} 
+          size="lg" 
           onClick={onReset}
           className="min-w-[140px]"
         >
+          <Plus data-icon="inline-start" />
           创建新任务
         </Button>
         <Button 
-          type="primary" 
-          size="large" 
-          icon={<FileSearchOutlined />} 
+          size="lg" 
           onClick={onViewStatus}
           className="min-w-[140px]"
         >
+          <FileSearch data-icon="inline-start" />
           查看任务状态
         </Button>
-      </Space>
+      </div>
 
       <style>{`
         .glass-card {
-          background: rgba(255, 255, 255, 0.02);
+          background: color-mix(in srgb, var(--foreground) 2%, transparent);
           backdrop-filter: blur(10px);
-          border: 1px solid rgba(255, 255, 255, 0.06);
+          border: 1px solid color-mix(in srgb, var(--foreground) 6%, transparent);
         }
         .fade-in {
           animation: fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1);

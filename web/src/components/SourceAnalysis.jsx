@@ -1,16 +1,16 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { Card, Typography, Tag, Table, Badge, theme, Flex, Button, Divider, Tooltip, Empty, Spin, Select, Popover } from 'antd';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import dayjs from 'dayjs';
 import {
-  Download, 
-  ExternalLink, 
-  Globe, 
-  FileText, 
+  Download,
+  ExternalLink,
+  FileText,
   Filter,
+  Globe,
+  Hash,
   Info,
   TrendingUp,
-  Hash
 } from 'lucide-react';
+
 import { fetchCitationDomainStats, fetchCitationTypeStats, fetchFilterMetadata } from '@/api';
 import { useDashboardRequestParams } from '@/hooks/useDashboardParams';
 import { normalizeCitationTypeStats } from '@/utils/sourceAnalysis';
@@ -23,10 +23,29 @@ import {
   formatDateDisplay,
   getRangeByTimeframe,
 } from '@/utils';
-import { loadG2Chart } from '@/utils/loadG2Chart';
-import KeywordSection from './KeywordSection';
 
-const { Title, Text } = Typography;
+import DataTable from './DataTable.jsx';
+import KeywordSection from './KeywordSection';
+import { Button } from './ui/button.jsx';
+import { Card, CardContent, CardHeader, CardTitle } from './ui/card.jsx';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from './ui/popover.jsx';
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from './ui/select.jsx';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from './ui/tooltip.jsx';
 
 const buildSourceUrl = (domain) => {
   if (!domain) return '';
@@ -38,6 +57,28 @@ const buildSourceUrl = (domain) => {
   return `https://${text}`;
 };
 
+const InlineTags = ({ value, variant = 'secondary', icon = false }) => {
+  const items = normalizeListValue(value);
+  if (!items.length) {
+    return <span className="text-muted-foreground">--</span>;
+  }
+
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {items.map((item) => (
+        <span
+          key={item}
+          className="inline-flex items-center gap-1 rounded-md border bg-muted px-2 py-0.5 text-xs text-muted-foreground"
+          data-variant={variant}
+        >
+          {icon ? <Hash className="size-3" /> : null}
+          {item}
+        </span>
+      ))}
+    </div>
+  );
+};
+
 const SourceAnalysisChart = ({
   displayDate,
   timeframeLabel = '按天',
@@ -45,160 +86,103 @@ const SourceAnalysisChart = ({
   stats,
   loading,
 }) => {
-  const { token } = theme.useToken();
-  const containerRef = useRef(null);
-  const chartRef = useRef(null);
-  const chartData = useMemo(
-    () =>
-      stats.map((item) => ({
-        category: 'all',
-        type: item.type,
-        value: item.value / 100,
-      })),
-    [stats],
-  );
-  const colorRange = useMemo(() => stats.map((item) => item.color), [stats]);
-
-  useEffect(() => {
-    if (!containerRef.current) return;
-
-    let disposed = false;
-
-    containerRef.current.innerHTML = '';
-
-    if (chartRef.current) {
-      chartRef.current.destroy();
-      chartRef.current = null;
-    }
-
-    const container = containerRef.current;
-
-    const run = async () => {
-      const Chart = await loadG2Chart();
-      if (disposed) return;
-
-      const chart = new Chart({
-        container,
-        autoFit: true,
-        height: 16,
-        padding: 0,
-        inset: 0,
-      });
-
-      chart.data(chartData);
-
-      chart
-        .interval()
-        .coordinate({ transform: [{ type: 'transpose' }] })
-        .encode('x', 'category')
-        .encode('y', 'value')
-        .encode('color', 'type')
-        .transform([{ type: 'stackY' }, { type: 'normalizeY' }])
-        .scale('color', {
-          range: colorRange,
-        })
-        .scale('x', {
-          padding: 0,
-        })
-        .axis(false)
-        .legend(false)
-        .tooltip(false)
-        .style('radius', 0)
-        .style('stroke', '#fff')
-        .style('lineWidth', 0)
-        .label({
-          text: 'value',
-          position: 'inside',
-          transform: [{ type: 'stackY' }, { type: 'normalizeY' }],
-          formatter: (val) => (val > 0.08 ? `${(val * 100).toFixed(0)}%` : ''),
-          style: {
-            fill: '#fff',
-            fontSize: 10,
-            fontWeight: 600,
-          },
-        });
-
-      chart.render();
-      chartRef.current = chart;
-    };
-
-    run().catch(() => {});
-
-    return () => {
-      disposed = true;
-      if (chartRef.current) {
-        chartRef.current.destroy();
-        chartRef.current = null;
-      }
-    };
-  }, [chartData, colorRange]);
+  const safeStats = Array.isArray(stats) ? stats : [];
 
   return (
-    <Card 
-      variant="borderless"
-      styles={{ body: { padding: token.paddingLG } }}
-      style={{ boxShadow: token.boxShadowTertiary, borderRadius: token.borderRadiusLG }}
-    >
-      <Flex vertical gap="small" style={{ marginBottom: token.marginLG }}>
-        <Flex align="center" gap="small">
-          <TrendingUp size={20} color={token.colorPrimary} />
-          <Title level={4} style={{ margin: 0, fontWeight: 700 }}>信源分析</Title>
-          <Tooltip title="基于大模型引用的信源分布比例">
-            <Info size={14} color={token.colorTextPlaceholder} style={{ cursor: 'help' }} />
+    <Card>
+      <CardHeader className="space-y-3">
+        <div className="flex items-center gap-2">
+          <TrendingUp className="size-5 text-primary" />
+          <CardTitle>信源分析</CardTitle>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Info className="size-4 cursor-help text-muted-foreground" />
+            </TooltipTrigger>
+            <TooltipContent>基于大模型引用的信源分布比例</TooltipContent>
           </Tooltip>
-        </Flex>
-        
-        <Flex gap="large" align="center" style={{ paddingLeft: 28 }}>
+        </div>
+        <div className="flex flex-wrap gap-x-6 gap-y-2 pl-7 text-sm">
           {[
             { label: timeframeLabel, value: displayDate },
             { label: 'Prompt 总数', value: summary?.conversations ?? 0 },
             { label: '引用信源数', value: summary?.totalRows ?? 0 },
-          ].map(item => (
-            <Flex key={item.label} align="center" gap="xs">
-              <Text type="secondary" style={{ fontSize: token.fontSizeSM }}>{item.label}：</Text>
-              <Text strong style={{ fontSize: token.fontSize }}>
+          ].map((item) => (
+            <span key={item.label} className="text-muted-foreground">
+              {item.label}：
+              <strong className="font-medium text-foreground">
                 {loading ? '加载中' : item.value}
-              </Text>
-            </Flex>
+              </strong>
+            </span>
           ))}
-        </Flex>
-      </Flex>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-5">
+        {/* 屏幕阅读器摘要 */}
+        <p className="sr-only">
+          {safeStats.length
+            ? `信源分布: ${safeStats.map((s) => `${s.type} ${s.value}%`).join('，')}`
+            : '暂无信源数据'}
+        </p>
 
-      {/* G2 百分比堆叠条形图容器 */}
-      <div style={{ 
-        marginBottom: token.marginLG, 
-        paddingLeft: 28, 
-        paddingRight: token.paddingLG,
-        height: 16
-      }}>
-        <div 
-          ref={containerRef} 
-          style={{ 
-            width: '100%', 
-            height: '100%', 
-            borderRadius: 8, 
-            overflow: 'hidden', 
-            backgroundColor: token.colorFillTertiary,
-            display: 'flex',
-            alignItems: 'center'
-          }} 
-        />
-      </div>
+        {/* Y轴刻度参考线 */}
+        <div className="relative ml-0 sm:ml-7">
+          <div className="flex h-4 overflow-hidden rounded-full bg-muted">
+            {safeStats.length ? (
+              <div className="flex h-full w-full">
+                {safeStats.map((item) => (
+                  <Tooltip key={item.type}>
+                    <TooltipTrigger asChild>
+                      <div
+                        className="h-full"
+                        style={{
+                          width: `${clampPercent(item.value)}%`,
+                          background: item.color,
+                        }}
+                        role="graphics-symbol"
+                        aria-label={`${item.type}: ${item.value}%`}
+                      />
+                    </TooltipTrigger>
+                    <TooltipContent side="top" align="center">
+                      {item.type}: {item.value}%
+                    </TooltipContent>
+                  </Tooltip>
+                ))}
+              </div>
+            ) : null}
+          </div>
+          {/* 百分比刻度标注 */}
+          <div className="mt-1.5 flex items-center gap-1.5 text-xs text-muted-foreground">
+            <span className="shrink-0">占比</span>
+            <span className="flex flex-1 justify-between">
+              <span>0%</span>
+              <span>25%</span>
+              <span>50%</span>
+              <span>75%</span>
+              <span>100%</span>
+            </span>
+          </div>
+        </div>
 
-      <Flex wrap="wrap" justify="center" gap="xl">
-        {stats.map((item) => (
-          <Flex key={item.type} align="center" gap="small" style={{ 
-            padding: '4px 12px', 
-            borderRadius: token.borderRadiusSM,
-            transition: 'all 0.2s',
-            cursor: 'default'
-          }} className="hover:bg-gray-50">
-            <Badge color={item.color} />
-            <Text strong style={{ color: token.colorTextHeading }}>{item.type}</Text>
-            <Text type="secondary" style={{ minWidth: 40 }}>{item.value}%</Text>
-          </Flex>
-        ))}
-      </Flex>
+        {/* 图例 — 使用不同形状辅助色盲区分 */}
+        <div className="flex flex-wrap justify-center gap-4">
+          {safeStats.map((item, idx) => {
+            const shapes = [
+              <span key="shape" className="size-2.5 rounded-full" style={{ background: item.color }} />,
+              <span key="shape" className="size-2.5 rounded-sm" style={{ background: item.color }} />,
+              <span key="shape" className="size-0 border-x-[5px] border-b-[8px] border-x-transparent border-b-current" style={{ color: item.color }} />,
+              <span key="shape" className="size-2.5 rotate-45 rounded-sm" style={{ background: item.color }} />,
+              <span key="shape" className="size-2.5 rounded-full border-2" style={{ borderColor: item.color }} />,
+            ];
+            return (
+              <div key={item.type} className="flex items-center gap-2 rounded-md px-3 py-1 text-sm hover:bg-muted">
+                {shapes[idx % shapes.length]}
+                <span className="font-medium text-foreground">{item.type}</span>
+                <span className="text-muted-foreground">{item.value}%</span>
+              </div>
+            );
+          })}
+        </div>
+      </CardContent>
     </Card>
   );
 };
@@ -211,7 +195,6 @@ const MediaListTable = ({
   selectedPlatform,
   onPlatformChange,
 }) => {
-  const { token } = theme.useToken();
   const normalizedPlatformOptions = useMemo(() => {
     const fallback = ['deepseek', '千问', '豆包', '元宝'];
     const base = platformOptions.length ? platformOptions : fallback;
@@ -221,163 +204,154 @@ const MediaListTable = ({
     }));
   }, [platformOptions]);
 
-  const columns = [
-    {
-      title: '引用来源',
-      key: 'source',
-      width: 280,
-      render: (_, record) => (
-        <Flex vertical gap={2}>
-          <Flex align="center" gap="small">
-            <Globe size={14} color={token.colorTextDescription} />
-            <Text strong>{record.sourceName}</Text>
-          </Flex>
-          <Text type="secondary" style={{ fontSize: token.fontSizeSM }} copyable>{record.domain}</Text>
-        </Flex>
-      ),
-    },
-    {
-      title: '品牌关键词',
-      dataIndex: 'keyword',
-      key: 'keyword',
-      render: (text) => {
-        const items = normalizeListValue(text);
-        if (!items.length) return <Text type="secondary">--</Text>;
-        return (
-          <Flex wrap="wrap" gap="small">
-            {items.map((item) => (
-              <Tag key={item} bordered={false} icon={<Hash size={10} />} style={{ borderRadius: 4 }}>
-                {item}
-              </Tag>
-            ))}
-          </Flex>
-        );
-      },
-    },
-    {
-      title: '内容类型',
-      dataIndex: 'contentType',
-      key: 'contentType',
-      render: (text) => {
-        const colors = { '新闻': 'blue', '论坛': 'cyan', '博客': 'purple', '评论': 'orange' };
-        const items = normalizeListValue(text);
-        if (!items.length) return <Text type="secondary">--</Text>;
-        return (
-          <Flex wrap="wrap" gap="small">
-            {items.map((item) => (
-              <Tag key={item} color={colors[item] || 'default'} bordered={false}>{item}</Tag>
-            ))}
-          </Flex>
-        );
-      },
-    },
-    {
-      title: '大模型平台',
-      dataIndex: 'platform',
-      key: 'platform',
-      render: (text) => {
-        const items = normalizeListValue(text);
-        if (!items.length) return <Text type="secondary">--</Text>;
-        return (
-          <Flex wrap="wrap" gap="small">
-            {items.map((item) => (
-              <Tag key={item} color="processing" bordered={false}>{item}</Tag>
-            ))}
-          </Flex>
-        );
-      },
-    },
-    {
-      title: '引用率',
-      dataIndex: 'citationRate',
-      key: 'citationRate',
-      sorter: (a, b) => a.citationRate - b.citationRate,
-      render: (value) => {
-        let color = token.colorSuccess;
-        if (value < 30) color = token.colorTextDescription;
-        else if (value > 70) color = token.colorWarning;
-        
-        return (
-          <Flex align="center" gap="small">
-            <div style={{ width: 60, height: 6, background: token.colorFillTertiary, borderRadius: 3, overflow: 'hidden' }}>
-              <div style={{ width: `${value}%`, height: '100%', background: color, borderRadius: 3 }} />
+  const columns = useMemo(
+    () => [
+      {
+        title: '引用来源',
+        key: 'source',
+        width: 280,
+        render: (_, record) => (
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <Globe className="size-4 text-muted-foreground" />
+              <span className="font-medium text-foreground">{record.sourceName}</span>
             </div>
-            <Text strong style={{ color, minWidth: 40, fontSize: token.fontSizeSM }}>{value}%</Text>
-          </Flex>
-        );
+            <span className="block text-xs text-muted-foreground">{record.domain}</span>
+          </div>
+        ),
       },
-    },
-    {
-      title: '操作',
-      key: 'action',
-      width: 80,
-      render: (_, record) => (
-        <Tooltip title="查看原文">
-          <Button 
-            type="text" 
-            icon={<ExternalLink size={16} />} 
-            href={record.sourceUrl || undefined} 
-            target="_blank" 
-            disabled={!record.sourceUrl}
-          />
-        </Tooltip>
-      ),
-    },
-  ];
+      {
+        title: '品牌关键词',
+        dataIndex: 'keyword',
+        key: 'keyword',
+        width: 180,
+        render: (text) => <InlineTags value={text} icon />,
+      },
+      {
+        title: '内容类型',
+        dataIndex: 'contentType',
+        key: 'contentType',
+        width: 160,
+        render: (text) => <InlineTags value={text} />,
+      },
+      {
+        title: '大模型平台',
+        dataIndex: 'platform',
+        key: 'platform',
+        width: 160,
+        render: (text) => <InlineTags value={text} variant="platform" />,
+      },
+      {
+        title: '引用率',
+        dataIndex: 'citationRate',
+        key: 'citationRate',
+        width: 140,
+        sorter: (a, b) => a.citationRate - b.citationRate,
+        defaultSortOrder: 'descend',
+        render: (value) => {
+          const tone = value > 70 ? 'var(--chart-4)' : value < 30 ? 'var(--muted-foreground)' : 'var(--chart-3)';
+          return (
+            <div className="flex items-center gap-2">
+              <div className="h-1.5 w-16 overflow-hidden rounded-full bg-muted">
+                <div
+                  className="h-full rounded-full"
+                  style={{ width: `${clampPercent(value)}%`, background: tone }}
+                />
+              </div>
+              <span className="min-w-10 text-sm font-medium" style={{ color: tone }}>
+                {value}%
+              </span>
+            </div>
+          );
+        },
+      },
+      {
+        title: '操作',
+        key: 'action',
+        width: 80,
+        render: (_, record) => (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon" disabled={!record.sourceUrl} asChild={Boolean(record.sourceUrl)}>
+                {record.sourceUrl ? (
+                  <a href={record.sourceUrl} target="_blank" rel="noreferrer">
+                    <ExternalLink className="size-4" />
+                  </a>
+                ) : (
+                  <span>
+                    <ExternalLink className="size-4" />
+                  </span>
+                )}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>查看原文</TooltipContent>
+          </Tooltip>
+        ),
+      },
+    ],
+    [],
+  );
 
   return (
-    <Card 
-      variant="borderless"
-      styles={{ body: { padding: 0 } }}
-      style={{ boxShadow: token.boxShadowTertiary, borderRadius: token.borderRadiusLG, overflow: 'hidden' }}
-    >
-      <Flex justify="space-between" align="center" style={{ padding: token.paddingLG, borderBottom: `1px solid ${token.colorBorderSecondary}` }}>
-        <Flex align="center" gap="small">
-          <FileText size={20} color={token.colorPrimary} />
-          <Title level={4} style={{ margin: 0, fontWeight: 700 }}>引用媒介列表</Title>
-        </Flex>
-        <Flex gap="small">
-          <Popover
-            trigger="click"
-            placement="bottomRight"
-            content={
-              <Flex vertical gap="small" style={{ minWidth: 220 }}>
-                <Text type="secondary">大模型平台</Text>
-                <Select
-                  allowClear
-                  placeholder="全部平台"
-                  value={selectedPlatform || undefined}
-                  onChange={(value) => onPlatformChange?.(value || '')}
-                  options={normalizedPlatformOptions}
-                />
-              </Flex>
-            }
-          >
-            <Button icon={<Filter size={14} />}>高级筛选</Button>
+    <Card className="overflow-hidden">
+      <CardHeader className="flex flex-col gap-3 border-b sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-2">
+          <FileText className="size-5 text-primary" />
+          <CardTitle>引用媒介列表</CardTitle>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline">
+                <Filter className="size-4" />
+                高级筛选
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-64 space-y-2">
+              <div className="text-sm text-muted-foreground">大模型平台</div>
+              <Select
+                value={selectedPlatform || '__all__'}
+                onValueChange={(value) => onPlatformChange?.(value === '__all__' ? '' : value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="全部平台" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    <SelectItem value="__all__">全部平台</SelectItem>
+                    {normalizedPlatformOptions.map((item) => (
+                      <SelectItem key={item.value} value={item.value}>
+                        {item.label}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+            </PopoverContent>
           </Popover>
-          <Button type="primary" icon={<Download size={14} />}>导出报告</Button>
-        </Flex>
-      </Flex>
-      {error ? (
-        <Flex align="center" gap="small" style={{ padding: token.paddingLG, color: token.colorError }}>
-          <Text type="danger">{error}</Text>
-        </Flex>
-      ) : null}
-      <Table 
-        columns={columns} 
-        dataSource={rows} 
-        rowKey={(record) => record.key || record.domain || record.sourceUrl}
-        pagination={{ 
-          pageSize: 10,
-          showSizeChanger: true,
-          showTotal: (total) => `共 ${total} 条数据`
-        }}
-        loading={loading}
-        size="middle"
-        locale={{
-          emptyText: error ? '加载失败，请稍后再试' : '暂无数据',
-        }}
-      />
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button disabled>
+                <Download className="size-4" />
+                导出报告
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>功能开发中，即将上线</TooltipContent>
+          </Tooltip>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {error ? <p className="mb-3 text-sm text-destructive">{error}</p> : null}
+        <DataTable
+          columns={columns}
+          data={rows}
+          rowKey={(record) => record.key || record.domain || record.sourceUrl}
+          pagination={{ pageSize: 10 }}
+          loading={loading}
+          error={error}
+          emptyDescription={error ? '加载失败，请稍后再试' : '暂无数据'}
+        />
+      </CardContent>
     </Card>
   );
 };
@@ -434,7 +408,7 @@ export default function SourceAnalysis() {
 
   useEffect(() => {
     const controller = new AbortController();
-    
+
     const fetchMetadata = async () => {
       setLoading(true);
       setError(null);
@@ -618,13 +592,15 @@ export default function SourceAnalysis() {
   ]);
 
   return (
-    <Flex vertical gap="large">
+    <div className="flex w-full flex-col gap-6">
       <KeywordSection
         keywords={keywords}
         loading={loading}
         selectedKeyword={selectedKeyword}
         onKeywordChange={setSelectedKeyword}
       />
+      {error ? <p className="text-sm text-destructive">{error}</p> : null}
+      {citationError ? <p className="text-sm text-destructive">{citationError}</p> : null}
       <SourceAnalysisChart
         displayDate={displayDate}
         timeframeLabel={timeframeLabel}
@@ -640,8 +616,6 @@ export default function SourceAnalysis() {
         selectedPlatform={selectedPlatform}
         onPlatformChange={setSelectedPlatform}
       />
-    </Flex>
+    </div>
   );
 }
-
-

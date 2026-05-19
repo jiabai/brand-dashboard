@@ -2,12 +2,24 @@
 
 ## UI 设计规范
 
-- 组件库：Ant Design 5.x 为主，Radix UI 补充（Progress, Slot）
-- 图表：@ant-design/charts（基于 @antv/g2）
-- 样式：Tailwind CSS 工具类优先，自定义 CSS 仅放 `web/src/styles/`
-- 图标：Lucide React + @ant-design/icons
-- 布局：Ant Design Layout（Header + Sidebar + Content），响应式适配
-- 主题：Ant Design ConfigProvider 统一主题，支持暗色模式扩展
+- 组件库：shadcn/ui 源码组件为主，组件源码位于 `web/src/components/ui/`
+- 图表：使用 React/SVG/CSS 原生组合实现轻量图表，不引入 G2 或第二套图表运行时
+- 样式：Tailwind CSS v4 semantic tokens 优先，自定义 CSS 仅放 `web/src/styles/`
+- 图标：Lucide React
+- 布局：shadcn Sidebar + React 组件组合（Header + Sidebar + Content），响应式适配
+- 主题：`web/src/index.css` 中的 CSS variables + Tailwind `@theme inline` 统一主题，支持暗色模式扩展
+- 共享工具：条件 class 合并统一使用 `web/src/lib/cn.js`
+
+## UI 视觉方向
+
+- 风格：暖色浅底运营仪表板，参考 `DESIGN-TOKENS.md` 的 cream canvas、warm ink、coral primary 和 dark product surface，但不照搬营销页 hero、pricing 或 CTA band 结构
+- 页面底色：默认使用 warm canvas，不使用深紫或紫蓝作为全局背景
+- 主强调：coral 仅用于主操作、active 标记和少量关键状态，不大面积铺满业务卡片
+- 深色 surface：仅用于侧栏、局部高对比模块或复杂数据承载区，不作为内容区默认背景
+- 卡片：默认 8px 圆角、1px warm hairline border、低阴影或无阴影；禁止卡片套卡片
+- 信息密度：仪表板首屏优先展示核心数据；空状态必须轻量，不能占据整屏视觉中心
+- Typography：业务 UI 以清晰 sans-serif 层级为主，display serif 仅可作为少量品牌化标题试点，不用于表格、表单和密集数据
+- 图表颜色：使用 warm ink、coral、teal、amber、success、warning、error 等 semantic/chart tokens，不回到单一紫色体系
 
 ## API 设计规范
 

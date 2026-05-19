@@ -37,23 +37,8 @@ export default defineConfig(({ mode, command }) => {
             if (normalizedId.includes('/node_modules/lucide-react')) {
               return 'lucide-vendor'
             }
-            if (normalizedId.includes('/node_modules/@ant-design/icons')) {
-              return 'antd-icons'
-            }
-            if (normalizedId.includes('/node_modules/@rc-component') || normalizedId.includes('/node_modules/rc-')) {
-              return 'rc-vendor'
-            }
-            if (normalizedId.includes('/node_modules/@antv/g2')) {
-              return 'antv-g2'
-            }
-            if (normalizedId.includes('/node_modules/@antv/')) {
-              return 'antv-vendor'
-            }
             if (normalizedId.includes('/node_modules/dayjs')) {
               return 'dayjs-vendor'
-            }
-            if (normalizedId.includes('/node_modules/antd')) {
-              return 'antd-vendor'
             }
           }
         }

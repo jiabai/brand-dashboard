@@ -1,5 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Button, Space, Spin, Tag, Tooltip, Typography } from 'antd';
+
+import { Badge } from './ui/badge.jsx';
+import { Button } from './ui/button.jsx';
+import { Spinner } from './ui/spinner.jsx';
+import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip.jsx';
 
 /**
  * TaskName component - 显示用户自定义的任务名称
@@ -74,34 +78,28 @@ const TaskName = () => {
   };
 
   return (
-    <Space size="small" align="center" style={{ display: 'flex', alignItems: 'center' }}>
-      <Tag color="blue" style={{ margin: 0 }}>当前任务</Tag>
+    <div className="flex min-w-0 items-center gap-2">
+      <Badge variant="secondary" className="shrink-0">当前任务</Badge>
       {loading ? (
-        <Space size="small" align="center">
-          <Spin size="small" />
-          <Typography.Text type="secondary">加载中...</Typography.Text>
-        </Space>
+        <span className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
+          <Spinner />
+          加载中...
+        </span>
       ) : error ? (
-        <Tooltip title={error}>
-          <Button type="link" danger onClick={handleRetry} style={{ padding: 0, height: 'auto', lineHeight: 'normal' }}>
-            任务加载失败，点击重试
-          </Button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="link" onClick={handleRetry} className="h-auto px-0 text-destructive">
+              任务加载失败，点击重试
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>{error}</TooltipContent>
         </Tooltip>
       ) : (
-        <Typography.Text 
-          strong 
-          ellipsis 
-          style={{ 
-            maxWidth: 320, 
-            margin: 0,
-            display: 'inline-block',
-            lineHeight: '22px'
-          }}
-        >
+        <span className="max-w-80 truncate text-sm font-medium text-foreground">
           {taskName}
-        </Typography.Text>
+        </span>
       )}
-    </Space>
+    </div>
   );
 };
 

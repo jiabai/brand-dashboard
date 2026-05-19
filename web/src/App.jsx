@@ -1,11 +1,12 @@
-import React, { Suspense, useEffect } from 'react';
-import { ConfigProvider, Spin, theme } from 'antd';
+import React, { Suspense } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 
 import './styles/app-shell.css';
 import ErrorBoundary from './components/ErrorBoundary';
 import DashboardLayout from './components/DashboardLayout.jsx';
 import HomeView from './components/HomeView.jsx';
+import LoadingSpinner from './components/LoadingSpinner.jsx';
+import { TooltipProvider } from './components/ui/tooltip.jsx';
 
 import { getRoutableRoutes } from './config/routes.js';
 import { useDashboardRequestParams } from './hooks/useDashboardParams.js';
@@ -22,7 +23,7 @@ const SentimentAnalysis = React.lazy(() => import('./components/SentimentAnalysi
 
 const RouteShell = ({ children }) => (
   <ErrorBoundary>
-    <Suspense fallback={<div className="app-shell-loading"><Spin /></div>}>
+    <Suspense fallback={<div className="app-shell-loading"><LoadingSpinner text="加载中..." /></div>}>
       {children}
     </Suspense>
   </ErrorBoundary>
@@ -30,7 +31,10 @@ const RouteShell = ({ children }) => (
 
 const DashboardLoadingRoute = ({ children }) => {
   const { isLoading } = useDashboardRequestParams();
-  return <Spin spinning={isLoading}>{children}</Spin>;
+  if (isLoading) {
+    return <div className="app-shell-loading"><LoadingSpinner text="正在加载数据..." /></div>;
+  }
+  return children;
 };
 
 const ROUTE_ELEMENT_FACTORIES = {
@@ -72,28 +76,10 @@ const AppRoutes = () => {
 };
 
 function App() {
-  useEffect(() => {
-    document.documentElement.classList.add('dark');
-  }, []);
-
   return (
-    <ConfigProvider
-      theme={{
-        algorithm: theme.darkAlgorithm,
-        token: {
-          fontFamily:
-            "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', 'Apple Color Emoji', 'Segoe UI Emoji', sans-serif",
-          colorPrimary: '#fa8c16',
-          colorInfo: '#fa8c16',
-          colorSuccess: '#52c41a',
-          colorWarning: '#faad14',
-          colorError: '#ff4d4f',
-          colorLink: '#fa8c16',
-        },
-      }}
-    >
+    <TooltipProvider>
       <AppRoutes />
-    </ConfigProvider>
+    </TooltipProvider>
   );
 }
 

@@ -4,38 +4,15 @@
  */
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { Button, Card, Empty, Table, Typography } from 'antd';
 import { fetchCitationDomainSummary } from '@/api';
 import { useDashboardRequestParams } from '@/hooks/useDashboardParams';
 import { clampPercent, roundTwoDecimals } from '@/utils';
-
-const MIN_COLUMN_WIDTH = 80;
-
-const ResizableHeaderCell = ({ onResize, width, children, ...restProps }) => {
-  if (!width) {
-    return <th {...restProps}>{children}</th>;
-  }
-
-  return (
-    <th {...restProps} style={{ ...(restProps.style ?? {}), width, position: 'relative' }}>
-      {children}
-      <div
-        onMouseDown={onResize}
-        role="separator"
-        tabIndex={-1}
-        style={{
-          position: 'absolute',
-          top: 0,
-          right: -6,
-          width: 12,
-          height: '100%',
-          cursor: 'col-resize',
-          userSelect: 'none',
-        }}
-      />
-    </th>
-  );
-};
+import DataTable from './DataTable.jsx';
+import EmptyState from './EmptyState.jsx';
+import LoadingSpinner from './LoadingSpinner.jsx';
+import { Link } from 'lucide-react';
+import { Button } from './ui/button.jsx';
+import { Card, CardContent, CardHeader, CardTitle } from './ui/card.jsx';
 
 const ReferencesTable = ({
   referencesData,
@@ -128,9 +105,9 @@ const ReferencesTable = ({
         key: 'domain',
         width: 260,
         render: (domain) => (
-          <Typography.Link href={`https://${domain}`} target="_blank" rel="noopener noreferrer">
+          <a className="text-primary hover:underline" href={`https://${domain}`} target="_blank" rel="noopener noreferrer">
             {domain}
-          </Typography.Link>
+          </a>
         ),
       },
       {
@@ -168,66 +145,46 @@ const ReferencesTable = ({
     ];
   }, []);
 
-  const [columns, setColumns] = useState(() => baseColumns);
-
-  useEffect(() => {
-    setColumns(baseColumns);
-  }, [baseColumns]);
-
-  const resizableColumns = useMemo(() => {
-    const startResize = (columnIndex) => (event) => {
-      event.preventDefault();
-      event.stopPropagation();
-
-      const startX = event.clientX;
-      const startWidth = Number(columns[columnIndex]?.width) || MIN_COLUMN_WIDTH;
-
-      const onMouseMove = (moveEvent) => {
-        const delta = moveEvent.clientX - startX;
-        const nextWidth = Math.max(MIN_COLUMN_WIDTH, startWidth + delta);
-
-        setColumns((prev) => {
-          if (!Array.isArray(prev) || !prev[columnIndex]) return prev;
-          const next = prev.slice();
-          const current = next[columnIndex];
-          next[columnIndex] = { ...current, width: nextWidth };
-          return next;
-        });
-      };
-
-      const onMouseUp = () => {
-        window.removeEventListener('mousemove', onMouseMove);
-        window.removeEventListener('mouseup', onMouseUp);
-      };
-
-      window.addEventListener('mousemove', onMouseMove);
-      window.addEventListener('mouseup', onMouseUp);
-    };
-
-    return columns.map((col, index) => ({
-      ...col,
-      onHeaderCell: () => ({
-        width: col.width,
-        onResize: startResize(index),
-      }),
-    }));
-  }, [columns]);
-
   // 加载状态
   if (loading) {
     return (
-      <Card title="引用媒介详情" loading />
+      <Card>
+        <CardHeader>
+          <CardTitle>
+          <span className="flex items-center gap-2">
+            <Link className="size-5 text-primary" />
+            引用媒介详情
+          </span>
+        </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <LoadingSpinner text="正在加载引用媒介..." />
+        </CardContent>
+      </Card>
     );
   }
 
   // 错误状态
   if (errorMsg) {
     return (
-      <Card title="引用媒介详情">
-        <Typography.Paragraph type="danger">{errorMsg}</Typography.Paragraph>
-        <Button type="primary" onClick={() => window.location.reload()}>
-          重试
-        </Button>
+      <Card>
+        <CardHeader>
+          <CardTitle>
+          <span className="flex items-center gap-2">
+            <Link className="size-5 text-primary" />
+            引用媒介详情
+          </span>
+        </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <EmptyState
+            title="数据加载失败"
+            description={errorMsg}
+            icon="!"
+            actionText="重试"
+            onAction={() => window.location.reload()}
+          />
+        </CardContent>
       </Card>
     );
   }
@@ -235,33 +192,45 @@ const ReferencesTable = ({
   // 空状态
   if (!displayData || displayData.length === 0) {
     return (
-      <Card title="引用媒介详情">
-        <Empty description="当前时间范围内没有可用的引用链接数据" />
+      <Card>
+        <CardHeader>
+          <CardTitle>
+          <span className="flex items-center gap-2">
+            <Link className="size-5 text-primary" />
+            引用媒介详情
+          </span>
+        </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <EmptyState title="暂无引用媒介" description="当前时间范围内没有可用的引用链接数据" />
+        </CardContent>
       </Card>
     );
   }
 
   return (
-    <Card title="引用媒介详情">
-      <Table
+    <Card>
+      <CardHeader>
+        <CardTitle>
+          <span className="flex items-center gap-2">
+            <Link className="size-5 text-primary" />
+            引用媒介详情
+          </span>
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+      <DataTable
         rowKey={(record) => record.domain ?? String(record.rank)}
-        size="middle"
-        tableLayout="fixed"
-        scroll={{ x: 'max-content' }}
-        components={{
-          header: {
-            cell: ResizableHeaderCell,
-          },
-        }}
-        columns={resizableColumns}
-        dataSource={displayData}
+        columns={baseColumns}
+        data={displayData}
         pagination={
           displayData.length > 20
-            ? { pageSize: 20, showSizeChanger: true, showQuickJumper: true }
+            ? { pageSize: 20 }
             : false
         }
         loading={Boolean(loading)}
       />
+      </CardContent>
     </Card>
   );
 };

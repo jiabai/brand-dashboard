@@ -1,34 +1,16 @@
 import React, { useMemo, useState } from 'react';
 import {
-  Card,
-  Tabs,
-  Form,
-  Input,
-  Button,
-  Space,
-  Typography,
-  Row,
-  Col,
-  DatePicker,
-  InputNumber,
-  Select,
-  message,
-  Tag,
-  Alert,
-  Divider,
-  Collapse
-} from 'antd';
-import {
-  BankOutlined,
-  CheckCircleOutlined,
-  KeyOutlined,
-  LockOutlined,
-  RocketOutlined,
-  SafetyCertificateOutlined,
-  UserAddOutlined,
-  UserOutlined
-} from '@ant-design/icons';
+  Building2,
+  CheckCircle,
+  Key,
+  Lock,
+  Rocket,
+  ShieldCheck,
+  User,
+  UserPlus,
+} from 'lucide-react';
 import dayjs from 'dayjs';
+
 import {
   activateAuth,
   createPlatformTenant,
@@ -38,10 +20,91 @@ import {
 } from '@/api';
 import '../styles/account-management.css';
 
-const { Title, Text } = Typography;
+import { Alert, AlertDescription, AlertTitle } from './ui/alert.jsx';
+import { Badge } from './ui/badge.jsx';
+import { Button } from './ui/button.jsx';
+import { Card, CardContent } from './ui/card.jsx';
+import { Input } from './ui/input.jsx';
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from './ui/select.jsx';
+import { Separator } from './ui/separator.jsx';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs.jsx';
+
+const initialForms = {
+  tenant: {
+    tenantName: '',
+    industry: '',
+    adminName: '',
+    adminEmail: '',
+    companyLegalName: '',
+    companyType: '',
+    registrationNo: '',
+    adminPhone: '',
+    planType: '',
+    billingCycle: '',
+    maxUsers: '',
+    contractStartDate: '',
+    contractEndDate: '',
+    preferredSubdomain: '',
+    salesPersonId: '',
+  },
+  activate: {
+    token: '',
+    password: '',
+    confirmPassword: '',
+  },
+  verify: {
+    code: '',
+  },
+  register: {
+    inviteCode: '',
+    realName: '',
+    email: '',
+    phoneNumber: '',
+    password: '',
+  },
+  login: {
+    email: '',
+    password: '',
+  },
+};
+
+const stripEmpty = (payload) =>
+  Object.fromEntries(
+    Object.entries(payload).filter(([, value]) => value !== '' && value !== undefined && value !== null),
+  );
+
+const FormField = ({ label, children, required = false }) => (
+  <label className="block space-y-1.5">
+    <span className="text-sm font-medium text-foreground">
+      {label}
+      {required ? <span className="text-destructive"> *</span> : null}
+    </span>
+    {children}
+  </label>
+);
+
+const ResponseBadge = ({ status }) => {
+  if (status === 'success') return <Badge>成功</Badge>;
+  if (status === 'error') return <Badge variant="destructive">失败</Badge>;
+  return <Badge variant="secondary">待操作</Badge>;
+};
+
+const TabLabel = ({ icon: Icon, children }) => (
+  <span className="inline-flex items-center gap-1.5">
+    <Icon className="size-4" />
+    {children}
+  </span>
+);
 
 const AccountManagement = () => {
-  const [messageApi, contextHolder] = message.useMessage();
+  const [forms, setForms] = useState(initialForms);
   const [loadingMap, setLoadingMap] = useState({
     tenant: false,
     activate: false,
@@ -54,6 +117,17 @@ const AccountManagement = () => {
     status: 'idle',
     payload: null,
   });
+  const [feedback, setFeedback] = useState(null);
+
+  const updateForm = (formKey, field, value) => {
+    setForms((current) => ({
+      ...current,
+      [formKey]: {
+        ...current[formKey],
+        [field]: value,
+      },
+    }));
+  };
 
   const setLoading = (key, value) => {
     setLoadingMap((prev) => ({ ...prev, [key]: value }));
@@ -61,489 +135,343 @@ const AccountManagement = () => {
 
   const pushResponse = (title, status, payload) => {
     setLatestResponse({ title, status, payload });
+    setFeedback({
+      type: status,
+      title,
+      message: status === 'success' ? payload?.message || '操作成功' : payload?.message || '操作失败',
+    });
   };
 
-  const handleCreateTenant = async (values) => {
-    setLoading('tenant', true);
+  const handleOperation = (key, title, operation, prepare = (value) => value) => async (event) => {
+    event.preventDefault();
+    setLoading(key, true);
+    setFeedback(null);
     try {
-      const payload = {
-        ...values,
-        contractStartDate: values.contractStartDate
-          ? dayjs(values.contractStartDate).format('YYYY-MM-DD')
-          : undefined,
-        contractEndDate: values.contractEndDate
-          ? dayjs(values.contractEndDate).format('YYYY-MM-DD')
-          : undefined,
-      };
-      const result = await createPlatformTenant(payload);
-      messageApi.success(result?.message || '租户创建成功');
-      pushResponse('租户开通', 'success', result);
+      const result = await operation(prepare(forms[key]));
+      pushResponse(title, 'success', result);
     } catch (error) {
-      messageApi.error(error.message);
-      pushResponse('租户开通', 'error', { message: error.message });
+      pushResponse(title, 'error', { message: error.message });
     } finally {
-      setLoading('tenant', false);
+      setLoading(key, false);
     }
   };
 
-  const handleActivateAdmin = async (values) => {
-    setLoading('activate', true);
-    try {
-      const result = await activateAuth(values);
-      messageApi.success(result?.message || '账号激活成功');
-      pushResponse('管理员激活', 'success', result);
-    } catch (error) {
-      messageApi.error(error.message);
-      pushResponse('管理员激活', 'error', { message: error.message });
-    } finally {
-      setLoading('activate', false);
+  const prepareTenantPayload = (values) =>
+    stripEmpty({
+      ...values,
+      maxUsers: values.maxUsers ? Number(values.maxUsers) : undefined,
+      contractStartDate: values.contractStartDate
+        ? dayjs(values.contractStartDate).format('YYYY-MM-DD')
+        : undefined,
+      contractEndDate: values.contractEndDate
+        ? dayjs(values.contractEndDate).format('YYYY-MM-DD')
+        : undefined,
+    });
+
+  const prepareActivatePayload = (values) => {
+    if (values.password !== values.confirmPassword) {
+      throw new Error('两次输入的密码不一致');
     }
+    return stripEmpty({
+      token: values.token,
+      password: values.password,
+      confirmPassword: values.confirmPassword,
+    });
   };
 
-  const handleVerifyInviteCode = async (values) => {
-    setLoading('verify', true);
-    try {
-      const result = await verifyInviteCode(values);
-      messageApi.success(result?.message || '邀请码有效');
-      pushResponse('邀请码核验', 'success', result);
-    } catch (error) {
-      messageApi.error(error.message);
-      pushResponse('邀请码核验', 'error', { message: error.message });
-    } finally {
-      setLoading('verify', false);
-    }
-  };
-
-  const handleRegisterEmployee = async (values) => {
-    setLoading('register', true);
-    try {
-      const result = await registerUser(values);
-      messageApi.success(result?.message || '注册成功');
-      pushResponse('员工注册', 'success', result);
-    } catch (error) {
-      messageApi.error(error.message);
-      pushResponse('员工注册', 'error', { message: error.message });
-    } finally {
-      setLoading('register', false);
-    }
-  };
-
-  const handleLogin = async (values) => {
-    setLoading('login', true);
-    try {
-      const result = await login(values);
-      messageApi.success(result?.message || '登录成功');
-      pushResponse('账户登录', 'success', result);
-    } catch (error) {
-      messageApi.error(error.message);
-      pushResponse('账户登录', 'error', { message: error.message });
-    } finally {
-      setLoading('login', false);
-    }
-  };
-
-  const responseTag = useMemo(() => {
-    if (latestResponse.status === 'success') {
-      return <Tag color="green">成功</Tag>;
-    }
-    if (latestResponse.status === 'error') {
-      return <Tag color="red">失败</Tag>;
-    }
-    return <Tag color="default">待操作</Tag>;
-  }, [latestResponse.status]);
-
-  const tabs = useMemo(
-    () => [
-      {
-        key: 'tenant',
-        label: (
-          <Space size={6}>
-            <BankOutlined />
-            租户开通
-          </Space>
-        ),
-        children: (
-          <Form layout="vertical" onFinish={handleCreateTenant} className="account-form">
-            <Row gutter={[16, 16]}>
-              <Col xs={24} md={12}>
-                <Form.Item
-                  label="租户名称"
-                  name="tenantName"
-                  rules={[{ required: true, message: '请输入租户名称' }]}
-                >
-                  <Input placeholder="例如：阿里巴巴集团" />
-                </Form.Item>
-              </Col>
-              <Col xs={24} md={12}>
-                <Form.Item
-                  label="行业"
-                  name="industry"
-                  rules={[{ required: true, message: '请输入行业信息' }]}
-                >
-                  <Input placeholder="例如：互联网/电子商务" />
-                </Form.Item>
-              </Col>
-              <Col xs={24} md={12}>
-                <Form.Item
-                  label="管理员姓名"
-                  name="adminName"
-                  rules={[{ required: true, message: '请输入管理员姓名' }]}
-                >
-                  <Input placeholder="例如：张三" />
-                </Form.Item>
-              </Col>
-              <Col xs={24} md={12}>
-                <Form.Item
-                  label="管理员邮箱"
-                  name="adminEmail"
-                  rules={[
-                    { required: true, message: '请输入管理员邮箱' },
-                    { type: 'email', message: '邮箱格式不正确' },
-                  ]}
-                >
-                  <Input placeholder="zhangsan@company.com" />
-                </Form.Item>
-              </Col>
-            </Row>
-            <Collapse
-              className="account-collapse"
-              items={[
-                {
-                  key: 'more',
-                  label: '补充企业与合同信息',
-                  children: (
-                    <Row gutter={[16, 16]}>
-                      <Col xs={24} md={12}>
-                        <Form.Item label="企业法定名称" name="companyLegalName">
-                          <Input placeholder="企业法定名称" />
-                        </Form.Item>
-                      </Col>
-                      <Col xs={24} md={12}>
-                        <Form.Item label="企业类型" name="companyType">
-                          <Input placeholder="例如：有限责任公司" />
-                        </Form.Item>
-                      </Col>
-                      <Col xs={24} md={12}>
-                        <Form.Item label="统一社会信用代码" name="registrationNo">
-                          <Input placeholder="例如：91330000748833471G" />
-                        </Form.Item>
-                      </Col>
-                      <Col xs={24} md={12}>
-                        <Form.Item label="管理员电话" name="adminPhone">
-                          <Input placeholder="例如：13800138000" />
-                        </Form.Item>
-                      </Col>
-                      <Col xs={24} md={8}>
-                        <Form.Item label="订阅计划" name="planType">
-                          <Select
-                            placeholder="选择计划"
-                            options={[
-                              { value: 'basic', label: '基础版' },
-                              { value: 'pro', label: '专业版' },
-                              { value: 'enterprise', label: '企业版' },
-                            ]}
-                          />
-                        </Form.Item>
-                      </Col>
-                      <Col xs={24} md={8}>
-                        <Form.Item label="计费周期" name="billingCycle">
-                          <Select
-                            placeholder="选择周期"
-                            options={[
-                              { value: 'monthly', label: '按月' },
-                              { value: 'yearly', label: '按年' },
-                            ]}
-                          />
-                        </Form.Item>
-                      </Col>
-                      <Col xs={24} md={8}>
-                        <Form.Item label="最大用户数" name="maxUsers">
-                          <InputNumber min={1} placeholder="例如：200" style={{ width: '100%' }} />
-                        </Form.Item>
-                      </Col>
-                      <Col xs={24} md={12}>
-                        <Form.Item label="合同开始日期" name="contractStartDate">
-                          <DatePicker style={{ width: '100%' }} format="YYYY-MM-DD" />
-                        </Form.Item>
-                      </Col>
-                      <Col xs={24} md={12}>
-                        <Form.Item label="合同结束日期" name="contractEndDate">
-                          <DatePicker style={{ width: '100%' }} format="YYYY-MM-DD" />
-                        </Form.Item>
-                      </Col>
-                      <Col xs={24} md={12}>
-                        <Form.Item label="期望子域名" name="preferredSubdomain">
-                          <Input placeholder="例如：alibaba" />
-                        </Form.Item>
-                      </Col>
-                      <Col xs={24} md={12}>
-                        <Form.Item label="销售人员编号" name="salesPersonId">
-                          <Input placeholder="例如：SALES_001" />
-                        </Form.Item>
-                      </Col>
-                    </Row>
-                  ),
-                },
-              ]}
-            />
-            <Space size="middle">
-              <Button type="primary" htmlType="submit" loading={loadingMap.tenant} icon={<RocketOutlined />}>
-                创建租户并发送激活邮件
-              </Button>
-              <Text type="secondary">系统会自动生成租户 Key 与管理员激活链接</Text>
-            </Space>
-          </Form>
-        ),
-      },
-      {
-        key: 'activation',
-        label: (
-          <Space size={6}>
-            <SafetyCertificateOutlined />
-            管理员激活
-          </Space>
-        ),
-        children: (
-          <Form layout="vertical" onFinish={handleActivateAdmin} className="account-form">
-            <Row gutter={[16, 16]}>
-              <Col xs={24}>
-                <Form.Item
-                  label="激活令牌"
-                  name="token"
-                  rules={[{ required: true, message: '请输入激活令牌' }]}
-                >
-                  <Input prefix={<KeyOutlined />} placeholder="邮件中的激活令牌" />
-                </Form.Item>
-              </Col>
-              <Col xs={24} md={12}>
-                <Form.Item
-                  label="设置密码"
-                  name="password"
-                  rules={[{ required: true, message: '请输入密码' }, { min: 8, message: '至少 8 位字符' }]}
-                >
-                  <Input.Password prefix={<LockOutlined />} placeholder="至少 8 位" />
-                </Form.Item>
-              </Col>
-              <Col xs={24} md={12}>
-                <Form.Item
-                  label="确认密码"
-                  name="confirmPassword"
-                  dependencies={['password']}
-                  rules={[
-                    { required: true, message: '请再次输入密码' },
-                    ({ getFieldValue }) => ({
-                      validator(_, value) {
-                        if (!value || getFieldValue('password') === value) {
-                          return Promise.resolve();
-                        }
-                        return Promise.reject(new Error('两次输入的密码不一致'));
-                      },
-                    }),
-                  ]}
-                >
-                  <Input.Password prefix={<LockOutlined />} placeholder="再次输入密码" />
-                </Form.Item>
-              </Col>
-            </Row>
-            <Button type="primary" htmlType="submit" loading={loadingMap.activate} icon={<CheckCircleOutlined />}>
-              激活管理员账号
-            </Button>
-          </Form>
-        ),
-      },
-      {
-        key: 'register',
-        label: (
-          <Space size={6}>
-            <UserAddOutlined />
-            员工注册
-          </Space>
-        ),
-        children: (
-          <Space direction="vertical" size="large" style={{ width: '100%' }}>
-            <Card className="account-subcard" variant="borderless">
-              <Space direction="vertical" size="middle" style={{ width: '100%' }}>
-                <div>
-                  <Text className="account-section-title">邀请码核验</Text>
-                  <Text type="secondary" style={{ display: 'block', marginTop: 4 }}>
-                    先验证邀请码，再进行注册，可直接返回租户信息
-                  </Text>
-                </div>
-                <Form layout="inline" onFinish={handleVerifyInviteCode}>
-                  <Form.Item
-                    name="code"
-                    rules={[{ required: true, message: '请输入邀请码' }]}
-                    style={{ flex: 1, minWidth: 200 }}
-                  >
-                    <Input placeholder="例如：AB3K9M" prefix={<KeyOutlined />} />
-                  </Form.Item>
-                  <Form.Item>
-                    <Button type="primary" htmlType="submit" loading={loadingMap.verify}>
-                      核验
-                    </Button>
-                  </Form.Item>
-                </Form>
-              </Space>
-            </Card>
-            <Form layout="vertical" onFinish={handleRegisterEmployee} className="account-form">
-              <Row gutter={[16, 16]}>
-                <Col xs={24} md={12}>
-                  <Form.Item
-                    label="邀请码"
-                    name="inviteCode"
-                    rules={[{ required: true, message: '请输入邀请码' }]}
-                  >
-                    <Input placeholder="员工邀请码" />
-                  </Form.Item>
-                </Col>
-                <Col xs={24} md={12}>
-                  <Form.Item
-                    label="真实姓名"
-                    name="realName"
-                    rules={[{ required: true, message: '请输入姓名' }]}
-                  >
-                    <Input placeholder="例如：李四" />
-                  </Form.Item>
-                </Col>
-                <Col xs={24} md={12}>
-                  <Form.Item
-                    label="邮箱"
-                    name="email"
-                    rules={[
-                      { required: true, message: '请输入邮箱' },
-                      { type: 'email', message: '邮箱格式不正确' },
-                    ]}
-                  >
-                    <Input placeholder="lisi@example.com" />
-                  </Form.Item>
-                </Col>
-                <Col xs={24} md={12}>
-                  <Form.Item label="手机号" name="phoneNumber">
-                    <Input placeholder="可选" />
-                  </Form.Item>
-                </Col>
-                <Col xs={24} md={12}>
-                  <Form.Item
-                    label="设置密码"
-                    name="password"
-                    rules={[{ required: true, message: '请输入密码' }, { min: 8, message: '至少 8 位字符' }]}
-                  >
-                    <Input.Password prefix={<LockOutlined />} placeholder="至少 8 位" />
-                  </Form.Item>
-                </Col>
-              </Row>
-              <Button type="primary" htmlType="submit" loading={loadingMap.register} icon={<UserAddOutlined />}>
-                完成注册
-              </Button>
-            </Form>
-          </Space>
-        ),
-      },
-      {
-        key: 'login',
-        label: (
-          <Space size={6}>
-            <UserOutlined />
-            账户登录
-          </Space>
-        ),
-        children: (
-          <Form layout="vertical" onFinish={handleLogin} className="account-form">
-            <Row gutter={[16, 16]}>
-              <Col xs={24} md={12}>
-                <Form.Item
-                  label="邮箱"
-                  name="email"
-                  rules={[
-                    { required: true, message: '请输入邮箱' },
-                    { type: 'email', message: '邮箱格式不正确' },
-                  ]}
-                >
-                  <Input placeholder="lisi@example.com" />
-                </Form.Item>
-              </Col>
-              <Col xs={24} md={12}>
-                <Form.Item
-                  label="密码"
-                  name="password"
-                  rules={[{ required: true, message: '请输入密码' }]}
-                >
-                  <Input.Password prefix={<LockOutlined />} placeholder="密码" />
-                </Form.Item>
-              </Col>
-            </Row>
-            <Button type="primary" htmlType="submit" loading={loadingMap.login} icon={<LockOutlined />}>
-              登录并获取访问令牌
-            </Button>
-          </Form>
-        ),
-      },
-    ],
-    [loadingMap, messageApi],
+  const responsePayload = useMemo(
+    () => (latestResponse.payload ? JSON.stringify(latestResponse.payload, null, 2) : '暂无数据'),
+    [latestResponse.payload],
   );
 
   return (
     <div className="account-management">
-      {contextHolder}
       <div className="account-hero">
         <div>
-          <Text className="account-kicker">Account Command Center</Text>
-          <Title level={2} className="account-title">账户与注册管理</Title>
-          <Text type="secondary" className="account-subtitle">
+          <span className="account-kicker">Account Command Center</span>
+          <h2 className="account-title text-2xl font-medium text-foreground">账户与注册管理</h2>
+          <p className="account-subtitle text-sm text-muted-foreground">
             租户开通、管理员激活、员工注册与登录流程都集中在这里管理
-          </Text>
+          </p>
         </div>
         <div className="account-hero-tags">
-          <Tag color="gold">多租户</Tag>
-          <Tag color="cyan">邀请注册</Tag>
-          <Tag color="purple">安全激活</Tag>
+          <Badge variant="secondary">多租户</Badge>
+          <Badge variant="outline">邀请注册</Badge>
+          <Badge>安全激活</Badge>
         </div>
       </div>
+
+      {feedback ? (
+        <Alert variant={feedback.type === 'error' ? 'destructive' : 'default'}>
+          <AlertTitle>{feedback.title}</AlertTitle>
+          <AlertDescription>{feedback.message}</AlertDescription>
+        </Alert>
+      ) : null}
+
       <div className="account-grid">
-        <Card className="account-card" variant="borderless">
-          <Tabs items={tabs} />
+        <Card className="account-card">
+          <CardContent className="p-4">
+            <Tabs defaultValue="tenant">
+              <TabsList className="flex h-auto w-full flex-wrap justify-start">
+                <TabsTrigger value="tenant">
+                  <TabLabel icon={Building2}>租户开通</TabLabel>
+                </TabsTrigger>
+                <TabsTrigger value="activation">
+                  <TabLabel icon={ShieldCheck}>管理员激活</TabLabel>
+                </TabsTrigger>
+                <TabsTrigger value="register">
+                  <TabLabel icon={UserPlus}>员工注册</TabLabel>
+                </TabsTrigger>
+                <TabsTrigger value="login">
+                  <TabLabel icon={User}>账户登录</TabLabel>
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="tenant" className="pt-4">
+                <form
+                  className="account-form space-y-4"
+                  onSubmit={handleOperation('tenant', '租户开通', createPlatformTenant, prepareTenantPayload)}
+                >
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <FormField label="租户名称" required>
+                      <Input
+                        required
+                        value={forms.tenant.tenantName}
+                        onChange={(event) => updateForm('tenant', 'tenantName', event.target.value)}
+                        placeholder="例如：阿里巴巴集团"
+                      />
+                    </FormField>
+                    <FormField label="行业" required>
+                      <Input
+                        required
+                        value={forms.tenant.industry}
+                        onChange={(event) => updateForm('tenant', 'industry', event.target.value)}
+                        placeholder="例如：互联网/电子商务"
+                      />
+                    </FormField>
+                    <FormField label="管理员姓名" required>
+                      <Input
+                        required
+                        value={forms.tenant.adminName}
+                        onChange={(event) => updateForm('tenant', 'adminName', event.target.value)}
+                        placeholder="例如：张三"
+                      />
+                    </FormField>
+                    <FormField label="管理员邮箱" required>
+                      <Input
+                        required
+                        type="email"
+                        value={forms.tenant.adminEmail}
+                        onChange={(event) => updateForm('tenant', 'adminEmail', event.target.value)}
+                        placeholder="zhangsan@company.com"
+                      />
+                    </FormField>
+                  </div>
+
+                  <details className="account-collapse rounded-md border bg-muted/20 p-4">
+                    <summary className="cursor-pointer text-sm font-medium text-foreground">
+                      补充企业与合同信息
+                    </summary>
+                    <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                      <FormField label="企业法定名称">
+                        <Input value={forms.tenant.companyLegalName} onChange={(event) => updateForm('tenant', 'companyLegalName', event.target.value)} placeholder="企业法定名称" />
+                      </FormField>
+                      <FormField label="企业类型">
+                        <Input value={forms.tenant.companyType} onChange={(event) => updateForm('tenant', 'companyType', event.target.value)} placeholder="例如：有限责任公司" />
+                      </FormField>
+                      <FormField label="统一社会信用代码">
+                        <Input value={forms.tenant.registrationNo} onChange={(event) => updateForm('tenant', 'registrationNo', event.target.value)} placeholder="例如：91330000748833471G" />
+                      </FormField>
+                      <FormField label="管理员电话">
+                        <Input value={forms.tenant.adminPhone} onChange={(event) => updateForm('tenant', 'adminPhone', event.target.value)} placeholder="例如：13800138000" />
+                      </FormField>
+                      <FormField label="订阅计划">
+                        <Select value={forms.tenant.planType || undefined} onValueChange={(value) => updateForm('tenant', 'planType', value)}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="选择计划" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectGroup>
+                              <SelectItem value="basic">基础版</SelectItem>
+                              <SelectItem value="pro">专业版</SelectItem>
+                              <SelectItem value="enterprise">企业版</SelectItem>
+                            </SelectGroup>
+                          </SelectContent>
+                        </Select>
+                      </FormField>
+                      <FormField label="计费周期">
+                        <Select value={forms.tenant.billingCycle || undefined} onValueChange={(value) => updateForm('tenant', 'billingCycle', value)}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="选择周期" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectGroup>
+                              <SelectItem value="monthly">按月</SelectItem>
+                              <SelectItem value="yearly">按年</SelectItem>
+                            </SelectGroup>
+                          </SelectContent>
+                        </Select>
+                      </FormField>
+                      <FormField label="最大用户数">
+                        <Input type="number" min="1" value={forms.tenant.maxUsers} onChange={(event) => updateForm('tenant', 'maxUsers', event.target.value)} placeholder="例如：200" />
+                      </FormField>
+                      <FormField label="合同开始日期">
+                        <Input type="date" value={forms.tenant.contractStartDate} onChange={(event) => updateForm('tenant', 'contractStartDate', event.target.value)} />
+                      </FormField>
+                      <FormField label="合同结束日期">
+                        <Input type="date" value={forms.tenant.contractEndDate} onChange={(event) => updateForm('tenant', 'contractEndDate', event.target.value)} />
+                      </FormField>
+                      <FormField label="期望子域名">
+                        <Input value={forms.tenant.preferredSubdomain} onChange={(event) => updateForm('tenant', 'preferredSubdomain', event.target.value)} placeholder="例如：alibaba" />
+                      </FormField>
+                      <FormField label="销售人员编号">
+                        <Input value={forms.tenant.salesPersonId} onChange={(event) => updateForm('tenant', 'salesPersonId', event.target.value)} placeholder="例如：SALES_001" />
+                      </FormField>
+                    </div>
+                  </details>
+
+                  <div className="flex flex-wrap items-center gap-3">
+                    <Button type="submit" disabled={loadingMap.tenant}>
+                      <Rocket className="size-4" />
+                      {loadingMap.tenant ? '创建中...' : '创建租户并发送激活邮件'}
+                    </Button>
+                    <span className="text-sm text-muted-foreground">系统会自动生成租户 Key 与管理员激活链接</span>
+                  </div>
+                </form>
+              </TabsContent>
+
+              <TabsContent value="activation" className="pt-4">
+                <form
+                  className="account-form space-y-4"
+                  onSubmit={handleOperation('activate', '管理员激活', activateAuth, prepareActivatePayload)}
+                >
+                  <FormField label="激活令牌" required>
+                    <Input required value={forms.activate.token} onChange={(event) => updateForm('activate', 'token', event.target.value)} placeholder="邮件中的激活令牌" />
+                  </FormField>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <FormField label="设置密码" required>
+                      <Input required type="password" minLength="8" value={forms.activate.password} onChange={(event) => updateForm('activate', 'password', event.target.value)} placeholder="至少 8 位" />
+                    </FormField>
+                    <FormField label="确认密码" required>
+                      <Input required type="password" minLength="8" value={forms.activate.confirmPassword} onChange={(event) => updateForm('activate', 'confirmPassword', event.target.value)} placeholder="再次输入密码" />
+                    </FormField>
+                  </div>
+                  <Button type="submit" disabled={loadingMap.activate}>
+                    <CheckCircle className="size-4" />
+                    {loadingMap.activate ? '激活中...' : '激活管理员账号'}
+                  </Button>
+                </form>
+              </TabsContent>
+
+              <TabsContent value="register" className="space-y-6 pt-4">
+                <Card className="account-subcard">
+                  <CardContent className="space-y-4 p-4">
+                    <div>
+                      <div className="account-section-title">邀请码核验</div>
+                      <p className="mt-1 text-sm text-muted-foreground">先验证邀请码，再进行注册，可直接返回租户信息</p>
+                    </div>
+                    <form className="flex flex-col gap-3 sm:flex-row" onSubmit={handleOperation('verify', '邀请码核验', verifyInviteCode)}>
+                      <Input
+                        required
+                        value={forms.verify.code}
+                        onChange={(event) => updateForm('verify', 'code', event.target.value)}
+                        placeholder="例如：AB3K9M"
+                      />
+                      <Button type="submit" disabled={loadingMap.verify}>
+                        <Key className="size-4" />
+                        {loadingMap.verify ? '核验中...' : '核验'}
+                      </Button>
+                    </form>
+                  </CardContent>
+                </Card>
+
+                <form className="account-form space-y-4" onSubmit={handleOperation('register', '员工注册', registerUser, stripEmpty)}>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <FormField label="邀请码" required>
+                      <Input required value={forms.register.inviteCode} onChange={(event) => updateForm('register', 'inviteCode', event.target.value)} placeholder="员工邀请码" />
+                    </FormField>
+                    <FormField label="真实姓名" required>
+                      <Input required value={forms.register.realName} onChange={(event) => updateForm('register', 'realName', event.target.value)} placeholder="例如：李四" />
+                    </FormField>
+                    <FormField label="邮箱" required>
+                      <Input required type="email" value={forms.register.email} onChange={(event) => updateForm('register', 'email', event.target.value)} placeholder="lisi@example.com" />
+                    </FormField>
+                    <FormField label="手机号">
+                      <Input value={forms.register.phoneNumber} onChange={(event) => updateForm('register', 'phoneNumber', event.target.value)} placeholder="可选" />
+                    </FormField>
+                    <FormField label="设置密码" required>
+                      <Input required type="password" minLength="8" value={forms.register.password} onChange={(event) => updateForm('register', 'password', event.target.value)} placeholder="至少 8 位" />
+                    </FormField>
+                  </div>
+                  <Button type="submit" disabled={loadingMap.register}>
+                    <UserPlus className="size-4" />
+                    {loadingMap.register ? '注册中...' : '完成注册'}
+                  </Button>
+                </form>
+              </TabsContent>
+
+              <TabsContent value="login" className="pt-4">
+                <form className="account-form space-y-4" onSubmit={handleOperation('login', '账户登录', login, stripEmpty)}>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <FormField label="邮箱" required>
+                      <Input required type="email" value={forms.login.email} onChange={(event) => updateForm('login', 'email', event.target.value)} placeholder="lisi@example.com" />
+                    </FormField>
+                    <FormField label="密码" required>
+                      <Input required type="password" value={forms.login.password} onChange={(event) => updateForm('login', 'password', event.target.value)} placeholder="密码" />
+                    </FormField>
+                  </div>
+                  <Button type="submit" disabled={loadingMap.login}>
+                    <Lock className="size-4" />
+                    {loadingMap.login ? '登录中...' : '登录并获取访问令牌'}
+                  </Button>
+                </form>
+              </TabsContent>
+            </Tabs>
+          </CardContent>
         </Card>
-        <Space direction="vertical" size="large" style={{ width: '100%' }}>
-          <Card className="account-sidecard" variant="borderless">
-            <Space direction="vertical" size="middle" style={{ width: '100%' }}>
-              <Text className="account-section-title">流程守护</Text>
-              <Alert
-                type="info"
-                showIcon
-                message="确保平台操作员邮箱与租户名称唯一，否则创建会失败"
-              />
-              <Alert
-                type="warning"
-                showIcon
-                message="管理员激活令牌仅一次有效，建议在 7 天内完成激活"
-              />
-              <Divider style={{ margin: '12px 0' }} />
-              <Space size="small" wrap>
-                <Tag icon={<SafetyCertificateOutlined />} color="blue">
+
+        <div className="flex w-full flex-col gap-4">
+          <Card className="account-sidecard">
+            <CardContent className="space-y-4 p-4">
+              <div className="account-section-title">流程守护</div>
+              <Alert>
+                <AlertTitle>租户唯一性</AlertTitle>
+                <AlertDescription>确保平台操作员邮箱与租户名称唯一，否则创建会失败</AlertDescription>
+              </Alert>
+              <Alert>
+                <AlertTitle>激活有效期</AlertTitle>
+                <AlertDescription>管理员激活令牌仅一次有效，建议在 7 天内完成激活</AlertDescription>
+              </Alert>
+              <Separator />
+              <div className="flex flex-wrap gap-2">
+                <Badge variant="outline">
+                  <ShieldCheck className="size-3" />
                   Token 校验
-                </Tag>
-                <Tag icon={<KeyOutlined />} color="geekblue">
+                </Badge>
+                <Badge variant="outline">
+                  <Key className="size-3" />
                   邀请码核验
-                </Tag>
-                <Tag icon={<LockOutlined />} color="volcano">
+                </Badge>
+                <Badge variant="outline">
+                  <Lock className="size-3" />
                   密码强度
-                </Tag>
-              </Space>
-            </Space>
-          </Card>
-          <Card className="account-sidecard" variant="borderless">
-            <Space direction="vertical" size="middle" style={{ width: '100%' }}>
-              <Text className="account-section-title">最新响应</Text>
-              <Space size="middle">
-                <Text>{latestResponse.title}</Text>
-                {responseTag}
-              </Space>
-              <div className="account-response">
-                <pre>{latestResponse.payload ? JSON.stringify(latestResponse.payload, null, 2) : '暂无数据'}</pre>
+                </Badge>
               </div>
-            </Space>
+            </CardContent>
           </Card>
-        </Space>
+          <Card className="account-sidecard">
+            <CardContent className="space-y-4 p-4">
+              <div className="account-section-title">最新响应</div>
+              <div className="flex items-center gap-3">
+                <span className="text-sm text-foreground">{latestResponse.title}</span>
+                <ResponseBadge status={latestResponse.status} />
+              </div>
+              <div className="account-response">
+                <pre>{responsePayload}</pre>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );

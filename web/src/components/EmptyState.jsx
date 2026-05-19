@@ -4,27 +4,34 @@
  */
 
 import React from 'react';
-import { Button, Empty } from 'antd';
+import { BarChart3 } from 'lucide-react';
 
-const EmptyState = ({ 
-  title = '暂无数据', 
-  description = '当前没有可用的数据', 
-  icon = '📊',
+import { Button } from './ui/button.jsx';
+
+const EmptyState = ({
+  title = '暂无数据',
+  description = '当前没有可用的数据',
+  icon: Icon = BarChart3,
   actionText,
-  onAction 
+  onAction
 }) => {
+  const ValidIcon = typeof Icon === 'function' ? Icon : BarChart3;
+
   return (
-    <Empty
-      image={Empty.PRESENTED_IMAGE_SIMPLE}
-      description={
-        <div>
-          <div style={{ fontWeight: 600 }}>{title}</div>
-          <div style={{ color: 'rgba(0, 0, 0, 0.45)' }}>{description}</div>
-        </div>
-      }
-    >
-      {actionText && onAction ? <Button onClick={onAction}>{actionText}</Button> : null}
-    </Empty>
+  <div className="flex min-h-32 flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-border bg-muted/35 p-5 text-center">
+    <div className="flex size-9 items-center justify-center rounded-full bg-background text-muted-foreground ring-1 ring-border" aria-hidden="true">
+      <ValidIcon className="size-4" />
+    </div>
+    <div className="flex flex-col gap-1">
+      <h3 className="text-sm font-medium leading-snug text-foreground">{title}</h3>
+      <p className="m-0 text-sm leading-relaxed text-muted-foreground">{description}</p>
+    </div>
+    {actionText && onAction ? (
+      <Button variant="outline" onClick={onAction}>
+        {actionText}
+      </Button>
+    ) : null}
+  </div>
   );
 };
 

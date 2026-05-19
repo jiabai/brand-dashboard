@@ -1,79 +1,36 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, Empty, Table, Progress, Card, Tag, Space, Typography, Tooltip } from 'antd';
-import { InfoCircleOutlined } from '@ant-design/icons';
+import { Info } from 'lucide-react';
 import { fetchKeywordPlatformBrandRates } from '@/api';
 import { useDashboardRequestParams } from '@/hooks/useDashboardParams';
-
-const { Text } = Typography;
+import DataTable from './DataTable.jsx';
+import { Alert, AlertDescription, AlertTitle } from './ui/alert.jsx';
+import { Badge } from './ui/badge.jsx';
+import { Card, CardContent, CardHeader, CardTitle } from './ui/card.jsx';
+import { Progress } from './ui/progress.jsx';
+import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip.jsx';
 
 const COLUMN_WIDTH_STORAGE_KEY = 'BrandShareOfVoiceTable:columnWidths';
 const MIN_COLUMN_WIDTH = 96;
 const MAX_COLUMN_WIDTH = 720;
 
-const ResizableHeaderCell = ({ onResize, width, style, children, ...restProps }) => {
-  const handleMouseDown = (event) => {
-    if (!onResize) return;
-    event.preventDefault();
-    event.stopPropagation();
+const RateHeader = ({ label, description }) => (
+  <span className="inline-flex items-center gap-1">
+    {label}
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Info className="size-4 text-muted-foreground" />
+      </TooltipTrigger>
+      <TooltipContent>{description}</TooltipContent>
+    </Tooltip>
+  </span>
+);
 
-    const startX = event.clientX;
-    const startWidth = Number(width) || 0;
-
-    const prevCursor = document.body.style.cursor;
-    const prevUserSelect = document.body.style.userSelect;
-    document.body.style.cursor = 'col-resize';
-    document.body.style.userSelect = 'none';
-
-    const handleMouseMove = (moveEvent) => {
-      const nextWidth = Math.max(
-        MIN_COLUMN_WIDTH,
-        Math.min(MAX_COLUMN_WIDTH, startWidth + (moveEvent.clientX - startX)),
-      );
-      onResize(nextWidth);
-    };
-
-    const handleMouseUp = () => {
-      document.body.style.cursor = prevCursor;
-      document.body.style.userSelect = prevUserSelect;
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-    };
-
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
-  };
-
-  return (
-    <th
-      {...restProps}
-      style={{
-        ...style,
-        width,
-        position: 'relative',
-      }}
-    >
-      {children}
-      {!!onResize && (
-        <div
-          role="separator"
-          aria-orientation="vertical"
-          onMouseDown={handleMouseDown}
-          style={{
-            position: 'absolute',
-            top: 0,
-            right: 0,
-            height: '100%',
-            width: 10,
-            cursor: 'col-resize',
-            userSelect: 'none',
-            touchAction: 'none',
-            zIndex: 1,
-          }}
-        />
-      )}
-    </th>
-  );
-};
+const RateCell = ({ value, className = '[&_[data-slot=progress-indicator]]:bg-primary' }) => (
+  <div className="flex min-w-40 flex-col gap-1.5">
+    <span className="text-sm font-medium text-muted-foreground">{(value * 100).toFixed(2)}%</span>
+    <Progress value={value * 100} className={className} />
+  </div>
+);
 
 const BrandShareOfVoiceTable = () => {
   const { timeframe, startDate, endDate, tenantKey, jobId } = useDashboardRequestParams();
@@ -151,12 +108,12 @@ const BrandShareOfVoiceTable = () => {
 
   const keywordFilters = useMemo(() => {
     const keywords = [...new Set(rows.map((item) => item.keyword).filter(Boolean))];
-    return keywords.map(k => ({ text: k, value: k }));
+    return keywords.map((k) => ({ text: k, value: k }));
   }, [rows]);
 
   const platformFilters = useMemo(() => {
     const platforms = [...new Set(rows.map((item) => item.platform).filter(Boolean))];
-    return platforms.map(p => ({ text: p, value: p }));
+    return platforms.map((p) => ({ text: p, value: p }));
   }, [rows]);
 
   const setColumnWidth = useCallback((key, nextWidth) => {
@@ -182,154 +139,86 @@ const BrandShareOfVoiceTable = () => {
   const columns = useMemo(() => {
     const defs = [
       {
-        title: 'Platform',
+        title: '平台',
         dataIndex: 'platform',
         key: 'platform',
         filters: platformFilters,
         onFilter: (value, record) => record.platform === value,
-        render: (text) => <Tag color="blue">{text}</Tag>,
-        width: columnWidths.platform ?? 140,
+        render: (text) => <Badge variant="secondary">{text}</Badge>,
+        width: columnWidths.platform ?? 160,
       },
       {
-        title: 'Keyword',
+        title: '关键词',
         dataIndex: 'keyword',
         key: 'keyword',
         filters: keywordFilters,
         onFilter: (value, record) => record.keyword === value,
-        render: (text) => <Text strong>{text}</Text>,
-        width: columnWidths.keyword ?? 240,
+        render: (text) => <span className="font-medium text-foreground">{text}</span>,
+        width: columnWidths.keyword ?? 300,
       },
       {
-        title: 'Brand',
+        title: '品牌',
         dataIndex: 'brand',
         key: 'brand',
-        render: (text) => <Text>{text}</Text>,
-        width: columnWidths.brand ?? 200,
+        render: (text) => <span className="text-foreground">{text}</span>,
+        width: columnWidths.brand ?? 240,
       },
       {
-        title: (
-          <Space>
-            Mention Rate
-            <Tooltip title="Percentage of conversations where the brand was mentioned">
-              <InfoCircleOutlined style={{ color: 'rgba(0,0,0,0.45)' }} />
-            </Tooltip>
-          </Space>
-        ),
+        title: <RateHeader label="提及率" description="品牌被提及的对话占比" />,
         dataIndex: 'mention_rate',
         key: 'mention_rate',
         sorter: (a, b) => a.mention_rate - b.mention_rate,
         defaultSortOrder: 'descend',
-        render: (value) => (
-          <Space direction="vertical" style={{ width: '100%' }} size={0}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 2 }}>
-              <Text type="secondary" style={{ fontSize: 12 }}>{(value * 100).toFixed(2)}%</Text>
-            </div>
-            <Progress 
-              percent={value * 100} 
-              showInfo={false} 
-              size="small" 
-              strokeColor={{
-                '0%': '#108ee9',
-                '100%': '#87d068',
-              }}
-            />
-          </Space>
-        ),
-        width: columnWidths.mention_rate ?? 200,
+        render: (value) => <RateCell value={value} />,
+        width: columnWidths.mention_rate ?? 280,
       },
       {
-        title: (
-          <Space>
-            First Mention Rate
-            <Tooltip title="Percentage of conversations where the brand was mentioned first">
-              <InfoCircleOutlined style={{ color: 'rgba(0,0,0,0.45)' }} />
-            </Tooltip>
-          </Space>
-        ),
+        title: <RateHeader label="首提率" description="品牌被首先提及的对话占比" />,
         dataIndex: 'first_mention_rate',
         key: 'first_mention_rate',
         sorter: (a, b) => a.first_mention_rate - b.first_mention_rate,
-        render: (value) => (
-          <Space direction="vertical" style={{ width: '100%' }} size={0}>
-             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 2 }}>
-              <Text type="secondary" style={{ fontSize: 12 }}>{(value * 100).toFixed(2)}%</Text>
-            </div>
-            <Progress 
-              percent={value * 100} 
-              showInfo={false} 
-              size="small" 
-              strokeColor="#faad14"
-            />
-          </Space>
-        ),
-        width: columnWidths.first_mention_rate ?? 200,
+        render: (value) => <RateCell value={value} className="[&_[data-slot=progress-indicator]]:bg-chart-4" />,
+        width: columnWidths.first_mention_rate ?? 280,
       },
       {
-        title: (
-          <Space>
-            Top 3 Mention Rate
-            <Tooltip title="Percentage of conversations where the brand was mentioned in the top 3 positions">
-              <InfoCircleOutlined style={{ color: 'rgba(0,0,0,0.45)' }} />
-            </Tooltip>
-          </Space>
-        ),
+        title: <RateHeader label="前三提及率" description="品牌在前三位置被提及的对话占比" />,
         dataIndex: 'top3_mention_rate',
         key: 'top3_mention_rate',
         sorter: (a, b) => a.top3_mention_rate - b.top3_mention_rate,
-        render: (value) => (
-          <Space direction="vertical" style={{ width: '100%' }} size={0}>
-             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 2 }}>
-              <Text type="secondary" style={{ fontSize: 12 }}>{(value * 100).toFixed(2)}%</Text>
-            </div>
-            <Progress 
-              percent={value * 100} 
-              showInfo={false} 
-              size="small" 
-              strokeColor="#1890ff"
-            />
-          </Space>
-        ),
-        width: columnWidths.top3_mention_rate ?? 200,
+        render: (value) => <RateCell value={value} className="[&_[data-slot=progress-indicator]]:bg-chart-2" />,
+        width: columnWidths.top3_mention_rate ?? 280,
       },
     ];
 
     return defs.map((col) => ({
       ...col,
-      onHeaderCell: () => ({
-        width: col.width,
-        onResize: handleResize(col.key),
-      }),
+      onResize: handleResize(col.key),
     }));
   }, [columnWidths, handleResize, keywordFilters, platformFilters]);
 
   return (
-    <Card 
-      variant="borderless"
-      style={{ margin: 24, borderRadius: 8 }}
-    >
+    <Card>
+      <CardHeader>
+        <CardTitle>品牌声量份额</CardTitle>
+      </CardHeader>
+      <CardContent className="p-8">
       {!!error && (
-        <div style={{ marginBottom: 12 }}>
-          <Alert type="error" showIcon message="数据加载失败" description={error} />
-        </div>
+        <Alert variant="destructive" className="mb-3">
+          <AlertTitle>数据加载失败</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
       )}
-      <Table 
-        columns={columns} 
-        dataSource={rows} 
+      <DataTable
+        columns={columns}
+        data={rows}
         rowKey={(record) => `${record.keyword}-${record.platform}-${record.brand}`}
         loading={loading}
-        components={{ header: { cell: ResizableHeaderCell } }}
-        tableLayout="fixed"
-        scroll={{ x: 'max-content' }}
+        error=""
+        className="[&_table]:min-w-[1280px]"
         pagination={{ pageSize: 10 }}
-        locale={{
-          emptyText: (
-            <Empty
-              image={Empty.PRESENTED_IMAGE_SIMPLE}
-              description={error ? '加载失败，请检查URL参数或稍后重试' : '暂无数据'}
-            />
-          ),
-        }}
+        emptyDescription={error ? '加载失败，请检查URL参数或稍后重试' : '暂无数据'}
       />
+      </CardContent>
     </Card>
   );
 };

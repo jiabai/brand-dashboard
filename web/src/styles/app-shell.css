@@ -2,7 +2,10 @@
   min-height: 100vh;
   position: relative;
   z-index: 1;
-  background: var(--ant-color-bg-layout);
+  display: flex;
+  width: 100%;
+  background: var(--background);
+  background-image: linear-gradient(180deg, var(--background) 0%, var(--muted) 100%);
 }
 
 .app-shell-main {
@@ -15,12 +18,13 @@
   z-index: 10;
   height: auto;
   min-height: 64px;
-  padding: 10px 24px;
-  line-height: normal;
+  padding: 12px clamp(16px, 1.4vw, 32px);
   display: flex;
   align-items: center;
-  background: var(--ant-color-bg-container);
-  border-bottom: 1px solid var(--ant-color-border-secondary);
+  background: color-mix(in srgb, var(--background) 96%, transparent);
+  border-bottom: 1px solid var(--border);
+  box-shadow: 0 1px 0 rgba(20, 20, 19, 0.02);
+  backdrop-filter: blur(16px);
 }
 
 .app-shell-header-inner {
@@ -34,16 +38,26 @@
 
 .app-shell-controls {
   min-width: 0;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
   justify-content: flex-end;
 }
 
 .app-shell-date-range {
   max-width: 100%;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .app-shell-content {
   min-width: 0;
-  padding: 24px;
+  width: 100%;
+  max-width: none;
+  padding: 24px clamp(24px, 1.6vw, 40px) 32px;
 }
 
 .app-shell-loading {
@@ -51,10 +65,6 @@
   display: flex;
   align-items: center;
   justify-content: center;
-}
-
-.app-shell-header .ant-segmented {
-  max-width: 100%;
 }
 
 @media (max-width: 960px) {
@@ -72,21 +82,18 @@
     justify-content: flex-start;
   }
 
-  .app-shell-header .ant-segmented {
-    overflow-x: auto;
-  }
 }
 
 @media (max-width: 640px) {
   .app-shell-content {
-    padding: 12px;
+    padding: 16px;
   }
 
   .app-shell-date-range {
     width: 100%;
   }
 
-  .app-shell-date-range .ant-picker {
+  .app-shell-date-range > * {
     flex: 1 1 160px;
   }
 }
