@@ -18,9 +18,10 @@
 | 层级 | 技术 | 版本 |
 |------|------|------|
 | 前端框架 | React + Vite | 18 + 5 |
-| UI 组件库 | Ant Design | 5.x |
+| UI 组件库 | shadcn/ui（基于 Radix UI） | — |
 | 样式方案 | Tailwind CSS | 4.x |
-| 图表引擎 | @ant-design/charts (G2) | 5.x |
+| 图表引擎 | 原生 SVG/CSS 轻量图表 | — |
+| 图标库 | Lucide React | — |
 | 后端框架 | FastAPI + Uvicorn | 0.110+ |
 | 数据校验 | Pydantic | v2 |
 | ORM | SQLAlchemy | 2.x |
@@ -34,13 +35,16 @@ brand-dashboard/
 ├── web/                          # 前端 React 应用
 │   ├── src/
 │   │   ├── components/           # 功能组件（仪表板、分析、账户管理等）
-│   │   │   └── ui/               # 可复用 UI 原语（Button, Card, Progress, Table）
+│   │   │   └── ui/               # shadcn/ui 可复用 UI 原语（Button, Card, Table, Dialog 等）
 │   │   ├── lib/                  # 共享工具（cn.js 样式合并）
 │   │   ├── utils/                # 业务工具（域名引用、来源分析、趋势图表配置）
 │   │   ├── styles/               # 组件级自定义 CSS
-│   │   ├── App.jsx               # 根布局（路由 + 全局状态）
+│   │   ├── config/               # 路由与菜单配置（routes.js）
+│   │   ├── hooks/                # 自定义 hooks（useDashboardParams, useTimeframeManager, useTheme）
+│   │   ├── App.jsx               # 根布局（路由 + TooltipProvider）
 │   │   └── config.js             # 环境变量配置入口
-│   └── mock/                     # 本地 Mock 数据
+│   ├── mock/                     # 本地 Mock 数据
+│   └── components.json           # shadcn/ui 配置文件
 ├── api/                          # 后端 FastAPI 服务
 │   ├── v1/
 │   │   ├── routes/               # 路由层（dashboard, auth, analysis, brand_strategy 等）

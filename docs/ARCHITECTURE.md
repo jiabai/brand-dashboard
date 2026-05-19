@@ -2,7 +2,7 @@
 
 ## 概述
 
-Brand Analysis Dashboard 是一个品牌分析仪表板应用，前端 React 18 + Ant Design + Tailwind 提供可视化界面，后端 FastAPI + SQLAlchemy + MySQL 提供多租户数据服务。前后端通过 REST API 通信，支持 Docker 部署。
+Brand Analysis Dashboard 是一个品牌分析仪表板应用，前端 React 18 + shadcn/ui（基于 Radix UI）+ Tailwind 提供可视化界面，后端 FastAPI + SQLAlchemy + MySQL 提供多租户数据服务。前后端通过 REST API 通信，支持 Docker 部署。
 
 ## 模块地图
 
@@ -12,7 +12,7 @@ brand-dashboard/
 │   ├── src/
 │   │   ├── api/                  # 前端 API Adapter（dashboard, queryJobs, auth）
 │   │   ├── components/           # 功能组件
-│   │   │   └── ui/               # 可复用 UI 原语（button, card, progress, table）
+│   │   │   └── ui/               # shadcn/ui 可复用 UI 原语（button, card, table, dialog 等）
 │   │   ├── config/               # 前端路由等静态配置（routes.js）
 │   │   ├── lib/                  # 共享工具（cn.js）
 │   │   ├── utils/                # 业务工具（domainCitationQuery, sourceAnalysis, trendChartConfig）

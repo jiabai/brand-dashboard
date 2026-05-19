@@ -15,8 +15,8 @@
 - 前后端分离：`web/` 只管 UI，`api/` 只管数据；不跨层直接访问数据库或 DOM
 - 多租户隔离：所有业务查询必须带 `tenant_key`，数据层强制租户过滤
 - 共享工具优于手写 helper：`web/src/lib/cn.js`、`web/src/utils/`、`api/v1/utils/` 是唯一共享入口
-- 边界验证优于 YOLO 猜测：API 入参用 Pydantic 校验，前端用 Ant Design Form 校验
-- "无聊"技术优先：React 18 + Ant Design + Tailwind + FastAPI + SQLAlchemy，不引入未经评估的新库
+- 边界验证优于 YOLO 猜测：API 入参用 Pydantic 校验，前端用 shadcn/ui 受控表单校验
+- "无聊"技术优先：React 18 + shadcn/ui + Tailwind + FastAPI + SQLAlchemy，不引入未经评估的新库
 
 ## 开发流程
 
