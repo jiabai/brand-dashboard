@@ -2,16 +2,27 @@ import unittest
 from datetime import date
 from unittest.mock import ANY, patch
 
+from api.v1.dependencies.auth import CurrentTenantContext
 from api.v1.routes import dashboard
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 
+def build_dashboard_test_client():
+    app = FastAPI()
+    app.dependency_overrides[dashboard.get_current_tenant] = lambda: CurrentTenantContext(
+        tenant_key="tn_1b02b3ef4fbd",
+        tenant_name="测试租户",
+        role="member",
+        product_role="tenant_member",
+    )
+    app.include_router(dashboard.router, prefix="/api/v1/dashboard")
+    return TestClient(app)
+
+
 class TestBrandMentionTrendApi(unittest.TestCase):
     def setUp(self):
-        app = FastAPI()
-        app.include_router(dashboard.router, prefix="/api/v1/dashboard")
-        self.client = TestClient(app)
+        self.client = build_dashboard_test_client()
 
     def test_brand_mention_trend_returns_only_existing_dates(self):
         rows = [
@@ -67,9 +78,7 @@ class TestBrandMentionTrendApi(unittest.TestCase):
 
 class TestFilterMetadataApi(unittest.TestCase):
     def setUp(self):
-        app = FastAPI()
-        app.include_router(dashboard.router, prefix="/api/v1/dashboard")
-        self.client = TestClient(app)
+        self.client = build_dashboard_test_client()
 
     def test_filter_metadata_returns_unique_lists(self):
         rows = [
@@ -103,9 +112,7 @@ class TestFilterMetadataApi(unittest.TestCase):
 
 class TestKeywordPlatformBrandRatesApi(unittest.TestCase):
     def setUp(self):
-        app = FastAPI()
-        app.include_router(dashboard.router, prefix="/api/v1/dashboard")
-        self.client = TestClient(app)
+        self.client = build_dashboard_test_client()
 
     def test_keyword_platform_brand_rates_requires_date_range_for_specific_day(self):
         response = self.client.get(
@@ -221,9 +228,7 @@ class TestKeywordPlatformBrandRatesApi(unittest.TestCase):
 
 class TestBrandMetricsApi(unittest.TestCase):
     def setUp(self):
-        app = FastAPI()
-        app.include_router(dashboard.router, prefix="/api/v1/dashboard")
-        self.client = TestClient(app)
+        self.client = build_dashboard_test_client()
 
     def test_brand_metrics_requires_date_range_for_specific_day(self):
         response = self.client.get(
@@ -318,9 +323,7 @@ class TestBrandMetricsApi(unittest.TestCase):
 
 class TestDomainCitationRateApi(unittest.TestCase):
     def setUp(self):
-        app = FastAPI()
-        app.include_router(dashboard.router, prefix="/api/v1/dashboard")
-        self.client = TestClient(app)
+        self.client = build_dashboard_test_client()
 
     def test_domain_citation_rate_requires_date_range_for_specific_day(self):
         response = self.client.get(
@@ -472,9 +475,7 @@ class TestDomainCitationRateApi(unittest.TestCase):
 
 class TestCitationTypeStatsApi(unittest.TestCase):
     def setUp(self):
-        app = FastAPI()
-        app.include_router(dashboard.router, prefix="/api/v1/dashboard")
-        self.client = TestClient(app)
+        self.client = build_dashboard_test_client()
 
     def test_citation_type_stats_requires_date_range_for_specific_day(self):
         response = self.client.get(
@@ -534,9 +535,7 @@ class TestCitationTypeStatsApi(unittest.TestCase):
 
 class TestPlatformMetricsByBrandApi(unittest.TestCase):
     def setUp(self):
-        app = FastAPI()
-        app.include_router(dashboard.router, prefix="/api/v1/dashboard")
-        self.client = TestClient(app)
+        self.client = build_dashboard_test_client()
 
     def test_platform_metrics_by_brand_requires_date_range_for_specific_day(self):
         response = self.client.get(

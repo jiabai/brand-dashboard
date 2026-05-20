@@ -50,6 +50,7 @@ brand-dashboard/
 | `api/main.py` | FastAPI 应用入口，CORS 配置，路由注册 |
 | `api/v1/routes/dashboard.py` | 仪表板核心 API（品牌提及率、引用统计、平台指标） |
 | `api/v1/routes/auth.py` | 多租户认证（租户创建、用户注册、邀请码验证） |
+| `docs/ARCHITECTURE_MULTITENANT.md` | 多租户认证、租户上下文、平台/执行器权限与数据隔离补充架构 |
 | `api/v1/repositories/database.py` | 数据访问层，所有 SQL 查询的入口 |
 | `api/v1/repositories/query_jobs.py` | 查询任务数据访问（状态同步、任务拉取、上报计数、批量加载） |
 | `api/v1/repositories/executors.py` | 执行器数据访问（创建、注册校验、列表、禁用） |
@@ -62,6 +63,8 @@ brand-dashboard/
 
 - 前后端分离：前端只通过 REST API 获取数据，不直接访问数据库
 - 多租户隔离：所有业务查询必须带 `tenant_key`，数据层强制租户过滤
+- 多租户授权：前端 URL 中的 `tenantKey` 只是当前租户选择信号；后端必须通过认证依赖校验用户、租户状态、成员关系和角色后，才能把 `tenant_key` 传入 Repository
+- 身份分区：用户接口使用 `Authorization: Bearer <access_token>`；执行器接口使用 `executor_id` + `X-Executor-Key`，两类身份不能混用
 - 分层依赖方向：Routes → Services → Repositories → Models，禁止反向依赖
 - API 版本化：所有路由挂载在 `/api/v1/` 前缀下
 - 组件懒加载：前端功能组件使用 `React.lazy()` 按需加载

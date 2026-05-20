@@ -85,6 +85,34 @@ def get_query_job_runs(db: Session, *, record_id: int, executor_id: str):
     ).first()
 
 
+def executor_has_job_scope(
+    db: Session,
+    *,
+    executor_id: str,
+    tenant_key: str,
+    job_id: str,
+) -> bool:
+    row = db.execute(
+        text(
+            """
+            SELECT 1
+            FROM llm_query_jobs
+            WHERE executor_id = :executor_id
+              AND tenant_key = :tenant_key
+              AND job_id = :job_id
+              AND is_deleted = 0
+            LIMIT 1
+            """
+        ),
+        {
+            "executor_id": executor_id,
+            "tenant_key": tenant_key,
+            "job_id": job_id,
+        },
+    ).first()
+    return row is not None
+
+
 def increment_query_job_runs(
     db: Session,
     *,
@@ -202,4 +230,3 @@ def insert_query_jobs(db: Session, rows: Iterable[Dict[str, Any]]) -> int:
         rows,
     )
     return result.rowcount
-

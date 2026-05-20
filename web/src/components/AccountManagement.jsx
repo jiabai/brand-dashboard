@@ -14,10 +14,11 @@ import dayjs from 'dayjs';
 import {
   activateAuth,
   createPlatformTenant,
-  login,
+  login as loginApi,
   registerUser,
   verifyInviteCode,
 } from '@/api';
+import { useAuth } from '../auth/AuthContext.jsx';
 import '../styles/account-management.css';
 
 import { Alert, AlertDescription, AlertTitle } from './ui/alert.jsx';
@@ -104,6 +105,7 @@ const TabLabel = ({ icon: Icon, children }) => (
 );
 
 const AccountManagement = () => {
+  const { user } = useAuth();
   const [forms, setForms] = useState(initialForms);
   const [loadingMap, setLoadingMap] = useState({
     tenant: false,
@@ -118,6 +120,8 @@ const AccountManagement = () => {
     payload: null,
   });
   const [feedback, setFeedback] = useState(null);
+  const platformRoles = user?.platformRoles || [];
+  const isPlatformAdmin = platformRoles.includes('platform_admin');
 
   const updateForm = (formKey, field, value) => {
     setForms((current) => ({
@@ -179,6 +183,15 @@ const AccountManagement = () => {
     });
   };
 
+  const handleTenantSubmit = isPlatformAdmin
+    ? handleOperation('tenant', '租户开通', createPlatformTenant, prepareTenantPayload)
+    : (event) => {
+        event.preventDefault();
+        pushResponse('租户开通', 'error', {
+          message: '当前账号未具备平台管理员权限，请确认 PLATFORM_ADMIN_EMAILS 白名单配置',
+        });
+      };
+
   const responsePayload = useMemo(
     () => (latestResponse.payload ? JSON.stringify(latestResponse.payload, null, 2) : '暂无数据'),
     [latestResponse.payload],
@@ -230,8 +243,14 @@ const AccountManagement = () => {
               <TabsContent value="tenant" className="pt-4">
                 <form
                   className="account-form space-y-4"
-                  onSubmit={handleOperation('tenant', '租户开通', createPlatformTenant, prepareTenantPayload)}
+                  onSubmit={handleTenantSubmit}
                 >
+                  {!isPlatformAdmin ? (
+                    <Alert>
+                      <AlertTitle>需要平台管理员权限</AlertTitle>
+                      <AlertDescription>当前账号可以管理租户内注册流程，但不能创建新租户。</AlertDescription>
+                    </Alert>
+                  ) : null}
                   <div className="grid gap-4 md:grid-cols-2">
                     <FormField label="租户名称" required>
                       <Input
@@ -331,10 +350,12 @@ const AccountManagement = () => {
                   </details>
 
                   <div className="flex flex-wrap items-center gap-3">
-                    <Button type="submit" disabled={loadingMap.tenant}>
-                      <Rocket className="size-4" />
-                      {loadingMap.tenant ? '创建中...' : '创建租户并发送激活邮件'}
-                    </Button>
+                    {isPlatformAdmin ? (
+                      <Button type="submit" disabled={loadingMap.tenant}>
+                        <Rocket className="size-4" />
+                        {loadingMap.tenant ? '创建中...' : '创建租户并发送激活邮件'}
+                      </Button>
+                    ) : null}
                     <span className="text-sm text-muted-foreground">系统会自动生成租户 Key 与管理员激活链接</span>
                   </div>
                 </form>
@@ -411,7 +432,7 @@ const AccountManagement = () => {
               </TabsContent>
 
               <TabsContent value="login" className="pt-4">
-                <form className="account-form space-y-4" onSubmit={handleOperation('login', '账户登录', login, stripEmpty)}>
+                <form className="account-form space-y-4" onSubmit={handleOperation('login', '账户登录', loginApi, stripEmpty)}>
                   <div className="grid gap-4 md:grid-cols-2">
                     <FormField label="邮箱" required>
                       <Input required type="email" value={forms.login.email} onChange={(event) => updateForm('login', 'email', event.target.value)} placeholder="lisi@example.com" />

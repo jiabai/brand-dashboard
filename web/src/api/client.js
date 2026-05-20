@@ -1,7 +1,53 @@
-export const fetchJson = async (url, { signal, method = 'GET', body } = {}) => {
-  const options = { method, signal };
+import { readAuthSession } from '../auth/storage.js';
+
+const parseTenantKeyFromUrl = (url) => {
+  try {
+    const parsed = new URL(String(url), 'http://localhost');
+    return parsed.searchParams.get('tenant_key') || '';
+  } catch {
+    return '';
+  }
+};
+
+const parseTenantKeyFromBody = (body) => {
+  if (!body || typeof body === 'string') return '';
+  return body.tenant_key || body.tenantKey || '';
+};
+
+const buildHeaders = ({ url, body, headers, authToken, tenantKey }) => {
+  const session = readAuthSession();
+  const nextHeaders = { ...(headers || {}) };
+  const token = authToken ?? session?.accessToken;
+  const requestTenantKey =
+    tenantKey ||
+    parseTenantKeyFromBody(body) ||
+    parseTenantKeyFromUrl(url) ||
+    session?.currentTenantKey ||
+    '';
+
+  if (body && !nextHeaders['Content-Type']) {
+    nextHeaders['Content-Type'] = 'application/json';
+  }
+  if (token && !nextHeaders.Authorization) {
+    nextHeaders.Authorization = `Bearer ${token}`;
+  }
+  if (requestTenantKey && !nextHeaders['X-Tenant-Key']) {
+    nextHeaders['X-Tenant-Key'] = requestTenantKey;
+  }
+
+  return nextHeaders;
+};
+
+export const fetchJson = async (
+  url,
+  { signal, method = 'GET', body, headers, authToken, tenantKey } = {},
+) => {
+  const options = {
+    method,
+    signal,
+    headers: buildHeaders({ url, body, headers, authToken, tenantKey }),
+  };
   if (body) {
-    options.headers = { 'Content-Type': 'application/json' };
     options.body = typeof body === 'string' ? body : JSON.stringify(body);
   }
   const response = await fetch(url, options);
@@ -25,5 +71,5 @@ export const fetchJson = async (url, { signal, method = 'GET', body } = {}) => {
   return response.json();
 };
 
-export const postJson = (url, body, { signal } = {}) =>
-  fetchJson(url, { method: 'POST', body, signal });
+export const postJson = (url, body, options = {}) =>
+  fetchJson(url, { ...options, method: 'POST', body });

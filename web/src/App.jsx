@@ -6,8 +6,11 @@ import ErrorBoundary from './components/ErrorBoundary';
 import DashboardLayout from './components/DashboardLayout.jsx';
 import HomeView from './components/HomeView.jsx';
 import LoadingSpinner from './components/LoadingSpinner.jsx';
+import LoginView from './components/LoginView.jsx';
+import ProtectedRoute from './components/ProtectedRoute.jsx';
 import { TooltipProvider } from './components/ui/tooltip.jsx';
 
+import { useAuth } from './auth/AuthContext.jsx';
 import { getRoutableRoutes } from './config/routes.js';
 import { useDashboardRequestParams } from './hooks/useDashboardParams.js';
 import { buildViewPath } from './utils/routing.js';
@@ -53,15 +56,19 @@ const ROUTE_ELEMENT_FACTORIES = {
 };
 
 const AppRoutes = () => {
+  const { currentTenantKey, isAuthenticated } = useAuth();
   const defaultPath = buildViewPath('home', {
-    tenantKey: CONFIG.DEFAULT_TENANT_KEY,
+    tenantKey: currentTenantKey || CONFIG.DEFAULT_TENANT_KEY,
     jobId: CONFIG.DEFAULT_JOB_ID,
   });
 
   return (
     <Routes>
-      <Route path="/" element={<Navigate to={defaultPath} replace />} />
-      <Route element={<DashboardLayout />}>
+      <Route path="/" element={<Navigate to={isAuthenticated ? defaultPath : '/login'} replace />} />
+      <Route path="/login" element={<LoginView defaultTab="login" />} />
+      <Route path="/activate" element={<LoginView defaultTab="activate" />} />
+      <Route path="/register" element={<LoginView defaultTab="register" />} />
+      <Route element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
         {getRoutableRoutes().map((route) => (
           <Route
             key={route.viewKey}
@@ -70,7 +77,7 @@ const AppRoutes = () => {
           />
         ))}
       </Route>
-      <Route path="*" element={<Navigate to={defaultPath} replace />} />
+      <Route path="*" element={<Navigate to={isAuthenticated ? defaultPath : '/login'} replace />} />
     </Routes>
   );
 };

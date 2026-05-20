@@ -4,6 +4,7 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 
+from api.v1.dependencies.auth import CurrentUser, require_platform_admin
 from api.v1.models.schemas import (
     ExecutorCreate,
     ExecutorListItem,
@@ -28,7 +29,8 @@ router = APIRouter()
 @router.post("/", response_model=ExecutorResponse)
 async def create_executor(
     executor_in: ExecutorCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _platform_admin: CurrentUser = Depends(require_platform_admin),
 ):
     """
     管理员手动创建一个新的执行器记录，并预设其允许的 IP 地址。
@@ -88,7 +90,8 @@ async def register_executor(
 
 @router.get("/", response_model=List[ExecutorListItem])
 async def list_executors(
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _platform_admin: CurrentUser = Depends(require_platform_admin),
 ):
     """
     获取所有执行器列表（包含 IP 地址，不返回 api_key）。
@@ -109,7 +112,8 @@ async def list_executors(
 @router.delete("/{executor_id}")
 async def deactivate_executor(
     executor_id: str,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _platform_admin: CurrentUser = Depends(require_platform_admin),
 ):
     """
     禁用执行器（逻辑删除，将状态设为 inactive）。

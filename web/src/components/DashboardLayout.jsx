@@ -1,12 +1,14 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import dayjs from 'dayjs';
-import { CircleDot } from 'lucide-react';
-import { Outlet } from 'react-router-dom';
+import { CircleDot, LogOut } from 'lucide-react';
+import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 
 import TaskName from './TaskName.jsx';
 import ThemeToggle from './ThemeToggle.jsx';
 import Sidebar from './Sidebar.jsx';
+import { useAuth } from '../auth/AuthContext.jsx';
 import { Badge } from './ui/badge.jsx';
+import { Button } from './ui/button.jsx';
 import {
   Select,
   SelectContent,
@@ -24,6 +26,7 @@ import { ToggleGroup, ToggleGroupItem } from './ui/toggle-group.jsx';
 import { useDashboardParams } from '@/hooks/useDashboardParams';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { TIME_OPTIONS, useTimeframeManager } from '@/hooks/useTimeframeManager';
+import { buildRouteSearch, buildViewPath, getViewKeyFromPath } from '@/utils/routing';
 
 const LiveClock = React.memo(function LiveClock() {
   const [currentTime, setCurrentTime] = useState(() => new Date());
@@ -59,6 +62,15 @@ const DatePickerControl = ({ label, value, onChange }) => (
 
 const DashboardLayout = () => {
   const isMobile = useIsMobile();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const {
+    currentTenantKey,
+    logout,
+    selectTenant,
+    tenants,
+    user,
+  } = useAuth();
   const dashboardParams = useDashboardParams();
   const {
     timeframe,
@@ -77,6 +89,15 @@ const DashboardLayout = () => {
     selectedEndDateParam,
     start,
   } = useTimeframeManager(dashboardParams);
+  const activeTenantKey = dashboardParams.tenantKey || currentTenantKey;
+
+  useEffect(() => {
+    const routeTenant = dashboardParams.tenantKey;
+    const isKnownTenant = tenants.some((tenant) => tenant.tenantKey === routeTenant);
+    if (routeTenant && routeTenant !== currentTenantKey && isKnownTenant) {
+      selectTenant(routeTenant);
+    }
+  }, [currentTenantKey, dashboardParams.tenantKey, selectTenant, tenants]);
 
   const handlePlatformClick = useCallback(
     (platform) => {
@@ -88,6 +109,37 @@ const DashboardLayout = () => {
   const handleBackFromPlatform = useCallback(() => {
     updateParams({ platform: null });
   }, [updateParams]);
+
+  const handleTenantChange = useCallback(
+    (nextTenantKey) => {
+      if (!nextTenantKey || nextTenantKey === activeTenantKey) return;
+
+      selectTenant(nextTenantKey);
+      const viewKey = getViewKeyFromPath(location.pathname);
+      const pathname = buildViewPath(viewKey, {
+        tenantKey: nextTenantKey,
+        jobId: dashboardParams.jobId,
+      });
+      const search = buildRouteSearch({
+        search: location.search,
+        nextViewKey: viewKey,
+      });
+      navigate(`${pathname}${search}`);
+    },
+    [
+      activeTenantKey,
+      dashboardParams.jobId,
+      location.pathname,
+      location.search,
+      navigate,
+      selectTenant,
+    ],
+  );
+
+  const handleLogout = useCallback(() => {
+    logout();
+    navigate('/login', { replace: true });
+  }, [logout, navigate]);
 
   const outletContext = useMemo(
     () => ({
@@ -129,6 +181,22 @@ const DashboardLayout = () => {
               <LiveClock />
               {latestAvailableDate ? (
                 <span className="text-xs text-muted-foreground">数据更新至: {latestAvailableDate}</span>
+              ) : null}
+              {tenants.length ? (
+                <Select value={activeTenantKey || undefined} onValueChange={handleTenantChange}>
+                  <SelectTrigger className="h-8 w-auto min-w-[9rem] max-w-[14rem] rounded-lg border-border bg-card text-xs font-medium shadow-[var(--shadow-sm)]">
+                    <SelectValue placeholder="选择租户" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      {tenants.map((tenant) => (
+                        <SelectItem key={tenant.tenantKey} value={tenant.tenantKey}>
+                          {tenant.tenantName || tenant.tenantKey}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
               ) : null}
               {/* 条件渲染：避免 Radix Portal 在 display:none 容器中调用 getBoundingClientRect 报错 */}
               {isMobile ? (
@@ -185,6 +253,16 @@ const DashboardLayout = () => {
                 </div>
               ) : null}
               <ThemeToggle />
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                title={user?.email ? `退出 ${user.email}` : '退出登录'}
+                aria-label="退出登录"
+                onClick={handleLogout}
+              >
+                <LogOut className="size-4" />
+              </Button>
             </div>
           </div>
           </header>

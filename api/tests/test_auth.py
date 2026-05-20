@@ -1,8 +1,10 @@
 import unittest
 from unittest.mock import MagicMock, patch
 
+from api.v1.dependencies.auth import CurrentUser, require_platform_admin
 from api.v1.repositories import auth as auth_repository
 from api.v1.routes import auth
+from api.v1.utils.security import hash_password
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
@@ -11,6 +13,11 @@ class TestPlatformTenantApi(unittest.TestCase):
     def setUp(self):
         app = FastAPI()
         app.include_router(auth.router, prefix="/api/v1")
+        app.dependency_overrides[require_platform_admin] = lambda: CurrentUser(
+            user_id=1,
+            email="platform@example.com",
+            status="active",
+        )
         self.client = TestClient(app)
 
     def test_create_tenant_returns_payload(self):
@@ -60,6 +67,28 @@ class TestPlatformTenantApi(unittest.TestCase):
         self.assertEqual(body["status"], "error")
         self.assertEqual(body["message"], "企业名称已被使用")
         self.assertEqual(body["code"], 400)
+
+
+class TestPlatformTenantAuth(unittest.TestCase):
+    def setUp(self):
+        app = FastAPI()
+        app.include_router(auth.router, prefix="/api/v1")
+        self.client = TestClient(app)
+
+    def test_create_tenant_requires_platform_admin(self):
+        payload = {
+            "tenantName": "阿里巴巴集团",
+            "industry": "互联网/电子商务",
+            "adminName": "张三",
+            "adminEmail": "zhangsan@alibaba.com",
+        }
+        with patch(
+            "api.v1.routes.auth.create_tenant_with_admin",
+            return_value={"tenantKey": "tn_test"},
+        ):
+            response = self.client.post("/api/v1/platform/tenants", json=payload)
+
+        self.assertEqual(response.status_code, 401)
 
 
 class TestActivationApi(unittest.TestCase):
@@ -186,6 +215,58 @@ class TestLoginApi(unittest.TestCase):
         body = response.json()
         self.assertEqual(body["status"], "success")
         self.assertEqual(body["data"]["accessToken"], "token")
+
+
+class TestAuthenticateUserRepository(unittest.TestCase):
+    def test_authenticate_user_returns_standard_jwt_and_tenant_roles(self):
+        password_hash = hash_password("User12345")
+
+        def fake_execute(statement, params=None):
+            sql = str(statement)
+            if "FROM users" in sql and "WHERE email" in sql:
+                result = MagicMock()
+                result.fetchone.return_value = (11, "lisi@example.com", password_hash, "active")
+                return result
+            if "FROM user_tenants" in sql and "JOIN tenants" in sql:
+                result = MagicMock()
+                result.fetchall.return_value = [
+                    ("tn_test", "阿里巴巴集团", "admin", "active"),
+                ]
+                return result
+            raise AssertionError(f"unexpected SQL: {sql}")
+
+        conn = MagicMock()
+        conn.execute.side_effect = fake_execute
+
+        class _ConnCtx:
+            def __enter__(self):
+                return conn
+
+            def __exit__(self, exc_type, exc, tb):
+                return False
+
+        engine_mock = MagicMock()
+        engine_mock.begin.return_value = _ConnCtx()
+
+        with patch.dict(
+            "os.environ",
+            {
+                "AUTH_SECRET": "test-secret-with-at-least-32-bytes",
+                "PLATFORM_ADMIN_EMAILS": "lisi@example.com",
+            },
+        ):
+            result = auth_repository.authenticate_user(
+                engine_mock,
+                "lisi@example.com",
+                "User12345",
+            )
+
+        self.assertEqual(result["tokenType"], "Bearer")
+        self.assertEqual(result["expiresIn"], 43200)
+        self.assertEqual(len(result["accessToken"].split(".")), 3)
+        self.assertEqual(result["user"]["platformRoles"], ["platform_admin"])
+        self.assertEqual(result["user"]["tenants"][0]["role"], "tenant_admin")
+        self.assertEqual(result["user"]["tenants"][0]["status"], "active")
 
 
 class TestCreateTenantRepository(unittest.TestCase):

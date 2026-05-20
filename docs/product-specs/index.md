@@ -15,3 +15,4 @@ Product specs describe user-visible intent and boundaries before or alongside im
 | [20260517-000000-refactor-frontend-routing.md](20260517-000000-refactor-frontend-routing.md) | 前端 URL 路由改造：引入 react-router-dom，路径参数替代 query param 驱动 |
 | [20260518-003119-migrate-web-ui-to-shadcn.md](20260518-003119-migrate-web-ui-to-shadcn.md) | Web UI 组件系统从 Ant Design/G2 迁移到 shadcn/ui/Recharts 的产品边界与验收标准 |
 | [20260518-145556-optimize-dashboard-ui-visual-design.md](20260518-145556-optimize-dashboard-ui-visual-design.md) | 仪表板 UI 视觉优化：暖色浅底主题、信息密度、App shell 与空状态体验 |
+| [20260519-000000-multi-tenant-registration-flow.md](20260519-000000-multi-tenant-registration-flow.md) | B2B SaaS 多租户注册、登录、租户管理、角色权限与安全验收标准 |

@@ -4,7 +4,7 @@
 
 - 架构：见 `docs/ARCHITECTURE.md`
 - 完成门禁：见 `docs/EXECUTION_GATES.md`
-- 执行清单：见 `TASKS.md`（如存在，全部完成后删除）
+- 执行清单：进行中任务才创建 TASKS.md，全部完成后删除
 - 工作流：见 `WORKFLOW.md`
 - 设计规范：见 `docs/DESIGN.md`
 - 安全规范：见 `docs/SECURITY.md`

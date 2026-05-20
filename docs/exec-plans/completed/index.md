@@ -20,3 +20,4 @@
 | [20260517-174000-web-frontend-architecture-deepening.md](20260517-174000-web-frontend-architecture-deepening.md) | Web 前端架构深化：utils/API Adapter、时间 hook、参数 hook、统一路由配置 | 2026-05-17 |
 | [20260518-003119-migrate-web-ui-to-shadcn.md](20260518-003119-migrate-web-ui-to-shadcn.md) | Web UI 组件系统从 Ant Design/G2 迁移到 shadcn/ui 和轻量图表 | 2026-05-18 |
 | [20260518-145556-dashboard-ui-visual-optimization.md](20260518-145556-dashboard-ui-visual-optimization.md) | 仪表板 UI 视觉优化：warm canvas 主题、App shell、组件密度和空状态 | 2026-05-18 |
+| [20260520-000000-multi-tenant-auth-login.md](20260520-000000-multi-tenant-auth-login.md) | 多租户管理与登录功能：认证、租户上下文、平台权限、执行器边界与前端登录态 | 2026-05-20 |

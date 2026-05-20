@@ -2,7 +2,14 @@ from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 from sqlalchemy import Engine
+from sqlalchemy.orm import Session
 
+from api.v1.dependencies.auth import (
+    TENANT_ROLE_TO_PRODUCT_ROLE,
+    CurrentUser,
+    get_current_user,
+    require_platform_admin,
+)
 from api.v1.repositories.auth import (
     activate_admin_account,
     authenticate_user,
@@ -10,7 +17,9 @@ from api.v1.repositories.auth import (
     register_employee,
     verify_invite_code,
 )
-from api.v1.repositories.connection import get_engine
+from api.v1.repositories.connection import get_db, get_engine
+from api.v1.repositories.tenants import list_user_tenant_summaries
+from api.v1.utils.platform_roles import get_platform_roles_for_email
 
 router = APIRouter()
 
@@ -57,7 +66,11 @@ class LoginRequest(BaseModel):
 
 
 @router.post("/platform/tenants")
-def create_tenant(request: TenantCreateRequest, engine: Engine = Depends(get_engine)):
+def create_tenant(
+    request: TenantCreateRequest,
+    engine: Engine = Depends(get_engine),
+    _platform_admin: CurrentUser = Depends(require_platform_admin),
+):
     try:
         result = create_tenant_with_admin(engine, request.model_dump())
     except ValueError as exc:
@@ -123,3 +136,33 @@ def login_handler(request: LoginRequest, engine: Engine = Depends(get_engine)):
             content={"status": "error", "message": str(exc), "code": 400},
         )
     return {"status": "success", "data": result, "message": "登录成功", "code": 200}
+
+
+@router.get("/auth/me")
+def get_me_handler(
+    current_user: CurrentUser = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    tenants = [
+        {
+            "tenantKey": row[0],
+            "tenantName": row[1],
+            "role": TENANT_ROLE_TO_PRODUCT_ROLE.get(row[2], row[2]),
+            "status": row[3],
+            "tenantStatus": row[4],
+        }
+        for row in list_user_tenant_summaries(db, current_user.user_id)
+    ]
+    return {
+        "status": "success",
+        "data": {
+            "user": {
+                "userId": current_user.user_id,
+                "email": current_user.email,
+                "tenants": tenants,
+                "platformRoles": get_platform_roles_for_email(current_user.email),
+            }
+        },
+        "message": "获取当前用户成功",
+        "code": 200,
+    }

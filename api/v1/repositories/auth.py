@@ -7,7 +7,15 @@ from urllib.parse import urlparse
 
 from sqlalchemy import Engine, text
 
+from api.v1.utils.jwt_utils import ACCESS_TOKEN_EXPIRES_IN_SECONDS, create_access_token
+from api.v1.utils.platform_roles import get_platform_roles_for_email
 from api.v1.utils.security import hash_password, sign_token, verify_password, verify_token
+
+TENANT_ROLE_TO_PRODUCT_ROLE = {
+    "admin": "tenant_admin",
+    "member": "tenant_member",
+    "viewer": "tenant_viewer",
+}
 
 
 def _get_auth_secret() -> str:
@@ -559,7 +567,7 @@ def authenticate_user(engine: Engine, email: str, password: str) -> Dict[str, An
         tenant_rows = conn.execute(
             text(
                 """
-                SELECT t.tenant_key, t.tenant_name
+                SELECT t.tenant_key, t.tenant_name, ut.role, ut.status
                 FROM user_tenants ut
                 JOIN tenants t ON ut.tenant_id = t.id
                 WHERE ut.user_id = :user_id
@@ -569,24 +577,26 @@ def authenticate_user(engine: Engine, email: str, password: str) -> Dict[str, An
             {"user_id": user_id},
         ).fetchall()
 
-    access_token = sign_token(
-        {
-            "user_id": user_id,
-            "type": "access",
-            "exp": int((datetime.now(UTC) + timedelta(hours=12)).timestamp()),
-        },
-        _get_auth_secret(),
-    )
+    access_token = create_access_token(user_id, _get_auth_secret())
 
     tenants: List[Dict[str, Any]] = [
-        {"tenantKey": row[0], "tenantName": row[1]} for row in tenant_rows
+        {
+            "tenantKey": row[0],
+            "tenantName": row[1],
+            "role": TENANT_ROLE_TO_PRODUCT_ROLE.get(row[2], row[2]),
+            "status": row[3],
+        }
+        for row in tenant_rows
     ]
 
     return {
         "accessToken": access_token,
+        "tokenType": "Bearer",
+        "expiresIn": ACCESS_TOKEN_EXPIRES_IN_SECONDS,
         "user": {
             "userId": user_id,
             "email": user_email,
             "tenants": tenants,
+            "platformRoles": get_platform_roles_for_email(user_email),
         },
     }
