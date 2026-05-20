@@ -7,8 +7,12 @@
 - 邀请码机制：新用户注册需验证邀请码，邀请码绑定租户和角色
 - 认证路由：`/api/v1/auth/*`，包含租户创建、用户注册、登录认证、邀请码验证
 - 用户态受保护接口：必须校验 `Authorization: Bearer <access_token>`，并通过服务端依赖解析当前用户
-- 租户上下文：前端传入的 `tenant_key` 或 `X-Tenant-Key` 只表示目标租户，后端必须校验 `user_tenants` 成员关系和角色后才能访问数据
+- 租户上下文：前端传入的 `tenant_key` 或 `X-Tenant-Key` 只表示目标租户，后端必须校验 `user_tenants` 成员关系和角色；dashboard 读接口可额外接受平台管理员只读旁路
 - 平台管理接口：`/api/v1/platform/*` 与执行器管理接口必须限制为 `platform_admin`
+- 平台运营后台：`/platform/*` 不属于任何客户租户，不应发送 `X-Tenant-Key`；后端必须以 `require_platform_admin` 作为唯一授权入口
+- 平台管理员 bootstrap：首个平台管理员只能通过本地/部署 CLI 初始化，不提供公开 HTTP API；CLI 不得输出或落盘明文密码
+- 平台管理员 dashboard 只读：平台管理员可查看所有 active 租户 dashboard 数据，但不写入 `user_tenants`，也不获得租户内写权限
+- 租户访问授权：非平台用户或需要真实租户 membership 的场景必须显式写入 `user_tenants`，本阶段只允许通过本地/部署 CLI 操作
 - 执行器接口：机器身份使用 `executor_id` + `X-Executor-Key`，不得复用用户 JWT；写入结果时必须校验执行器、租户和 job 绑定
 
 ## API 安全
@@ -24,8 +28,11 @@
 ## 数据安全
 
 - 环境变量：敏感配置（数据库连接、API Key）通过 `.env` 文件管理，不提交到版本控制
+- `PLATFORM_ADMIN_EMAILS` 只保存平台管理员邮箱白名单；bootstrap 密码只能通过命令参数或进程环境变量传入，并以哈希入库
 - `.gitignore` 已排除 `.env*` 文件
 - 多租户隔离：数据访问层强制 `tenant_key` 过滤，防止跨租户数据泄露
+- 导入租户补授权：非平台用户优先授予 `viewer`，仅在明确需要租户内代操作时授予 `admin`
+- 平台只读访问：只允许 dashboard 查询，不允许复用到任务加载、成员管理、执行器写入或其他写接口
 - 审计：创建租户、登录失败、激活失败、权限拒绝、执行器认证失败必须记录 request id、操作者、租户和结果，不记录密码、token 或 API Key
 
 ## 前端安全
@@ -34,6 +41,7 @@
 - Mock 模式：`VITE_USE_MOCK=true` 时使用本地 mock 数据，避免开发阶段暴露真实 API
 - 登录态：前端只能把 access token 用于 API Authorization；不能通过解码 JWT 自行判断租户授权结果
 - 租户切换：前端从路由或当前租户选择注入 `X-Tenant-Key`，后端仍以 `user_tenants` 校验结果为准
+- 平台 API：前端调用平台 API 时必须显式跳过租户 header，避免平台权限和租户权限混淆
 
 ## LLM 服务安全
 

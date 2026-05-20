@@ -6,7 +6,11 @@ from sqlalchemy.orm import Session
 
 from api.v1.repositories.auth import _get_auth_secret
 from api.v1.repositories.connection import get_db
-from api.v1.repositories.tenants import get_user_identity, get_user_tenant_membership
+from api.v1.repositories.tenants import (
+    get_tenant_summary_by_key,
+    get_user_identity,
+    get_user_tenant_membership,
+)
 from api.v1.utils.jwt_utils import verify_access_token
 from api.v1.utils.platform_roles import get_platform_roles_for_email
 
@@ -30,6 +34,7 @@ class CurrentTenantContext:
     tenant_name: str
     role: str
     product_role: str
+    access_scope: str = "tenant_member"
 
 
 def _unauthorized(message: str = "未提供有效的认证令牌") -> HTTPException:
@@ -133,6 +138,60 @@ def get_current_tenant(
         current_user=current_user,
         db=db,
         required_role=None,
+    )
+
+
+def get_current_tenant_for_dashboard_read(
+    x_tenant_key: Annotated[str | None, Header(alias="X-Tenant-Key")] = None,
+    query_tenant_key: Annotated[str | None, Query(alias="tenant_key")] = None,
+    current_user: CurrentUser = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> CurrentTenantContext:
+    selected_tenant_key = (x_tenant_key or "").strip() or None
+    query_tenant_key = (query_tenant_key or "").strip() or None
+
+    if selected_tenant_key and query_tenant_key and selected_tenant_key != query_tenant_key:
+        raise HTTPException(status_code=400, detail="租户上下文不一致")
+
+    tenant_key = selected_tenant_key or query_tenant_key
+    if not tenant_key:
+        raise HTTPException(status_code=400, detail="缺少租户上下文")
+
+    membership = get_user_tenant_membership(
+        db,
+        user_id=current_user.user_id,
+        tenant_key=tenant_key,
+    )
+    if membership:
+        tenant_key, tenant_name, tenant_status, role, member_status = membership
+        if tenant_status != "active":
+            raise _forbidden("租户不可用")
+        if member_status != "active":
+            raise _forbidden("租户成员关系不可用")
+        return CurrentTenantContext(
+            tenant_key=tenant_key,
+            tenant_name=tenant_name,
+            role=role,
+            product_role=TENANT_ROLE_TO_PRODUCT_ROLE.get(role, role),
+        )
+
+    if "platform_admin" not in get_platform_roles_for_email(current_user.email):
+        raise _forbidden("无权访问该租户")
+
+    tenant = get_tenant_summary_by_key(db, tenant_key)
+    if not tenant:
+        raise _forbidden("无权访问该租户")
+
+    tenant_key, tenant_name, tenant_status = tenant
+    if tenant_status != "active":
+        raise _forbidden("租户不可用")
+
+    return CurrentTenantContext(
+        tenant_key=tenant_key,
+        tenant_name=tenant_name,
+        role="platform_admin_readonly",
+        product_role="platform_admin",
+        access_scope="platform_readonly",
     )
 
 

@@ -32,15 +32,15 @@ export const useDashboardParams = () => {
 
   const tenantKey = resolveRouteParam(
     routeParams.tenantKey,
-    CONFIG.DEFAULT_TENANT_KEY,
+    '',
     ['default'],
   );
   const jobId = resolveRouteParam(
     routeParams.jobId,
-    CONFIG.DEFAULT_JOB_ID,
+    '',
     ['latest'],
   );
-  const brand = searchParams.get('brand') || CONFIG.DEFAULT_BRAND;
+  const brand = searchParams.get('brand') || '';
   const timeframe = searchParams.get('timeframe') || DEFAULT_TIMEFRAME;
   const startDateParam = searchParams.get('start_date') || '';
   const endDateParam = searchParams.get('end_date') || '';

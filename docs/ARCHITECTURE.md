@@ -42,7 +42,7 @@ brand-dashboard/
 |------|------|
 | `web/src/App.jsx` | 前端主题入口与 React Router 路由定义 |
 | `web/src/config/routes.js` | 前端路由、菜单、任务入口的单一配置源 |
-| `web/src/api/index.js` | 前端 API Adapter 出口，统一封装 dashboard/query-jobs/auth 请求 |
+| `web/src/api/index.js` | 前端 API Adapter 出口，统一封装 dashboard/query-jobs/auth/platform 请求 |
 | `web/src/components/DashboardLayout.jsx` | 仪表板壳层，负责 Header、Sidebar、时间筛选控件和子路由 Outlet |
 | `web/src/hooks/useDashboardParams.js` | 统一读取路径参数与查询参数，提供 URL 查询参数更新入口 |
 | `web/src/hooks/useTimeframeManager.js` | 仪表板时间范围、可用日期、日期参数同步逻辑 |
@@ -64,11 +64,12 @@ brand-dashboard/
 - 前后端分离：前端只通过 REST API 获取数据，不直接访问数据库
 - 多租户隔离：所有业务查询必须带 `tenant_key`，数据层强制租户过滤
 - 多租户授权：前端 URL 中的 `tenantKey` 只是当前租户选择信号；后端必须通过认证依赖校验用户、租户状态、成员关系和角色后，才能把 `tenant_key` 传入 Repository
+- 平台运营后台：`/platform/*` 是独立平台权限域，不依赖 `tenantKey`，平台 API 使用 `platform_admin` 鉴权且不发送 `X-Tenant-Key`
 - 身份分区：用户接口使用 `Authorization: Bearer <access_token>`；执行器接口使用 `executor_id` + `X-Executor-Key`，两类身份不能混用
 - 分层依赖方向：Routes → Services → Repositories → Models，禁止反向依赖
 - API 版本化：所有路由挂载在 `/api/v1/` 前缀下
 - 组件懒加载：前端功能组件使用 `React.lazy()` 按需加载
-- 前端页面路由：使用 `react-router-dom`，分析类页面路径携带 `tenantKey + jobId`，租户级页面路径只携带 `tenantKey`
+- 前端页面路由：使用 `react-router-dom`；分析类页面路径携带 `tenantKey + jobId`，租户级页面路径只携带 `tenantKey`，平台运营页面使用 `/platform/*`
 
 ## 架构边界
 

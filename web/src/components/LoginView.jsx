@@ -4,8 +4,7 @@ import { CheckCircle2, KeyRound, Lock, UserPlus } from 'lucide-react';
 
 import { activateAuth, registerUser, verifyInviteCode } from '../api/auth.js';
 import { useAuth } from '../auth/AuthContext.jsx';
-import { CONFIG } from '../config.js';
-import { buildViewPath } from '../utils/routing.js';
+import { getLoginRedirectTarget } from '../auth/redirect.js';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert.jsx';
 import { Badge } from './ui/badge.jsx';
 import { Button } from './ui/button.jsx';
@@ -50,22 +49,10 @@ const FormField = ({ label, children, required = false }) => (
   </label>
 );
 
-const getRedirectTarget = ({ location, tenantKey }) => {
-  const from = location.state?.from;
-  if (from?.pathname && from.pathname !== '/login') {
-    return `${from.pathname}${from.search || ''}`;
-  }
-
-  return buildViewPath('home', {
-    tenantKey: tenantKey || CONFIG.DEFAULT_TENANT_KEY,
-    jobId: CONFIG.DEFAULT_JOB_ID,
-  });
-};
-
 const LoginView = ({ defaultTab = 'login' }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { currentTenantKey, isAuthenticated, isInitializing, login } = useAuth();
+  const { currentTenantKey, isAuthenticated, isInitializing, login, session } = useAuth();
   const [activeTab, setActiveTab] = useState(defaultTab);
   const [forms, setForms] = useState(initialForms);
   const [loadingKey, setLoadingKey] = useState('');
@@ -95,7 +82,14 @@ const LoginView = ({ defaultTab = 'login' }) => {
     setFeedback(null);
     try {
       const session = await login(stripEmpty(forms.login));
-      navigate(getRedirectTarget({ location, tenantKey: session.currentTenantKey }), { replace: true });
+      navigate(
+        getLoginRedirectTarget({
+          location,
+          session,
+          tenantKey: session.currentTenantKey,
+        }),
+        { replace: true },
+      );
     } catch (error) {
       setResult('error', '登录失败', error.message);
     } finally {
@@ -167,7 +161,7 @@ const LoginView = ({ defaultTab = 'login' }) => {
   if (!isInitializing && isAuthenticated && activeTab === 'login') {
     return (
       <Navigate
-        to={getRedirectTarget({ location, tenantKey: currentTenantKey })}
+        to={getLoginRedirectTarget({ location, session, tenantKey: currentTenantKey })}
         replace
       />
     );

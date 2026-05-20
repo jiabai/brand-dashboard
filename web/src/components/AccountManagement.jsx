@@ -4,16 +4,14 @@ import {
   CheckCircle,
   Key,
   Lock,
-  Rocket,
   ShieldCheck,
   User,
   UserPlus,
 } from 'lucide-react';
-import dayjs from 'dayjs';
+import { Link } from 'react-router-dom';
 
 import {
   activateAuth,
-  createPlatformTenant,
   login as loginApi,
   registerUser,
   verifyInviteCode,
@@ -26,35 +24,10 @@ import { Badge } from './ui/badge.jsx';
 import { Button } from './ui/button.jsx';
 import { Card, CardContent } from './ui/card.jsx';
 import { Input } from './ui/input.jsx';
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from './ui/select.jsx';
 import { Separator } from './ui/separator.jsx';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs.jsx';
 
 const initialForms = {
-  tenant: {
-    tenantName: '',
-    industry: '',
-    adminName: '',
-    adminEmail: '',
-    companyLegalName: '',
-    companyType: '',
-    registrationNo: '',
-    adminPhone: '',
-    planType: '',
-    billingCycle: '',
-    maxUsers: '',
-    contractStartDate: '',
-    contractEndDate: '',
-    preferredSubdomain: '',
-    salesPersonId: '',
-  },
   activate: {
     token: '',
     password: '',
@@ -108,7 +81,6 @@ const AccountManagement = () => {
   const { user } = useAuth();
   const [forms, setForms] = useState(initialForms);
   const [loadingMap, setLoadingMap] = useState({
-    tenant: false,
     activate: false,
     verify: false,
     register: false,
@@ -160,18 +132,6 @@ const AccountManagement = () => {
     }
   };
 
-  const prepareTenantPayload = (values) =>
-    stripEmpty({
-      ...values,
-      maxUsers: values.maxUsers ? Number(values.maxUsers) : undefined,
-      contractStartDate: values.contractStartDate
-        ? dayjs(values.contractStartDate).format('YYYY-MM-DD')
-        : undefined,
-      contractEndDate: values.contractEndDate
-        ? dayjs(values.contractEndDate).format('YYYY-MM-DD')
-        : undefined,
-    });
-
   const prepareActivatePayload = (values) => {
     if (values.password !== values.confirmPassword) {
       throw new Error('两次输入的密码不一致');
@@ -182,15 +142,6 @@ const AccountManagement = () => {
       confirmPassword: values.confirmPassword,
     });
   };
-
-  const handleTenantSubmit = isPlatformAdmin
-    ? handleOperation('tenant', '租户开通', createPlatformTenant, prepareTenantPayload)
-    : (event) => {
-        event.preventDefault();
-        pushResponse('租户开通', 'error', {
-          message: '当前账号未具备平台管理员权限，请确认 PLATFORM_ADMIN_EMAILS 白名单配置',
-        });
-      };
 
   const responsePayload = useMemo(
     () => (latestResponse.payload ? JSON.stringify(latestResponse.payload, null, 2) : '暂无数据'),
@@ -241,124 +192,26 @@ const AccountManagement = () => {
               </TabsList>
 
               <TabsContent value="tenant" className="pt-4">
-                <form
-                  className="account-form space-y-4"
-                  onSubmit={handleTenantSubmit}
-                >
-                  {!isPlatformAdmin ? (
-                    <Alert>
-                      <AlertTitle>需要平台管理员权限</AlertTitle>
-                      <AlertDescription>当前账号可以管理租户内注册流程，但不能创建新租户。</AlertDescription>
-                    </Alert>
-                  ) : null}
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <FormField label="租户名称" required>
-                      <Input
-                        required
-                        value={forms.tenant.tenantName}
-                        onChange={(event) => updateForm('tenant', 'tenantName', event.target.value)}
-                        placeholder="例如：阿里巴巴集团"
-                      />
-                    </FormField>
-                    <FormField label="行业" required>
-                      <Input
-                        required
-                        value={forms.tenant.industry}
-                        onChange={(event) => updateForm('tenant', 'industry', event.target.value)}
-                        placeholder="例如：互联网/电子商务"
-                      />
-                    </FormField>
-                    <FormField label="管理员姓名" required>
-                      <Input
-                        required
-                        value={forms.tenant.adminName}
-                        onChange={(event) => updateForm('tenant', 'adminName', event.target.value)}
-                        placeholder="例如：张三"
-                      />
-                    </FormField>
-                    <FormField label="管理员邮箱" required>
-                      <Input
-                        required
-                        type="email"
-                        value={forms.tenant.adminEmail}
-                        onChange={(event) => updateForm('tenant', 'adminEmail', event.target.value)}
-                        placeholder="zhangsan@company.com"
-                      />
-                    </FormField>
-                  </div>
-
-                  <details className="account-collapse rounded-md border bg-muted/20 p-4">
-                    <summary className="cursor-pointer text-sm font-medium text-foreground">
-                      补充企业与合同信息
-                    </summary>
-                    <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                      <FormField label="企业法定名称">
-                        <Input value={forms.tenant.companyLegalName} onChange={(event) => updateForm('tenant', 'companyLegalName', event.target.value)} placeholder="企业法定名称" />
-                      </FormField>
-                      <FormField label="企业类型">
-                        <Input value={forms.tenant.companyType} onChange={(event) => updateForm('tenant', 'companyType', event.target.value)} placeholder="例如：有限责任公司" />
-                      </FormField>
-                      <FormField label="统一社会信用代码">
-                        <Input value={forms.tenant.registrationNo} onChange={(event) => updateForm('tenant', 'registrationNo', event.target.value)} placeholder="例如：91330000748833471G" />
-                      </FormField>
-                      <FormField label="管理员电话">
-                        <Input value={forms.tenant.adminPhone} onChange={(event) => updateForm('tenant', 'adminPhone', event.target.value)} placeholder="例如：13800138000" />
-                      </FormField>
-                      <FormField label="订阅计划">
-                        <Select value={forms.tenant.planType || undefined} onValueChange={(value) => updateForm('tenant', 'planType', value)}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="选择计划" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectGroup>
-                              <SelectItem value="basic">基础版</SelectItem>
-                              <SelectItem value="pro">专业版</SelectItem>
-                              <SelectItem value="enterprise">企业版</SelectItem>
-                            </SelectGroup>
-                          </SelectContent>
-                        </Select>
-                      </FormField>
-                      <FormField label="计费周期">
-                        <Select value={forms.tenant.billingCycle || undefined} onValueChange={(value) => updateForm('tenant', 'billingCycle', value)}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="选择周期" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectGroup>
-                              <SelectItem value="monthly">按月</SelectItem>
-                              <SelectItem value="yearly">按年</SelectItem>
-                            </SelectGroup>
-                          </SelectContent>
-                        </Select>
-                      </FormField>
-                      <FormField label="最大用户数">
-                        <Input type="number" min="1" value={forms.tenant.maxUsers} onChange={(event) => updateForm('tenant', 'maxUsers', event.target.value)} placeholder="例如：200" />
-                      </FormField>
-                      <FormField label="合同开始日期">
-                        <Input type="date" value={forms.tenant.contractStartDate} onChange={(event) => updateForm('tenant', 'contractStartDate', event.target.value)} />
-                      </FormField>
-                      <FormField label="合同结束日期">
-                        <Input type="date" value={forms.tenant.contractEndDate} onChange={(event) => updateForm('tenant', 'contractEndDate', event.target.value)} />
-                      </FormField>
-                      <FormField label="期望子域名">
-                        <Input value={forms.tenant.preferredSubdomain} onChange={(event) => updateForm('tenant', 'preferredSubdomain', event.target.value)} placeholder="例如：alibaba" />
-                      </FormField>
-                      <FormField label="销售人员编号">
-                        <Input value={forms.tenant.salesPersonId} onChange={(event) => updateForm('tenant', 'salesPersonId', event.target.value)} placeholder="例如：SALES_001" />
-                      </FormField>
-                    </div>
-                  </details>
-
+                <div className="space-y-4">
+                  <Alert>
+                    <AlertTitle>租户开通已迁移到平台运营后台</AlertTitle>
+                    <AlertDescription>
+                      租户工作台保留管理员激活、员工注册与邀请码核验；企业租户创建请从平台运营后台执行。
+                    </AlertDescription>
+                  </Alert>
                   <div className="flex flex-wrap items-center gap-3">
                     {isPlatformAdmin ? (
-                      <Button type="submit" disabled={loadingMap.tenant}>
-                        <Rocket className="size-4" />
-                        {loadingMap.tenant ? '创建中...' : '创建租户并发送激活邮件'}
+                      <Button asChild>
+                        <Link to="/platform/tenants">
+                          <Building2 className="size-4" />
+                          进入平台租户管理
+                        </Link>
                       </Button>
-                    ) : null}
-                    <span className="text-sm text-muted-foreground">系统会自动生成租户 Key 与管理员激活链接</span>
+                    ) : (
+                      <Badge variant="secondary">当前账号无平台运营权限</Badge>
+                    )}
                   </div>
-                </form>
+                </div>
               </TabsContent>
 
               <TabsContent value="activation" className="pt-4">

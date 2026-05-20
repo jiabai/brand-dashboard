@@ -1,6 +1,6 @@
 # 多租户认证与数据隔离架构补充
 
-> 状态：Phase 1-5 已落地，2026-05-20 修订
+> 状态：多租户认证、租户隔离与平台运营后台 MVP 已落地，2026-05-20 修订
 >
 > 本文档补充 `docs/ARCHITECTURE.md`，聚焦多租户认证、租户上下文、授权边界、机器身份和数据隔离执行机制。产品流程见 `docs/product-specs/20260519-000000-multi-tenant-registration-flow.md`，API 契约见 `docs/references/20260519-000000-tenant-account-api-reference.md`。
 
@@ -22,6 +22,9 @@
 | 标准 JWT access token | `api/v1/utils/jwt_utils.py` | 已实现，兼容旧 access token 验证 |
 | 用户/租户认证依赖 | `api/v1/dependencies/auth.py` | 已实现 |
 | 平台管理员鉴权 | `require_platform_admin` | 已实现，MVP 使用 `PLATFORM_ADMIN_EMAILS` |
+| 首个平台管理员 bootstrap | `api/scripts/bootstrap_platform_admin.py` | 已实现，本地/部署 CLI，不暴露 HTTP API |
+| 租户访问授权 | `api/scripts/grant_tenant_access.py` | 已实现，本地/部署 CLI，为已有用户显式写入 `user_tenants` |
+| 平台管理员全租户只读看板 | `get_current_tenant_for_dashboard_read` | 已实现，仅用于 dashboard 读接口 |
 | 前端登录态 | `web/src/auth/*`、`web/src/components/LoginView.jsx` | 已实现 |
 
 ### 1.2 已修复的安全缺口
@@ -37,6 +40,15 @@
 
 后续增强项：登录/激活/邀请码验证限流与审计、平台管理员表、移除旧 access token 兼容逻辑、Auth Pydantic 模型收敛到共享 schemas。
 
+### 1.3 新增平台运营后台边界
+
+当前系统已经新增独立 Platform Console，`AccountManagement` 不再承载正式租户创建表单：
+
+- Web 路由以 `/platform` 开头，不携带 `tenantKey`。
+- API 使用 `/api/v1/platform/*`，只依赖 `Authorization` 和 `platform_admin`。
+- 不使用 `get_current_tenant`，不发送 `X-Tenant-Key`。
+- MVP 页面聚焦租户列表和租户创建；执行器管理后续接入同一后台。
+
 ## 2. 目标架构
 
 ### 2.1 身份分区
@@ -47,6 +59,13 @@
 |---|---|---|---|
 | 用户身份 | `Authorization: Bearer <access_token>` | 登录后的平台管理和租户用户接口 | `users`、`user_tenants`、平台管理员白名单或平台管理员表 |
 | 执行器身份 | `executor_id` + `X-Executor-Key` | 任务拉取、任务上报、对话结果写入 | `executors` 与任务绑定关系 |
+
+用户身份分为两个 Web 权限域：
+
+| Web 权限域 | 路由 | API | 租户上下文 |
+|---|---|---|---|
+| Platform Console | `/platform/*` | `/api/v1/platform/*`、平台级 `/api/v1/executors/*` | 不需要 `tenantKey`，不得发送 `X-Tenant-Key` |
+| Tenant Workspace | `/dashboard/:tenantKey/*`、`/tasks/:tenantKey/*`、`/accounts/:tenantKey` | `/api/v1/dashboard/*`、租户级 `/api/v1/query-jobs/*` | 必须发送并校验当前租户 |
 
 ### 2.2 用户请求链路
 
@@ -102,6 +121,45 @@ Depends(verify_executor)
 
 执行器接口不使用用户 JWT。执行器不拥有平台或租户管理权限，只能处理分配给自己的任务。
 
+### 2.4 平台运营后台请求链路
+
+```text
+Platform operator browser
+  Authorization: Bearer <JWT>
+        |
+        v
+React /platform route
+        |
+        +-- AuthProvider
+        |     - 恢复 access token
+        |     - GET /api/v1/auth/me 获取 platformRoles
+        |
+        +-- PlatformRoute
+              - 未登录跳转 /login
+              - 平台管理员直登默认进入 /platform/tenants
+              - 非 platform_admin 显示 403
+        |
+        v
+FastAPI /api/v1/platform/*
+        |
+        +-- Depends(require_platform_admin)
+              - 解析用户
+              - 校验 platform_admin
+        |
+        v
+Platform repository
+  查询租户元数据，不查询租户业务数据
+```
+
+关键原则：
+
+- Platform Console 是平台元数据后台，不是租户工作台的一个子页面。
+- 平台请求不带 `tenant_key`，避免把平台权限和租户成员权限混在一起。
+- 平台后台可以管理租户生命周期，并通过 dashboard 只读旁路查看 active 租户业务看板。
+- 平台后台进入租户工作台时先跳转 `/tasks/<tenantKey>/status`，不使用前端环境变量拼接默认 dashboard job。
+- 平台管理员查看 dashboard 不写入 `user_tenants`；平台域身份和客户租户成员身份保持分离。
+- 平台管理员只读旁路不能满足租户内写接口的 `tenant_admin` 要求。
+
 ## 3. 授权模型
 
 ### 3.1 角色映射
@@ -122,9 +180,31 @@ Depends(verify_executor)
 | `get_current_user` | 解析并校验 access token | 所有登录后接口 |
 | `require_platform_admin` | 用户 email 在平台管理员白名单或平台管理员表中 | 创建租户、管理执行器 |
 | `get_current_tenant(required_role=None)` | 校验用户属于目标租户 | Dashboard、任务状态 |
+| `get_current_tenant_for_dashboard_read` | 用户属于目标租户，或平台管理员只读访问 active 租户 | Dashboard 只读接口 |
 | `get_current_tenant(required_role="admin")` | 校验用户为租户管理员 | 加载查询任务、成员管理 |
 | `verify_executor` | 校验执行器 API Key | 任务拉取/上报 |
 | `verify_executor_job_scope` | 校验执行器、租户、job 的绑定 | 对话写入、结果写入 |
+
+### 3.3 导入租户访问授权
+
+历史数据或人工导入租户可能先拥有 `tenants` 和业务表数据，但没有对应用户 membership。对于非平台管理员用户，仍应使用本地/部署 CLI 显式授予访问：
+
+```powershell
+uv run --project api python api/scripts/grant_tenant_access.py --email <user@example.com> --tenant-key <tn_xxx> --role viewer
+```
+
+该 CLI 只写入 `user_tenants`，不创建用户、不修改平台管理员白名单。平台管理员读取 dashboard 则走专用只读依赖，不需要 CLI membership。
+
+### 3.4 平台管理员 dashboard 只读访问
+
+平台管理员属于平台域身份。为支持运营和交付排障，dashboard 读接口允许 `platform_admin` 查看任意 active 租户业务数据，但该能力不进入 `user_tenants`，也不能满足租户写接口的 admin 要求。
+
+设计约束：
+
+- 只适用于 `GET /api/v1/dashboard/*`。
+- 目标租户必须 active。
+- Repository 层继续按目标 `tenant_key` 查询，不允许跨租户聚合泄露。
+- 登录响应 `user.tenants` 仍只返回真实 membership，不返回所有租户。
 
 ## 4. ADR
 
@@ -196,6 +276,28 @@ Depends(verify_executor)
 - 平台管理员属于平台域，不应混入任意租户的 `user_tenants`。
 - 长期表结构可支持审计、禁用、分级平台权限。
 
+**Bootstrap**：
+
+- 首个平台管理员通过 `api/scripts/bootstrap_platform_admin.py` 创建或激活 `users` 记录。
+- CLI 可显式使用 `--write-env` 将邮箱加入 `api/.env` 的 `PLATFORM_ADMIN_EMAILS`。
+- CLI 不写入、不打印明文密码；密码只经过 `hash_password` 后入库。
+- 已停用或封禁账号不能被 CLI 自动恢复，必须人工审查。
+
+### ADR-006：平台运营后台独立于租户工作台
+
+**决策**：新增 `/platform/*` 作为平台运营后台路由前缀，不复用 `/:tenantKey` 租户工作台壳层承载正式平台运营能力。
+
+**理由**：
+
+- 平台运营人员是平台域身份，不一定属于任何客户租户。
+- 租户工作台的路由、菜单和 API 都围绕当前租户设计，继续混放平台操作会让 `tenantKey` 语义变得不可靠。
+- 独立后台可以清晰表达平台权限、租户元数据、审计和后续执行器管理。
+
+**取舍**：
+
+- MVP 会增加一套路由壳层和少量 API Adapter，但可以复用现有 AuthProvider、shadcn/ui 和平台管理员依赖。
+- `AccountManagement` 中已有的租户创建表单可迁移复用字段和校验，但正式入口应转移到 Platform Console。
+
 ## 5. 目标组件
 
 ### 5.1 Token 工具
@@ -223,7 +325,7 @@ Depends(verify_executor)
 
 ### 5.3 前端认证入口
 
-目标文件范围：
+当前文件范围：
 
 - `web/src/api/client.js`
 - `web/src/api/auth.js`
@@ -237,6 +339,24 @@ Depends(verify_executor)
 - 在 API Adapter 中自动注入 `Authorization`。
 - 根据当前路由或选中租户注入 `X-Tenant-Key`。
 - 未登录时跳转登录页。
+- 不通过 `VITE_DEFAULT_TENANT_KEY`、`VITE_DEFAULT_JOB_ID` 或 `VITE_DEFAULT_BRAND` 提供业务默认值；租户来自登录态/路由，任务来自任务路径，品牌来自 URL 或 dashboard 数据。
+
+### 5.4 平台运营后台组件
+
+目标文件范围：
+
+- `web/src/api/platform.js`
+- `web/src/components/platform/PlatformLayout.jsx`
+- `web/src/components/platform/PlatformRoute.jsx`
+- `web/src/components/platform/PlatformTenantsPage.jsx`
+- `web/src/components/platform/CreateTenantPanel.jsx`
+
+职责：
+
+- `/platform/*` 使用独立壳层，不依赖 `useDashboardParams`。
+- Platform API Adapter 自动携带 `Authorization`，显式跳过 `X-Tenant-Key`。
+- 租户列表支持搜索、状态筛选、计划筛选和分页。
+- 创建租户成功后展示一次性激活链接、登录地址和邀请码。
 
 ## 6. 路由改造策略
 
@@ -245,9 +365,10 @@ Depends(verify_executor)
 | `/api/v1/public/auth/login` | 公开，返回标准 JWT 和租户角色列表 | 登录失败 HTTP 状态可进一步统一为 401 |
 | `/api/v1/public/auth/activate` | 公开，使用激活 token | 保持公开，强化错误与密码校验 |
 | `/api/v1/public/users/register` | 公开，使用邀请码 | 保持公开，强化账号状态和枚举防护 |
-| `/api/v1/platform/tenants` | `require_platform_admin` | 平台管理员表和审计 |
+| `/api/v1/platform/tenants` `POST` | `require_platform_admin` | 平台管理员表和审计 |
+| `/api/v1/platform/tenants` `GET` | `require_platform_admin`，不使用租户上下文 | 平台管理员表和审计 |
 | `/api/v1/executors/*` | 创建/列表/禁用需要 `require_platform_admin`；register 保留 IP 白名单 | 平台管理员表和审计 |
-| `/api/v1/dashboard/*` | `get_current_tenant`，query `tenant_key` 过渡兼容 | 兼容期后可减少 query 依赖 |
+| `/api/v1/dashboard/*` | `get_current_tenant`，query `tenant_key` 过渡兼容 | 改为 dashboard 只读依赖，允许平台管理员查看 active 租户 |
 | `/api/v1/query-jobs/status` | `get_current_tenant` | 兼容期后可减少 query 依赖 |
 | `/api/v1/query-jobs/load` | `get_current_tenant(required_role="admin")`，body tenant_key 必须一致 | 增加更细粒度任务权限 |
 | `/api/v1/query-jobs/fetch` | 执行器认证 | 保持执行器认证，并继续按 executor_id 限制任务 |

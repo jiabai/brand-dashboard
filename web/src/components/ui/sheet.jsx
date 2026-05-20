@@ -11,11 +11,12 @@ function Sheet({
   return <SheetPrimitive.Root data-slot="sheet" {...props} />;
 }
 
-function SheetTrigger({
+const SheetTrigger = React.forwardRef(function SheetTrigger({
   ...props
-}) {
-  return <SheetPrimitive.Trigger data-slot="sheet-trigger" {...props} />;
-}
+}, ref) {
+  return <SheetPrimitive.Trigger ref={ref} data-slot="sheet-trigger" {...props} />;
+})
+SheetTrigger.displayName = "SheetTrigger"
 
 function SheetClose({
   ...props
@@ -29,12 +30,13 @@ function SheetPortal({
   return <SheetPrimitive.Portal data-slot="sheet-portal" {...props} />;
 }
 
-function SheetOverlay({
+const SheetOverlay = React.forwardRef(function SheetOverlay({
   className,
   ...props
-}) {
+}, ref) {
   return (
     <SheetPrimitive.Overlay
+      ref={ref}
       data-slot="sheet-overlay"
       className={cn(
         "fixed inset-0 z-50 bg-black/10 duration-100 supports-backdrop-filter:backdrop-blur-xs data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0",
@@ -42,19 +44,21 @@ function SheetOverlay({
       )}
       {...props} />
   );
-}
+})
+SheetOverlay.displayName = "SheetOverlay"
 
-function SheetContent({
+const SheetContent = React.forwardRef(function SheetContent({
   className,
   children,
   side = "right",
   showCloseButton = true,
   ...props
-}) {
+}, ref) {
   return (
     <SheetPortal>
       <SheetOverlay />
       <SheetPrimitive.Content
+        ref={ref}
         data-slot="sheet-content"
         data-side={side}
         className={cn(
@@ -74,7 +78,8 @@ function SheetContent({
       </SheetPrimitive.Content>
     </SheetPortal>
   );
-}
+})
+SheetContent.displayName = "SheetContent"
 
 function SheetHeader({
   className,

@@ -3,6 +3,7 @@ import dayjs from 'dayjs';
 import { CircleDot, LogOut } from 'lucide-react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 
+import { fetchBrandMetrics } from '@/api';
 import TaskName from './TaskName.jsx';
 import ThemeToggle from './ThemeToggle.jsx';
 import Sidebar from './Sidebar.jsx';
@@ -26,7 +27,7 @@ import { ToggleGroup, ToggleGroupItem } from './ui/toggle-group.jsx';
 import { useDashboardParams } from '@/hooks/useDashboardParams';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { TIME_OPTIONS, useTimeframeManager } from '@/hooks/useTimeframeManager';
-import { buildRouteSearch, buildViewPath, getViewKeyFromPath } from '@/utils/routing';
+import { buildRouteSearch, buildViewPath, getViewKeyFromPath, isAnalysisView } from '@/utils/routing';
 
 const LiveClock = React.memo(function LiveClock() {
   const [currentTime, setCurrentTime] = useState(() => new Date());
@@ -90,6 +91,26 @@ const DashboardLayout = () => {
     start,
   } = useTimeframeManager(dashboardParams);
   const activeTenantKey = dashboardParams.tenantKey || currentTenantKey;
+  const viewKey = getViewKeyFromPath(location.pathname);
+  const [brandResolution, setBrandResolution] = useState({
+    key: '',
+    isLoading: false,
+  });
+  const brandResolutionKey = [
+    activeTenantKey,
+    dashboardParams.jobId,
+    timeframe,
+    selectedDateParam,
+    selectedEndDateParam,
+  ].join('|');
+  const shouldResolveBrand =
+    isAnalysisView(viewKey) &&
+    Boolean(activeTenantKey) &&
+    Boolean(dashboardParams.jobId) &&
+    !dashboardParams.brand;
+  const isBrandResolving =
+    shouldResolveBrand &&
+    (brandResolution.key !== brandResolutionKey || brandResolution.isLoading);
 
   useEffect(() => {
     const routeTenant = dashboardParams.tenantKey;
@@ -98,6 +119,61 @@ const DashboardLayout = () => {
       selectTenant(routeTenant);
     }
   }, [currentTenantKey, dashboardParams.tenantKey, selectTenant, tenants]);
+
+  useEffect(() => {
+    if (!shouldResolveBrand) {
+      return undefined;
+    }
+
+    const controller = new AbortController();
+    setBrandResolution({ key: brandResolutionKey, isLoading: true });
+
+    const run = async () => {
+      const response = await fetchBrandMetrics(
+        {
+          tenantKey: activeTenantKey,
+          jobId: dashboardParams.jobId,
+          timeframe,
+          startDate: selectedDateParam,
+          endDate: selectedEndDateParam || selectedDateParam,
+        },
+        { signal: controller.signal },
+      );
+      const items = Array.isArray(response?.data)
+        ? response.data
+        : Array.isArray(response)
+          ? response
+          : [];
+      const nextBrand = items.find((item) => item?.brand)?.brand || '';
+      if (nextBrand) {
+        updateParams({ brand: nextBrand }, { replace: true });
+      }
+    };
+
+    run()
+      .catch(() => {
+        if (controller.signal.aborted) return;
+        setBrandResolution({ key: brandResolutionKey, isLoading: false });
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) {
+          setBrandResolution({ key: brandResolutionKey, isLoading: false });
+        }
+      });
+
+    return () => {
+      controller.abort();
+    };
+  }, [
+    activeTenantKey,
+    brandResolutionKey,
+    dashboardParams.jobId,
+    selectedDateParam,
+    selectedEndDateParam,
+    shouldResolveBrand,
+    timeframe,
+    updateParams,
+  ]);
 
   const handlePlatformClick = useCallback(
     (platform) => {
@@ -147,7 +223,7 @@ const DashboardLayout = () => {
       selectedDateParam,
       selectedEndDateParam,
       selectedPlatform,
-      isLoading,
+      isLoading: isLoading || isBrandResolving,
       onPlatformClick: handlePlatformClick,
       onBackFromPlatform: handleBackFromPlatform,
     }),
@@ -156,6 +232,7 @@ const DashboardLayout = () => {
       handleBackFromPlatform,
       handlePlatformClick,
       isLoading,
+      isBrandResolving,
       selectedDateParam,
       selectedEndDateParam,
       selectedPlatform,

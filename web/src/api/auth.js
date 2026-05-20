@@ -1,9 +1,5 @@
 import { fetchJson as fetch, postJson as post } from './client.js';
 
-export const createPlatformTenant = (payload, options) => {
-  return post('/api/v1/platform/tenants', payload, options);
-};
-
 export const activateAuth = (payload, options) => {
   return post('/api/v1/public/auth/activate', payload, options);
 };

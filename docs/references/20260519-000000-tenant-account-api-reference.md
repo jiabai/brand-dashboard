@@ -2,7 +2,7 @@
 
 > 状态：已按 Phase 1-5 落地，2026-05-20 修订
 >
-> 本文档记录多租户管理和登录功能的当前 API 契约，并保留后续增强事项。产品流程见 `docs/product-specs/20260519-000000-multi-tenant-registration-flow.md`，架构设计见 `docs/ARCHITECTURE_MULTITENANT.md`。
+> 本文档记录多租户管理和登录功能的当前 API 契约，并保留后续增强事项。产品流程见 `docs/product-specs/20260519-000000-multi-tenant-registration-flow.md`，平台运营后台契约见 `docs/references/20260520-010000-platform-operations-console-reference.md`，首个平台管理员初始化见 `docs/references/20260520-020000-platform-admin-bootstrap-reference.md`，架构设计见 `docs/ARCHITECTURE_MULTITENANT.md`。
 
 ## 1. 通用约定
 
@@ -83,10 +83,13 @@ API 对外返回产品角色：
 
 平台管理员为客户企业创建租户和首个管理员账号。
 
+正式 Web 入口应位于 `/platform/tenants` 平台运营后台，而不是租户工作台内的账户管理页。
+
 鉴权：
 
 - 必须携带 `Authorization: Bearer <access_token>`，且当前用户是 `platform_admin`。
 - 当前实现：已接入 `require_platform_admin`，MVP 通过 `PLATFORM_ADMIN_EMAILS` 白名单识别平台管理员。
+- 如果还没有平台管理员账号，先通过 `api/scripts/bootstrap_platform_admin.py` 创建或激活首个平台管理员用户；不要通过公开 API 初始化平台管理员。
 
 请求体：
 

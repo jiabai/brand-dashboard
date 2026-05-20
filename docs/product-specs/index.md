@@ -16,3 +16,7 @@ Product specs describe user-visible intent and boundaries before or alongside im
 | [20260518-003119-migrate-web-ui-to-shadcn.md](20260518-003119-migrate-web-ui-to-shadcn.md) | Web UI 组件系统从 Ant Design/G2 迁移到 shadcn/ui/Recharts 的产品边界与验收标准 |
 | [20260518-145556-optimize-dashboard-ui-visual-design.md](20260518-145556-optimize-dashboard-ui-visual-design.md) | 仪表板 UI 视觉优化：暖色浅底主题、信息密度、App shell 与空状态体验 |
 | [20260519-000000-multi-tenant-registration-flow.md](20260519-000000-multi-tenant-registration-flow.md) | B2B SaaS 多租户注册、登录、租户管理、角色权限与安全验收标准 |
+| [20260520-010000-platform-operations-console.md](20260520-010000-platform-operations-console.md) | 平台运营后台：独立 `/platform` 权限域、租户列表、创建租户和运营入口 |
+| [20260520-020000-platform-admin-bootstrap.md](20260520-020000-platform-admin-bootstrap.md) | 首个平台管理员账号 bootstrap：本地 CLI 初始化用户和平台管理员白名单 |
+| [20260520-030000-tenant-access-grant.md](20260520-030000-tenant-access-grant.md) | 租户访问授权：为已有用户显式授予已有租户的 viewer/member/admin 成员关系 |
+| [20260520-040000-platform-admin-tenant-read-access.md](20260520-040000-platform-admin-tenant-read-access.md) | 平台管理员全租户只读看板：平台运营可查看所有 active 租户 dashboard，但不获得写权限 |

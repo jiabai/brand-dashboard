@@ -76,12 +76,11 @@ npm run build
 ```env
 VITE_USE_MOCK=false
 VITE_API_TARGET=http://localhost:8000
-VITE_DEFAULT_TENANT_KEY=tn_xxx
-VITE_DEFAULT_JOB_ID=job_xxx
-VITE_DEFAULT_BRAND=QuickCEP
 VITE_DEFAULT_EXECUTOR_ID=exec_xxx
 VITE_DEFAULT_INCLUDE_DELETED=false
 ```
+
+租户、任务和品牌不再通过前端环境变量提供默认值：租户来自登录会话或平台租户列表，任务来自用户选择的任务路径，品牌由仪表板数据自动补齐或由 URL `brand` 参数指定。
 
 ## 架构约定
 

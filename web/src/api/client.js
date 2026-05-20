@@ -14,16 +14,17 @@ const parseTenantKeyFromBody = (body) => {
   return body.tenant_key || body.tenantKey || '';
 };
 
-const buildHeaders = ({ url, body, headers, authToken, tenantKey }) => {
+const buildHeaders = ({ url, body, headers, authToken, tenantKey, skipTenantHeader = false }) => {
   const session = readAuthSession();
   const nextHeaders = { ...(headers || {}) };
   const token = authToken ?? session?.accessToken;
-  const requestTenantKey =
-    tenantKey ||
-    parseTenantKeyFromBody(body) ||
-    parseTenantKeyFromUrl(url) ||
-    session?.currentTenantKey ||
-    '';
+  const requestTenantKey = skipTenantHeader
+    ? ''
+    : tenantKey ||
+      parseTenantKeyFromBody(body) ||
+      parseTenantKeyFromUrl(url) ||
+      session?.currentTenantKey ||
+      '';
 
   if (body && !nextHeaders['Content-Type']) {
     nextHeaders['Content-Type'] = 'application/json';
@@ -40,12 +41,12 @@ const buildHeaders = ({ url, body, headers, authToken, tenantKey }) => {
 
 export const fetchJson = async (
   url,
-  { signal, method = 'GET', body, headers, authToken, tenantKey } = {},
+  { signal, method = 'GET', body, headers, authToken, tenantKey, skipTenantHeader = false } = {},
 ) => {
   const options = {
     method,
     signal,
-    headers: buildHeaders({ url, body, headers, authToken, tenantKey }),
+    headers: buildHeaders({ url, body, headers, authToken, tenantKey, skipTenantHeader }),
   };
   if (body) {
     options.body = typeof body === 'string' ? body : JSON.stringify(body);

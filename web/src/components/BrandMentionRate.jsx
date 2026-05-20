@@ -20,7 +20,6 @@ import { Link, MessageCircle, Tags, Trophy } from 'lucide-react';
 import { fetchBrandMetrics, fetchPostCitationRate } from '@/api';
 import { useDashboardRequestParams } from '@/hooks/useDashboardParams';
 import { formatPercentage, toPercent, clampPercent, roundTwoDecimals } from '@/utils';
-import { CONFIG } from '@/config';
 
 // Components
 import DataTable from './DataTable.jsx';
@@ -29,8 +28,6 @@ import LoadingSpinner from './LoadingSpinner';
 import { Badge } from './ui/badge.jsx';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card.jsx';
 import { Progress } from './ui/progress.jsx';
-
-const { DEFAULT_BRAND } = CONFIG;
 
 const metricTones = {
   primary: 'var(--primary)',
@@ -179,21 +176,12 @@ const BrandMentionRate = () => {
         setIsLoading(true);
         setError(null);
 
-        const [brandMetrics, postCitationRate] = await Promise.all([
-          fetchBrandMetrics(
-            { tenantKey, jobId, timeframe, startDate: date, endDate: endDate || date },
-            { signal: controller.signal },
-          ),
-          fetchPostCitationRate(
-            { tenantKey, jobId, timeframe, startDate: date, endDate: endDate || date, brand },
-            { signal: controller.signal },
-          ),
-        ]);
+        const brandMetrics = await fetchBrandMetrics(
+          { tenantKey, jobId, timeframe, startDate: date, endDate: endDate || date },
+          { signal: controller.signal },
+        );
 
         if (brandMetrics?.status && brandMetrics.status !== 'success') {
-          throw new Error('接口返回错误状态');
-        }
-        if (postCitationRate?.status && postCitationRate.status !== 'success') {
           throw new Error('接口返回错误状态');
         }
 
@@ -202,7 +190,6 @@ const BrandMentionRate = () => {
           : Array.isArray(brandMetrics)
             ? brandMetrics
             : [];
-        const postCitationRateData = postCitationRate?.data?.[0] ?? postCitationRate;
 
         const normalizedBrandItems = brandMetricsList.map((item) => ({
           name: item?.brand,
@@ -215,10 +202,22 @@ const BrandMentionRate = () => {
 
         setBrandList(normalizedBrandItems);
 
-        const effectiveTargetName = brand || DEFAULT_BRAND;
+        const effectiveTargetName = brand || normalizedBrandItems[0]?.name || '';
         const targetItem =
           normalizedBrandItems.find((item) => item.name === effectiveTargetName) ??
           normalizedBrandItems[0];
+
+        let postCitationRateData = null;
+        if (effectiveTargetName) {
+          const postCitationRate = await fetchPostCitationRate(
+            { tenantKey, jobId, timeframe, startDate: date, endDate: endDate || date, brand: effectiveTargetName },
+            { signal: controller.signal },
+          );
+          if (postCitationRate?.status && postCitationRate.status !== 'success') {
+            throw new Error('接口返回错误状态');
+          }
+          postCitationRateData = postCitationRate?.data?.[0] ?? postCitationRate;
+        }
 
         const nextTargetBrandData = targetItem
           ? {

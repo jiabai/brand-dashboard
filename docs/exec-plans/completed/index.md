@@ -21,3 +21,7 @@
 | [20260518-003119-migrate-web-ui-to-shadcn.md](20260518-003119-migrate-web-ui-to-shadcn.md) | Web UI 组件系统从 Ant Design/G2 迁移到 shadcn/ui 和轻量图表 | 2026-05-18 |
 | [20260518-145556-dashboard-ui-visual-optimization.md](20260518-145556-dashboard-ui-visual-optimization.md) | 仪表板 UI 视觉优化：warm canvas 主题、App shell、组件密度和空状态 | 2026-05-18 |
 | [20260520-000000-multi-tenant-auth-login.md](20260520-000000-multi-tenant-auth-login.md) | 多租户管理与登录功能：认证、租户上下文、平台权限、执行器边界与前端登录态 | 2026-05-20 |
+| [20260520-010000-platform-operations-console.md](20260520-010000-platform-operations-console.md) | 平台运营后台：独立 `/platform` 权限域、租户列表、创建租户和旧入口收敛 | 2026-05-20 |
+| [20260520-020000-platform-admin-bootstrap.md](20260520-020000-platform-admin-bootstrap.md) | 首个平台管理员账号 bootstrap：本地 CLI 创建用户、维护白名单和登录验证 | 2026-05-20 |
+| [20260520-030000-tenant-access-grant.md](20260520-030000-tenant-access-grant.md) | 租户访问授权 CLI：为已有用户显式授予已有租户的 viewer/member/admin 成员关系 | 2026-05-20 |
+| [20260520-040000-platform-admin-tenant-read-access.md](20260520-040000-platform-admin-tenant-read-access.md) | 平台管理员 dashboard 级全租户只读访问，不放开租户写接口 | 2026-05-20 |
