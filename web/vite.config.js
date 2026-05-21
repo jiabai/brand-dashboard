@@ -8,6 +8,8 @@ export default defineConfig(({ mode, command }) => {
   const env = loadEnv(mode, envDir, '')
   const apiTarget = env.VITE_API_TARGET || 'http://localhost:8000'
   const useMock = env.VITE_USE_MOCK === 'true' && command === 'serve'
+  const devHost = env.VITE_DEV_HOST || '0.0.0.0'
+  const devPort = parseInt(env.VITE_DEV_PORT || '3000', 10)
 
   const config = {
     plugins: [react()],
@@ -19,7 +21,8 @@ export default defineConfig(({ mode, command }) => {
       }
     },
     server: {
-      port: 3000,
+      host: devHost,
+      port: devPort,
       allowedHosts: ['rushlink.click', 'mc.rushlink.click', 'www.rushlink.click'],
     },
     build: {

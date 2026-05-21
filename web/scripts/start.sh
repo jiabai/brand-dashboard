@@ -17,10 +17,17 @@ fi
 echo -e "\033[36mInstalling dependencies...\033[0m"
 npm --prefix "$WEB_ROOT" install --registry=https://registry.npmmirror.com --legacy-peer-deps
 
-# 2. 切换到 web 目录并以守护进程模式启动
+# 2. 从 .env 读取开发服务器配置
+ENV_FILE="$WEB_ROOT/.env"
+DEV_HOST=$(grep -E '^VITE_DEV_HOST=' "$ENV_FILE" 2>/dev/null | cut -d= -f2 | tr -d ' ')
+DEV_PORT=$(grep -E '^VITE_DEV_PORT=' "$ENV_FILE" 2>/dev/null | cut -d= -f2 | tr -d ' ')
+DEV_HOST=${DEV_HOST:-0.0.0.0}
+DEV_PORT=${DEV_PORT:-3000}
+
+# 3. 切换到 web 目录并以守护进程模式启动
 cd "$WEB_ROOT"
 echo -e "\033[32mStarting Web dev server as daemon...\033[0m"
-echo -e "\033[33m  URL: http://localhost:3000\033[0m"
+echo -e "\033[33m  URL: http://${DEV_HOST}:${DEV_PORT}\033[0m"
 echo -e "\033[33m  API: http://localhost:8000\033[0m"
 echo -e "\033[33m  Log: $LOG_FILE\033[0m"
 echo ""
