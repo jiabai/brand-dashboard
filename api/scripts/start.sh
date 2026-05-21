@@ -25,7 +25,7 @@ fi
 # 2. 安装依赖
 if [ -f "$PYPROJECT_PATH" ]; then
     echo -e "\033[36mInstalling dependencies from pyproject.toml using uv...\033[0m"
-    uv pip install -e "$PROJECT_ROOT/api" --quiet
+    UV_INDEX_URL=https://mirrors.aliyun.com/pypi/simple/ uv pip install -e "$PROJECT_ROOT/api"
 fi
 
 # 3. 切换到项目根目录并以守护进程模式启动
