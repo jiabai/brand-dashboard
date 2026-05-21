@@ -4,6 +4,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import Engine
 
+from api.v1.dependencies.auth import get_current_tenant_for_dashboard_read
 from api.v1.models.schemas import (
     AvailableDatesResponse,
     BrandMentionRateResponse,
@@ -23,7 +24,9 @@ from api.v1.models.schemas import (
 from api.v1.repositories.connection import get_engine
 from api.v1.services.dashboard_service import DashboardService
 
-router = APIRouter()
+get_current_tenant = get_current_tenant_for_dashboard_read
+
+router = APIRouter(dependencies=[Depends(get_current_tenant)])
 
 
 def get_dashboard_service(engine: Engine = Depends(get_engine)) -> DashboardService:

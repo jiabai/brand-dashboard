@@ -9,6 +9,11 @@ from typing import Any, Dict, Iterable, Optional
 from fastapi import APIRouter, Body, Depends, Header, HTTPException, Query
 from sqlalchemy.orm import Session
 
+from api.v1.dependencies.auth import (
+    CurrentTenantContext,
+    get_current_tenant,
+    require_current_tenant,
+)
 from api.v1.models.schemas import (
     FetchQueryJobResponse,
     LoadQueryJobsRequest,
@@ -21,6 +26,7 @@ from api.v1.models.schemas import (
 from api.v1.repositories.connection import get_db
 from api.v1.repositories.executors import get_executor_credentials
 from api.v1.repositories.query_jobs import (
+    executor_has_job_scope,
     fetch_next_query_job,
     get_query_job_runs,
     increment_query_job_runs,
@@ -78,6 +84,22 @@ async def verify_executor(
         raise HTTPException(status_code=401, detail="执行器密钥错误")
 
     return executor_id
+
+
+def verify_executor_job_scope(
+    db: Session,
+    *,
+    executor_id: str,
+    tenant_key: str,
+    job_id: str,
+) -> None:
+    if not executor_has_job_scope(
+        db,
+        executor_id=executor_id,
+        tenant_key=tenant_key,
+        job_id=job_id,
+    ):
+        raise HTTPException(status_code=403, detail="执行器无权访问该租户任务")
 
 @router.get("/fetch", response_model=FetchQueryJobResponse)
 async def fetch_query_job(
@@ -182,8 +204,10 @@ async def list_query_jobs_status(
     tenant_key: str = Query(..., description="租户Key"),
     job_id: Optional[str] = Query(None, description="可选：仅查询指定 job_id 的任务"),
     include_deleted: bool = Query(False, description="是否包含已删除任务"),
+    tenant: CurrentTenantContext = Depends(get_current_tenant),
     db: Session = Depends(get_db),
 ):
+    tenant_key = tenant.tenant_key
     # 同步任务状态
     sync_query_jobs_status(db)
 
@@ -272,16 +296,20 @@ def iter_query_jobs(
 @router.post("/load", response_model=LoadQueryJobsResponse)
 async def load_query_jobs(
     request: LoadQueryJobsRequest,
+    tenant: CurrentTenantContext = Depends(require_current_tenant("admin")),
     db: Session = Depends(get_db),
 ):
     """
     接收原始JSON数据并加载到llm_query_jobs数据库表中.
     """
+    if request.tenant_key != tenant.tenant_key:
+        raise HTTPException(status_code=400, detail="租户上下文不一致")
+
     # 1. 验证租户是否存在
-    if not tenant_exists(db, request.tenant_key):
+    if not tenant_exists(db, tenant.tenant_key):
         raise HTTPException(
             status_code=400, 
-            detail=f"租户不存在: {request.tenant_key}"
+            detail=f"租户不存在: {tenant.tenant_key}"
         )
 
     try:

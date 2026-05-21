@@ -12,7 +12,7 @@ from api.v1.repositories.conversation import (
     reference_exists,
 )
 from api.v1.repositories.tenants import tenant_exists
-from api.v1.routes.query_jobs import verify_executor
+from api.v1.routes.query_jobs import verify_executor, verify_executor_job_scope
 from api.v1.utils.url_domain_resolver import extract_domain_from_url, infer_content_type
 
 router = APIRouter()
@@ -25,6 +25,13 @@ async def load_conversations(
 ):
     if not tenant_exists(db, request.tenant_key):
         raise HTTPException(status_code=400, detail=f"租户不存在: {request.tenant_key}")
+
+    verify_executor_job_scope(
+        db,
+        executor_id=executor_id,
+        tenant_key=request.tenant_key,
+        job_id=request.job_id,
+    )
 
     inserted_conversations = 0
     inserted_references = 0

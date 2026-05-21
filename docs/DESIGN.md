@@ -34,6 +34,7 @@
 - 数据库：MySQL 8.x，InnoDB 引擎，utf8mb4 字符集
 - ORM：SQLAlchemy 2.x，声明式映射
 - 多租户：所有业务表包含 `tenant_key` 字段，查询时强制过滤
+- Dashboard 展示粒度：Dashboard 查询和展示以 `tenant_key + job_id` 为最小单元；`job_id` 标识一次完整的 LLM 数据采集任务批次，同一租户的不同 Job 对应不同品类/品牌/时间段的采集数据，业务数据表（`qa_brand_state`、`qa_reference`、`llm_conversations`）按 `(tenant_key, job_id)` 联合过滤，前端路由 `/dashboard/:tenantKey/:jobId` 必须同时携带两者才能正确加载数据
 - 时间字段：`created_at` 使用 `DEFAULT CURRENT_TIMESTAMP`，`updated_at` 使用 `ON UPDATE CURRENT_TIMESTAMP`
 - 枚举字段：使用 MySQL ENUM 类型，在 Pydantic 中对应 Python Enum
 
@@ -45,6 +46,7 @@
 - 组件状态：各功能组件自管理局部状态
 - 数据获取：业务组件通过 `web/src/api/` Adapter 调用后端端点，不在组件中手写 API URL；无全局状态库
 - 配置：`web/src/config.js` 从环境变量读取，提供默认值
+- 平台管理员入口：`/platform/tenants` 表格必须同时展示租户信息和 job 摘要；看板操作只在 active 租户且存在真实 `latestJob.jobId` 时启用，跳转时必须携带 `latestJob.brand` 作为 `brand` 查询参数，任务状态入口保留为完整 job 列表入口
 
 ## 命名约定
 

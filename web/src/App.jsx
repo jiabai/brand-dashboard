@@ -6,17 +6,23 @@ import ErrorBoundary from './components/ErrorBoundary';
 import DashboardLayout from './components/DashboardLayout.jsx';
 import HomeView from './components/HomeView.jsx';
 import LoadingSpinner from './components/LoadingSpinner.jsx';
+import LoginView from './components/LoginView.jsx';
+import ProtectedRoute from './components/ProtectedRoute.jsx';
+import PlatformLayout from './components/platform/PlatformLayout.jsx';
+import PlatformRoute from './components/platform/PlatformRoute.jsx';
 import { TooltipProvider } from './components/ui/tooltip.jsx';
 
+import { useAuth } from './auth/AuthContext.jsx';
+import { hasPlatformAdminRole } from './auth/platformAccess.js';
 import { getRoutableRoutes } from './config/routes.js';
 import { useDashboardRequestParams } from './hooks/useDashboardParams.js';
 import { buildViewPath } from './utils/routing.js';
-import { CONFIG } from './config.js';
 
 const BrandShareOfVoiceTable = React.lazy(() => import('./components/BrandShareOfVoiceTable.jsx'));
 const CreateQueryJob = React.lazy(() => import('./components/CreateQueryJob.jsx'));
 const QueryJobStatus = React.lazy(() => import('./components/QueryJobStatus.jsx'));
 const AccountManagement = React.lazy(() => import('./components/AccountManagement.jsx'));
+const PlatformTenantsPage = React.lazy(() => import('./components/platform/PlatformTenantsPage.jsx'));
 const TrendAnalysis = React.lazy(() => import('./components/TrendAnalysis.jsx'));
 const SourceAnalysis = React.lazy(() => import('./components/SourceAnalysis.jsx'));
 const SentimentAnalysis = React.lazy(() => import('./components/SentimentAnalysis.jsx'));
@@ -53,15 +59,24 @@ const ROUTE_ELEMENT_FACTORIES = {
 };
 
 const AppRoutes = () => {
-  const defaultPath = buildViewPath('home', {
-    tenantKey: CONFIG.DEFAULT_TENANT_KEY,
-    jobId: CONFIG.DEFAULT_JOB_ID,
-  });
+  const { currentTenantKey, isAuthenticated, user } = useAuth();
+  const isPlatformAdmin = hasPlatformAdminRole(user);
+  const hasDefaultPath = isPlatformAdmin || Boolean(currentTenantKey);
+  const defaultPath = isPlatformAdmin
+    ? '/platform/tenants'
+    : buildViewPath('task-status', { tenantKey: currentTenantKey });
 
   return (
     <Routes>
-      <Route path="/" element={<Navigate to={defaultPath} replace />} />
-      <Route element={<DashboardLayout />}>
+      <Route path="/" element={<Navigate to={isAuthenticated && hasDefaultPath ? defaultPath : '/login'} replace />} />
+      <Route path="/login" element={<LoginView defaultTab="login" />} />
+      <Route path="/activate" element={<LoginView defaultTab="activate" />} />
+      <Route path="/register" element={<LoginView defaultTab="register" />} />
+      <Route path="/platform" element={<PlatformRoute><PlatformLayout /></PlatformRoute>}>
+        <Route index element={<Navigate to="/platform/tenants" replace />} />
+        <Route path="tenants" element={<RouteShell><PlatformTenantsPage /></RouteShell>} />
+      </Route>
+      <Route element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
         {getRoutableRoutes().map((route) => (
           <Route
             key={route.viewKey}
@@ -70,7 +85,7 @@ const AppRoutes = () => {
           />
         ))}
       </Route>
-      <Route path="*" element={<Navigate to={defaultPath} replace />} />
+      <Route path="*" element={<Navigate to={isAuthenticated && hasDefaultPath ? defaultPath : '/login'} replace />} />
     </Routes>
   );
 };

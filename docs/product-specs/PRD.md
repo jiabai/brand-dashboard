@@ -97,6 +97,7 @@
 - **前后端分离**：前端 React SPA 通过 REST API 与后端 FastAPI 通信，不跨层直接访问数据库
 - **API 版本化**：所有路由挂载在 `/api/v1/` 前缀下，为未来 API 演进预留空间
 - **多租户数据隔离**：所有业务表包含 `tenant_key` 字段，数据访问层强制租户过滤，防止跨租户数据泄露
+- **Dashboard 展示粒度**：Dashboard 以 `tenant_key + job_id` 为最小查询和展示单元；`job_id` 标识一次完整的 LLM 数据采集任务批次，同一租户可有多个 Job（不同品类/品牌/时间段），业务数据表按 `(tenant_key, job_id)` 联合过滤，前端路由 `/dashboard/:tenantKey/:jobId` 必须同时携带两者
 - **分层依赖方向**：Routes → Services → Repositories → Models，禁止反向依赖
 - **组件懒加载**：前端功能组件使用 `React.lazy()` 按需加载，优化首屏性能
 
@@ -120,7 +121,7 @@
 - `users` — 用户账号（邮箱、密码哈希、状态）
 - `user_tenants` — 用户-租户多对多关系（含角色）
 - `invitation_codes` — 邀请码（含使用次数、过期时间）
-- `llm_query_jobs` — 查询任务（含品牌、竞品、关键词、消费者问题、执行计划）
+- `llm_query_jobs` — 查询任务（含品牌、竞品、关键词、消费者问题、执行计划）；每个 Job 通过 `job_id` 标识一次完整的采集批次，同一租户可有多个 Job，Dashboard 按 `(tenant_key, job_id)` 展示数据
 - `executors` — 执行器（含 IP 地址、API Key、状态）
 - `llm_conversations` — AI 对话内容（含平台、品牌、关键词、问答内容）
 - `llm_conversation_references` — 对话引用链接（含 URL、域名、站点名称、内容类型）
@@ -141,6 +142,7 @@
 | `/api/v1/dashboard/citation-domain-summary` | GET | 域名引用汇总 |
 | `/api/v1/dashboard/filter-metadata` | GET | 筛选器元数据 |
 | `/api/v1/dashboard/available-dates` | GET | 可用日期列表 |
+| `/api/v1/platform/tenants` | GET | 平台租户列表（含 job 摘要：jobCount、activeJobCount、latestJob） |
 | `/api/v1/platform/tenants` | POST | 创建租户 |
 | `/api/v1/public/auth/activate` | POST | 激活管理员账号 |
 | `/api/v1/public/auth/login` | POST | 用户登录 |

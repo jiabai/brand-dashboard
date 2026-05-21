@@ -1,8 +1,17 @@
-from fastapi import APIRouter, Depends
+from typing import Annotated
+
+from fastapi import APIRouter, Depends, Query
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 from sqlalchemy import Engine
+from sqlalchemy.orm import Session
 
+from api.v1.dependencies.auth import (
+    TENANT_ROLE_TO_PRODUCT_ROLE,
+    CurrentUser,
+    get_current_user,
+    require_platform_admin,
+)
 from api.v1.repositories.auth import (
     activate_admin_account,
     authenticate_user,
@@ -10,7 +19,12 @@ from api.v1.repositories.auth import (
     register_employee,
     verify_invite_code,
 )
-from api.v1.repositories.connection import get_engine
+from api.v1.repositories.connection import get_db, get_engine
+from api.v1.repositories.tenants import (
+    list_platform_tenant_summaries,
+    list_user_tenant_summaries,
+)
+from api.v1.utils.platform_roles import get_platform_roles_for_email
 
 router = APIRouter()
 
@@ -56,8 +70,61 @@ class LoginRequest(BaseModel):
     password: str = Field(..., min_length=1)
 
 
+TENANT_STATUSES = {"active", "inactive", "suspended"}
+TENANT_PLAN_TYPES = {"trial", "basic", "pro", "enterprise"}
+
+
+def _isoformat_or_none(value):
+    if value is None:
+        return None
+    if hasattr(value, "isoformat"):
+        return value.isoformat()
+    value_text = str(value)
+    if " " in value_text and "T" not in value_text:
+        return value_text.replace(" ", "T", 1)
+    return value_text
+
+
+def _platform_tenant_item(row):
+    latest_job = None
+    if row[16]:
+        latest_job = {
+            "jobId": row[16],
+            "brand": row[17],
+            "category": row[18],
+            "queryStatus": int(row[19]) if row[19] is not None else None,
+            "effectiveFrom": _isoformat_or_none(row[20]),
+            "effectiveTo": _isoformat_or_none(row[21]),
+            "createdAt": _isoformat_or_none(row[22]),
+        }
+
+    return {
+        "tenantKey": row[0],
+        "tenantName": row[1],
+        "companyLegalName": row[2],
+        "industry": row[3],
+        "status": row[4],
+        "planType": row[5],
+        "maxUsers": row[6],
+        "billingCycle": row[7],
+        "contractStartDate": _isoformat_or_none(row[8]),
+        "contractEndDate": _isoformat_or_none(row[9]),
+        "adminEmail": row[10],
+        "adminStatus": row[11],
+        "memberCount": int(row[12] or 0),
+        "createdAt": _isoformat_or_none(row[13]),
+        "jobCount": int(row[14] or 0),
+        "activeJobCount": int(row[15] or 0),
+        "latestJob": latest_job,
+    }
+
+
 @router.post("/platform/tenants")
-def create_tenant(request: TenantCreateRequest, engine: Engine = Depends(get_engine)):
+def create_tenant(
+    request: TenantCreateRequest,
+    engine: Engine = Depends(get_engine),
+    _platform_admin: CurrentUser = Depends(require_platform_admin),
+):
     try:
         result = create_tenant_with_admin(engine, request.model_dump())
     except ValueError as exc:
@@ -66,6 +133,53 @@ def create_tenant(request: TenantCreateRequest, engine: Engine = Depends(get_eng
             content={"status": "error", "message": str(exc), "code": 400},
         )
     return {"status": "success", "data": result, "message": "租户创建成功", "code": 200}
+
+
+@router.get("/platform/tenants")
+def list_platform_tenants(
+    q: Annotated[str | None, Query(max_length=100)] = None,
+    status: Annotated[str | None, Query()] = None,
+    plan_type: Annotated[str | None, Query(alias="planType")] = None,
+    page: Annotated[int, Query(ge=1)] = 1,
+    page_size: Annotated[int, Query(alias="pageSize", ge=1, le=100)] = 20,
+    db: Session = Depends(get_db),
+    _platform_admin: CurrentUser = Depends(require_platform_admin),
+):
+    if status and status not in TENANT_STATUSES:
+        return JSONResponse(
+            status_code=400,
+            content={"status": "error", "message": "租户状态无效", "code": 400},
+        )
+    if plan_type and plan_type not in TENANT_PLAN_TYPES:
+        return JSONResponse(
+            status_code=400,
+            content={"status": "error", "message": "订阅计划无效", "code": 400},
+        )
+
+    result = list_platform_tenant_summaries(
+        db,
+        q=q,
+        status=status,
+        plan_type=plan_type,
+        page=page,
+        page_size=page_size,
+    )
+    total = result["total"]
+    total_pages = (total + page_size - 1) // page_size
+    return {
+        "status": "success",
+        "code": 200,
+        "message": "获取租户列表成功",
+        "data": {
+            "items": [_platform_tenant_item(row) for row in result["items"]],
+            "pagination": {
+                "page": page,
+                "pageSize": page_size,
+                "total": total,
+                "totalPages": total_pages,
+            },
+        },
+    }
 
 
 @router.post("/public/auth/activate")
@@ -123,3 +237,33 @@ def login_handler(request: LoginRequest, engine: Engine = Depends(get_engine)):
             content={"status": "error", "message": str(exc), "code": 400},
         )
     return {"status": "success", "data": result, "message": "登录成功", "code": 200}
+
+
+@router.get("/auth/me")
+def get_me_handler(
+    current_user: CurrentUser = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    tenants = [
+        {
+            "tenantKey": row[0],
+            "tenantName": row[1],
+            "role": TENANT_ROLE_TO_PRODUCT_ROLE.get(row[2], row[2]),
+            "status": row[3],
+            "tenantStatus": row[4],
+        }
+        for row in list_user_tenant_summaries(db, current_user.user_id)
+    ]
+    return {
+        "status": "success",
+        "data": {
+            "user": {
+                "userId": current_user.user_id,
+                "email": current_user.email,
+                "tenants": tenants,
+                "platformRoles": get_platform_roles_for_email(current_user.email),
+            }
+        },
+        "message": "获取当前用户成功",
+        "code": 200,
+    }
