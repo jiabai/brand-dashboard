@@ -25,3 +25,4 @@
 | [20260520-020000-platform-admin-bootstrap.md](20260520-020000-platform-admin-bootstrap.md) | 首个平台管理员账号 bootstrap：本地 CLI 创建用户、维护白名单和登录验证 | 2026-05-20 |
 | [20260520-030000-tenant-access-grant.md](20260520-030000-tenant-access-grant.md) | 租户访问授权 CLI：为已有用户显式授予已有租户的 viewer/member/admin 成员关系 | 2026-05-20 |
 | [20260520-040000-platform-admin-tenant-read-access.md](20260520-040000-platform-admin-tenant-read-access.md) | 平台管理员 dashboard 级全租户只读访问，不放开租户写接口 | 2026-05-20 |
+| [20260521-185332-platform-admin-job-aware-dashboard-entry.md](20260521-185332-platform-admin-job-aware-dashboard-entry.md) | 平台管理员租户列表展示 job 摘要，并用真实 tenant/job/brand 进入 dashboard | 2026-05-21 |

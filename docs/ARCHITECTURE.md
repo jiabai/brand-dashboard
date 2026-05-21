@@ -63,13 +63,15 @@ brand-dashboard/
 
 - 前后端分离：前端只通过 REST API 获取数据，不直接访问数据库
 - 多租户隔离：所有业务查询必须带 `tenant_key`，数据层强制租户过滤
+- Dashboard 展示粒度：Dashboard 以 `tenant_key + job_id` 为最小查询和展示单元；`job_id` 标识一次完整的 LLM 数据采集任务批次，同一租户可有多个 Job（不同品类/品牌/时间段），业务数据表（`qa_brand_state`、`qa_reference`、`llm_conversations`）按 `(tenant_key, job_id)` 联合索引和过滤，前端路由 `/dashboard/:tenantKey/:jobId` 同时携带两者
 - 多租户授权：前端 URL 中的 `tenantKey` 只是当前租户选择信号；后端必须通过认证依赖校验用户、租户状态、成员关系和角色后，才能把 `tenant_key` 传入 Repository
 - 平台运营后台：`/platform/*` 是独立平台权限域，不依赖 `tenantKey`，平台 API 使用 `platform_admin` 鉴权且不发送 `X-Tenant-Key`
+- 平台管理员看板入口：`/api/v1/platform/tenants` 返回租户元数据和 job 摘要（`jobCount`、`activeJobCount`、`latestJob`），前端必须用该租户真实 `latestJob.jobId` 构造 `/dashboard/:tenantKey/:jobId`，并用 `latestJob.brand` 写入 `brand` 查询参数，避免 dashboard 自动选择竞品作为目标品牌
 - 身份分区：用户接口使用 `Authorization: Bearer <access_token>`；执行器接口使用 `executor_id` + `X-Executor-Key`，两类身份不能混用
 - 分层依赖方向：Routes → Services → Repositories → Models，禁止反向依赖
 - API 版本化：所有路由挂载在 `/api/v1/` 前缀下
 - 组件懒加载：前端功能组件使用 `React.lazy()` 按需加载
-- 前端页面路由：使用 `react-router-dom`；分析类页面路径携带 `tenantKey + jobId`，租户级页面路径只携带 `tenantKey`，平台运营页面使用 `/platform/*`
+- 前端页面路由：使用 `react-router-dom`；分析类页面路径携带 `tenantKey + jobId`（Dashboard 展示粒度为 `tenant_key + job_id`，二者缺一不可），租户级页面路径只携带 `tenantKey`，平台运营页面使用 `/platform/*`
 
 ## 架构边界
 

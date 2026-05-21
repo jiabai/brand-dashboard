@@ -159,7 +159,76 @@ def list_platform_tenant_summaries(
                     FROM user_tenants member_ut
                     WHERE member_ut.tenant_id = t.id
                 ) AS member_count,
-                t.created_at
+                t.created_at,
+                (
+                    SELECT COUNT(DISTINCT job_count.job_id)
+                    FROM llm_query_jobs job_count
+                    WHERE job_count.tenant_key = t.tenant_key
+                      AND job_count.is_deleted = 0
+                ) AS job_count,
+                (
+                    SELECT COUNT(DISTINCT active_jobs.job_id)
+                    FROM llm_query_jobs active_jobs
+                    WHERE active_jobs.tenant_key = t.tenant_key
+                      AND active_jobs.is_deleted = 0
+                      AND active_jobs.query_status = 1
+                ) AS active_job_count,
+                (
+                    SELECT latest_job.job_id
+                    FROM llm_query_jobs latest_job
+                    WHERE latest_job.tenant_key = t.tenant_key
+                      AND latest_job.is_deleted = 0
+                    ORDER BY latest_job.created_at DESC, latest_job.id DESC
+                    LIMIT 1
+                ) AS latest_job_id,
+                (
+                    SELECT latest_job.brand
+                    FROM llm_query_jobs latest_job
+                    WHERE latest_job.tenant_key = t.tenant_key
+                      AND latest_job.is_deleted = 0
+                    ORDER BY latest_job.created_at DESC, latest_job.id DESC
+                    LIMIT 1
+                ) AS latest_job_brand,
+                (
+                    SELECT latest_job.category
+                    FROM llm_query_jobs latest_job
+                    WHERE latest_job.tenant_key = t.tenant_key
+                      AND latest_job.is_deleted = 0
+                    ORDER BY latest_job.created_at DESC, latest_job.id DESC
+                    LIMIT 1
+                ) AS latest_job_category,
+                (
+                    SELECT latest_job.query_status
+                    FROM llm_query_jobs latest_job
+                    WHERE latest_job.tenant_key = t.tenant_key
+                      AND latest_job.is_deleted = 0
+                    ORDER BY latest_job.created_at DESC, latest_job.id DESC
+                    LIMIT 1
+                ) AS latest_job_query_status,
+                (
+                    SELECT latest_job.effective_from
+                    FROM llm_query_jobs latest_job
+                    WHERE latest_job.tenant_key = t.tenant_key
+                      AND latest_job.is_deleted = 0
+                    ORDER BY latest_job.created_at DESC, latest_job.id DESC
+                    LIMIT 1
+                ) AS latest_job_effective_from,
+                (
+                    SELECT latest_job.effective_to
+                    FROM llm_query_jobs latest_job
+                    WHERE latest_job.tenant_key = t.tenant_key
+                      AND latest_job.is_deleted = 0
+                    ORDER BY latest_job.created_at DESC, latest_job.id DESC
+                    LIMIT 1
+                ) AS latest_job_effective_to,
+                (
+                    SELECT latest_job.created_at
+                    FROM llm_query_jobs latest_job
+                    WHERE latest_job.tenant_key = t.tenant_key
+                      AND latest_job.is_deleted = 0
+                    ORDER BY latest_job.created_at DESC, latest_job.id DESC
+                    LIMIT 1
+                ) AS latest_job_created_at
             FROM tenants t
             WHERE {where_sql}
             ORDER BY t.created_at DESC, t.id DESC

@@ -157,6 +157,8 @@ Platform repository
 - 平台请求不带 `tenant_key`，避免把平台权限和租户成员权限混在一起。
 - 平台后台可以管理租户生命周期，并通过 dashboard 只读旁路查看 active 租户业务看板。
 - 平台后台进入租户工作台时先跳转 `/tasks/<tenantKey>/status`，不使用前端环境变量拼接默认 dashboard job。
+- Dashboard 展示粒度为 `tenant_key + job_id`，平台管理员查看租户看板时必须使用该租户实际拥有的 `job_id`，不能使用全局默认 `job_id`（不同租户的 `job_id` 不互通，使用错误 `job_id` 会导致查询结果为空）。
+- 平台租户列表必须展示 job 摘要；`/api/v1/platform/tenants` 的 `latestJob` 只来自同一 `tenant_key` 下未删除的 `llm_query_jobs`，前端 dashboard 入口必须使用 `tenantKey + latestJob.jobId + latestJob.brand`，不能让 dashboard 从品牌指标排名中自动选择目标品牌。
 - 平台管理员查看 dashboard 不写入 `user_tenants`；平台域身份和客户租户成员身份保持分离。
 - 平台管理员只读旁路不能满足租户内写接口的 `tenant_admin` 要求。
 
@@ -204,6 +206,7 @@ uv run --project api python api/scripts/grant_tenant_access.py --email <user@exa
 - 只适用于 `GET /api/v1/dashboard/*`。
 - 目标租户必须 active。
 - Repository 层继续按目标 `tenant_key` 查询，不允许跨租户聚合泄露。
+- Dashboard 查询粒度为 `tenant_key + job_id`：平台管理员传入的 `job_id` 必须属于目标租户，否则查询结果为空；平台管理员应通过任务状态接口先获取该租户的有效 `job_id`，再构建 dashboard 访问路径。
 - 登录响应 `user.tenants` 仍只返回真实 membership，不返回所有租户。
 
 ## 4. ADR
@@ -366,7 +369,7 @@ uv run --project api python api/scripts/grant_tenant_access.py --email <user@exa
 | `/api/v1/public/auth/activate` | 公开，使用激活 token | 保持公开，强化错误与密码校验 |
 | `/api/v1/public/users/register` | 公开，使用邀请码 | 保持公开，强化账号状态和枚举防护 |
 | `/api/v1/platform/tenants` `POST` | `require_platform_admin` | 平台管理员表和审计 |
-| `/api/v1/platform/tenants` `GET` | `require_platform_admin`，不使用租户上下文 | 平台管理员表和审计 |
+| `/api/v1/platform/tenants` `GET` | `require_platform_admin`，不使用租户上下文，返回租户元数据和 job 摘要 | 平台管理员表和审计 |
 | `/api/v1/executors/*` | 创建/列表/禁用需要 `require_platform_admin`；register 保留 IP 白名单 | 平台管理员表和审计 |
 | `/api/v1/dashboard/*` | `get_current_tenant`，query `tenant_key` 过渡兼容 | 改为 dashboard 只读依赖，允许平台管理员查看 active 租户 |
 | `/api/v1/query-jobs/status` | `get_current_tenant` | 兼容期后可减少 query 依赖 |

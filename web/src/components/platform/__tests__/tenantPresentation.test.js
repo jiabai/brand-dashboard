@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import {
+  buildTenantDashboardPath,
   buildTenantTaskStatusPath,
   getAdminStatusLabel,
   getPlanTypeLabel,
@@ -80,4 +81,30 @@ test('buildTenantTaskStatusPath links platform tenants without requiring a defau
     buildTenantTaskStatusPath('tn space'),
     '/tasks/tn%20space/status',
   );
+});
+
+test('buildTenantDashboardPath links platform tenants with a real latest job and target brand', () => {
+  assert.equal(
+    buildTenantDashboardPath({
+      tenantKey: 'tn_acme',
+      latestJob: { jobId: 'job_20260521', brand: 'Quickcep' },
+    }),
+    '/dashboard/tn_acme/job_20260521?brand=Quickcep',
+  );
+  assert.equal(
+    buildTenantDashboardPath({
+      tenantKey: 'tn space',
+      latestJob: { jobId: 'job space', brand: '快牛 智营' },
+    }),
+    '/dashboard/tn%20space/job%20space?brand=%E5%BF%AB%E7%89%9B+%E6%99%BA%E8%90%A5',
+  );
+  assert.equal(
+    buildTenantDashboardPath({
+      tenantKey: 'tn_acme',
+      latestJob: { jobId: 'job_20260521' },
+    }),
+    '/dashboard/tn_acme/job_20260521',
+  );
+  assert.equal(buildTenantDashboardPath({ tenantKey: 'tn_acme', latestJob: null }), '');
+  assert.equal(buildTenantDashboardPath({ tenantKey: '', latestJob: { jobId: 'job_1' } }), '');
 });

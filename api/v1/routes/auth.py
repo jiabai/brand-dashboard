@@ -79,10 +79,25 @@ def _isoformat_or_none(value):
         return None
     if hasattr(value, "isoformat"):
         return value.isoformat()
-    return str(value)
+    value_text = str(value)
+    if " " in value_text and "T" not in value_text:
+        return value_text.replace(" ", "T", 1)
+    return value_text
 
 
 def _platform_tenant_item(row):
+    latest_job = None
+    if row[16]:
+        latest_job = {
+            "jobId": row[16],
+            "brand": row[17],
+            "category": row[18],
+            "queryStatus": int(row[19]) if row[19] is not None else None,
+            "effectiveFrom": _isoformat_or_none(row[20]),
+            "effectiveTo": _isoformat_or_none(row[21]),
+            "createdAt": _isoformat_or_none(row[22]),
+        }
+
     return {
         "tenantKey": row[0],
         "tenantName": row[1],
@@ -98,6 +113,9 @@ def _platform_tenant_item(row):
         "adminStatus": row[11],
         "memberCount": int(row[12] or 0),
         "createdAt": _isoformat_or_none(row[13]),
+        "jobCount": int(row[14] or 0),
+        "activeJobCount": int(row[15] or 0),
+        "latestJob": latest_job,
     }
 
 

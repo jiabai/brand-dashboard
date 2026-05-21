@@ -32,6 +32,13 @@ const billingCycleMap = {
   yearly: '按年',
 };
 
+const queryJobStatusMap = {
+  0: { label: '未生效', variant: 'secondary' },
+  1: { label: '生效中', variant: 'default' },
+  2: { label: '已完成', variant: 'secondary' },
+  3: { label: '已失效', variant: 'destructive' },
+};
+
 const toPositiveInt = (value, fallback) => {
   const parsed = Number.parseInt(value, 10);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
@@ -78,6 +85,20 @@ export const prepareTenantCreatePayload = (values = {}) =>
 
 export const buildTenantTaskStatusPath = (tenantKey) =>
   buildViewPath('task-status', { tenantKey });
+
+export const buildTenantDashboardPath = (tenant) => {
+  const tenantKey = tenant?.tenantKey || '';
+  const jobId = tenant?.latestJob?.jobId || '';
+  if (!tenantKey || !jobId) return '';
+  const path = buildViewPath('home', { tenantKey, jobId });
+  const brand = tenant?.latestJob?.brand || '';
+  if (!brand) return path;
+  const params = new URLSearchParams({ brand });
+  return `${path}?${params.toString()}`;
+};
+
+export const getQueryJobStatusMeta = (status) =>
+  queryJobStatusMap[Number(status)] || { label: '未知', variant: 'outline' };
 
 export const formatDate = (value) => {
   if (!value) return '未设置';

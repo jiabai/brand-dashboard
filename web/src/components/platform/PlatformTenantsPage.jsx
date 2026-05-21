@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ListChecks, RefreshCw, Search } from 'lucide-react';
+import { BarChart3, ListChecks, RefreshCw, Search } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 import { fetchPlatformTenants } from '../../api/platform.js';
@@ -26,10 +26,12 @@ import {
 import CreateTenantPanel from './CreateTenantPanel.jsx';
 import {
   formatDate,
+  buildTenantDashboardPath,
   buildTenantTaskStatusPath,
   getAdminStatusLabel,
   getBillingCycleLabel,
   getPlanTypeLabel,
+  getQueryJobStatusMeta,
   getTenantStatusMeta,
   normalizeTenantListResponse,
   readTenantFiltersFromSearch,
@@ -134,6 +136,16 @@ const PlatformTenantsPage = () => {
     [navigate],
   );
 
+  const handleOpenTenantDashboard = useCallback(
+    (tenant) => {
+      if (tenant?.status !== 'active') return;
+      const path = buildTenantDashboardPath(tenant);
+      if (!path) return;
+      navigate(path);
+    },
+    [navigate],
+  );
+
   return (
     <div className="grid gap-5">
       <section className="flex flex-col gap-4 border-b border-border pb-5 lg:flex-row lg:items-end lg:justify-between">
@@ -214,6 +226,7 @@ const PlatformTenantsPage = () => {
               <TableHead>计划</TableHead>
               <TableHead>管理员</TableHead>
               <TableHead>成员</TableHead>
+              <TableHead>任务</TableHead>
               <TableHead>合同到期</TableHead>
               <TableHead>创建时间</TableHead>
               <TableHead className="text-right">操作</TableHead>
@@ -222,13 +235,16 @@ const PlatformTenantsPage = () => {
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
+                <TableCell colSpan={9} className="h-24 text-center text-muted-foreground">
                   正在加载租户...
                 </TableCell>
               </TableRow>
             ) : tenants.length ? (
               tenants.map((tenant) => {
                 const status = getTenantStatusMeta(tenant.status);
+                const latestJob = tenant.latestJob;
+                const jobStatus = getQueryJobStatusMeta(latestJob?.queryStatus);
+                const dashboardPath = buildTenantDashboardPath(tenant);
                 return (
                   <TableRow key={tenant.tenantKey}>
                     <TableCell>
@@ -256,26 +272,61 @@ const PlatformTenantsPage = () => {
                       </div>
                     </TableCell>
                     <TableCell>{tenant.memberCount ?? 0} / {tenant.maxUsers || '不限'}</TableCell>
+                    <TableCell>
+                      {latestJob ? (
+                        <div className="grid max-w-64 gap-1">
+                          <div className="flex min-w-0 flex-wrap items-center gap-2">
+                            <span className="max-w-44 truncate font-mono text-xs text-foreground" title={latestJob.jobId}>
+                              {latestJob.jobId}
+                            </span>
+                            <Badge variant={jobStatus.variant} className="rounded-md">{jobStatus.label}</Badge>
+                          </div>
+                          <span className="truncate text-xs text-muted-foreground">
+                            {[latestJob.brand, latestJob.category].filter(Boolean).join(' / ') || '未设置品牌或品类'}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            共 {tenant.jobCount ?? 0} 个 Job，{tenant.activeJobCount ?? 0} 个生效中
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="grid gap-1 text-xs text-muted-foreground">
+                          <span>暂无任务</span>
+                          <span>共 {tenant.jobCount ?? 0} 个 Job</span>
+                        </div>
+                      )}
+                    </TableCell>
                     <TableCell>{formatDate(tenant.contractEndDate)}</TableCell>
                     <TableCell>{formatDate(tenant.createdAt)}</TableCell>
                     <TableCell className="text-right">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        disabled={tenant.status !== 'active'}
-                        onClick={() => handleOpenTenantTasks(tenant)}
-                      >
-                        <ListChecks className="size-4" />
-                        任务状态
-                      </Button>
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          disabled={tenant.status !== 'active' || !dashboardPath}
+                          onClick={() => handleOpenTenantDashboard(tenant)}
+                        >
+                          <BarChart3 className="size-4" />
+                          看板
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          disabled={tenant.status !== 'active'}
+                          onClick={() => handleOpenTenantTasks(tenant)}
+                        >
+                          <ListChecks className="size-4" />
+                          任务状态
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 );
               })
             ) : (
               <TableRow>
-                <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
+                <TableCell colSpan={9} className="h-24 text-center text-muted-foreground">
                   没有匹配的租户
                 </TableCell>
               </TableRow>
