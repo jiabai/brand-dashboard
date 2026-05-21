@@ -15,7 +15,7 @@ fi
 
 # 1. 安装依赖
 echo -e "\033[36mInstalling dependencies...\033[0m"
-npm --prefix "$WEB_ROOT" install --registry=https://registry.npmmirror.com
+npm --prefix "$WEB_ROOT" install --registry=https://registry.npmmirror.com --legacy-peer-deps
 
 # 2. 切换到 web 目录并以守护进程模式启动
 cd "$WEB_ROOT"
