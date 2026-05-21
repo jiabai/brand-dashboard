@@ -1,12 +1,23 @@
 #!/usr/bin/env bash
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PORT=8000
+PID_FILE="$SCRIPT_DIR/api.pid"
 
 # 1. 查找占用指定端口的进程 PID
-PID=$(lsof -ti :$PORT 2>/dev/null || fuser $PORT/tcp 2>/dev/null | awk '{print $1}')
+PID=$(lsof -ti :$PORT 2>/dev/null || fuser -n tcp $PORT 2>/dev/null)
+
+# 回退：通过 PID 文件查找
+if [ -z "$PID" ] && [ -s "$PID_FILE" ]; then
+    PID=$(cat "$PID_FILE")
+    if ! kill -0 "$PID" 2>/dev/null; then
+        PID=""
+    fi
+fi
 
 if [ -z "$PID" ]; then
     echo -e "\033[33mNo process found on port $PORT (already stopped)\033[0m"
+    rm -f "$PID_FILE"
     exit 0
 fi
 
@@ -22,4 +33,5 @@ if kill -0 "$PID" 2>/dev/null; then
     kill -9 "$PID"
 fi
 
+rm -f "$PID_FILE"
 echo -e "\033[32mStopped successfully\033[0m"
