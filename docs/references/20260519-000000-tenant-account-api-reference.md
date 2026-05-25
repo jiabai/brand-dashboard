@@ -215,6 +215,7 @@ curl -X POST "http://localhost:8000/api/v1/public/auth/activate" \
 |---:|---|---|
 | 400 | 两次密码不一致 | 密码确认失败 |
 | 400 | 激活链接无效或已过期 | token 无效、过期、类型错误 |
+| 400 | 用户不存在 | 激活令牌有效但对应用户已被删除 |
 | 400 | 账号已激活 | 重复激活 |
 
 ## 4. 验证邀请码
@@ -279,8 +280,7 @@ curl -X POST "http://localhost:8000/api/v1/public/auth/activate" \
   "data": {
     "userId": 456,
     "tenantKey": "tn_1a2b3c4d5e6f",
-    "tenantName": "阿里巴巴集团",
-    "role": "tenant_member"
+    "tenantName": "阿里巴巴集团"
   }
 }
 ```
@@ -291,7 +291,6 @@ curl -X POST "http://localhost:8000/api/v1/public/auth/activate" \
 |---:|---|---|
 | 400 | 邀请码无效或已过期 | 邀请码不存在、停用、过期或超限 |
 | 400 | 用户已加入该租户 | 已存在同租户成员关系 |
-| 400 | 账号状态异常 | 邮箱对应用户被停用或暂停 |
 
 ## 6. 用户登录
 
@@ -355,9 +354,8 @@ curl -X POST "http://localhost:8000/api/v1/public/auth/login" \
 
 | HTTP | message | 场景 |
 |---:|---|---|
-| 401 | 账号或密码错误 | 邮箱不存在或密码错误 |
-| 403 | 账号未激活 | 用户状态不是 active |
-| 403 | 账号已停用 | 用户 inactive 或 suspended |
+| 400 | 账号或密码错误 | 邮箱不存在或密码错误 |
+| 400 | 账号未激活 | 用户状态不是 active |
 
 ## 7. 当前用户信息
 
@@ -383,7 +381,8 @@ curl -X POST "http://localhost:8000/api/v1/public/auth/login" \
           "tenantKey": "tn_1a2b3c4d5e6f",
           "tenantName": "阿里巴巴集团",
           "role": "tenant_admin",
-          "status": "active"
+          "status": "active",
+          "tenantStatus": "active"
         }
       ],
       "platformRoles": []

@@ -324,7 +324,7 @@ uv run --project api python api/scripts/grant_tenant_access.py --email <user@exa
 - 从 `Authorization` 解析用户。
 - 从 `X-Tenant-Key` 解析当前租户。
 - 查询用户状态、租户状态、成员关系和角色。
-- 提供 `require_platform_admin` 与 `require_tenant_admin`。
+- 提供 `require_platform_admin` 与 `get_current_tenant(required_role)`。
 
 ### 5.3 前端认证入口
 

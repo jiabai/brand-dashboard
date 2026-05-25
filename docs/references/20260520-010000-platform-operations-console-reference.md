@@ -8,10 +8,9 @@
 
 | 路由 | 页面组件 | 权限 | 行为 |
 |---|---|---|---|
-| `/platform` | `PlatformRedirect` | `platform_admin` | 重定向 `/platform/tenants` |
+| `/platform` | `<Navigate to="/platform/tenants" replace />` | `platform_admin` | 重定向 `/platform/tenants` |
 | `/platform/tenants` | `PlatformTenantsPage` | `platform_admin` | 租户列表、筛选、创建租户 |
-| `/platform/tenants/:tenantKey` | `PlatformTenantDetailPage` | `platform_admin` | 后续增强，MVP 可暂不实现 |
-| `/platform/executors` | `PlatformExecutorsPage` | `platform_admin` | 后续增强，MVP 可暂不暴露 |
+| `/platform/executors` | `后续增强` | `platform_admin` | 后续增强，MVP 菜单项已禁用 |
 
 前端权限规则：
 
@@ -93,7 +92,18 @@ curl "http://localhost:8000/api/v1/platform/tenants?q=alibaba&status=active&page
         "adminEmail": "zhangsan@alibaba.com",
         "adminStatus": "pending_activation",
         "memberCount": 1,
-        "createdAt": "2026-05-20T10:15:30Z"
+        "createdAt": "2026-05-20T10:15:30Z",
+        "jobCount": 5,
+        "activeJobCount": 2,
+        "latestJob": {
+          "jobId": "job_abc123",
+          "brand": "阿里巴巴",
+          "category": "电子商务",
+          "queryStatus": 1,
+          "effectiveFrom": "2026-01-01T00:00:00",
+          "effectiveTo": "2026-12-31T23:59:59",
+          "createdAt": "2026-05-15T08:30:00"
+        }
       }
     ],
     "pagination": {
@@ -124,6 +134,9 @@ curl "http://localhost:8000/api/v1/platform/tenants?q=alibaba&status=active&page
 | `adminStatus` | `users.status` | 管理员账号状态 |
 | `memberCount` | `COUNT(user_tenants)` | active/inactive 成员关系数量总和 |
 | `createdAt` | `tenants.created_at` | 租户创建时间 |
+| `jobCount` | `COUNT(llm_query_jobs)` | 该租户有效任务总数 |
+| `activeJobCount` | `COUNT(llm_query_jobs WHERE query_status=1)` | 该租户正在执行的任务数 |
+| `latestJob` | 最新 `llm_query_jobs` 行 | 最近任务摘要（`jobId`、`brand`、`category`、`queryStatus`、`effectiveFrom`、`effectiveTo`、`createdAt`），无任务时为 `null` |
 
 安全约束：
 
@@ -138,7 +151,8 @@ curl "http://localhost:8000/api/v1/platform/tenants?q=alibaba&status=active&page
 |---:|---|---|
 | 401 | 未提供有效的认证令牌 | 缺少或无效 token |
 | 403 | 需要平台管理员权限 | 非平台管理员 |
-| 400 | 请求参数无效 | page/pageSize/status/planType 非法 |
+| 400 | 租户状态无效 | status 参数不是 active/inactive/suspended |
+| 400 | 订阅计划无效 | planType 参数不是 trial/basic/pro/enterprise |
 
 ## 4. 创建租户
 
