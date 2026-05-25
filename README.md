@@ -54,7 +54,18 @@ brand-dashboard/
 │   │   └── utils/                # 工具层（安全、LLM 适配器、日期处理）
 │   ├── database/                 # SQL Schema 定义
 │   └── tests/                    # 后端测试
-├── docs/                         # 项目文档（架构、设计、安全、产品规格等）
+├── docs/                         # 项目文档
+│   ├── design-docs/              #   架构决策与设计记录
+│   ├── changelog/                #   功能变更与实现记录
+│   ├── product-specs/            #   产品需求规格
+│   ├── references/               #   API 参考与接口文档
+│   ├── exec-plans/               #   执行计划（active / completed）
+│   ├── ARCHITECTURE.md           #   系统架构
+│   ├── ARCHITECTURE_MULTITENANT.md # 多租户架构
+│   ├── DESIGN.md                 #   UI / API 设计规范
+│   ├── DESIGN-TOKENS.md          #   设计 Token 定义
+│   ├── SECURITY.md               #   安全规范
+│   └── EXECUTION_GATES.md        #   完成门禁
 ├── scripts/                      # 工具脚本（文档验证）
 ├── docker-compose.dev.yml        # 开发环境编排
 └── docker-compose.prod.yml       # 生产环境编排
@@ -190,17 +201,42 @@ python scripts/validate_agents_docs.py --level ERROR
 
 ## 文档索引
 
+### 项目级文档
+
 | 文档 | 说明 |
 |------|------|
 | [docs/product-specs/PRD.md](./docs/product-specs/PRD.md) | 产品需求文档（明察 InsightFlow） |
 | [AGENTS.md](./AGENTS.md) | AI 协作规则与常用命令 |
 | [WORKFLOW.md](./WORKFLOW.md) | 开发工作流（Spec → Plan → 实现 → 验证） |
+
+### 架构与设计
+
+| 文档 | 说明 |
+|------|------|
 | [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) | 系统架构与模块地图 |
-| [docs/DESIGN.md](./docs/DESIGN.md) | UI/API/数据模型设计规范 |
+| [docs/ARCHITECTURE_MULTITENANT.md](./docs/ARCHITECTURE_MULTITENANT.md) | 多租户架构设计 |
+| [docs/DESIGN.md](./docs/DESIGN.md) | UI / API / 数据模型设计规范 |
+| [docs/DESIGN-TOKENS.md](./docs/DESIGN-TOKENS.md) | 设计 Token 定义（色彩、间距、字体） |
 | [docs/SECURITY.md](./docs/SECURITY.md) | 安全规范（认证、授权、数据隔离） |
 | [docs/EXECUTION_GATES.md](./docs/EXECUTION_GATES.md) | 任务完成门禁与验证清单 |
+
+### 过程记录
+
+| 文档 | 说明 |
+|------|------|
+| [docs/design-docs/](./docs/design-docs/) | 架构决策与设计评审记录 |
+| [docs/changelog/](./docs/changelog/) | 功能变更与实现记录 |
+| [docs/product-specs/](./docs/product-specs/) | 产品需求规格文档 |
+| [docs/references/](./docs/references/) | API 参考与接口文档 |
+| [docs/exec-plans/](./docs/exec-plans/) | 执行计划（active / completed） |
+
+### API 文档
+
+| 文档 | 说明 |
+|------|------|
 | [api/README.md](./api/README.md) | 后端详细说明 |
 | [api/docs/DASHBOARD_API_README.md](./api/docs/DASHBOARD_API_README.md) | 仪表板 API 文档 |
+| [api/docs/QUERY_JOBS_EXECUTOR_API_DESIGN.md](./api/docs/QUERY_JOBS_EXECUTOR_API_DESIGN.md) | 查询任务与执行器 API 设计 |
 | [api/docs/METRICS_ALGORITHMS.md](./api/docs/METRICS_ALGORITHMS.md) | 指标算法说明 |
 | [web/README.md](./web/README.md) | 前端详细说明 |
 
@@ -209,7 +245,7 @@ python scripts/validate_agents_docs.py --level ERROR
 - **提交信息**：遵循 [Conventional Commits](https://www.conventionalcommits.org/)
 - **代码风格**：后端 `ruff`，前端 ESLint（通过 Vite）
 - **Git Hooks**：提交前自动执行 `ruff check api` 与前端 lint
-- **变更记录**：根据变更类型在 `docs/` 对应子目录新增记录（中文）
+- **变更记录**：架构决策写入 `docs/design-docs/`，功能变更写入 `docs/changelog/`（中文）
 - **路径别名**：`@` 映射到 `web/src`，支持 `@/components`、`@/lib` 等导入
 
 ## 架构原则
