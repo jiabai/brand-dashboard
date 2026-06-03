@@ -24,6 +24,10 @@ from api.v1.repositories.tenants import (
     list_platform_tenant_summaries,
     list_user_tenant_summaries,
 )
+from api.v1.services.email_sender import (
+    EMAIL_FAILED_MESSAGE,
+    send_admin_activation_email,
+)
 from api.v1.utils.platform_roles import get_platform_roles_for_email
 
 router = APIRouter()
@@ -132,6 +136,15 @@ def create_tenant(
             status_code=400,
             content={"status": "error", "message": str(exc), "code": 400},
         )
+    try:
+        email_delivery = send_admin_activation_email(result)
+    except Exception:
+        email_delivery = {
+            "status": "failed",
+            "to": result.get("adminEmail"),
+            "message": EMAIL_FAILED_MESSAGE,
+        }
+    result = {**result, "emailDelivery": email_delivery}
     return {"status": "success", "data": result, "message": "租户创建成功", "code": 200}
 
 

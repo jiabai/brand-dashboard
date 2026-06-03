@@ -168,7 +168,8 @@ curl "http://localhost:8000/api/v1/platform/tenants?q=alibaba&status=active&page
 2. `maxUsers` 为空时不提交；填写时必须为正整数。
 3. 合同日期使用 `YYYY-MM-DD`。
 4. 成功响应的 `activationUrl`、`loginUrl`、`inviteCode` 必须展示在创建结果面板。
-5. 创建成功后重新请求 `GET /api/v1/platform/tenants`。
+5. 成功响应的 `emailDelivery` 必须展示为激活邮件状态；`not_configured` 或 `failed` 时提示复制激活链接人工发送。
+6. 创建成功后重新请求 `GET /api/v1/platform/tenants`。
 
 ## 5. API Adapter 契约
 

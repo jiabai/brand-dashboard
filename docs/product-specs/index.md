@@ -21,3 +21,4 @@ Product specs describe user-visible intent and boundaries before or alongside im
 | [20260520-030000-tenant-access-grant.md](20260520-030000-tenant-access-grant.md) | 租户访问授权：为已有用户显式授予已有租户的 viewer/member/admin 成员关系 |
 | [20260520-040000-platform-admin-tenant-read-access.md](20260520-040000-platform-admin-tenant-read-access.md) | 平台管理员全租户只读看板：平台运营可查看所有 active 租户 dashboard，但不获得写权限 |
 | [20260521-185332-platform-admin-job-aware-dashboard-entry.md](20260521-185332-platform-admin-job-aware-dashboard-entry.md) | 平台管理员 Job 感知看板入口：平台租户列表展示 job 摘要并使用真实 tenant/job/brand 进入 dashboard |
+| [20260603-000000-admin-activation-email.md](20260603-000000-admin-activation-email.md) | 管理员激活邮件发送：创建租户后通过 SMTP 自动发送激活链接，并保留人工兜底 |

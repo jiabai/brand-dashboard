@@ -26,3 +26,4 @@
 | [20260520-030000-tenant-access-grant.md](20260520-030000-tenant-access-grant.md) | 租户访问授权 CLI：为已有用户显式授予已有租户的 viewer/member/admin 成员关系 | 2026-05-20 |
 | [20260520-040000-platform-admin-tenant-read-access.md](20260520-040000-platform-admin-tenant-read-access.md) | 平台管理员 dashboard 级全租户只读访问，不放开租户写接口 | 2026-05-20 |
 | [20260521-185332-platform-admin-job-aware-dashboard-entry.md](20260521-185332-platform-admin-job-aware-dashboard-entry.md) | 平台管理员租户列表展示 job 摘要，并用真实 tenant/job/brand 进入 dashboard | 2026-05-21 |
+| [20260603-000000-admin-activation-email.md](20260603-000000-admin-activation-email.md) | 管理员激活邮件发送：SMTP 配置、租户创建后自动发信、前端发送状态提示和激活链接自动填充 | 2026-06-03 |

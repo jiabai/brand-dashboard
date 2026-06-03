@@ -3,6 +3,7 @@ import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { CheckCircle2, KeyRound, Lock, UserPlus } from 'lucide-react';
 
 import { activateAuth, registerUser, verifyInviteCode } from '../api/auth.js';
+import { readActivationTokenFromSearch } from '../auth/activation.js';
 import { useAuth } from '../auth/AuthContext.jsx';
 import { getLoginRedirectTarget } from '../auth/redirect.js';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert.jsx';
@@ -61,6 +62,22 @@ const LoginView = ({ defaultTab = 'login' }) => {
   useEffect(() => {
     setActiveTab(defaultTab);
   }, [defaultTab]);
+
+  useEffect(() => {
+    const activationToken = readActivationTokenFromSearch(location.search);
+    if (!activationToken) return;
+    setActiveTab('activate');
+    setForms((current) => {
+      if (current.activate.token === activationToken) return current;
+      return {
+        ...current,
+        activate: {
+          ...current.activate,
+          token: activationToken,
+        },
+      };
+    });
+  }, [location.search]);
 
   const updateForm = (formKey, field, value) => {
     setForms((current) => ({

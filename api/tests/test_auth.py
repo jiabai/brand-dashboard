@@ -39,7 +39,14 @@ class TestPlatformTenantApi(unittest.TestCase):
         with patch(
             "api.v1.routes.auth.create_tenant_with_admin",
             return_value=service_result,
-        ):
+        ), patch(
+            "api.v1.routes.auth.send_admin_activation_email",
+            return_value={
+                "status": "sent",
+                "to": "zhangsan@alibaba.com",
+                "message": "激活邮件已发送",
+            },
+        ) as send_email:
             response = self.client.post("/api/v1/platform/tenants", json=payload)
 
         self.assertEqual(response.status_code, 200)
@@ -48,6 +55,42 @@ class TestPlatformTenantApi(unittest.TestCase):
         self.assertEqual(body["data"]["tenantKey"], "tn_test")
         self.assertEqual(body["data"]["inviteCode"], "ABC123")
         self.assertIn("activationUrl", body["data"])
+        self.assertEqual(body["data"]["emailDelivery"]["status"], "sent")
+        send_email.assert_called_once_with(service_result)
+
+    def test_create_tenant_keeps_success_when_activation_email_fails(self):
+        payload = {
+            "tenantName": "阿里巴巴集团",
+            "industry": "互联网/电子商务",
+            "adminName": "张三",
+            "adminEmail": "zhangsan@alibaba.com",
+        }
+        service_result = {
+            "tenantKey": "tn_test",
+            "tenantName": "阿里巴巴集团",
+            "adminEmail": "zhangsan@alibaba.com",
+            "activationUrl": "https://alibaba.yourplatform.com/activate?token=token",
+            "inviteCode": "ABC123",
+        }
+        with patch(
+            "api.v1.routes.auth.create_tenant_with_admin",
+            return_value=service_result,
+        ), patch(
+            "api.v1.routes.auth.send_admin_activation_email",
+            side_effect=RuntimeError("smtp-secret leaked in raw exception"),
+        ):
+            response = self.client.post("/api/v1/platform/tenants", json=payload)
+
+        self.assertEqual(response.status_code, 200)
+        body = response.json()
+        self.assertEqual(body["status"], "success")
+        self.assertEqual(body["data"]["tenantKey"], "tn_test")
+        self.assertEqual(body["data"]["emailDelivery"]["status"], "failed")
+        self.assertEqual(
+            body["data"]["emailDelivery"]["message"],
+            "激活邮件发送失败，请复制激活链接人工发送",
+        )
+        self.assertNotIn("smtp-secret", response.text)
 
     def test_create_tenant_returns_error_response(self):
         payload = {

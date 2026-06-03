@@ -22,7 +22,7 @@ import {
   SheetTrigger,
 } from '../ui/sheet.jsx';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert.jsx';
-import { prepareTenantCreatePayload } from './tenantPresentation.js';
+import { getEmailDeliveryMeta, prepareTenantCreatePayload } from './tenantPresentation.js';
 
 const initialForm = {
   tenantName: '',
@@ -78,6 +78,7 @@ const CreateTenantPanel = ({ onCreated, latestResult }) => {
   };
 
   const createResult = latestResult?.data || latestResult || null;
+  const emailDeliveryMeta = createResult ? getEmailDeliveryMeta(createResult.emailDelivery) : null;
 
   const canSubmit = useMemo(
     () => form.tenantName.trim() && form.industry.trim() && form.adminName.trim() && form.adminEmail.trim(),
@@ -228,6 +229,12 @@ const CreateTenantPanel = ({ onCreated, latestResult }) => {
             <ResultRow label="邀请码" value={createResult.inviteCode} onCopy={handleCopy} copied={copied} />
             <ResultRow label="登录地址" value={createResult.loginUrl} onCopy={handleCopy} copied={copied} />
           </div>
+          {emailDeliveryMeta ? (
+            <Alert variant={emailDeliveryMeta.variant}>
+              <AlertTitle>{emailDeliveryMeta.title}</AlertTitle>
+              <AlertDescription>{emailDeliveryMeta.description}</AlertDescription>
+            </Alert>
+          ) : null}
         </section>
       ) : null}
     </div>

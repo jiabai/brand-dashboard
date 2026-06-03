@@ -5,6 +5,7 @@ import {
   buildTenantDashboardPath,
   buildTenantTaskStatusPath,
   getAdminStatusLabel,
+  getEmailDeliveryMeta,
   getPlanTypeLabel,
   getTenantStatusMeta,
   normalizeTenantListResponse,
@@ -38,6 +39,29 @@ test('maps tenant status, admin status, and plan labels for display', () => {
   assert.equal(getAdminStatusLabel('active'), '已激活');
   assert.equal(getPlanTypeLabel('enterprise'), '企业版');
   assert.equal(getPlanTypeLabel(''), '未设置');
+});
+
+test('maps activation email delivery status for create result display', () => {
+  assert.deepEqual(getEmailDeliveryMeta({ status: 'sent', to: 'admin@acme.test' }), {
+    title: '激活邮件已发送',
+    description: '已发送至 admin@acme.test。',
+    variant: 'default',
+  });
+  assert.deepEqual(getEmailDeliveryMeta({ status: 'not_configured', to: 'admin@acme.test' }), {
+    title: 'SMTP 未配置',
+    description: '尚未自动发送至 admin@acme.test，请复制激活链接人工发送。',
+    variant: 'destructive',
+  });
+  assert.deepEqual(getEmailDeliveryMeta({ status: 'failed', to: 'admin@acme.test' }), {
+    title: '激活邮件发送失败',
+    description: '未能自动发送至 admin@acme.test，请复制激活链接人工发送。',
+    variant: 'destructive',
+  });
+  assert.deepEqual(getEmailDeliveryMeta(null), {
+    title: '激活邮件状态未知',
+    description: '请复制激活链接人工确认发送状态。',
+    variant: 'default',
+  });
 });
 
 test('reads tenant filters from URL search params', () => {

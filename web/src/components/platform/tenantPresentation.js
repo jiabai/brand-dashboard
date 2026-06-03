@@ -39,6 +39,24 @@ const queryJobStatusMap = {
   3: { label: '已失效', variant: 'destructive' },
 };
 
+const emailDeliveryStatusMap = {
+  sent: {
+    title: '激活邮件已发送',
+    description: (to) => `已发送至 ${to}。`,
+    variant: 'default',
+  },
+  not_configured: {
+    title: 'SMTP 未配置',
+    description: (to) => `尚未自动发送至 ${to}，请复制激活链接人工发送。`,
+    variant: 'destructive',
+  },
+  failed: {
+    title: '激活邮件发送失败',
+    description: (to) => `未能自动发送至 ${to}，请复制激活链接人工发送。`,
+    variant: 'destructive',
+  },
+};
+
 const toPositiveInt = (value, fallback) => {
   const parsed = Number.parseInt(value, 10);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
@@ -99,6 +117,24 @@ export const buildTenantDashboardPath = (tenant) => {
 
 export const getQueryJobStatusMeta = (status) =>
   queryJobStatusMap[Number(status)] || { label: '未知', variant: 'outline' };
+
+export const getEmailDeliveryMeta = (delivery) => {
+  const status = delivery?.status;
+  const to = delivery?.to || '管理员邮箱';
+  const meta = emailDeliveryStatusMap[status];
+  if (!meta) {
+    return {
+      title: '激活邮件状态未知',
+      description: '请复制激活链接人工确认发送状态。',
+      variant: 'default',
+    };
+  }
+  return {
+    title: meta.title,
+    description: meta.description(to),
+    variant: meta.variant,
+  };
+};
 
 export const formatDate = (value) => {
   if (!value) return '未设置';

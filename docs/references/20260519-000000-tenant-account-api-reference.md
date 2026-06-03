@@ -150,10 +150,36 @@ curl -X POST "http://localhost:8000/api/v1/platform/tenants" \
     "activationToken": "eyJ1c2VyX2lkIjoxMjN9.xxxxx",
     "activationUrl": "https://alibaba.yourplatform.com/activate?token=xxxxx",
     "loginUrl": "https://alibaba.yourplatform.com/login",
-    "inviteCode": "ABC123"
+    "inviteCode": "ABC123",
+    "emailDelivery": {
+      "status": "sent",
+      "to": "zhangsan@alibaba.com",
+      "message": "激活邮件已发送"
+    }
   }
 }
 ```
+
+邮件发送状态：
+
+| status | 说明 |
+|---|---|
+| `sent` | SMTP 已配置且激活邮件已发送 |
+| `not_configured` | SMTP 配置不完整，未自动发送；平台操作员需复制激活链接人工发送 |
+| `failed` | SMTP 发送失败；平台操作员需复制激活链接人工发送 |
+
+SMTP 通过 `api/.env` 配置，示例：
+
+```dotenv
+SMTP_HOST=smtp.example.com
+SMTP_PORT=465
+SMTP_USERNAME=sender@example.com
+SMTP_PASSWORD=<smtp_authorization_code>
+SMTP_FROM=sender@example.com
+SMTP_USE_TLS=true
+```
+
+安全要求：`.env` 不提交到 Git；`SMTP_PASSWORD` 不得写入文档、日志或错误响应。邮件发送失败不影响租户创建成功。
 
 错误：
 
