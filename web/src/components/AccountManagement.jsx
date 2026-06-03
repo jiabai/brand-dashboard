@@ -1,7 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import {
   Building2,
-  CheckCircle,
   Key,
   Lock,
   ShieldCheck,
@@ -11,7 +10,6 @@ import {
 import { Link } from 'react-router-dom';
 
 import {
-  activateAuth,
   login as loginApi,
   registerUser,
   verifyInviteCode,
@@ -28,11 +26,6 @@ import { Separator } from './ui/separator.jsx';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs.jsx';
 
 const initialForms = {
-  activate: {
-    token: '',
-    password: '',
-    confirmPassword: '',
-  },
   verify: {
     code: '',
   },
@@ -81,7 +74,6 @@ const AccountManagement = () => {
   const { user } = useAuth();
   const [forms, setForms] = useState(initialForms);
   const [loadingMap, setLoadingMap] = useState({
-    activate: false,
     verify: false,
     register: false,
     login: false,
@@ -132,17 +124,6 @@ const AccountManagement = () => {
     }
   };
 
-  const prepareActivatePayload = (values) => {
-    if (values.password !== values.confirmPassword) {
-      throw new Error('两次输入的密码不一致');
-    }
-    return stripEmpty({
-      token: values.token,
-      password: values.password,
-      confirmPassword: values.confirmPassword,
-    });
-  };
-
   const responsePayload = useMemo(
     () => (latestResponse.payload ? JSON.stringify(latestResponse.payload, null, 2) : '暂无数据'),
     [latestResponse.payload],
@@ -155,7 +136,7 @@ const AccountManagement = () => {
           <span className="account-kicker">Account Command Center</span>
           <h2 className="account-title text-2xl font-medium text-foreground">账户与注册管理</h2>
           <p className="account-subtitle text-sm text-muted-foreground">
-            租户开通、管理员激活、员工注册与登录流程都集中在这里管理
+            租户入口、员工注册与登录辅助流程集中在这里管理
           </p>
         </div>
         <div className="account-hero-tags">
@@ -180,9 +161,6 @@ const AccountManagement = () => {
                 <TabsTrigger value="tenant">
                   <TabLabel icon={Building2}>租户开通</TabLabel>
                 </TabsTrigger>
-                <TabsTrigger value="activation">
-                  <TabLabel icon={ShieldCheck}>管理员激活</TabLabel>
-                </TabsTrigger>
                 <TabsTrigger value="register">
                   <TabLabel icon={UserPlus}>员工注册</TabLabel>
                 </TabsTrigger>
@@ -196,7 +174,7 @@ const AccountManagement = () => {
                   <Alert>
                     <AlertTitle>租户开通已迁移到平台运营后台</AlertTitle>
                     <AlertDescription>
-                      租户工作台保留管理员激活、员工注册与邀请码核验；企业租户创建请从平台运营后台执行。
+                      租户工作台保留员工注册与邀请码核验；企业租户创建请从平台运营后台执行。
                     </AlertDescription>
                   </Alert>
                   <div className="flex flex-wrap items-center gap-3">
@@ -212,29 +190,6 @@ const AccountManagement = () => {
                     )}
                   </div>
                 </div>
-              </TabsContent>
-
-              <TabsContent value="activation" className="pt-4">
-                <form
-                  className="account-form space-y-4"
-                  onSubmit={handleOperation('activate', '管理员激活', activateAuth, prepareActivatePayload)}
-                >
-                  <FormField label="激活令牌" required>
-                    <Input required value={forms.activate.token} onChange={(event) => updateForm('activate', 'token', event.target.value)} placeholder="邮件中的激活令牌" />
-                  </FormField>
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <FormField label="设置密码" required>
-                      <Input required type="password" minLength="8" value={forms.activate.password} onChange={(event) => updateForm('activate', 'password', event.target.value)} placeholder="至少 8 位" />
-                    </FormField>
-                    <FormField label="确认密码" required>
-                      <Input required type="password" minLength="8" value={forms.activate.confirmPassword} onChange={(event) => updateForm('activate', 'confirmPassword', event.target.value)} placeholder="再次输入密码" />
-                    </FormField>
-                  </div>
-                  <Button type="submit" disabled={loadingMap.activate}>
-                    <CheckCircle className="size-4" />
-                    {loadingMap.activate ? '激活中...' : '激活管理员账号'}
-                  </Button>
-                </form>
               </TabsContent>
 
               <TabsContent value="register" className="space-y-6 pt-4">
@@ -313,8 +268,8 @@ const AccountManagement = () => {
                 <AlertDescription>确保平台操作员邮箱与租户名称唯一，否则创建会失败</AlertDescription>
               </Alert>
               <Alert>
-                <AlertTitle>激活有效期</AlertTitle>
-                <AlertDescription>管理员激活令牌仅一次有效，建议在 7 天内完成激活</AlertDescription>
+                <AlertTitle>首次设置密码</AlertTitle>
+                <AlertDescription>客户管理员应通过邮件中的公开链接完成首次设置密码，账户页不承载登录前流程</AlertDescription>
               </Alert>
               <Separator />
               <div className="flex flex-wrap gap-2">

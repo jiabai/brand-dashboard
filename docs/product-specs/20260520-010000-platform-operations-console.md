@@ -157,5 +157,5 @@
 - `platform_admin` 可以创建租户并看到激活链接、登录地址和邀请码。
 - 创建租户后列表刷新，新租户可见。
 - 平台后台 API 请求携带 `Authorization`，不携带 `X-Tenant-Key`。
-- `AccountManagement` 不再作为正式平台运营入口；租户工作台只保留租户侧注册/激活/邀请相关能力。
+- `AccountManagement` 不再作为正式平台运营入口；租户工作台只保留租户侧员工注册、邀请码核验和登录辅助能力，管理员首次激活仅通过公开 `/activate` 流程完成。
 - `npm --prefix web test`、`npm --prefix web run build`、`uv run --project api --extra dev pytest api/tests/ -q`、`python scripts/validate_agents_docs.py --level ERROR` 通过。

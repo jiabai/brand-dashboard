@@ -42,12 +42,13 @@
 
 ### 1.3 新增平台运营后台边界
 
-当前系统已经新增独立 Platform Console，`AccountManagement` 不再承载正式租户创建表单：
+当前系统已经新增独立 Platform Console，`AccountManagement` 不再承载正式租户创建表单，也不承载登录前的管理员首次激活流程：
 
 - Web 路由以 `/platform` 开头，不携带 `tenantKey`。
 - API 使用 `/api/v1/platform/*`，只依赖 `Authorization` 和 `platform_admin`。
 - 不使用 `get_current_tenant`，不发送 `X-Tenant-Key`。
 - MVP 页面聚焦租户列表和租户创建；执行器管理后续接入同一后台。
+- 租户管理员首次激活使用公开 `/activate?token=...` 入口；登录后的账户管理页只保留员工注册、邀请码核验和登录辅助能力。
 
 ## 2. 目标架构
 
@@ -342,6 +343,7 @@ uv run --project api python api/scripts/grant_tenant_access.py --email <user@exa
 - 在 API Adapter 中自动注入 `Authorization`。
 - 根据当前路由或选中租户注入 `X-Tenant-Key`。
 - 未登录时跳转登录页。
+- `/activate?token=...` 是租户管理员首次激活的公开入口；`AccountManagement` 不承载管理员首次激活表单。
 - 不通过 `VITE_DEFAULT_TENANT_KEY`、`VITE_DEFAULT_JOB_ID` 或 `VITE_DEFAULT_BRAND` 提供业务默认值；租户来自登录态/路由，任务来自任务路径，品牌来自 URL 或 dashboard 数据。
 
 ### 5.4 平台运营后台组件
