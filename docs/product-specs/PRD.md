@@ -160,10 +160,11 @@
 
 ### 前端状态管理
 
-- 全局状态由 `App.jsx` 管理：当前视图、时间筛选、平台选择、租户/任务/品牌参数
-- URL 查询参数作为状态持久化机制，支持链接分享
-- 各功能组件自管理局部状态（加载、错误、数据）
-- 无全局状态库，直接使用 fetch API 获取数据
+- 路由状态由 `react-router-dom` 管理；`web/src/config/routes.js` 是路由、侧栏菜单和任务入口的单一配置源
+- `useDashboardParams` 统一读取 `tenantKey`、`jobId`、`brand`、时间与平台等 URL 参数；分析页路径携带 `tenantKey + jobId`
+- `useTimeframeManager` 负责 timeframe、可用日期、日期范围和 URL 日期参数同步
+- 各功能组件自管理局部加载、错误和数据状态；无全局状态库
+- 数据获取通过 `web/src/api/` Adapter 发起，不在组件中手写 API URL
 
 ### 安全设计
 
@@ -228,9 +229,9 @@
 | 层级 | 技术 |
 |------|------|
 | 前端框架 | React 18 + Vite |
-| UI 组件库 | Ant Design 5.x + Radix UI |
-| 图表 | @antv/g2 |
-| 样式 | Tailwind CSS |
+| UI 组件库 | shadcn/ui 源码组件 + Radix UI primitives |
+| 图表 | React/SVG/CSS 原生轻量图表 |
+| 样式 | Tailwind CSS v4 semantic tokens |
 | 后端框架 | FastAPI (Python) |
 | ORM | SQLAlchemy 2.x |
 | 数据库 | MySQL 8.x (InnoDB, utf8mb4) |

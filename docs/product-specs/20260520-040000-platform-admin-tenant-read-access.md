@@ -16,7 +16,7 @@
 2. 平台管理员不需要被写入每个租户的 `user_tenants`。
 3. 租户成员权限模型保持不变：普通用户仍必须通过 `user_tenants` 才能访问租户数据。
 4. 写操作不随只读权限自动放开，任务加载、成员管理、租户内配置仍需要租户管理员或单独的平台代操作设计。
-5. 平台后台租户列表提供目标租户入口，不依赖前端 demo 默认 `jobId`；平台管理员先进入任务状态页，再选择具体任务进入 dashboard。
+5. 平台后台租户列表提供目标租户入口，不依赖前端 demo 默认 `jobId` 或 `brand`；存在 `latestJob` 时可直达对应 dashboard，缺少最近任务时进入任务状态页再选择具体任务。
 
 ## 3. 非目标
 
@@ -44,8 +44,8 @@
 
 1. 平台管理员登录 `/platform/tenants`。
 2. 在租户列表中找到目标 active 租户。
-3. 点击“任务状态”。
-4. 前端跳转到 `/tasks/<tenantKey>/status`，由用户选择具体任务进入 dashboard。
+3. 如果该租户存在 `latestJob.jobId`，点击“看板”直达 `/dashboard/<tenantKey>/<latestJob.jobId>?brand=<latestJob.brand>`。
+4. 如果该租户暂无最近任务，点击“任务状态”跳转到 `/tasks/<tenantKey>/status`，由用户选择具体任务进入 dashboard。
 5. 进入 dashboard 后，API 请求携带当前 access token 和目标 `tenant_key`。
 6. 后端识别当前用户为 `platform_admin`，确认目标租户 active，并授予只读租户上下文。
 
@@ -70,11 +70,11 @@ Dashboard 只读接口使用新的授权依赖：
 
 ## 7. 前端行为
 
-1. `/platform/tenants` 租户列表新增“任务状态”操作，作为进入目标租户工作台的无 job 依赖入口。
+1. `/platform/tenants` 租户列表保留“任务状态”操作；当平台 API 返回 `latestJob` 时，额外提供使用真实 `tenantKey + jobId + brand` 的“看板”入口。
 2. 平台管理员进入 dashboard 时，不要求目标租户出现在登录响应的 `user.tenants` 中。
 3. API client 继续从 URL/query/body 提取目标 `tenant_key` 并注入 `X-Tenant-Key`。
 4. Dashboard 顶部租户选择器仍只展示用户真实 membership；平台只读浏览时可显示当前路由租户名或 `tenant_key`，不必把所有租户塞进登录态。
-5. 前端不再使用 `VITE_DEFAULT_TENANT_KEY`、`VITE_DEFAULT_JOB_ID`、`VITE_DEFAULT_BRAND` 作为 dashboard 兜底；租户和任务来自路由/会话，品牌来自 URL 或 dashboard 数据自动补齐。
+5. 前端不再使用 `VITE_DEFAULT_TENANT_KEY`、`VITE_DEFAULT_JOB_ID`、`VITE_DEFAULT_BRAND` 作为 dashboard 兜底；租户和任务来自路由/会话，平台租户列表进入 dashboard 时品牌必须来自 `latestJob.brand`。
 
 ## 8. 验收标准
 

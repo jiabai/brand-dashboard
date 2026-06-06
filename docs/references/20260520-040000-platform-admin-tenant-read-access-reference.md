@@ -69,13 +69,19 @@ def get_current_tenant_for_dashboard_read(...) -> CurrentTenantContext:
 
 ### 3.1 平台租户列表
 
-`/platform/tenants` 每行对 active 租户提供租户级入口：
+`/platform/tenants` 每行对 active 租户保留租户级任务状态入口：
 
 ```text
 /tasks/<tenantKey>/status
 ```
 
-该入口不依赖前端环境变量中的默认 `tenantKey`、`jobId` 或 `brand`。平台管理员先进入目标租户的任务状态页，再选择具体任务进入 dashboard。后续如果平台租户列表 API 返回最近有效任务，可在服务端数据明确时再跳到对应 dashboard。
+当平台租户列表 API 返回 `latestJob.jobId` 时，同一行还应提供 dashboard 入口：
+
+```text
+/dashboard/<tenantKey>/<latestJob.jobId>?brand=<latestJob.brand>
+```
+
+这些入口不依赖前端环境变量中的默认 `tenantKey`、`jobId` 或 `brand`。dashboard 入口必须使用平台租户 API 返回的真实 `latestJob` 与品牌值；缺少最近任务时，平台管理员再进入目标租户的任务状态页选择具体任务。
 
 ### 3.2 Dashboard 访问
 
@@ -84,7 +90,7 @@ def get_current_tenant_for_dashboard_read(...) -> CurrentTenantContext:
 - 不要求该 `tenantKey` 出现在 `user.tenants`。
 - API client 仍应从 query 或 URL 派生 `tenant_key` 并发送 `X-Tenant-Key`。
 - 顶部租户选择器可保持只展示真实 membership；平台只读租户不进入该列表。
-- Dashboard 不使用 `VITE_DEFAULT_TENANT_KEY`、`VITE_DEFAULT_JOB_ID`、`VITE_DEFAULT_BRAND` 兜底；租户和任务必须来自路由，品牌来自 URL `brand` 参数或由 dashboard 数据首个品牌自动补齐。
+- Dashboard 不使用 `VITE_DEFAULT_TENANT_KEY`、`VITE_DEFAULT_JOB_ID`、`VITE_DEFAULT_BRAND` 兜底；租户和任务必须来自路由。平台租户列表进入 dashboard 时必须显式携带 `latestJob.brand`，只有一般直接访问缺少 `brand` 时才可由 dashboard 数据首个品牌自动补齐。
 
 ## 4. 测试清单
 

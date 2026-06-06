@@ -5,7 +5,7 @@
 - 多租户架构：每个租户通过 `tenant_key` 隔离数据
 - 用户角色：平台管理员（platform_admin）、租户管理员（tenant_admin）、租户成员（tenant_member）、租户只读成员（tenant_viewer，预留）
 - 邀请码机制：新用户注册需验证邀请码，邀请码绑定租户和角色
-- 认证路由：`/api/v1/auth/*`，包含租户创建、用户注册、登录认证、邀请码验证
+- 认证与账户路由：公开登录/激活/注册使用 `/api/v1/public/auth/*` 和 `/api/v1/public/users/*`；当前用户使用 `/api/v1/auth/me`；租户创建使用平台域 `/api/v1/platform/tenants`
 - 用户态受保护接口：必须校验 `Authorization: Bearer <access_token>`，并通过服务端依赖解析当前用户
 - 租户上下文：前端传入的 `tenant_key` 或 `X-Tenant-Key` 只表示目标租户，后端必须校验 `user_tenants` 成员关系和角色；dashboard 读接口可额外接受平台管理员只读旁路
 - 平台管理接口：`/api/v1/platform/*` 与执行器管理接口必须限制为 `platform_admin`
@@ -20,7 +20,7 @@
 - CORS：仅允许 `localhost:3000` 和 `localhost:5173`（开发环境）
 - 请求追踪：asgi_correlation_id 中间件为每个请求分配唯一 ID
 - 输入验证：所有 API 入参使用 Pydantic 模型校验，拒绝非法输入
-- SQL 注入防护：使用 SQLAlchemy ORM，不拼接原始 SQL
+- SQL 注入防护：使用 SQLAlchemy ORM 或 `text()` 参数化查询；动态 SQL 只允许白名单结构片段，不得拼接用户输入
 - Access Token：当前格式为标准 JWT，payload 只承载用户身份与有效期，不承载可授权的 `tenant_key`
 - 登录失败：邮箱不存在、密码错误等场景应返回统一错误，避免账号枚举
 - 速率限制：登录、邀请码验证、员工注册和激活接口上线前必须纳入限流计划
