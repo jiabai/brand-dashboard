@@ -4,7 +4,6 @@ from typing import List, Optional, Tuple
 from sqlalchemy import Engine
 
 from api.v1.models.schemas import (
-    BrandMentionRateData,
     BrandMentionTrendItem,
     BrandMetricsItem,
     CitationTypeStatsItem,
@@ -22,7 +21,6 @@ from api.v1.models.schemas import (
     TimeFrame,
 )
 from api.v1.repositories.brand_mention import (
-    query_brand_mention_data,
     query_brand_metrics,
     query_brand_platform_keyword_daily_mention_rates,
     query_brand_platform_mention_data,
@@ -92,29 +90,6 @@ class DashboardService:
     @staticmethod
     def get_platform_color(platform_name: str) -> str:
         return DashboardService.PLATFORM_COLORS.get(platform_name, "#6b7280")
-
-    def get_brand_mention_rate(
-        self, tenant_key: str, job_id: str, brand: str,
-        timeframe: TimeFrame, date: Optional[str] = None,
-    ) -> BrandMentionRateData:
-        db_data = query_brand_mention_data(
-            self._engine,
-            tenant_key=tenant_key,
-            job_id=job_id,
-            brand=brand,
-            timeframe=timeframe.value,
-            specific_date=date,
-        )
-        return BrandMentionRateData(
-            mention_rate=db_data["mention_rate"],
-            rank=db_data["rank"],
-            change=db_data["change"],
-            question_count=db_data["question_count"],
-            mention_count=db_data["mention_count"],
-            first_mention_count=db_data["first_mention_count"],
-            analysis_date=db_data["analysis_date"],
-            last_updated=datetime.fromisoformat(db_data["last_updated"]),
-        )
 
     def get_platform_mention_rates(
         self, tenant_key: str, job_id: str, category: str,

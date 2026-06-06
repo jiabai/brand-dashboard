@@ -248,23 +248,6 @@ class TimeFrame(str, Enum):
     SPECIFIC_DAY = "specific_day"
 
 
-class BrandMentionRateData(BaseModel):
-    mention_rate: float = Field(..., description="品牌总提及率(百分比)")
-    rank: int = Field(..., description="品牌排名")
-    change: float = Field(..., description="与上一周期对比的变化(百分比)")
-    question_count: int = Field(..., description="问题总数")
-    mention_count: int = Field(..., description="品牌提及数量")
-    first_mention_count: int = Field(..., description="首次提及品牌数量")
-    analysis_date: str = Field(..., description="分析日期")
-    last_updated: datetime = Field(..., description="最后更新时间")
-
-
-class BrandMentionRateResponse(BaseModel):
-    status: str = Field(..., description="响应状态")
-    data: BrandMentionRateData = Field(..., description="品牌总提及率数据")
-    metadata: Dict[str, Any] = Field(..., description="元数据")
-
-
 class PlatformMentionRateData(BaseModel):
     name: str = Field(..., description="平台名称")
     mention_rate: float = Field(..., description="该平台上的品牌提及率(百分比)")

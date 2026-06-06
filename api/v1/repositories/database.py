@@ -5,9 +5,6 @@ engine 在此模块内部通过 get_engine() 获取，不泄漏到调用方。
 """
 
 from api.v1.repositories.brand_mention import (
-    query_brand_mention_data as _brand_mention,
-)
-from api.v1.repositories.brand_mention import (
     query_brand_metrics as _brand_metrics,
 )
 from api.v1.repositories.brand_mention import (
@@ -56,10 +53,6 @@ from api.v1.utils.date_range import (
 
 # 兼容：保留 engine 的模块级引用，供外部直接 import
 engine = get_engine()
-
-
-def query_brand_mention_data(tenant_key, job_id, brand, timeframe, specific_date=None):
-    return _brand_mention(get_engine(), tenant_key, job_id, brand, timeframe, specific_date)
 
 
 def query_brand_metrics(tenant_key, job_id, start_date, end_date, brand=None, platform=None):

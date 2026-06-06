@@ -7,7 +7,6 @@ from sqlalchemy import Engine
 from api.v1.dependencies.auth import get_current_tenant_for_dashboard_read
 from api.v1.models.schemas import (
     AvailableDatesResponse,
-    BrandMentionRateResponse,
     BrandMentionTrendResponse,
     BrandMetricsResponse,
     CitationTypeStatsResponse,
@@ -36,37 +35,6 @@ def get_dashboard_service(engine: Engine = Depends(get_engine)) -> DashboardServ
 def _build_metadata(**kwargs):
     """构建统一的 metadata 字典，过滤 None 值。"""
     return {k: v for k, v in kwargs.items() if v is not None}
-
-
-@router.get("/brand-mention-rate", response_model=BrandMentionRateResponse)
-async def get_brand_mention_rate(
-    tenant_key: str = Query(..., description="租户唯一字符串标识（tenants.tenant_key）"),
-    job_id: str = Query(..., description="任务ID"),
-    brand: str = Query(..., description="品牌名称"),
-    timeframe: TimeFrame = Query(..., description="时间范围"),
-    date: Optional[str] = Query(None, description="具体日期(格式: YYYYMMDD)"),
-    service: DashboardService = Depends(get_dashboard_service),
-):
-    try:
-        data = service.get_brand_mention_rate(
-            tenant_key=tenant_key,
-            job_id=job_id,
-            brand=brand,
-            timeframe=timeframe,
-            date=date,
-        )
-        return BrandMentionRateResponse(
-            status="success",
-            data=data,
-            metadata={
-                "timeframe": timeframe.value,
-                "calculation_method": "mention_count_ratio",
-            },
-        )
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e)) from e
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"获取品牌总提及率失败: {str(e)}") from e
 
 
 @router.get("/platform-mention-rates", response_model=PlatformMentionRateResponse)

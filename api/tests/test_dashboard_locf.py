@@ -20,6 +20,15 @@ def build_dashboard_test_client():
     return TestClient(app)
 
 
+class TestDashboardRouteRegistry(unittest.TestCase):
+    def test_deprecated_brand_mention_rate_route_is_not_registered(self):
+        client = build_dashboard_test_client()
+
+        registered_paths = {route.path for route in client.app.routes}
+
+        self.assertNotIn("/api/v1/dashboard/brand-mention-rate", registered_paths)
+
+
 class TestBrandMentionTrendApi(unittest.TestCase):
     def setUp(self):
         self.client = build_dashboard_test_client()
