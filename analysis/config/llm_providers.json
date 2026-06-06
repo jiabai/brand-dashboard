@@ -1,0 +1,117 @@
+{
+  "llm_providers": {
+    "openai": {
+      "provider": "openai",
+      "base_url": "https://api.openai.com/v1",
+      "model": "gpt-3.5-turbo",
+      "description": "OpenAI官方API",
+      "supported_models": [
+        "gpt-4",
+        "gpt-4-turbo",
+        "gpt-3.5-turbo",
+        "gpt-3.5-turbo-16k"
+      ],
+      "features": {
+        "streaming": true,
+        "function_calling": true,
+        "vision": true,
+        "audio": true
+      },
+      "pricing": {
+        "input_tokens_per_1k": 0.001,
+        "output_tokens_per_1k": 0.002
+      }
+    },
+    "zhipuai": {
+      "provider": "zhipuai",
+      "base_url": "https://open.bigmodel.cn/api/paas/v4",
+      "model": "glm-4.6",
+      "description": "智谱AI官方API",
+      "supported_models": ["glm-4", "glm-4.6", "glm-3-turbo", "glm-4v"],
+      "features": {
+        "streaming": true,
+        "function_calling": true,
+        "vision": true,
+        "audio": false
+      },
+      "pricing": {
+        "input_tokens_per_1k": 0.0005,
+        "output_tokens_per_1k": 0.0005
+      }
+    },
+    "silicon_flow": {
+      "provider": "openai",
+      "base_url": "https://api.siliconflow.cn/v1",
+      "model": "deepseek-ai/DeepSeek-V3.2-Exp",
+      "description": "SiliconFlow平台，提供多种开源模型",
+      "supported_models": [
+        "deepseek-ai/DeepSeek-V3.2-Exp",
+        "deepseek-ai/DeepSeek-V2.5",
+        "Qwen/Qwen2.5-72B-Instruct",
+        "meta-llama/Llama-3.3-70B-Instruct"
+      ],
+      "features": {
+        "streaming": true,
+        "function_calling": false,
+        "vision": false,
+        "audio": false
+      },
+      "pricing": {
+        "input_tokens_per_1k": 0.0001,
+        "output_tokens_per_1k": 0.0001
+      }
+    },
+    "deepseek": {
+      "provider": "openai",
+      "base_url": "https://api.deepseek.com/v1",
+      "model": "deepseek-chat",
+      "description": "DeepSeek官方API",
+      "supported_models": ["deepseek-chat", "deepseek-coder"],
+      "features": {
+        "streaming": true,
+        "function_calling": false,
+        "vision": false,
+        "audio": false
+      },
+      "pricing": {
+        "input_tokens_per_1k": 0.0001,
+        "output_tokens_per_1k": 0.0001
+      }
+    }
+  },
+  "default_settings": {
+    "timeout": 30000,
+    "max_retries": 3,
+    "max_tokens": 2000,
+    "temperature": 0.1,
+    "top_p": 1.0,
+    "frequency_penalty": 0.0,
+    "presence_penalty": 0.0,
+    "stream": false,
+    "use_cache": true
+  },
+  "cache_settings": {
+    "enabled": true,
+    "timeout_hours": 1,
+    "max_size_mb": 100
+  },
+  "retry_settings": {
+    "backoff_base": 2,
+    "max_backoff_seconds": 60,
+    "retryable_errors": [
+      "RateLimitError",
+      "APIError",
+      "Timeout",
+      "APIConnectionError",
+      "ConnectionError",
+      "TimeoutError"
+    ]
+  },
+  "monitoring": {
+    "enabled": true,
+    "log_level": "INFO",
+    "track_tokens": true,
+    "track_response_time": true,
+    "health_check_interval": 300
+  }
+}

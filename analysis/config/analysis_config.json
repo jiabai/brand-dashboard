@@ -1,0 +1,89 @@
+{
+  "brand_analysis": {
+    "database": {
+      "host": "192.168.31.233",
+      "port": 3306,
+      "user": "root",
+      "password": "123456",
+      "name": "geo"
+    },
+    "plugins": {
+      "mention_status": {
+        "enabled": false,
+        "description": "输出每个文件的品牌提及和首位提及状态（True/False）",
+        "datasources": [
+          {
+            "table": "llm_conversations",
+            "fields": [
+              "id",
+              "tenant_key",
+              "job_id",
+              "conversation_id",
+              "platform",
+              "brand",
+              "category",
+              "keyword",
+              "query_content",
+              "answer_content",
+              "generated_date"
+            ]
+          }
+        ],
+        "output": "output/mention_status"
+      },
+      "reference_status": {
+        "enabled": true,
+        "description": "输出每个品牌的引用状态（True/False）",
+        "datasources": [
+          {
+            "table": "llm_conversation_references",
+            "fields": [
+              "id",
+              "tenant_key",
+              "job_id",
+              "conversation_id",
+              "platform",
+              "brand",
+              "category",
+              "keyword",
+              "query_content",
+              "url",
+              "domain",
+              "generated_date"
+            ]
+          }
+        ],
+        "output": "output/reference_status"
+      },
+      "extract_source": {
+        "enabled": false,
+        "description": "从单文件中提取URL的来源信息（主要从URL域名来识别），形成URL-来源的映射关系",
+        "table": "llm_conversation_references",
+        "output": "output/extract_source"
+      },
+      "import_mention_data": {
+        "enabled": false,
+        "description": "从指定目录导入数据到数据库",
+        "directory": "output/mention_status/20251218"
+      },
+      "llm_ping": {
+        "enabled": false,
+        "description": "LLM服务连通性检测工具 - 通过发送简单的测试请求验证LLM服务的可用性和响应时间，用于诊断AI服务连接状态。"
+      }
+    },
+    "thresholds": {
+      "high_mention_rate": 0.7,
+      "medium_mention_rate": 0.4
+    },
+    "output": {
+      "pretty_print": true
+    },
+    "llm": {
+      "enabled": true,
+      "timeout": 30000,
+      "maxRetries": 3,
+      "maxTokens": 2000,
+      "cacheTimeoutHours": 1
+    }
+  }
+}

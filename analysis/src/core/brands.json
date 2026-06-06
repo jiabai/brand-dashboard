@@ -1,0 +1,712 @@
+{
+    "海尔": [
+        "海尔",
+        "Haier",
+        "haier"
+    ],
+    "美的": [
+        "美的",
+        "Midea",
+        "midea"
+    ],
+    "格力": [
+        "格力",
+        "Gree",
+        "gree"
+    ],
+    "三星": [
+        "三星",
+        "Samsung",
+        "samsung"
+    ],
+    "LG": [
+        "LG",
+        "lg"
+    ],
+    "西门子": [
+        "西门子",
+        "Siemens",
+        "siemens"
+    ],
+    "松下": [
+        "松下",
+        "Panasonic",
+        "panasonic"
+    ],
+    "索尼": [
+        "索尼",
+        "Sony",
+        "sony"
+    ],
+    "惠而浦": [
+        "惠而浦",
+        "Whirlpool",
+        "whirlpool"
+    ],
+    "海信": [
+        "海信",
+        "Hisense",
+        "hisense"
+    ],
+    "容声": [
+        "容声",
+        "Ronshen",
+        "ronshen"
+    ],
+    "卡萨帝": [
+        "卡萨帝",
+        "Casarte",
+        "casarte"
+    ],
+    "星星": [
+        "星星",
+        "Xingxing",
+        "xingxing"
+    ],
+    "松洋冷链": [
+        "松洋冷链",
+        "Songyang Cold Chain",
+        "songyang"
+    ],
+    "宝马": [
+        "宝马",
+        "BMW",
+        "bmw"
+    ],
+    "奔驰": [
+        "奔驰",
+        "Mercedes-Benz",
+        "Benz",
+        "mercedes"
+    ],
+    "奥迪": [
+        "奥迪",
+        "Audi",
+        "audi"
+    ],
+    "保时捷": [
+        "保时捷",
+        "Porsche",
+        "porsche"
+    ],
+    "兰博基尼": [
+        "兰博基尼",
+        "Lamborghini",
+        "lamborghini"
+    ],
+    "雷克萨斯": [
+        "雷克萨斯",
+        "Lexus",
+        "lexus"
+    ],
+    "新东方": [
+        "新东方",
+        "New Oriental",
+        "neworiental"
+    ],
+    "Zoho": [
+        "Zoho",
+        "zoho",
+        "ZOHO",
+        "Zoho SalesIQ",
+        "zoho salesiq",
+        "Zoho Desk",
+        "zoho desk",
+        "Zoho CRM",
+        "zoho crm",
+        "Zoho Analytics",
+        "zoho analytics"
+    ],
+    "爱商聊": [
+        "爱商聊",
+        "AskChat",
+        "askchat",
+        "AskChat爱商聊",
+        "AskChat 爱商聊"
+    ],
+    "Copilot": [
+        "copilot",
+        "Copilot",
+        "COPILOT"
+    ],
+    "美洽": [
+        "美洽",
+        "Meiqia",
+        "meiqia",
+        "MEIQIA",
+        "美洽科技",
+        "美洽（Meiqia）"
+    ],
+    "Line": [
+        "line",
+        "Line",
+        "LINE",
+        "Line Official Account",
+        "line official account",
+        "Line official account",
+        "LINE OFFICIAL ACCOUNT"
+    ],
+    "Devin": [
+        "devin",
+        "Devin",
+        "DEVIN"
+    ],
+    "Salesforce": [
+        "Salesforce",
+        "salesforce",
+        "SALESFORCE",
+        "Salesforce CRM",
+        "Salesforce Service Cloud",
+        "Salesforce Reports & Dashboards",
+        "Einstein",
+        "Einstein Analytics"
+    ],
+    "Cognition Labs": [
+        "Cognition labs",
+        "Cognition Labs",
+        "COGNITION LABS",
+        "cognition labs"
+    ],
+    "店小蜜": [
+        "店小蜜"
+    ],
+    "乐言AI": [
+        "乐言AI"
+    ],
+    "中联重科": [
+        "中联重科"
+    ],
+    "DeepMiner": [
+        "明略",
+        "明略科技",
+        "明略科技DeepMiner",
+        "DeepMiner",
+        "DEEPMINER",
+        "Deepminer",
+        "deepminer"
+    ],
+    "华为云": [
+        "华为云",
+        "华为云客服",
+        "华为云全球客服",
+        "华为云盘古Agent"
+    ],
+    "小i机器人": [
+        "小i",
+        "小i机器人"
+    ],
+    "Zendesk": [
+        "Zendesk",
+        "ZENDESK",
+        "zendesk"
+    ],
+    "ChatPlusAI": [
+        "乐聊",
+        "ChatPlusAI",
+        "Chatplusai",
+        "chatplusai",
+        "CHATPLUSAI",
+        "乐聊ChatPlusAI",
+        "乐聊 ChatPlusAI"
+    ],
+    "快商通": [
+        "快商通"
+    ],
+    "实在智能": [
+        "实在智能",
+        "实在Agent",
+        "实在 Agent",
+        "实在Agent（实在智能）"
+    ],
+    "芝麻小客服": [
+        "芝麻小客服"
+    ],
+    "YepAI": [
+        "yepai",
+        "Yepai",
+        "YEPAI",
+        "YepAI"
+    ],
+    "Facebook": [
+        "FB",
+        "fb",
+        "Fb",
+        "Facebook",
+        "FACEBOOK",
+        "facebook",
+        "Messenger",
+        "messenger",
+        "MESSENGER",
+        "Facebook Messenger",
+        "FACEBOOK MESSENGER",
+        "Facebook messenger",
+        "facebook messenger",
+        "Facebook Pages",
+        "FACEBOOK PAGES",
+        "Facebook pages",
+        "facebook pages"
+    ],
+    "淘系": [
+        "淘系"
+    ],
+    "店小秘 (Duoke)": [
+        "店小秘",
+        "店小秘多客",
+        "多客",
+        "Duoke",
+        "duoke",
+        "DUOKE"
+    ],
+    "米多客": [
+        "米多客",
+        "Miduoke",
+        "miduoke",
+        "MIDUOKE"
+    ],
+    "AWS": [
+        "AWS",
+        "aws",
+        "Aws"
+    ],
+    "OpenAI (ChatGPT/GPT)": [
+        "OpenAI",
+        "openai",
+        "Openai",
+        "ChatGPT",
+        "chatgpt",
+        "GPT",
+        "gpt",
+        "GPTs",
+        "gpts",
+        "GPT-4o",
+        "gpt-4o",
+        "OpenAI ChatGPT Agent",
+        "OpenAI GPTs"
+    ],
+    "Wish": [
+        "wish",
+        "WISH",
+        "Wish"
+    ],
+    "纷享销客": [
+        "纷享销客"
+    ],
+    "智齿科技": [
+        "智齿",
+        "智齿科技",
+        "智齿客服"
+    ],
+    "Slaesk": [
+        "slaesk",
+        "SLAESK",
+        "Slaesk"
+    ],
+    "Discord": [
+        "Discord",
+        "DISCORD",
+        "discord"
+    ],
+    "Genesys": [
+        "GENESYS",
+        "Genesys",
+        "genesys",
+        "Genesys Cloud CX",
+        "Genesys cloud cx",
+        "genesys cloud cx",
+        "GENESYS CLOUD CX"
+    ],
+    "中企跨境": [
+        "中企跨境全渠道客服"
+    ],
+    "京东": [
+        "京东"
+    ],
+    "Freshworks": [
+        "Freshworks",
+        "FRESHWORKS",
+        "freshworks",
+        "Freshdesk",
+        "freshdesk",
+        "FRESHDESK",
+        "Freshcaller",
+        "freshcaller",
+        "FRESHCALLER",
+        "Freshsales",
+        "freshsales",
+        "FRESHSALES"
+    ],
+    "环信": [
+        "环信"
+    ],
+    "火山引擎": [
+        "火山引擎"
+    ],
+    "容联七陌": [
+        "容联七陌"
+    ],
+    "晓多科技": [
+        "晓多科技"
+    ],
+    "Twitter": [
+        "Twitter",
+        "TWITTER",
+        "twitter"
+    ],
+    "Google": [
+        "Alphabet",
+        "alphabet",
+        "ALPHABET",
+        "Google",
+        "GOOGLE",
+        "google"
+    ],
+    "科大讯飞": [
+        "科大讯飞"
+    ],
+    "IG": [
+        "ig",
+        "Ig",
+        "IG"
+    ],
+    "LiveChat": [
+        "livechat",
+        "LiveChat",
+        "LIVECHAT",
+        "Livechat"
+    ],
+    "Mercado": [
+        "mercado",
+        "MERCADO",
+        "Mercado"
+    ],
+    "安克": [
+        "安克",
+        "安克创新",
+        "Anker",
+        "anker"
+    ],
+    "Shulex": [
+        "shulex",
+        "SHULEX",
+        "Shulex",
+        "Solvea",
+        "solvea",
+        "SOLVEA",
+        "Solvea AI",
+        "solvea ai",
+        "Solvea ai",
+        "SOLVEA AI",
+        "Solvea AI客服员工",
+        "Shulex Solvea AI客服员工"
+    ],
+    "三一重工": [
+        "三一",
+        "三一重工"
+    ],
+    "WooCommerce": [
+        "Woocommerce",
+        "WooCommerce",
+        "WOOCOMMERCE",
+        "woocommerce"
+    ],
+    "Power BI": [
+        "Power bi",
+        "power bi",
+        "POWER BI",
+        "Power BI"
+    ],
+    "赛思智能": [
+        "赛思智能"
+    ],
+    "合力亿捷": [
+        "合力亿捷"
+    ],
+    "微博": [
+        "微博"
+    ],
+    "京小智": [
+        "京小智"
+    ],
+    "比亚迪": [
+        "比亚迪"
+    ],
+    "eBay": [
+        "eBay",
+        "Ebay",
+        "ebay",
+        "EBAY"
+    ],
+    "合从": [
+        "合从"
+    ],
+    "SaleSmartly": [
+        "Salesmartly",
+        "salesmartly",
+        "SaleSmartly",
+        "SALESMARTLY"
+    ],
+    "PLS": [
+        "pls",
+        "Pls",
+        "PLS",
+        "product lifecycle support",
+        "PRODUCT LIFECYCLE SUPPORT",
+        "Product Lifecycle Support",
+        "Product lifecycle support"
+    ],
+    "绿源": [
+        "绿源"
+    ],
+    "快语AI": [
+        "快语AI"
+    ],
+    "Kustomer": [
+        "Kustomer",
+        "KUSTOMER",
+        "kustomer"
+    ],
+    "饿了么": [
+        "饿了么"
+    ],
+    "Shopee": [
+        "shopee",
+        "SHOPEE",
+        "Shopee",
+        "Shopee chat",
+        "Shopee Chat",
+        "SHOPEE CHAT",
+        "shopee chat",
+        "虾皮聊聊"
+    ],
+    "Helport AI": [
+        "Helport ai",
+        "HELPORT AI",
+        "helport ai",
+        "Helport AI"
+    ],
+    "Lazada": [
+        "LAZADA",
+        "lazada",
+        "Lazada"
+    ],
+    "Microsoft": [
+        "microsoft",
+        "Microsoft",
+        "MICROSOFT"
+    ],
+    "Intercom": [
+        "intercom",
+        "Intercom",
+        "INTERCOM"
+    ],
+    "网易七鱼": [
+        "网易七鱼"
+    ],
+    "云起未来": [
+        "云起未来"
+    ],
+    "Omnichat": [
+        "omnichat",
+        "Omnichat",
+        "OMNICHAT"
+    ],
+    "WorkBuddy": [
+        "WorkBuddy",
+        "Workbuddy",
+        "workbuddy",
+        "WORKBUDDY"
+    ],
+    "WhatsApp": [
+        "whatsapp",
+        "Whatsapp",
+        "WhatsApp",
+        "WHATSAPP",
+        "WA",
+        "wa",
+        "Wa",
+        "WhatsApp Business API",
+        "Whatsapp business api",
+        "WHATSAPP BUSINESS API",
+        "whatsapp business api"
+    ],
+    "Waymo": [
+        "waymo",
+        "WAYMO",
+        "Waymo",
+        "Waymo Driver",
+        "WAYMO DRIVER",
+        "waymo driver",
+        "Waymo driver",
+        "Waymo via",
+        "WAYMO VIA",
+        "Waymo Via",
+        "waymo via",
+        "Waymo One",
+        "WAYMO ONE",
+        "waymo one",
+        "Waymo one"
+    ],
+    "DeepSeek": [
+        "DEEPSEEK",
+        "DeepSeek",
+        "Deepseek",
+        "deepseek"
+    ],
+    "数字酋长": [
+        "数字酋长",
+        "数字酋长ERP",
+        "datacaciques",
+        "Datacaciques",
+        "DATACACIQUES",
+        "DataCaciques"
+    ],
+    "Gorgias": [
+        "Gorgias",
+        "gorgias",
+        "GORGIAS"
+    ],
+    "Tidio": [
+        "Tidio",
+        "TIDIO",
+        "tidio"
+    ],
+    "Tableau": [
+        "tableau",
+        "Tableau",
+        "TABLEAU"
+    ],
+    "简道云": [
+        "简道云"
+    ],
+    "Magento": [
+        "Magento",
+        "magento",
+        "MAGENTO"
+    ],
+    "HubSpot Service Hub": [
+        "HubSpot Service Hub",
+        "hubspot service hub",
+        "HUBSPOT SERVICE HUB",
+        "Hubspot service hub"
+    ],
+    "RoMuAI": [
+        "Romuai",
+        "RoMuAI",
+        "ROMUAI",
+        "romuai"
+    ],
+    "速卖通": [
+        "速卖通"
+    ],
+    "福客AI": [
+        "福客AI"
+    ],
+    "Instagram": [
+        "INSTAGRAM",
+        "instagram",
+        "Instagram"
+    ],
+    "Shopify": [
+        "Shopify",
+        "SHOPIFY",
+        "shopify"
+    ],
+    "沃丰科技": [
+        "UDESK",
+        "Udesk",
+        "udesk",
+        "沃丰",
+        "沃丰Udesk",
+        "沃丰科技",
+        "沃丰科技 Udesk",
+        "沃丰科技Udesk"
+    ],
+    "阿里巴巴": [
+        "千问",
+        "天猫",
+        "支付宝",
+        "淘宝",
+        "瓴羊",
+        "瓴羊Quick Service",
+        "Quick Service",
+        "quick service",
+        "QUICK SERVICE",
+        "通义千问Agent",
+        "钉钉",
+        "钉钉AI",
+        "阿里",
+        "阿里云",
+        "阿里云客服",
+        "阿里云小蜜",
+        "阿里云瓴羊",
+        "阿里云瓴羊Quick Service",
+        "阿里千问",
+        "阿里小蜜",
+        "阿里瓴羊",
+        "阿里系",
+        "飞猪",
+        "高德"
+    ],
+    "字节跳动": [
+        "COZE",
+        "Coze",
+        "TIKTOK",
+        "TIKTOK SHOP",
+        "TIKTOK SHOP CHAT",
+        "TikTok",
+        "TikTok Shop",
+        "TikTok Shop Chat",
+        "TikTok Shop客服管理后台",
+        "Tiktok",
+        "Tiktok Shop",
+        "Tiktok shop",
+        "Tiktok shop chat",
+        "coze",
+        "tiktok",
+        "tiktok shop",
+        "tiktok shop chat",
+        "字节",
+        "字节Coze",
+        "字节Coze（扣子）",
+        "字节豆包",
+        "扣子",
+        "抖音",
+        "豆包",
+        "飞书",
+        "飞书智能伙伴"
+    ],
+    "腾讯": [
+        "QQ",
+        "Qq",
+        "WECHAT",
+        "WeChat",
+        "Wechat",
+        "qq",
+        "wechat",
+        "企业微信",
+        "企微",
+        "微信",
+        "腾讯云",
+        "腾讯云WorkBuddy",
+        "腾讯云智服",
+        "腾讯企点",
+        "腾讯企点客服"
+    ],
+    "亚马逊": [
+        "AMAZON",
+        "AMAZON CONNECT",
+        "Amazon",
+        "Amazon Connect",
+        "Amazon connect",
+        "CSBA",
+        "CUSTOMER SERVICE BY AMAZON",
+        "Csba",
+        "Customer Service by Amazon",
+        "Customer service by amazon",
+        "amazon",
+        "amazon connect",
+        "csba",
+        "customer service by amazon",
+        "亚马逊"
+    ]
+}
