@@ -32,6 +32,7 @@ class CollectionAnalysisResult:
     status_code: int
     message: str
     analysis_run: object | None = None
+    retried_from_analysis_run_id: str | None = None
     source_job_id: str | None = None
     target_brand: str | None = None
     competitor_brands: list[str] = field(default_factory=list)
@@ -399,3 +400,57 @@ def run_collection_analysis(
             competitor_brands=competitors,
             plugin_results=plugin_results,
         )
+
+
+def retry_analysis_run(
+    db: Session,
+    *,
+    tenant_key: str,
+    analysis_run_id: str,
+    retry_analysis_run_id: str | None = None,
+    plugins: dict[str, Any] | None = None,
+    now: datetime | None = None,
+) -> CollectionAnalysisResult:
+    original_run = analysis_runs.get_analysis_run(
+        db,
+        tenant_key=tenant_key,
+        analysis_run_id=analysis_run_id,
+    )
+    if original_run is None:
+        return CollectionAnalysisResult(404, "analysis run 不存在")
+
+    if original_run.status not in {"failed", "stale"}:
+        return CollectionAnalysisResult(
+            409,
+            "只有 failed 或 stale 的 analysis run 可以重试",
+            analysis_run=original_run,
+            retried_from_analysis_run_id=analysis_run_id,
+        )
+
+    new_run_id = retry_analysis_run_id or _new_analysis_run_id()
+    if new_run_id == analysis_run_id:
+        return CollectionAnalysisResult(
+            409,
+            "重试 analysis_run_id 不能与原始 analysis run 相同",
+            analysis_run=original_run,
+            retried_from_analysis_run_id=analysis_run_id,
+        )
+
+    retry_result = run_collection_analysis(
+        db,
+        tenant_key=tenant_key,
+        collection_job_id=original_run.collection_job_id,
+        analysis_run_id=new_run_id,
+        plugins=plugins,
+        now=now,
+    )
+    return CollectionAnalysisResult(
+        retry_result.status_code,
+        retry_result.message,
+        analysis_run=retry_result.analysis_run,
+        retried_from_analysis_run_id=analysis_run_id,
+        source_job_id=retry_result.source_job_id,
+        target_brand=retry_result.target_brand,
+        competitor_brands=retry_result.competitor_brands,
+        plugin_results=retry_result.plugin_results,
+    )

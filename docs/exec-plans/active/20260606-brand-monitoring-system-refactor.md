@@ -31,7 +31,8 @@ Decision Log, and Outcomes & Retrospective must be kept up to date as work proce
 - [x] Phase 4: 拆分采集任务、执行尝试和执行器 lease（2026-06-07）
 - [x] Phase 5.1: 新增 analysis_runs schema、迁移和状态机 repository（2026-06-07）
 - [x] Phase 5.2: 将 analysis 插件接入内部系统分析服务并写入事实血缘（2026-06-07）
-- [ ] Phase 5: 将分析引擎接入系统级分析运行
+- [x] Phase 5.3: 新增分析失败可观测、retry API 和 succeeded-only 快照候选（2026-06-07）
+- [x] Phase 5: 将分析引擎接入系统级分析运行（系统侧能力，2026-06-07）
 - [ ] Phase 6: 建设指标快照 read model 并迁移 dashboard 查询
 - [ ] Phase 7: 完善问答快照、告警、报告和数据质量页面
 - [ ] Phase 8: 清理兼容层，归档计划
@@ -60,6 +61,8 @@ Decision Log, and Outcomes & Retrospective must be kept up to date as work proce
 - 2026-06-07：Phase 5.1 只落 `analysis_runs` 生命周期模型和状态机，不在本阶段调用 `analysis/` 插件；这样可以先把分析血缘和状态边界固定，再在 Phase 5.2 接入插件执行和事实表写入。
 - 2026-06-07：Phase 5.2 发现 API 侧导入 `analysis.src.plugins` 时会被工具插件的 `requests` 依赖阻塞；已将工具类插件改为可选导入，保证 metrics 插件能在 API 测试环境中加载。
 - 2026-06-07：Phase 5.2 仍需通过 `collection_jobs.source_job_id` 读取旧 `llm_conversations` / `llm_conversation_references` 原始数据；这是采集原始表尚未持有新 collection 字段前的兼容桥。
+- 2026-06-07：Phase 5.3 发现失败分析运行可能在插件聚合中留下部分事实；retry 必须创建新的 `analysis_run_id` 并通过 upsert 重新绑定事实血缘，Phase 6 快照生成也只能选择 succeeded run。
+- 2026-06-07：Phase 5.3 的 retry API 先采用同步执行，满足内部可用和测试闭环；若后续真实插件耗时过长，需要改成提交 pending retry run 后由后台 worker 执行。
 
 ## Decision Log
 
@@ -93,6 +96,9 @@ Decision Log, and Outcomes & Retrospective must be kept up to date as work proce
 | Phase 5.2 用 `source_job_id` 读取兼容期原始数据 | 旧原始回答和引用表仍按 `job_id` 存储，直接重命名会影响现有入库与 dashboard；通过 `collection_jobs.source_job_id` 桥接可以先接上分析生命周期 | 2026-06-07 / agent |
 | Phase 5.2 事实表 `analysis_run_id` nullable 且不进入旧唯一键 | 历史事实行需要继续有效，兼容 dashboard 也不应因为重跑分析看到重复明细；upsert 更新同一事实行的最新运行血缘 | 2026-06-07 / agent |
 | Phase 5.2 先落内部 service，不开放公开 API route | 分析运行的触发权限、重试策略和失败观测还未完成；先用内部服务固定插件执行和状态推进边界，Phase 5.3 再补 retry/observability | 2026-06-07 / agent |
+| Phase 5.3 retry 创建新的 analysis run | 失败运行需要保留原始错误用于审计，不能在原 run 上覆盖状态和错误；新的 run 承担重试输出和事实血缘 | 2026-06-07 / agent |
+| Phase 5.3 retry 仅允许 failed/stale run | succeeded run 已是稳定输出，不应被 retry API 覆盖；pending/running run 还未结束，重试会造成并发分析歧义 | 2026-06-07 / agent |
+| Phase 5.3 快照候选只认 succeeded run | 失败或过期 run 可能没有完整事实，不能成为 Phase 6 指标快照输入；Repository 提供 succeeded-only 查询入口 | 2026-06-07 / agent |
 
 ## Context and Orientation
 
@@ -254,6 +260,7 @@ Decision Log, and Outcomes & Retrospective must be kept up to date as work proce
 - 2026-06-07 / Phase 4.4：先新增 `api/tests/test_platform_collection_health.py`、`web/src/api/__tests__/platform.test.js` 和 `web/src/components/platform/__tests__/executorHealthPresentation.test.js` 并确认缺少平台采集健康接口、前端 API 导出和展示归一化模块时失败；补齐 `GET /api/v1/platform/collection-health`、`api/v1/repositories/platform_health.py`、`PlatformExecutorsPage` 和 `/platform/executors` 路由后，后端定向测试通过（2 passed），前端定向测试通过（6 passed）；`uv run --project api ruff check api` 通过；`$env:PYTHONPATH='.'; uv run --project api --extra dev pytest api/tests/ -q` 通过（121 passed, 750 warnings）；`npm --prefix web test` 通过（67 passed）；`npm --prefix web run lint` 无错误，保留既有 9 个 warning；`npm --prefix web run build` 通过；系统 Chrome 对 `http://127.0.0.1:3001/platform/executors` 做 mock 数据 smoke test 通过；文档 ERROR/WARN 验证通过。
 - 2026-06-07 / Phase 5.1：先新增 `api/tests/test_analysis_run_schema.py` 并确认 MySQL/SQLite/analysis schema 与迁移脚本缺少 `analysis_runs` 时失败；补齐 `analysis_runs` schema、analysis 镜像 schema 和 `api/database/migrations/20260607_add_analysis_run_model.mysql.sql` 后，schema 定向测试通过（3 passed）。随后新增 `api/tests/test_analysis_runs_repository.py` 并确认缺少 repository 模块时失败；补齐 `api/v1/repositories/analysis_runs.py` 后，状态机定向测试通过（5 passed），覆盖 pending 创建、running 启动、succeeded 完成、failed 错误记录、stale 标记和非法跳转拒绝；`uv run --project api ruff check api` 通过；`$env:PYTHONPATH='.'; uv run --project api --extra dev pytest api/tests/ -q` 通过（129 passed, 828 warnings）；`python scripts/validate_agents_docs.py --level ERROR` 和 `--level WARN` 均为 0 错误、0 警告；`git diff --check` 通过，仅输出既有 LF/CRLF 换行提示。本阶段未改前端。
 - 2026-06-07 / Phase 5.2：先新增 `api/tests/test_analysis_fact_lineage_schema.py`、`api/tests/test_analysis_plugins_fact_lineage.py` 和 `api/tests/test_analysis_runner_service.py` 并确认缺少事实血缘字段、插件 upsert 写入和系统分析服务时失败；补齐 `qa_brand_state` / `qa_reference.analysis_run_id` schema 与迁移、插件写入 lineage、`analysis_runner` 内部服务和可选插件导入后，定向测试通过（6 passed, 28 warnings）；`uv run --project api ruff check api` 通过；`$env:PYTHONPATH='.'; uv run --project api --extra dev pytest api/tests/ -q` 通过（135 passed, 856 warnings）；`$env:PYTHONPATH='analysis'; uv run --with pytest --with requests --with sqlalchemy --with pymysql --python 3.13 python -m pytest analysis\tests\test_database_config.py analysis\tests\test_reference_status.py analysis\tests\test_import_data.py analysis\tests\test_save_plugin_batch_result.py -q` 通过（15 passed）；`python scripts/validate_agents_docs.py --level ERROR` 和 `--level WARN` 均为 0 错误、0 警告；`git diff --check` 通过，仅输出既有 LF/CRLF 换行提示。本阶段未改前端。
+- 2026-06-07 / Phase 5.3：先新增 `api/tests/test_analysis_runs_api.py`、`api/tests/test_analysis_run_retry_service.py`，并扩展 `api/tests/test_analysis_runs_repository.py`；确认缺少 `analysis_runs` 路由、`retry_analysis_run` service 和 succeeded-only 快照候选查询时失败。补齐 `GET /api/v1/analysis-runs/{analysis_run_id}`、`POST /api/v1/analysis-runs/{analysis_run_id}/retry`、Pydantic 契约、retry service 和 `get_latest_successful_analysis_run_for_collection` 后，定向测试通过（11 passed, 221 warnings）；`uv run --project api ruff check api` 通过；`$env:PYTHONPATH='.'; uv run --project api --extra dev pytest api/tests/ -q` 通过（141 passed, 993 warnings）；`python scripts/validate_agents_docs.py --level ERROR` 和 `--level WARN` 均为 0 错误、0 警告；`git diff --check` 通过，仅输出既有 LF/CRLF 换行提示。本阶段未改前端。
 
 阶段性验收：
 

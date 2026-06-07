@@ -454,6 +454,50 @@ class CollectionAttemptResponse(BaseModel):
     attempt: CollectionAttemptDetail = Field(..., description="执行尝试详情")
 
 
+AnalysisRunStatus = Literal[
+    "pending",
+    "running",
+    "succeeded",
+    "failed",
+    "stale",
+]
+
+
+class AnalysisRunDetail(BaseModel):
+    id: int = Field(..., description="分析运行记录唯一主键ID")
+    tenant_key: str = Field(..., description="租户Key")
+    analysis_run_id: str = Field(..., description="分析运行ID")
+    project_id: str = Field(..., description="监测项目ID")
+    collection_job_id: str = Field(..., description="采集批次ID")
+    status: AnalysisRunStatus = Field(..., description="分析运行状态")
+    plugin_versions: Optional[str] = Field(None, description="插件版本JSON")
+    model_config_hash: Optional[str] = Field(None, description="模型配置摘要")
+    input_watermark: Optional[str] = Field(None, description="输入数据水位")
+    started_at: Optional[datetime] = Field(None, description="开始时间")
+    finished_at: Optional[datetime] = Field(None, description="完成时间")
+    stale_at: Optional[datetime] = Field(None, description="过期时间")
+    error_code: Optional[str] = Field(None, description="错误编码")
+    error_message: Optional[str] = Field(None, description="错误信息")
+    can_retry: bool = Field(..., description="当前状态是否允许重试")
+
+
+class AnalysisRunResponse(BaseModel):
+    success: bool = Field(..., description="是否成功")
+    analysis_run: AnalysisRunDetail = Field(..., description="分析运行详情")
+
+
+class RetryAnalysisRunRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    analysis_run_id: Optional[str] = Field(None, max_length=128, description="重试运行ID")
+
+
+class RetryAnalysisRunResponse(BaseModel):
+    success: bool = Field(..., description="是否成功")
+    retried_from_analysis_run_id: str = Field(..., description="原始分析运行ID")
+    analysis_run: AnalysisRunDetail = Field(..., description="新分析运行详情")
+
+
 class QueryJobStatusResponse(BaseModel):
     success: bool = Field(..., description="是否成功")
     count: int = Field(..., description="任务数量")

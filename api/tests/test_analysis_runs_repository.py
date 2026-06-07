@@ -302,3 +302,83 @@ def test_invalid_analysis_run_transitions_are_rejected(analysis_run_session):
     ).one()
     assert row.status == "succeeded"
     assert row.error_code is None
+
+
+def test_latest_successful_analysis_run_excludes_failed_runs(
+    analysis_run_session,
+):
+    _seed_collection_job(analysis_run_session)
+    assert (
+        _create_run(
+            analysis_run_session,
+            analysis_run_id="analysis_run_failed",
+        ).status_code
+        == 200
+    )
+    assert (
+        analysis_runs.start_analysis_run(
+            analysis_run_session,
+            tenant_key="tn_a",
+            analysis_run_id="analysis_run_failed",
+            now=datetime(2026, 6, 7, 10, 1, 0, tzinfo=UTC),
+        ).status_code
+        == 200
+    )
+    assert (
+        analysis_runs.complete_analysis_run(
+            analysis_run_session,
+            tenant_key="tn_a",
+            analysis_run_id="analysis_run_failed",
+            status="failed",
+            error_code="plugin_error",
+            error_message="失败 run 不应进入指标快照候选",
+            now=datetime(2026, 6, 7, 10, 2, 0, tzinfo=UTC),
+        ).status_code
+        == 200
+    )
+
+    assert (
+        analysis_runs.get_latest_successful_analysis_run_for_collection(
+            analysis_run_session,
+            tenant_key="tn_a",
+            collection_job_id="collection_job_a",
+        )
+        is None
+    )
+
+    assert (
+        _create_run(
+            analysis_run_session,
+            analysis_run_id="analysis_run_retry",
+        ).status_code
+        == 200
+    )
+    assert (
+        analysis_runs.start_analysis_run(
+            analysis_run_session,
+            tenant_key="tn_a",
+            analysis_run_id="analysis_run_retry",
+            now=datetime(2026, 6, 7, 10, 3, 0, tzinfo=UTC),
+        ).status_code
+        == 200
+    )
+    assert (
+        analysis_runs.complete_analysis_run(
+            analysis_run_session,
+            tenant_key="tn_a",
+            analysis_run_id="analysis_run_retry",
+            status="succeeded",
+            now=datetime(2026, 6, 7, 10, 4, 0, tzinfo=UTC),
+        ).status_code
+        == 200
+    )
+
+    snapshot_candidate = (
+        analysis_runs.get_latest_successful_analysis_run_for_collection(
+            analysis_run_session,
+            tenant_key="tn_a",
+            collection_job_id="collection_job_a",
+        )
+    )
+    assert snapshot_candidate.analysis_run_id == "analysis_run_retry"
+    assert snapshot_candidate.status == "succeeded"

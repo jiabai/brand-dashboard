@@ -15,6 +15,7 @@ from api.v1.models.schemas import HealthResponse
 from api.v1.repositories.init_db import init_db
 from api.v1.routes import (
     analysis,
+    analysis_runs,
     auth,
     brand_strategy,
     collection_attempts,
@@ -70,6 +71,11 @@ app.add_middleware(
 
 # 包含路由
 app.include_router(analysis.router, prefix="/api/v1/analysis", tags=["analysis"])
+app.include_router(
+    analysis_runs.router,
+    prefix="/api/v1/analysis-runs",
+    tags=["analysis-runs"],
+)
 app.include_router(auth.router, prefix="/api/v1", tags=["auth"])
 app.include_router(config.router, prefix="/api/v1/config", tags=["config"])
 app.include_router(dashboard.router, prefix="/api/v1/dashboard", tags=["dashboard"])

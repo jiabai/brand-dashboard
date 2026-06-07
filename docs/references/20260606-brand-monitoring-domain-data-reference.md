@@ -288,6 +288,23 @@ mysql -u root -p geo < api/database/migrations/20260607_add_analysis_run_id_to_a
 
 本阶段的服务成功条件是：采集批次必须已 `succeeded`，项目必须有 active target brand，至少有一类原始数据可供插件处理。任一插件或输入异常会把 `analysis_runs` 结束为 `failed` 并记录错误信息。更细的失败分类、重试入口和运行观测面留到 Phase 5.3 实现。
 
+### 2.5.3 Phase 5.3 失败可观测与重试
+
+Phase 5.3 新增 `analysis-runs` API，让分析运行的失败原因和重试能力进入系统接口，而不是只停留在内部 service 中。
+
+| API | 权限 | 说明 |
+|-----|------|------|
+| `GET /api/v1/analysis-runs/{analysis_run_id}` | 当前租户成员 | 返回分析运行状态、采集批次、输入水位、错误编码、错误信息和 `can_retry`。 |
+| `POST /api/v1/analysis-runs/{analysis_run_id}/retry` | 当前租户 admin | 对 failed/stale run 重新运行分析；请求体可选传入新的 `analysis_run_id`。 |
+
+retry 不复用原始 `analysis_run_id`。服务会读取原 run 的 `collection_job_id`，为同一采集批次创建新的 analysis run，并按 Phase 5.2 的插件链路重新写入事实表。原 failed/stale run 保留原始错误原因，便于审计；新 run 独立记录自己的状态、输入水位和错误字段。若调用方传入与原 run 相同的 `analysis_run_id`，服务必须拒绝。
+
+事实表仍沿用兼容期 upsert 语义。若失败 run 曾留下部分 `qa_brand_state` 或 `qa_reference` 事实，成功 retry 会把同一事实键的 `analysis_run_id` 更新为新的 succeeded run，从而减少失败运行对后续读取面的影响。
+
+Phase 6 生成指标快照时必须只选择 `status='succeeded'` 的 analysis run。本阶段已在 Repository 层提供 `get_latest_successful_analysis_run_for_collection` 作为候选查询入口；它不会返回 failed/stale/pending/running run。这样即使失败运行曾写入过部分事实，也不会成为快照生成的合法输入。
+
+本阶段的 retry 仍是同步 API 调用。后续如果分析耗时明显增加，应把 API 改为创建 pending retry run，由后台 worker 异步执行。
+
 ## 3. 状态机参考
 
 ### 3.1 项目状态

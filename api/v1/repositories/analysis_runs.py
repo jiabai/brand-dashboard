@@ -51,6 +51,53 @@ def _select_analysis_run(db: Session, *, tenant_key: str, analysis_run_id: str):
     ).first()
 
 
+def get_analysis_run(db: Session, *, tenant_key: str, analysis_run_id: str):
+    return _select_analysis_run(
+        db,
+        tenant_key=tenant_key,
+        analysis_run_id=analysis_run_id,
+    )
+
+
+def get_latest_successful_analysis_run_for_collection(
+    db: Session,
+    *,
+    tenant_key: str,
+    collection_job_id: str,
+):
+    return db.execute(
+        text(
+            """
+            SELECT
+              id,
+              tenant_key,
+              analysis_run_id,
+              project_id,
+              collection_job_id,
+              status,
+              plugin_versions,
+              model_config_hash,
+              input_watermark,
+              started_at,
+              finished_at,
+              stale_at,
+              error_code,
+              error_message
+            FROM analysis_runs
+            WHERE tenant_key = :tenant_key
+              AND collection_job_id = :collection_job_id
+              AND status = 'succeeded'
+            ORDER BY finished_at DESC, updated_at DESC, id DESC
+            LIMIT 1
+            """
+        ),
+        {
+            "tenant_key": tenant_key,
+            "collection_job_id": collection_job_id,
+        },
+    ).first()
+
+
 def _select_collection_job(db: Session, *, tenant_key: str, collection_job_id: str):
     return db.execute(
         text(
