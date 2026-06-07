@@ -451,6 +451,57 @@ BEGIN
     UPDATE analysis_runs SET updated_at = CURRENT_TIMESTAMP WHERE id = OLD.id;
 END;
 
+-- 11. Metric snapshot read model
+CREATE TABLE IF NOT EXISTS metric_snapshots (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    tenant_key VARCHAR(255) NOT NULL,
+    snapshot_id VARCHAR(128) NOT NULL,
+    project_id VARCHAR(128) NOT NULL,
+    analysis_run_id VARCHAR(128) NOT NULL,
+    metric_date DATE NOT NULL,
+    brand_id VARCHAR(128) NOT NULL DEFAULT '',
+    brand_name VARCHAR(255),
+    platform VARCHAR(64) NOT NULL DEFAULT '',
+    keyword VARCHAR(100) NOT NULL DEFAULT '',
+    metric_name VARCHAR(64) NOT NULL,
+    metric_value DECIMAL(18,6) NOT NULL,
+    metric_unit VARCHAR(32),
+    metric_definition_version VARCHAR(32) NOT NULL,
+    expected_task_count INTEGER NOT NULL DEFAULT 0,
+    succeeded_task_count INTEGER NOT NULL DEFAULT 0,
+    failed_task_count INTEGER NOT NULL DEFAULT 0,
+    analyzed_answer_count INTEGER NOT NULL DEFAULT 0,
+    coverage_rate DECIMAL(8,6),
+    source_watermark VARCHAR(255),
+    dimension_hash VARCHAR(64) NOT NULL,
+    generated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (tenant_key, snapshot_id),
+    UNIQUE (
+        tenant_key,
+        project_id,
+        metric_date,
+        metric_name,
+        metric_definition_version,
+        analysis_run_id,
+        dimension_hash
+    ),
+    FOREIGN KEY (tenant_key) REFERENCES tenants(tenant_key) ON DELETE CASCADE,
+    FOREIGN KEY (tenant_key, project_id) REFERENCES monitoring_projects(tenant_key, project_id),
+    FOREIGN KEY (tenant_key, analysis_run_id) REFERENCES analysis_runs(tenant_key, analysis_run_id)
+);
+CREATE INDEX IF NOT EXISTS idx_metric_snapshots_analysis_run ON metric_snapshots (tenant_key, analysis_run_id);
+CREATE INDEX IF NOT EXISTS idx_metric_snapshots_project_date ON metric_snapshots (tenant_key, project_id, metric_date, metric_name);
+CREATE INDEX IF NOT EXISTS idx_metric_snapshots_dashboard ON metric_snapshots (tenant_key, project_id, metric_date, brand_id, platform, keyword);
+
+CREATE TRIGGER trg_metric_snapshots_updated_at
+AFTER UPDATE ON metric_snapshots
+FOR EACH ROW
+BEGIN
+    UPDATE metric_snapshots SET updated_at = CURRENT_TIMESTAMP WHERE id = OLD.id;
+END;
+
 -- 11. 用户监测任务记录表
 CREATE TABLE IF NOT EXISTS llm_query_jobs (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

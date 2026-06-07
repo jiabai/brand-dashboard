@@ -265,6 +265,42 @@ CREATE TABLE IF NOT EXISTS `analysis_runs` (
   CONSTRAINT `analysis_runs_ibfk_collection_job` FOREIGN KEY (`tenant_key`,`collection_job_id`) REFERENCES `collection_jobs` (`tenant_key`,`collection_job_id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Analysis run lifecycle records';
 
+CREATE TABLE IF NOT EXISTS `metric_snapshots` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT 'Primary key',
+  `tenant_key` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Tenant key',
+  `snapshot_id` varchar(128) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Stable metric snapshot id',
+  `project_id` varchar(128) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Monitoring project id',
+  `analysis_run_id` varchar(128) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Source analysis run id',
+  `metric_date` date NOT NULL COMMENT 'Metric business date',
+  `brand_id` varchar(128) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT 'Project brand id, empty means all brands',
+  `brand_name` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Brand display name at generation time',
+  `platform` varchar(64) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT 'AI platform, empty means all platforms',
+  `keyword` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT 'Keyword, empty means all keywords',
+  `metric_name` varchar(64) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Metric name',
+  `metric_value` decimal(18,6) NOT NULL COMMENT 'Metric value',
+  `metric_unit` varchar(32) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Metric unit, e.g. ratio/count',
+  `metric_definition_version` varchar(32) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Metric definition version',
+  `expected_task_count` int(11) NOT NULL DEFAULT '0' COMMENT 'Expected collection task count',
+  `succeeded_task_count` int(11) NOT NULL DEFAULT '0' COMMENT 'Succeeded collection task count',
+  `failed_task_count` int(11) NOT NULL DEFAULT '0' COMMENT 'Failed collection task count',
+  `analyzed_answer_count` int(11) NOT NULL DEFAULT '0' COMMENT 'Answers included in analysis',
+  `coverage_rate` decimal(8,6) DEFAULT NULL COMMENT 'Succeeded/analyzed coverage rate',
+  `source_watermark` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Source data watermark',
+  `dimension_hash` varchar(64) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Hash of brand/platform/keyword dimensions',
+  `generated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Snapshot generated time',
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Created time',
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'Updated time',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_tenant_metric_snapshot` (`tenant_key`,`snapshot_id`),
+  UNIQUE KEY `uk_metric_snapshots_identity` (`tenant_key`(191),`project_id`,`metric_date`,`metric_name`,`metric_definition_version`,`analysis_run_id`,`dimension_hash`),
+  KEY `idx_metric_snapshots_analysis_run` (`tenant_key`,`analysis_run_id`),
+  KEY `idx_metric_snapshots_project_date` (`tenant_key`(128),`project_id`,`metric_date`,`metric_name`),
+  KEY `idx_metric_snapshots_dashboard` (`tenant_key`(128),`project_id`,`metric_date`,`brand_id`,`platform`,`keyword`),
+  CONSTRAINT `metric_snapshots_ibfk_tenant` FOREIGN KEY (`tenant_key`) REFERENCES `tenants` (`tenant_key`) ON DELETE CASCADE,
+  CONSTRAINT `metric_snapshots_ibfk_project` FOREIGN KEY (`tenant_key`,`project_id`) REFERENCES `monitoring_projects` (`tenant_key`,`project_id`),
+  CONSTRAINT `metric_snapshots_ibfk_analysis_run` FOREIGN KEY (`tenant_key`,`analysis_run_id`) REFERENCES `analysis_runs` (`tenant_key`,`analysis_run_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Dashboard metric snapshot read model';
+
 CREATE TABLE `llm_query_jobs` (
   `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '任务记录唯一主键ID，自增',
   `tenant_key` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '租户唯一字符串标识（tenants.tenant_key）',

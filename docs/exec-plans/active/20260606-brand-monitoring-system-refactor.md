@@ -33,6 +33,7 @@ Decision Log, and Outcomes & Retrospective must be kept up to date as work proce
 - [x] Phase 5.2: 将 analysis 插件接入内部系统分析服务并写入事实血缘（2026-06-07）
 - [x] Phase 5.3: 新增分析失败可观测、retry API 和 succeeded-only 快照候选（2026-06-07）
 - [x] Phase 5: 将分析引擎接入系统级分析运行（系统侧能力，2026-06-07）
+- [x] Phase 6.1: 新增 metric_snapshots schema、迁移和 analysis 镜像 schema（2026-06-07）
 - [ ] Phase 6: 建设指标快照 read model 并迁移 dashboard 查询
 - [ ] Phase 7: 完善问答快照、告警、报告和数据质量页面
 - [ ] Phase 8: 清理兼容层，归档计划
@@ -63,6 +64,7 @@ Decision Log, and Outcomes & Retrospective must be kept up to date as work proce
 - 2026-06-07：Phase 5.2 仍需通过 `collection_jobs.source_job_id` 读取旧 `llm_conversations` / `llm_conversation_references` 原始数据；这是采集原始表尚未持有新 collection 字段前的兼容桥。
 - 2026-06-07：Phase 5.3 发现失败分析运行可能在插件聚合中留下部分事实；retry 必须创建新的 `analysis_run_id` 并通过 upsert 重新绑定事实血缘，Phase 6 快照生成也只能选择 succeeded run。
 - 2026-06-07：Phase 5.3 的 retry API 先采用同步执行，满足内部可用和测试闭环；若后续真实插件耗时过长，需要改成提交 pending retry run 后由后台 worker 执行。
+- 2026-06-07：Phase 6.1 发现指标快照的自然维度键会把 `tenant_key/project_id/metric/brand/platform/keyword/definition/analysis_run` 组合得很长；在 MySQL `utf8mb4` 下直接做完整复合唯一键容易超过索引长度，因此需要用 `dimension_hash` 收敛维度唯一性。
 
 ## Decision Log
 
@@ -99,6 +101,9 @@ Decision Log, and Outcomes & Retrospective must be kept up to date as work proce
 | Phase 5.3 retry 创建新的 analysis run | 失败运行需要保留原始错误用于审计，不能在原 run 上覆盖状态和错误；新的 run 承担重试输出和事实血缘 | 2026-06-07 / agent |
 | Phase 5.3 retry 仅允许 failed/stale run | succeeded run 已是稳定输出，不应被 retry API 覆盖；pending/running run 还未结束，重试会造成并发分析歧义 | 2026-06-07 / agent |
 | Phase 5.3 快照候选只认 succeeded run | 失败或过期 run 可能没有完整事实，不能成为 Phase 6 指标快照输入；Repository 提供 succeeded-only 查询入口 | 2026-06-07 / agent |
+| Phase 6.1 使用 `dimension_hash` 做快照幂等键 | 品牌、平台、关键词等原始维度仍保留为可读字段，但唯一键只引用 hash，避免 MySQL 长 varchar 组合索引超限 | 2026-06-07 / agent |
+| Phase 6.1 聚合维度用空字符串表示 all | MySQL 唯一键遇到 NULL 会允许重复行；空字符串能稳定表达全品牌/全平台/全关键词聚合并支持幂等 upsert | 2026-06-07 / agent |
+| Phase 6.1 只落 schema，不生成快照 | 指标口径、生成器和 dashboard 迁移分别属于 Phase 6.2/6.3，先固定 read model 能降低后续实现耦合 | 2026-06-07 / agent |
 
 ## Context and Orientation
 
@@ -261,6 +266,7 @@ Decision Log, and Outcomes & Retrospective must be kept up to date as work proce
 - 2026-06-07 / Phase 5.1：先新增 `api/tests/test_analysis_run_schema.py` 并确认 MySQL/SQLite/analysis schema 与迁移脚本缺少 `analysis_runs` 时失败；补齐 `analysis_runs` schema、analysis 镜像 schema 和 `api/database/migrations/20260607_add_analysis_run_model.mysql.sql` 后，schema 定向测试通过（3 passed）。随后新增 `api/tests/test_analysis_runs_repository.py` 并确认缺少 repository 模块时失败；补齐 `api/v1/repositories/analysis_runs.py` 后，状态机定向测试通过（5 passed），覆盖 pending 创建、running 启动、succeeded 完成、failed 错误记录、stale 标记和非法跳转拒绝；`uv run --project api ruff check api` 通过；`$env:PYTHONPATH='.'; uv run --project api --extra dev pytest api/tests/ -q` 通过（129 passed, 828 warnings）；`python scripts/validate_agents_docs.py --level ERROR` 和 `--level WARN` 均为 0 错误、0 警告；`git diff --check` 通过，仅输出既有 LF/CRLF 换行提示。本阶段未改前端。
 - 2026-06-07 / Phase 5.2：先新增 `api/tests/test_analysis_fact_lineage_schema.py`、`api/tests/test_analysis_plugins_fact_lineage.py` 和 `api/tests/test_analysis_runner_service.py` 并确认缺少事实血缘字段、插件 upsert 写入和系统分析服务时失败；补齐 `qa_brand_state` / `qa_reference.analysis_run_id` schema 与迁移、插件写入 lineage、`analysis_runner` 内部服务和可选插件导入后，定向测试通过（6 passed, 28 warnings）；`uv run --project api ruff check api` 通过；`$env:PYTHONPATH='.'; uv run --project api --extra dev pytest api/tests/ -q` 通过（135 passed, 856 warnings）；`$env:PYTHONPATH='analysis'; uv run --with pytest --with requests --with sqlalchemy --with pymysql --python 3.13 python -m pytest analysis\tests\test_database_config.py analysis\tests\test_reference_status.py analysis\tests\test_import_data.py analysis\tests\test_save_plugin_batch_result.py -q` 通过（15 passed）；`python scripts/validate_agents_docs.py --level ERROR` 和 `--level WARN` 均为 0 错误、0 警告；`git diff --check` 通过，仅输出既有 LF/CRLF 换行提示。本阶段未改前端。
 - 2026-06-07 / Phase 5.3：先新增 `api/tests/test_analysis_runs_api.py`、`api/tests/test_analysis_run_retry_service.py`，并扩展 `api/tests/test_analysis_runs_repository.py`；确认缺少 `analysis_runs` 路由、`retry_analysis_run` service 和 succeeded-only 快照候选查询时失败。补齐 `GET /api/v1/analysis-runs/{analysis_run_id}`、`POST /api/v1/analysis-runs/{analysis_run_id}/retry`、Pydantic 契约、retry service 和 `get_latest_successful_analysis_run_for_collection` 后，定向测试通过（11 passed, 221 warnings）；`uv run --project api ruff check api` 通过；`$env:PYTHONPATH='.'; uv run --project api --extra dev pytest api/tests/ -q` 通过（141 passed, 993 warnings）；`python scripts/validate_agents_docs.py --level ERROR` 和 `--level WARN` 均为 0 错误、0 警告；`git diff --check` 通过，仅输出既有 LF/CRLF 换行提示。本阶段未改前端。
+- 2026-06-07 / Phase 6.1：先新增 `api/tests/test_metric_snapshot_schema.py` 并确认缺少 `metric_snapshots` 表和迁移脚本时失败；补齐 API MySQL/SQLite schema、analysis schema 镜像和 `api/database/migrations/20260607_add_metric_snapshots.mysql.sql` 后，定向 schema 测试通过（3 passed）；`uv run --project api ruff check api` 通过；`$env:PYTHONPATH='.'; uv run --project api --extra dev pytest api/tests/ -q` 通过（144 passed, 993 warnings）；`python scripts/validate_agents_docs.py --level ERROR` 和 `--level WARN` 均为 0 错误、0 警告；`git diff --check` 通过，仅输出既有 LF/CRLF 换行提示。本阶段未改前端，也未实现快照生成逻辑。
 
 阶段性验收：
 

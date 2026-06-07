@@ -218,7 +218,7 @@ GET /api/v1/platform/collection-health?failedTaskLimit=20
 | 实体 | 关键字段 | 说明 |
 |------|----------|------|
 | `analysis_runs` | `analysis_run_id`、`project_id`、`collection_job_id`、`status`、`plugin_versions`、`model_config_hash` | 分析运行记录。 |
-| `metric_snapshots` | `snapshot_id`、`project_id`、`metric_date`、`brand_id`、`platform`、`keyword`、`metric_name`、`metric_value`、`analysis_run_id` | dashboard 读模型。 |
+| `metric_snapshots` | `snapshot_id`、`project_id`、`metric_date`、`brand_id`、`platform`、`keyword`、`metric_name`、`metric_value`、`metric_definition_version`、`analysis_run_id`、`coverage_rate` | dashboard 读模型。 |
 
 ### 2.5.1 Phase 5.1 analysis_runs 落地说明
 
@@ -304,6 +304,41 @@ retry 不复用原始 `analysis_run_id`。服务会读取原 run 的 `collection
 Phase 6 生成指标快照时必须只选择 `status='succeeded'` 的 analysis run。本阶段已在 Repository 层提供 `get_latest_successful_analysis_run_for_collection` 作为候选查询入口；它不会返回 failed/stale/pending/running run。这样即使失败运行曾写入过部分事实，也不会成为快照生成的合法输入。
 
 本阶段的 retry 仍是同步 API 调用。后续如果分析耗时明显增加，应把 API 改为创建 pending retry run，由后台 worker 异步执行。
+
+### 2.5.4 Phase 6.1 指标快照模型
+
+Phase 6.1 新增 `metric_snapshots` 表，作为 dashboard、报告和后续告警的稳定 read model。本阶段只落 schema 和迁移，不生成指标、不改 dashboard 查询；Phase 6.2 再实现指标口径和快照生成，Phase 6.3 再迁移 dashboard 读取。
+
+核心字段：
+
+| 字段 | 说明 |
+|------|------|
+| `snapshot_id` | 稳定快照 ID，用于 API 或排障引用。 |
+| `project_id` | 监测项目 ID；必须与当前租户下的 `monitoring_projects` 绑定。 |
+| `analysis_run_id` | 生成该快照的分析运行；必须引用同租户的 `analysis_runs`。 |
+| `metric_date` | 指标业务日期。 |
+| `brand_id` / `brand_name` | 品牌维度。`brand_id` 为空字符串时表示全品牌聚合，`brand_name` 保存生成时展示名。 |
+| `platform` | 平台维度。空字符串表示全平台聚合。 |
+| `keyword` | 关键词维度。空字符串表示全关键词聚合。 |
+| `metric_name` | 指标名，例如 `mention_rate`、`first_mention_rate`、`top3_mention_rate`、`reference_rate`。 |
+| `metric_value` / `metric_unit` | 指标值和单位，单位可为 `ratio`、`count` 等。 |
+| `metric_definition_version` | 指标口径版本，Phase 6.2 会为各指标定义稳定版本。 |
+| `expected_task_count` / `succeeded_task_count` / `failed_task_count` | 采集覆盖数据。 |
+| `analyzed_answer_count` | 本指标实际纳入分析的回答数。 |
+| `coverage_rate` | 覆盖率，用于 dashboard 展示数据完整性。 |
+| `source_watermark` | 输入数据水位，可记录 `analysis_runs.input_watermark` 或后续快照输入版本。 |
+| `dimension_hash` | 品牌、平台、关键词等维度组合的 hash，用于幂等唯一键。 |
+| `generated_at` | 快照生成时间，用于新鲜度展示。 |
+
+幂等键为 `(tenant_key, project_id, metric_date, metric_name, metric_definition_version, analysis_run_id, dimension_hash)`。没有直接把 `brand_id + platform + keyword` 全量放进唯一键，是因为这些维度字段和 `tenant_key` 都是 `utf8mb4 varchar`，MySQL 复合唯一索引容易超过 3072-byte 上限；`dimension_hash` 能在保留原始维度字段的同时稳定支持重算 upsert。
+
+MySQL 迁移脚本：
+
+```powershell
+mysql -u root -p geo < api/database/migrations/20260607_add_metric_snapshots.mysql.sql
+```
+
+快照生成规则在 Phase 6.2 补齐。生成器必须只使用 `status='succeeded'` 的 analysis run，且写入时必须携带同租户 `tenant_key`，不能跨项目或跨租户聚合。
 
 ## 3. 状态机参考
 
