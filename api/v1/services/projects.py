@@ -6,15 +6,19 @@ from typing import Any
 from sqlalchemy.orm import Session
 
 from api.v1.models.schemas import (
+    AlertEventItem,
+    AlertRuleItem,
     MonitoringProjectCreate,
     MonitoringProjectDetail,
     MonitoringProjectSummary,
+    ProjectAlertsResponse,
     ProjectBrandConfigRequest,
     ProjectBrandResponse,
     PromptItemResponse,
     PromptSetConfigRequest,
     PromptSetResponse,
 )
+from api.v1.repositories import alerts as alert_repo
 from api.v1.repositories import projects as project_repo
 
 
@@ -208,3 +212,36 @@ def configure_prompt_set(
     if row is None:
         raise RuntimeError("prompt set could not be loaded")
     return _prompt_set_response(db, tenant_key=tenant_key, row=row)
+
+
+def get_project_alerts(
+    db: Session,
+    *,
+    tenant_key: str,
+    project_id: str,
+    event_limit: int = 100,
+) -> ProjectAlertsResponse | None:
+    if project_repo.get_project(db, tenant_key=tenant_key, project_id=project_id) is None:
+        return None
+
+    rule_rows = alert_repo.list_project_rules(
+        db,
+        tenant_key=tenant_key,
+        project_id=project_id,
+    )
+    event_rows = alert_repo.list_project_events(
+        db,
+        tenant_key=tenant_key,
+        project_id=project_id,
+        limit=event_limit,
+    )
+    rules = [AlertRuleItem(**dict(row)) for row in rule_rows]
+    events = [AlertEventItem(**dict(row)) for row in event_rows]
+    return ProjectAlertsResponse(
+        success=True,
+        project_id=project_id,
+        rule_count=len(rules),
+        event_count=len(events),
+        rules=rules,
+        events=events,
+    )

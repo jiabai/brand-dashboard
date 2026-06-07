@@ -146,6 +146,10 @@ ProjectBrandRole = Literal["target", "competitor", "watch_only"]
 ProjectBrandStatus = Literal["active", "inactive"]
 PromptSetStatus = Literal["draft", "active", "archived"]
 PromptItemStatus = Literal["active", "inactive"]
+AlertRuleType = Literal["metric_drop", "metric_rise", "metric_change"]
+AlertSeverity = Literal["info", "warning", "critical"]
+AlertRuleStatus = Literal["active", "disabled"]
+AlertEventStatus = Literal["open", "acknowledged", "resolved"]
 
 
 class MonitoringProjectCreate(BaseModel):
@@ -259,6 +263,63 @@ class ProjectListResponse(BaseModel):
 class ProjectResponse(BaseModel):
     success: bool
     project: MonitoringProjectDetail
+
+
+class AlertRuleItem(BaseModel):
+    tenant_key: str
+    alert_rule_id: str
+    project_id: str
+    name: str
+    rule_type: AlertRuleType
+    metric_name: str
+    metric_definition_version: str
+    brand_id: str = ""
+    brand_name: Optional[str] = None
+    platform: str = ""
+    keyword: str = ""
+    threshold_value: float
+    severity: AlertSeverity
+    status: AlertRuleStatus
+    created_at: datetime
+    updated_at: datetime
+
+
+class AlertEventItem(BaseModel):
+    tenant_key: str
+    alert_event_id: str
+    alert_rule_id: str
+    project_id: str
+    analysis_run_id: str
+    collection_job_id: str
+    metric_date: date
+    metric_name: str
+    metric_definition_version: str
+    brand_id: str = ""
+    brand_name: Optional[str] = None
+    platform: str = ""
+    keyword: str = ""
+    dimension_hash: str
+    previous_metric_date: Optional[date] = None
+    previous_value: Optional[float] = None
+    current_value: float
+    delta_value: float
+    threshold_value: float
+    severity: AlertSeverity
+    event_status: AlertEventStatus
+    title: str
+    message: str
+    triggered_at: datetime
+    created_at: datetime
+    updated_at: datetime
+
+
+class ProjectAlertsResponse(BaseModel):
+    success: bool
+    project_id: str
+    rule_count: int
+    event_count: int
+    rules: List[AlertRuleItem] = Field(default_factory=list)
+    events: List[AlertEventItem] = Field(default_factory=list)
 
 
 class ProjectBrandConfigResponse(BaseModel):

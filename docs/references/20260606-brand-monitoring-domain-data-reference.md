@@ -483,6 +483,50 @@ GET /api/v1/dashboard/sentiment-analysis
 
 Repository 先按最新成功 analysis run 读取 `metric_snapshots` 中的 `sentiment_positive_ratio`、`sentiment_negative_ratio`、`sentiment_neutral_ratio`、`sentiment_unknown_ratio`，并用 `analyzed_answer_count` 加权汇总。若快照缺失，则从 `qa_brand_state.sentiment_status` 按真实分析事实兜底聚合；若两者都没有，返回空数组和 `data_source=empty`，前端展示“暂无真实情感数据”，不再用 mock 统计填充正式页面。
 
+### 2.5.10 Phase 7.3 告警规则与告警事件
+
+Phase 7.3 新增 `alert_rules` 和 `alert_events`，把指标快照中的异常变化沉淀为可查询、可去重、可追溯的项目级告警事件。本阶段先落后端 MVP，不新增独立前端页面；后续报告和项目页可以直接消费项目告警读面。
+
+核心表：
+
+| 表 | 说明 |
+|------|------|
+| `alert_rules` | 告警规则配置，按 `tenant_key + project_id` 隔离，声明 `rule_type`、`metric_name`、指标口径版本、品牌/平台/关键词维度、阈值、严重级别和启停状态。 |
+| `alert_events` | 告警触发事件，记录规则、项目、analysis run、collection job、指标日期、当前值、上期值、变化幅度、阈值、状态、标题和消息。 |
+
+规则类型：
+
+| `rule_type` | 触发口径 |
+|------|------|
+| `metric_drop` | 同一维度当前值相比上一条指标快照下降幅度大于等于 `threshold_value`。用于提及率下降等场景。 |
+| `metric_rise` | 同一维度当前值相比上一条指标快照上升幅度大于等于 `threshold_value`。用于负面情绪上升等场景。 |
+| `metric_change` | 同一维度当前值相比上一条指标快照的绝对变化大于等于 `threshold_value`。用于信源引用率变化等场景。 |
+
+事件去重键为 `(tenant_key, alert_rule_id, analysis_run_id, metric_date, dimension_hash)`。同一个 analysis run 被重复评估时不会生成重复事件；事件仍保留 `alert_event_id` 作为外部稳定 ID，便于后续确认、解决和报告引用。
+
+内部服务入口：
+
+```python
+evaluate_alert_rules_for_analysis_run(db, tenant_key, analysis_run_id)
+```
+
+服务只评估 `succeeded` analysis run，读取当前 run 的 `metric_snapshots`，再按同一 `project_id + metric_name + metric_definition_version + dimension_hash` 找到更早的最近一条快照作为比较基线。所有查询和写入都必须显式携带 `tenant_key`。
+
+项目告警读取 API：
+
+```text
+GET /api/v1/projects/{project_id}/alerts
+```
+
+权限与返回：
+
+| 范围 | 说明 |
+|------|------|
+| 权限 | 当前租户成员可读取；租户来自服务端鉴权上下文和 `X-Tenant-Key`，请求体不接受 `tenant_key`。 |
+| `rules` | 当前项目下的规则列表，包含状态、阈值和维度。 |
+| `events` | 当前项目下最近的告警事件，默认最多 100 条，可用 `event_limit` 调整。 |
+| 租户隔离 | API 只查询当前租户的 `alert_rules` 和 `alert_events`，不同租户同名项目不会互相泄漏。 |
+
 ## 3. 状态机参考
 
 ### 3.1 项目状态

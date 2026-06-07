@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -11,6 +11,7 @@ from api.v1.dependencies.auth import (
 )
 from api.v1.models.schemas import (
     MonitoringProjectCreate,
+    ProjectAlertsResponse,
     ProjectBrandConfigRequest,
     ProjectBrandConfigResponse,
     ProjectListResponse,
@@ -78,6 +79,24 @@ async def get_project(
     if project is None:
         raise HTTPException(status_code=404, detail="Project not found")
     return ProjectResponse(success=True, project=project)
+
+
+@router.get("/{project_id}/alerts", response_model=ProjectAlertsResponse)
+async def get_project_alerts(
+    project_id: str,
+    event_limit: int = Query(100, ge=1, le=500),
+    tenant: CurrentTenantContext = Depends(get_current_tenant),
+    db: Session = Depends(get_db),
+):
+    alerts = project_service.get_project_alerts(
+        db,
+        tenant_key=tenant.tenant_key,
+        project_id=project_id,
+        event_limit=event_limit,
+    )
+    if alerts is None:
+        raise HTTPException(status_code=404, detail="Project not found")
+    return alerts
 
 
 @router.post("/{project_id}/brands", response_model=ProjectBrandConfigResponse)

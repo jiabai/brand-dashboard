@@ -502,6 +502,95 @@ BEGIN
     UPDATE metric_snapshots SET updated_at = CURRENT_TIMESTAMP WHERE id = OLD.id;
 END;
 
+-- 12. Alert rule and event read model
+CREATE TABLE IF NOT EXISTS alert_rules (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    tenant_key VARCHAR(255) NOT NULL,
+    alert_rule_id VARCHAR(128) NOT NULL,
+    project_id VARCHAR(128) NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    rule_type VARCHAR(32) NOT NULL CHECK (rule_type IN ('metric_drop', 'metric_rise', 'metric_change')),
+    metric_name VARCHAR(64) NOT NULL,
+    metric_definition_version VARCHAR(32) NOT NULL DEFAULT 'brand_metrics_v1',
+    brand_id VARCHAR(128) NOT NULL DEFAULT '',
+    brand_name VARCHAR(255),
+    platform VARCHAR(64) NOT NULL DEFAULT '',
+    keyword VARCHAR(100) NOT NULL DEFAULT '',
+    threshold_value DECIMAL(18,6) NOT NULL,
+    severity VARCHAR(20) NOT NULL DEFAULT 'warning' CHECK (severity IN ('info', 'warning', 'critical')),
+    status VARCHAR(20) NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'disabled')),
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (tenant_key, alert_rule_id),
+    UNIQUE (
+        tenant_key,
+        project_id,
+        rule_type,
+        metric_name,
+        metric_definition_version,
+        brand_id,
+        platform,
+        keyword
+    ),
+    FOREIGN KEY (tenant_key) REFERENCES tenants(tenant_key) ON DELETE CASCADE,
+    FOREIGN KEY (tenant_key, project_id) REFERENCES monitoring_projects(tenant_key, project_id)
+);
+CREATE INDEX IF NOT EXISTS idx_alert_rules_project_status ON alert_rules (tenant_key, project_id, status);
+CREATE INDEX IF NOT EXISTS idx_alert_rules_metric ON alert_rules (tenant_key, project_id, metric_name, rule_type);
+
+CREATE TRIGGER trg_alert_rules_updated_at
+AFTER UPDATE ON alert_rules
+FOR EACH ROW
+BEGIN
+    UPDATE alert_rules SET updated_at = CURRENT_TIMESTAMP WHERE id = OLD.id;
+END;
+
+CREATE TABLE IF NOT EXISTS alert_events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    tenant_key VARCHAR(255) NOT NULL,
+    alert_event_id VARCHAR(128) NOT NULL,
+    alert_rule_id VARCHAR(128) NOT NULL,
+    project_id VARCHAR(128) NOT NULL,
+    analysis_run_id VARCHAR(128) NOT NULL,
+    collection_job_id VARCHAR(128) NOT NULL,
+    metric_date DATE NOT NULL,
+    metric_name VARCHAR(64) NOT NULL,
+    metric_definition_version VARCHAR(32) NOT NULL DEFAULT 'brand_metrics_v1',
+    brand_id VARCHAR(128) NOT NULL DEFAULT '',
+    brand_name VARCHAR(255),
+    platform VARCHAR(64) NOT NULL DEFAULT '',
+    keyword VARCHAR(100) NOT NULL DEFAULT '',
+    dimension_hash VARCHAR(64) NOT NULL,
+    previous_metric_date DATE,
+    previous_value DECIMAL(18,6),
+    current_value DECIMAL(18,6) NOT NULL,
+    delta_value DECIMAL(18,6) NOT NULL,
+    threshold_value DECIMAL(18,6) NOT NULL,
+    severity VARCHAR(20) NOT NULL DEFAULT 'warning' CHECK (severity IN ('info', 'warning', 'critical')),
+    event_status VARCHAR(20) NOT NULL DEFAULT 'open' CHECK (event_status IN ('open', 'acknowledged', 'resolved')),
+    title VARCHAR(255) NOT NULL,
+    message TEXT NOT NULL,
+    triggered_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (tenant_key, alert_event_id),
+    UNIQUE (tenant_key, alert_rule_id, analysis_run_id, metric_date, dimension_hash),
+    FOREIGN KEY (tenant_key) REFERENCES tenants(tenant_key) ON DELETE CASCADE,
+    FOREIGN KEY (tenant_key, project_id) REFERENCES monitoring_projects(tenant_key, project_id),
+    FOREIGN KEY (tenant_key, alert_rule_id) REFERENCES alert_rules(tenant_key, alert_rule_id),
+    FOREIGN KEY (tenant_key, analysis_run_id) REFERENCES analysis_runs(tenant_key, analysis_run_id)
+);
+CREATE INDEX IF NOT EXISTS idx_alert_events_project_status ON alert_events (tenant_key, project_id, event_status, triggered_at);
+CREATE INDEX IF NOT EXISTS idx_alert_events_analysis_run ON alert_events (tenant_key, analysis_run_id);
+CREATE INDEX IF NOT EXISTS idx_alert_events_rule ON alert_events (tenant_key, alert_rule_id);
+
+CREATE TRIGGER trg_alert_events_updated_at
+AFTER UPDATE ON alert_events
+FOR EACH ROW
+BEGIN
+    UPDATE alert_events SET updated_at = CURRENT_TIMESTAMP WHERE id = OLD.id;
+END;
+
 -- 11. 用户监测任务记录表
 CREATE TABLE IF NOT EXISTS llm_query_jobs (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

@@ -403,6 +403,73 @@ CREATE TABLE IF NOT EXISTS `metric_snapshots` (
   CONSTRAINT `metric_snapshots_ibfk_analysis_run` FOREIGN KEY (`tenant_key`,`analysis_run_id`) REFERENCES `analysis_runs` (`tenant_key`,`analysis_run_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Dashboard metric snapshot read model';
 
+CREATE TABLE IF NOT EXISTS `alert_rules` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT 'Primary key',
+  `tenant_key` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Tenant key',
+  `alert_rule_id` varchar(128) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Stable alert rule id',
+  `project_id` varchar(128) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Monitoring project id',
+  `name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Rule display name',
+  `rule_type` varchar(32) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'metric_drop, metric_rise, metric_change',
+  `metric_name` varchar(64) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Metric name to watch',
+  `metric_definition_version` varchar(32) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'brand_metrics_v1' COMMENT 'Metric definition version',
+  `brand_id` varchar(128) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT 'Optional brand dimension',
+  `brand_name` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Brand display name at rule creation time',
+  `platform` varchar(64) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT 'Optional platform dimension',
+  `keyword` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT 'Optional keyword dimension',
+  `threshold_value` decimal(18,6) NOT NULL COMMENT 'Absolute delta threshold',
+  `severity` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'warning' COMMENT 'info, warning, critical',
+  `status` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'active' COMMENT 'active or disabled',
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Created time',
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'Updated time',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_tenant_alert_rule` (`tenant_key`,`alert_rule_id`),
+  UNIQUE KEY `uk_alert_rules_identity` (`tenant_key`(128),`project_id`,`rule_type`,`metric_name`,`metric_definition_version`,`brand_id`,`platform`,`keyword`),
+  KEY `idx_alert_rules_project_status` (`tenant_key`(128),`project_id`,`status`),
+  KEY `idx_alert_rules_metric` (`tenant_key`(128),`project_id`,`metric_name`,`rule_type`),
+  CONSTRAINT `alert_rules_ibfk_tenant` FOREIGN KEY (`tenant_key`) REFERENCES `tenants` (`tenant_key`) ON DELETE CASCADE,
+  CONSTRAINT `alert_rules_ibfk_project` FOREIGN KEY (`tenant_key`,`project_id`) REFERENCES `monitoring_projects` (`tenant_key`,`project_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Brand monitoring alert rules';
+
+CREATE TABLE IF NOT EXISTS `alert_events` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT 'Primary key',
+  `tenant_key` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Tenant key',
+  `alert_event_id` varchar(128) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Stable alert event id',
+  `alert_rule_id` varchar(128) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Source alert rule id',
+  `project_id` varchar(128) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Monitoring project id',
+  `analysis_run_id` varchar(128) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Current analysis run id',
+  `collection_job_id` varchar(128) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Current collection job id',
+  `metric_date` date NOT NULL COMMENT 'Current metric date',
+  `metric_name` varchar(64) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Metric name',
+  `metric_definition_version` varchar(32) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'brand_metrics_v1' COMMENT 'Metric definition version',
+  `brand_id` varchar(128) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT 'Brand dimension',
+  `brand_name` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Brand display name',
+  `platform` varchar(64) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT 'Platform dimension',
+  `keyword` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT 'Keyword dimension',
+  `dimension_hash` varchar(64) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Metric dimension hash',
+  `previous_metric_date` date DEFAULT NULL COMMENT 'Previous comparable metric date',
+  `previous_value` decimal(18,6) DEFAULT NULL COMMENT 'Previous metric value',
+  `current_value` decimal(18,6) NOT NULL COMMENT 'Current metric value',
+  `delta_value` decimal(18,6) NOT NULL COMMENT 'Absolute delta value',
+  `threshold_value` decimal(18,6) NOT NULL COMMENT 'Triggered threshold',
+  `severity` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'warning' COMMENT 'info, warning, critical',
+  `event_status` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'open' COMMENT 'open, acknowledged, resolved',
+  `title` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Alert title',
+  `message` text COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Alert message',
+  `triggered_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Triggered time',
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Created time',
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'Updated time',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_tenant_alert_event` (`tenant_key`,`alert_event_id`),
+  UNIQUE KEY `uk_alert_events_dedupe` (`tenant_key`,`alert_rule_id`,`analysis_run_id`,`metric_date`,`dimension_hash`),
+  KEY `idx_alert_events_project_status` (`tenant_key`(128),`project_id`,`event_status`,`triggered_at`),
+  KEY `idx_alert_events_analysis_run` (`tenant_key`,`analysis_run_id`),
+  KEY `idx_alert_events_rule` (`tenant_key`,`alert_rule_id`),
+  CONSTRAINT `alert_events_ibfk_tenant` FOREIGN KEY (`tenant_key`) REFERENCES `tenants` (`tenant_key`) ON DELETE CASCADE,
+  CONSTRAINT `alert_events_ibfk_project` FOREIGN KEY (`tenant_key`,`project_id`) REFERENCES `monitoring_projects` (`tenant_key`,`project_id`),
+  CONSTRAINT `alert_events_ibfk_rule` FOREIGN KEY (`tenant_key`,`alert_rule_id`) REFERENCES `alert_rules` (`tenant_key`,`alert_rule_id`),
+  CONSTRAINT `alert_events_ibfk_analysis_run` FOREIGN KEY (`tenant_key`,`analysis_run_id`) REFERENCES `analysis_runs` (`tenant_key`,`analysis_run_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Brand monitoring alert events';
+
 -- 11. 用户监测任务记录表
 CREATE TABLE IF NOT EXISTS `llm_query_jobs` (
   `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '任务记录唯一主键ID，自增',
