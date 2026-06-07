@@ -5,11 +5,10 @@
 
 ## 进行中
 
-- 当前无进行中任务。下一步为 Phase 6.3。
+- 当前无进行中任务。下一步为 Phase 6.4。
 
 ## 待办
 
-- [ ] Phase 6.3 迁移 dashboard 查询到快照优先。✅ 验证条件：`DashboardService` 优先读快照，缺失时兼容旧明细聚合，现有 dashboard 测试通过。
 - [ ] Phase 6.4 前端展示数据新鲜度和覆盖率。✅ 验证条件：dashboard 可显示指标生成时间、采集覆盖率、分析完整性，空状态不误导用户。
 - [ ] Phase 7.1 新增问答快照页。✅ 验证条件：可按品牌、平台、关键词、情绪、是否引用过滤原始回答，页面构建通过。
 - [ ] Phase 7.2 接入真实情感分析数据。✅ 验证条件：正式情感页面不再依赖纯 mock 统计，真实无数据时展示明确空状态。
@@ -22,6 +21,7 @@
 
 ## 已完成
 
+- [x] Phase 6.3 迁移 dashboard 查询到快照优先。✅ 验证条件：`DashboardService` 优先读快照，缺失时兼容旧明细聚合，现有 dashboard 测试通过。
 - [x] Phase 6.2 生成品牌指标快照。✅ 验证条件：提及率、首位提及率、Top3 提及率、情绪占比和信源引用率口径测试通过。
 - [x] Phase 6.1 新增指标快照模型。✅ 验证条件：`metric_snapshots` 支持 metric name、value、date、brand、platform、keyword、definition version、analysis run、coverage 字段。
 - [x] Phase 5.3 分析失败可观测和可重试。✅ 验证条件：失败原因入库，retry API 或内部重试入口可用，失败不会污染指标快照。

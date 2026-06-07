@@ -367,6 +367,26 @@ Phase 6.2 新增内部服务 `api/v1/services/metric_snapshots.py` 和仓储 `ap
 
 `reference_rate` 表达“回答是否带任意信源引用”，不等同于旧指标文档中的发稿链接覆盖率；后者依赖 `is_published_link`，应在后续作为独立指标或新口径版本扩展。
 
+### 2.5.6 Phase 6.3 Dashboard 快照优先读取
+
+Phase 6.3 将品牌提及类 dashboard 读取面迁移为快照优先。实现位置仍在 Repository 层，`DashboardService` 对外方法和 API 响应结构保持不变：
+
+| Dashboard 读取面 | 快照来源 | 无快照时兜底 |
+|------|------|------|
+| `brand-metrics` | `metric_snapshots` 中的 `mention_rate`、`first_mention_rate`、`top3_mention_rate`，按品牌加权汇总。 | 旧 `qa_brand_state` 聚合。 |
+| `brand-mention-trend` | 指定品牌、平台、关键词、日期的 `mention_rate` 快照。 | 旧 `qa_brand_state` 日聚合。 |
+| `platform-metrics-by-brand` | 指定品牌下按平台加权汇总 `mention_rate`。 | 旧 `qa_brand_state` 平台聚合。 |
+| `keyword-platform-brand-rates` | 按关键词、平台、品牌读取 `mention_rate`、`first_mention_rate`、`top3_mention_rate` 快照。 | 旧 `qa_brand_state` 聚合。 |
+
+兼容期 dashboard 仍以 `tenant_key + job_id` 作为 URL 和 API 查询输入。快照查询会通过 `analysis_runs.collection_job_id = job_id` 或 `collection_jobs.source_job_id = job_id` 找到最新 succeeded analysis run，因此新采集批次 ID 和旧 legacy job ID 都可以进入同一读取路径。
+
+本阶段暂不迁移以下读取面：
+
+- `platform-mention-rates`：现有接口需要 `category` 维度，Phase 6.2 的 `metric_snapshots` 暂未保存 category。
+- 引用域名、引用类型、URL 引用、发稿链接覆盖率相关接口：这些口径依赖 `qa_reference` 的 domain、content_type、url、`is_published_link` 等明细维度，不能由首版 `brand_metrics_v1` 直接替代。
+
+当匹配不到可用快照时，Repository 返回空列表并继续执行旧明细聚合。这样旧 dashboard、历史 job 和尚未生成快照的采集批次仍能工作；Phase 6.4 再在前端展示快照新鲜度和覆盖率，帮助用户理解数据来源。
+
 ## 3. 状态机参考
 
 ### 3.1 项目状态
