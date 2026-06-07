@@ -19,6 +19,7 @@ from api.v1.models.schemas import (
     PlatformMentionRateResponse,
     PlatformMetricsByBrandResponse,
     PostCitationRateResponse,
+    SentimentAnalysisResponse,
     TimeFrame,
 )
 from api.v1.repositories.connection import get_engine
@@ -356,6 +357,53 @@ async def get_answer_snapshots(
         raise HTTPException(status_code=400, detail=str(e)) from e
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"获取问答快照失败: {str(e)}") from e
+
+
+@router.get("/sentiment-analysis", response_model=SentimentAnalysisResponse)
+async def get_sentiment_analysis(
+    tenant_key: str = Query(..., description="租户唯一字符串标识（tenants.tenant_key）"),
+    job_id: str = Query(..., description="任务ID"),
+    timeframe: TimeFrame = Query(..., description="时间范围"),
+    start_date: Optional[str] = Query(None, description="起始日期(格式: YYYYMMDD)"),
+    end_date: Optional[str] = Query(None, description="结束日期(格式: YYYYMMDD)"),
+    brand: Optional[str] = Query(None, description="品牌名称"),
+    platform: Optional[str] = Query(None, description="平台名称"),
+    keyword: Optional[str] = Query(None, description="关键词"),
+    service: DashboardService = Depends(get_dashboard_service),
+):
+    try:
+        query_start_date, query_end_date = service.resolve_date_range(
+            timeframe, start_date, end_date,
+        )
+        data, sentiment_metadata = service.get_sentiment_analysis(
+            tenant_key=tenant_key,
+            job_id=job_id,
+            query_start_date=query_start_date,
+            query_end_date=query_end_date,
+            brand=brand,
+            platform=platform,
+            keyword=keyword,
+        )
+        return SentimentAnalysisResponse(
+            status="success",
+            data=data,
+            metadata=_build_metadata(
+                tenant_key=tenant_key,
+                job_id=job_id,
+                timeframe=timeframe.value,
+                start_date=query_start_date.strftime("%Y%m%d"),
+                end_date=query_end_date.strftime("%Y%m%d"),
+                brand=brand,
+                platform=platform,
+                keyword=keyword,
+                calculation_method="sentiment_distribution",
+                **sentiment_metadata,
+            ),
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"获取情感分析失败: {str(e)}") from e
 
 
 @router.get("/platform-metrics-by-brand", response_model=PlatformMetricsByBrandResponse)

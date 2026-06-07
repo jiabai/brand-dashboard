@@ -19,6 +19,9 @@ from api.v1.models.schemas import (
     PlatformMetricsByBrandData,
     PlatformMetricsByBrandItem,
     PostCitationRateData,
+    SentimentAnalysisData,
+    SentimentDistributionItem,
+    SentimentKeywordItem,
     TimeFrame,
 )
 from api.v1.repositories.answer_snapshots import query_answer_snapshots
@@ -41,6 +44,7 @@ from api.v1.repositories.filter_metadata import (
     query_keyword_platform_brand_rates,
 )
 from api.v1.repositories.metric_snapshots import query_snapshot_quality_metadata
+from api.v1.repositories.sentiment_analysis import query_sentiment_analysis
 from api.v1.utils.date_range import get_date_range
 from api.v1.utils.url_domain_resolver import resolve_url_domain
 
@@ -333,6 +337,38 @@ class DashboardService:
             offset=offset,
         )
         return [AnswerSnapshotItem(**row) for row in rows], total_count
+
+    def get_sentiment_analysis(
+        self,
+        tenant_key: str,
+        job_id: str,
+        query_start_date: date,
+        query_end_date: date,
+        brand: Optional[str] = None,
+        platform: Optional[str] = None,
+        keyword: Optional[str] = None,
+    ) -> Tuple[SentimentAnalysisData, dict[str, Any]]:
+        result = query_sentiment_analysis(
+            self._engine,
+            tenant_key=tenant_key,
+            job_id=job_id,
+            start_date=query_start_date,
+            end_date=query_end_date,
+            brand=brand,
+            platform=platform,
+            keyword=keyword,
+        )
+        data = SentimentAnalysisData(
+            distribution=[
+                SentimentDistributionItem(**item)
+                for item in result.get("distribution", [])
+            ],
+            keywords=[
+                SentimentKeywordItem(**item)
+                for item in result.get("keywords", [])
+            ],
+        )
+        return data, result.get("metadata", {})
 
     def get_platform_metrics_by_brand(
         self, tenant_key: str, job_id: str, brand: str,

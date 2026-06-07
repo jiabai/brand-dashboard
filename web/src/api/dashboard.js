@@ -52,6 +52,32 @@ export const fetchAnswerSnapshots = (
   return fetch(`/api/v1/dashboard/answer-snapshots?${params}`, options);
 };
 
+export const fetchSentimentAnalysis = (
+  {
+    tenantKey,
+    jobId,
+    timeframe,
+    startDate,
+    endDate,
+    brand,
+    platform,
+    keyword,
+  },
+  options,
+) => {
+  const params = buildQueryString({
+    tenant_key: tenantKey,
+    job_id: jobId,
+    timeframe,
+    start_date: timeframe === 'specific_day' ? startDate : undefined,
+    end_date: timeframe === 'specific_day' ? endDate : undefined,
+    brand,
+    platform,
+    keyword,
+  });
+  return fetch(`/api/v1/dashboard/sentiment-analysis?${params}`, options);
+};
+
 export const fetchPostCitationRate = ({ tenantKey, jobId, timeframe, startDate, endDate, brand }, options) => {
   const params = buildQueryString({
     tenant_key: tenantKey,

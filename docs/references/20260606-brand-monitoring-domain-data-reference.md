@@ -446,6 +446,43 @@ GET /api/v1/dashboard/answer-snapshots
 
 Repository 以 `llm_conversations` 为主表，左连接 `qa_brand_state` 和按 `conversation_id` 聚合后的 `qa_reference`。这样没有引用的回答仍能展示；当筛选 `has_reference=false` 时，可明确看到“无引用”回答。若传入 `brand` 或 `sentiment`，查询必须命中同租户同 job 的 `qa_brand_state`，避免用原始回答表的品牌字段误判分析结果。
 
+### 2.5.9 Phase 7.2 真实情感分析页
+
+Phase 7.2 将正式情感分析页面从硬编码 mock 统计切换为真实 dashboard 读面。兼容期仍使用 `tenant_key + job_id` 作为入口，后续 Phase 8 再统一收敛到项目运行页。
+
+API：
+
+```text
+GET /api/v1/dashboard/sentiment-analysis
+```
+
+查询参数：
+
+| 参数 | 说明 |
+|------|------|
+| `tenant_key` / `job_id` | 当前 dashboard 查询边界，所有 SQL 必须带租户过滤。 |
+| `timeframe` / `start_date` / `end_date` | 复用 dashboard 时间窗口；`specific_day` 必须传起止日期。 |
+| `brand` | 可选品牌筛选。快照读 `metric_snapshots.brand_name`，兜底读 `qa_brand_state.brand`。 |
+| `platform` / `keyword` | 可选维度筛选。用于情绪分布和关键词情绪明细。 |
+
+响应 `data`：
+
+| 字段 | 说明 |
+|------|------|
+| `distribution` | 情绪分布数组，包含 `sentiment_status`、`answer_count`、`ratio`。 |
+| `keywords` | 关键词情绪明细，包含 `keyword`、`platform`、`brand`、`sentiment_status`、`answer_count`、`ratio`。 |
+
+响应 `metadata`：
+
+| 字段 | 说明 |
+|------|------|
+| `data_source` | `metric_snapshot`、`legacy_fact` 或 `empty`。 |
+| `sample_count` | 当前筛选窗口纳入情感统计的回答数。 |
+| `snapshot_status` / `metric_definition_version` | 指标快照状态和口径版本。 |
+| `metric_generated_at` / `metric_coverage_rate` | 当数据来自快照时展示生成时间和覆盖率。 |
+
+Repository 先按最新成功 analysis run 读取 `metric_snapshots` 中的 `sentiment_positive_ratio`、`sentiment_negative_ratio`、`sentiment_neutral_ratio`、`sentiment_unknown_ratio`，并用 `analyzed_answer_count` 加权汇总。若快照缺失，则从 `qa_brand_state.sentiment_status` 按真实分析事实兜底聚合；若两者都没有，返回空数组和 `data_source=empty`，前端展示“暂无真实情感数据”，不再用 mock 统计填充正式页面。
+
 ## 3. 状态机参考
 
 ### 3.1 项目状态

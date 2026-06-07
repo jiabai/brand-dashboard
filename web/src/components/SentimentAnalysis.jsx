@@ -1,55 +1,40 @@
-import React, { useEffect, useMemo, useState, useCallback } from 'react';
-import { Smile, ThumbsUp, ThumbsDown, Minus } from 'lucide-react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Minus, Smile, Tags, ThumbsDown, ThumbsUp } from 'lucide-react';
 import { ReactWordcloud } from '@cp949/react-wordcloud';
 
-import { fetchFilterMetadata } from '@/api';
+import { fetchFilterMetadata, fetchSentimentAnalysis } from '@/api';
 import { useDashboardRequestParams } from '@/hooks/useDashboardParams';
+import {
+  normalizeSentimentAnalysis,
+  SENTIMENT_STATUS_META,
+} from '@/utils';
 
 import KeywordSection from './KeywordSection';
+import EmptyState from './EmptyState.jsx';
+import LoadingSpinner from './LoadingSpinner.jsx';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card.jsx';
 
-const MOCK_SENTIMENT = [
-  { name: '正面', value: 600, color: 'var(--chart-2)' },
-  { name: '负面', value: 200, color: 'var(--destructive)' },
-  { name: '中性', value: 200, color: 'var(--chart-4)' },
-];
-
-const SENTIMENT = {
-  POSITIVE: 'positive',
-  NEGATIVE: 'negative',
-  NEUTRAL: 'neutral',
+const SENTIMENT_ICONS = {
+  positive: ThumbsUp,
+  negative: ThumbsDown,
+  neutral: Minus,
+  unknown: Tags,
 };
 
-const WORD_CLOUD_DATA = [
-  { text: '品牌声量', value: 88, sentiment: SENTIMENT.POSITIVE },
-  { text: '正面反馈', value: 72, sentiment: SENTIMENT.POSITIVE },
-  { text: '体验', value: 66, sentiment: SENTIMENT.POSITIVE },
-  { text: '信任', value: 58, sentiment: SENTIMENT.POSITIVE },
-  { text: '价格', value: 52, sentiment: SENTIMENT.NEGATIVE },
-  { text: '服务', value: 46, sentiment: SENTIMENT.NEGATIVE },
-  { text: '质量', value: 44, sentiment: SENTIMENT.POSITIVE },
-  { text: '推荐', value: 40, sentiment: SENTIMENT.POSITIVE },
-  { text: '社媒讨论', value: 36, sentiment: SENTIMENT.NEUTRAL },
-  { text: '复购', value: 32, sentiment: SENTIMENT.POSITIVE },
-  { text: '物流', value: 28, sentiment: SENTIMENT.NEGATIVE },
-  { text: '客服', value: 24, sentiment: SENTIMENT.NEGATIVE },
-];
-
-const SentimentDonut = () => {
-  const total = MOCK_SENTIMENT.reduce((sum, item) => sum + item.value, 0);
+const SentimentDonut = ({ distribution, sampleCount }) => {
   let cursor = 0;
-  const segments = MOCK_SENTIMENT.map((item) => {
+  const segments = distribution.map((item) => {
     const start = cursor;
-    const end = start + (item.value / total) * 100;
+    const end = start + item.ratio * 100;
     cursor = end;
     return `${item.color} ${start}% ${end}%`;
   });
 
-  // 形状图标辅助色盲区分
   const legendShapes = [
     <span key="shape" className="size-2.5 rounded-full" />,
     <span key="shape" className="size-2.5 rotate-45 rounded-sm" />,
     <span key="shape" className="size-0 border-x-[5px] border-b-[8px] border-x-transparent border-b-current" />,
+    <span key="shape" className="size-2.5 rounded-sm" />,
   ];
 
   return (
@@ -58,23 +43,23 @@ const SentimentDonut = () => {
         className="grid size-48 place-items-center rounded-full sm:size-56 lg:size-64"
         style={{ background: `conic-gradient(${segments.join(', ')})` }}
         role="img"
-        aria-label={`情感分布: ${MOCK_SENTIMENT.map((s) => `${s.name} ${Math.round((s.value / total) * 100)}%`).join('，')}`}
+        aria-label={`情感分布: ${distribution.map((item) => `${item.chartLabel} ${item.percentLabel}`).join('，')}`}
       >
         <div className="grid size-28 place-items-center rounded-full bg-card text-center sm:size-32 lg:size-36">
           <div>
-            <div className="text-2xl font-medium text-foreground">{total.toLocaleString()}</div>
+            <div className="text-2xl font-medium text-foreground">{sampleCount.toLocaleString()}</div>
             <div className="text-sm text-muted-foreground">分析样本</div>
           </div>
         </div>
       </div>
       <div className="flex flex-wrap justify-center gap-3">
-        {MOCK_SENTIMENT.map((item, idx) => (
-          <div key={item.name} className="flex items-center gap-2 rounded-md border px-3 py-1 text-sm">
+        {distribution.map((item, index) => (
+          <div key={item.sentimentStatus} className="flex items-center gap-2 rounded-md border px-3 py-1 text-sm">
             <span className="flex items-center justify-center" style={{ color: item.color }}>
-              {legendShapes[idx % legendShapes.length]}
+              {legendShapes[index % legendShapes.length]}
             </span>
-            <span className="font-medium text-foreground">{item.name}</span>
-            <span className="text-muted-foreground">{Math.round((item.value / total) * 100)}%</span>
+            <span className="font-medium text-foreground">{item.chartLabel}</span>
+            <span className="text-muted-foreground">{item.percentLabel}</span>
           </div>
         ))}
       </div>
@@ -82,72 +67,28 @@ const SentimentDonut = () => {
   );
 };
 
-const SENTIMENT_META = {
-  [SENTIMENT.POSITIVE]: {
-    label: '正面',
-    tone: 'text-emerald-600',
-    bg: 'bg-emerald-50',
-    border: 'border-emerald-200',
-    icon: ThumbsUp,
-  },
-  [SENTIMENT.NEGATIVE]: {
-    label: '负面',
-    tone: 'text-red-600',
-    bg: 'bg-red-50',
-    border: 'border-red-200',
-    icon: ThumbsDown,
-  },
-  [SENTIMENT.NEUTRAL]: {
-    label: '中性',
-    tone: 'text-slate-600',
-    bg: 'bg-slate-50',
-    border: 'border-slate-200',
-    icon: Minus,
-  },
-};
-
-const SENTIMENT_COLORS = {
-  [SENTIMENT.POSITIVE]: '#059669', // emerald-600
-  [SENTIMENT.NEGATIVE]: '#dc2626', // red-600
-  [SENTIMENT.NEUTRAL]: '#475569', // slate-600
-};
-
-const WordCloud = () => {
+const WordCloud = ({ words }) => {
   const [activeWord, setActiveWord] = useState(null);
-
-  const words = useMemo(
-    () =>
-      WORD_CLOUD_DATA.map((item) => ({
-        text: item.text,
-        value: item.value,
-        sentiment: item.sentiment,
-      })),
-    [],
-  );
 
   const getWordColor = useCallback(
     (word) => {
-      const meta = SENTIMENT_META[word.sentiment] || SENTIMENT_META[SENTIMENT.NEUTRAL];
-      // 如果词语被激活，使用对应情感颜色；否则使用 muted 颜色
+      const meta = SENTIMENT_STATUS_META[word.sentiment] || SENTIMENT_STATUS_META.neutral;
       if (activeWord && activeWord !== word.text) {
-        return '#94a3b8'; // slate-400 for inactive
+        return '#94a3b8';
       }
-      return SENTIMENT_COLORS[word.sentiment] || '#475569';
+      return meta.hexColor;
     },
     [activeWord],
   );
 
   const getWordTooltip = useCallback((word) => {
-    const meta = SENTIMENT_META[word.sentiment] || SENTIMENT_META[SENTIMENT.NEUTRAL];
-    return `${word.text} · ${meta.label} · 权重: ${word.value}`;
+    const meta = SENTIMENT_STATUS_META[word.sentiment] || SENTIMENT_STATUS_META.neutral;
+    return `${word.text} · ${meta.label} · ${word.value} 条 · ${word.percentLabel}`;
   }, []);
 
-  const handleWordClick = useCallback(
-    (word) => {
-      setActiveWord((prev) => (prev === word.text ? null : word.text));
-    },
-    [],
-  );
+  const handleWordClick = useCallback((word) => {
+    setActiveWord((previous) => (previous === word.text ? null : word.text));
+  }, []);
 
   const callbacks = useMemo(
     () => ({
@@ -160,7 +101,7 @@ const WordCloud = () => {
 
   const options = useMemo(
     () => ({
-      colors: Object.values(SENTIMENT_COLORS),
+      colors: Object.values(SENTIMENT_STATUS_META).map((item) => item.hexColor),
       deterministic: true,
       enableTooltip: true,
       fontFamily: 'system-ui, -apple-system, sans-serif',
@@ -168,7 +109,7 @@ const WordCloud = () => {
       fontStyle: 'normal',
       fontWeight: '600',
       padding: 3,
-      rotationAngles: [-45, 45],
+      rotationAngles: [-35, 35],
       rotations: 3,
       scale: 'sqrt',
       spiral: 'archimedean',
@@ -177,23 +118,34 @@ const WordCloud = () => {
     [],
   );
 
+  if (!words.length) {
+    return (
+      <div className="grid min-h-72 place-items-center rounded-md bg-muted/25 p-4">
+        <EmptyState
+          title="暂无关键词情感数据"
+          description="等待分析运行生成情感事实后，这里会展示关键词对应的情感倾向。"
+          icon={Tags}
+        />
+      </div>
+    );
+  }
+
   return (
     <div
       className="relative min-h-72 overflow-hidden rounded-md bg-muted/25 p-4"
       role="img"
-      aria-label={`热词云: ${words.map((w) => w.text).join('、')}`}
+      aria-label={`热词云: ${words.map((word) => word.text).join('、')}`}
     >
       <ReactWordcloud words={words} callbacks={callbacks} options={options} />
-      {/* 图例 */}
       <div className="mt-3 flex flex-wrap justify-center gap-3">
-        {Object.entries(SENTIMENT_META).map(([key, meta]) => {
-          const Icon = meta.icon;
+        {Object.entries(SENTIMENT_STATUS_META).map(([key, meta]) => {
+          const Icon = SENTIMENT_ICONS[key] || Tags;
           return (
             <div key={key} className="flex items-center gap-1.5 text-xs">
-              <span className={`inline-flex size-4 items-center justify-center rounded-full ${meta.bg} ${meta.border} border`}>
+              <span className="inline-flex size-4 items-center justify-center rounded-full border bg-background">
                 <Icon className="size-2.5" />
               </span>
-              <span className={meta.tone}>{meta.label}</span>
+              <span style={{ color: meta.hexColor }}>{meta.label}</span>
             </div>
           );
         })}
@@ -203,59 +155,105 @@ const WordCloud = () => {
 };
 
 export default function SentimentAnalysis() {
-  const { date, endDate, tenantKey, jobId } = useDashboardRequestParams();
+  const {
+    date,
+    endDate,
+    tenantKey,
+    jobId,
+    brand,
+    timeframe,
+    selectedPlatform,
+  } = useDashboardRequestParams();
   const [keywords, setKeywords] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const [selectedKeyword, setSelectedKeyword] = useState('');
+  const [sentimentData, setSentimentData] = useState(() => normalizeSentimentAnalysis());
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const stats = useMemo(() => {
-    const total = MOCK_SENTIMENT.reduce((sum, item) => sum + item.value, 0);
-    const positive = MOCK_SENTIMENT.find((item) => item.name === '正面')?.value ?? 0;
-    const negative = MOCK_SENTIMENT.find((item) => item.name === '负面')?.value ?? 0;
-
-    return [
-      { label: '分析样本数', value: total.toLocaleString() },
-      { label: '正面情感占比', value: `${Math.round((positive / total) * 100)}%` },
-      { label: '负面情感占比', value: `${Math.round((negative / total) * 100)}%` },
-    ];
-  }, []);
+  const stats = useMemo(
+    () => [
+      { label: '分析样本数', value: sentimentData.summary.sampleCountLabel },
+      { label: '正面情感占比', value: sentimentData.summary.positivePercentLabel },
+      { label: '负面情感占比', value: sentimentData.summary.negativePercentLabel },
+      { label: '数据来源', value: sentimentData.summary.sourceLabel },
+    ],
+    [sentimentData],
+  );
 
   useEffect(() => {
     const controller = new AbortController();
 
-    const fetchMetadata = async () => {
-      setLoading(true);
-      setError(null);
+    const loadSentimentData = async () => {
+      setIsLoading(true);
+      setError('');
       try {
-        const result = await fetchFilterMetadata(
-          { tenantKey, jobId, startDate: date, endDate },
-          { signal: controller.signal },
-        );
+        const [metadataPayload, sentimentPayload] = await Promise.all([
+          fetchFilterMetadata(
+            { tenantKey, jobId, startDate: date, endDate },
+            { signal: controller.signal },
+          ),
+          fetchSentimentAnalysis(
+            {
+              tenantKey,
+              jobId,
+              timeframe,
+              startDate: date,
+              endDate: endDate || date,
+              brand: brand || undefined,
+              platform: selectedPlatform || undefined,
+              keyword: selectedKeyword || undefined,
+            },
+            { signal: controller.signal },
+          ),
+        ]);
 
-        if (result?.code === 200 && result.data) {
-          setKeywords(result.data.keywords || []);
+        if (metadataPayload?.code === 200 && metadataPayload.data) {
+          setKeywords(metadataPayload.data.keywords || []);
         } else {
-          throw new Error(result?.message || '获取元数据失败');
+          setKeywords([]);
         }
+
+        if (sentimentPayload?.status && sentimentPayload.status !== 'success') {
+          throw new Error('情感分析接口返回错误状态');
+        }
+
+        setSentimentData(normalizeSentimentAnalysis(sentimentPayload));
       } catch (err) {
-        if (err.name === 'AbortError') return;
-        console.error('Fetch filter metadata error:', err);
-        setError(err.message);
+        if (controller.signal.aborted || err?.name === 'AbortError') return;
+        setKeywords([]);
+        setSentimentData(normalizeSentimentAnalysis());
+        setError(err?.message || '情感分析数据加载失败');
       } finally {
-        setLoading(false);
+        if (!controller.signal.aborted) {
+          setIsLoading(false);
+        }
       }
     };
 
-    fetchMetadata();
+    loadSentimentData();
 
     return () => {
       controller.abort();
     };
-  }, [tenantKey, jobId, date, endDate]);
+  }, [
+    brand,
+    date,
+    endDate,
+    jobId,
+    selectedKeyword,
+    selectedPlatform,
+    tenantKey,
+    timeframe,
+  ]);
 
   return (
     <div className="flex min-h-[calc(100vh-112px)] w-full flex-col gap-6">
-      <KeywordSection keywords={keywords} loading={loading} />
+      <KeywordSection
+        keywords={keywords}
+        loading={isLoading}
+        selectedKeyword={selectedKeyword}
+        onKeywordChange={setSelectedKeyword}
+      />
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
       <Card className="flex flex-1 flex-col">
         <CardHeader className="space-y-3">
@@ -270,13 +268,40 @@ export default function SentimentAnalysis() {
                 <strong className="font-medium text-foreground">{item.value}</strong>
               </span>
             ))}
+            {sentimentData.summary.source === 'metric_snapshot' ? (
+              <span className="text-muted-foreground">
+                指标生成：
+                <strong className="font-medium text-foreground">
+                  {sentimentData.summary.generatedAtLabel}
+                </strong>
+              </span>
+            ) : null}
           </div>
         </CardHeader>
         <CardContent className="grid flex-1 gap-6 lg:grid-cols-[1fr_0.8fr]">
-          <div className="flex min-h-80 items-center justify-center">
-            <SentimentDonut />
-          </div>
-          <WordCloud />
+          {isLoading ? (
+            <div className="grid min-h-80 place-items-center lg:col-span-2">
+              <LoadingSpinner text="正在加载情感分析数据..." />
+            </div>
+          ) : sentimentData.hasData ? (
+            <>
+              <div className="flex min-h-80 items-center justify-center">
+                <SentimentDonut
+                  distribution={sentimentData.distribution}
+                  sampleCount={sentimentData.summary.sampleCount}
+                />
+              </div>
+              <WordCloud words={sentimentData.wordCloud} />
+            </>
+          ) : (
+            <div className="grid min-h-80 place-items-center lg:col-span-2">
+              <EmptyState
+                title="暂无真实情感数据"
+                description="等待分析运行生成情感事实，或调整品牌、平台、关键词和时间范围后重试。"
+                icon={Smile}
+              />
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

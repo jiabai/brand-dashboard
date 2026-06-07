@@ -639,6 +639,38 @@ class AnswerSnapshotsResponse(BaseModel):
     metadata: Dict[str, Any] = Field(..., description="元数据")
 
 
+class SentimentDistributionItem(BaseModel):
+    sentiment_status: str = Field(..., description="情绪状态")
+    answer_count: int = Field(..., description="回答数量")
+    ratio: float = Field(..., description="情绪占比，0 到 1")
+
+
+class SentimentKeywordItem(BaseModel):
+    keyword: str = Field(..., description="关键词")
+    platform: str = Field(..., description="平台")
+    brand: str = Field(..., description="品牌")
+    sentiment_status: str = Field(..., description="情绪状态")
+    answer_count: int = Field(..., description="回答数量")
+    ratio: float = Field(..., description="该关键词维度内的情绪占比")
+
+
+class SentimentAnalysisData(BaseModel):
+    distribution: List[SentimentDistributionItem] = Field(
+        default_factory=list,
+        description="情绪分布",
+    )
+    keywords: List[SentimentKeywordItem] = Field(
+        default_factory=list,
+        description="关键词情绪明细",
+    )
+
+
+class SentimentAnalysisResponse(BaseModel):
+    status: str = Field(..., description="响应状态")
+    data: SentimentAnalysisData = Field(..., description="情感分析数据")
+    metadata: Dict[str, Any] = Field(..., description="元数据")
+
+
 class AvailableDatesResponse(BaseModel):
     status: str = Field(..., description="响应状态")
     data: List[str] = Field(..., description="日期列表 (YYYY-MM-DD)")
