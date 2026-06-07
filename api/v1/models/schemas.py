@@ -150,6 +150,9 @@ AlertRuleType = Literal["metric_drop", "metric_rise", "metric_change"]
 AlertSeverity = Literal["info", "warning", "critical"]
 AlertRuleStatus = Literal["active", "disabled"]
 AlertEventStatus = Literal["open", "acknowledged", "resolved"]
+ReportType = Literal["project_summary"]
+ReportTimeframe = Literal["custom", "daily", "weekly", "monthly"]
+ReportStatus = Literal["generated", "failed"]
 
 
 class MonitoringProjectCreate(BaseModel):
@@ -320,6 +323,48 @@ class ProjectAlertsResponse(BaseModel):
     event_count: int
     rules: List[AlertRuleItem] = Field(default_factory=list)
     events: List[AlertEventItem] = Field(default_factory=list)
+
+
+class GenerateProjectReportRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    report_id: Optional[str] = Field(None, min_length=1, max_length=128)
+    report_type: ReportType = Field("project_summary")
+    title: Optional[str] = Field(None, min_length=1, max_length=255)
+    timeframe: ReportTimeframe = Field("custom")
+    start_date: date
+    end_date: date
+
+
+class GeneratedReportItem(BaseModel):
+    tenant_key: str
+    report_id: str
+    project_id: str
+    report_type: ReportType
+    title: str
+    timeframe: ReportTimeframe
+    start_date: date
+    end_date: date
+    status: ReportStatus
+    summary: Dict[str, Any] = Field(default_factory=dict)
+    metrics: Dict[str, Any] = Field(default_factory=dict)
+    alerts: Dict[str, Any] = Field(default_factory=dict)
+    generated_by: Optional[int] = None
+    generated_at: datetime
+    created_at: datetime
+    updated_at: datetime
+
+
+class ProjectReportResponse(BaseModel):
+    success: bool
+    report: GeneratedReportItem
+
+
+class ProjectReportListResponse(BaseModel):
+    success: bool
+    project_id: str
+    count: int
+    reports: List[GeneratedReportItem] = Field(default_factory=list)
 
 
 class ProjectBrandConfigResponse(BaseModel):

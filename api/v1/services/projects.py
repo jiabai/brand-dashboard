@@ -8,18 +8,22 @@ from sqlalchemy.orm import Session
 from api.v1.models.schemas import (
     AlertEventItem,
     AlertRuleItem,
+    GeneratedReportItem,
+    GenerateProjectReportRequest,
     MonitoringProjectCreate,
     MonitoringProjectDetail,
     MonitoringProjectSummary,
     ProjectAlertsResponse,
     ProjectBrandConfigRequest,
     ProjectBrandResponse,
+    ProjectReportListResponse,
     PromptItemResponse,
     PromptSetConfigRequest,
     PromptSetResponse,
 )
 from api.v1.repositories import alerts as alert_repo
 from api.v1.repositories import projects as project_repo
+from api.v1.services import reports as report_service
 
 
 def _now() -> datetime.datetime:
@@ -244,4 +248,46 @@ def get_project_alerts(
         event_count=len(events),
         rules=rules,
         events=events,
+    )
+
+
+def generate_project_report(
+    db: Session,
+    *,
+    tenant_key: str,
+    project_id: str,
+    generated_by: int | None,
+    request: GenerateProjectReportRequest,
+) -> GeneratedReportItem | None:
+    if project_repo.get_project(db, tenant_key=tenant_key, project_id=project_id) is None:
+        return None
+    return report_service.generate_project_report(
+        db,
+        tenant_key=tenant_key,
+        project_id=project_id,
+        generated_by=generated_by,
+        request=request,
+    )
+
+
+def list_project_reports(
+    db: Session,
+    *,
+    tenant_key: str,
+    project_id: str,
+    limit: int = 50,
+) -> ProjectReportListResponse | None:
+    if project_repo.get_project(db, tenant_key=tenant_key, project_id=project_id) is None:
+        return None
+    reports = report_service.list_project_reports(
+        db,
+        tenant_key=tenant_key,
+        project_id=project_id,
+        limit=limit,
+    )
+    return ProjectReportListResponse(
+        success=True,
+        project_id=project_id,
+        count=len(reports),
+        reports=reports,
     )

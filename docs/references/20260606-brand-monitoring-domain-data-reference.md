@@ -527,6 +527,43 @@ GET /api/v1/projects/{project_id}/alerts
 | `events` | 当前项目下最近的告警事件，默认最多 100 条，可用 `event_limit` 调整。 |
 | 租户隔离 | API 只查询当前租户的 `alert_rules` 和 `alert_events`，不同租户同名项目不会互相泄漏。 |
 
+### 2.5.11 Phase 7.4 报告生成与报告结果
+
+Phase 7.4 新增 `generated_reports`，把一次项目报告生成动作沉淀为可查询的报告结果。报告结果不是临时响应，而是包含时间窗口、核心指标快照、告警摘要和生成元数据的 read model；后续 PDF、CSV 或前端报告页都应优先消费该表。
+
+核心表：
+
+| 表 | 说明 |
+|------|------|
+| `generated_reports` | 项目报告结果，按 `tenant_key + report_id` 唯一，绑定 `project_id`，保存 `report_type`、`timeframe`、`start_date`、`end_date`、`summary_json`、`metrics_json`、`alerts_json`、`generated_by` 和 `generated_at`。 |
+
+报告生成入口：
+
+```text
+POST /api/v1/projects/{project_id}/reports
+GET  /api/v1/projects/{project_id}/reports
+```
+
+`POST /reports` 接收 `report_id`（可选）、`title`（可选）、`report_type`、`timeframe`、`start_date` 和 `end_date`。服务端使用当前认证用户和 `X-Tenant-Key` 解析出的租户上下文，不接受请求体传入 `tenant_key`。
+
+数据来源：
+
+| 数据 | 来源 | 说明 |
+|------|------|------|
+| 核心指标 | `metric_snapshots` | 读取 `mention_rate`、`first_mention_rate`、`top3_mention_rate`、`sentiment_negative_ratio`、`reference_rate`，按品牌和指标口径版本聚合。 |
+| 时间窗口 | 请求参数 `start_date` / `end_date` | 同时写入报告行字段和 `summary_json.data_window`。 |
+| 告警摘要 | `alert_events` | 按同一项目和指标日期窗口读取，写入事件数量、打开事件数量、严重级别统计和事件摘要。 |
+| 生成元数据 | 当前用户与生成时间 | `generated_by` 记录用户 ID，`generated_at` 记录生成时间。 |
+
+验收口径：
+
+| 项 | 说明 |
+|----|------|
+| 生成报告 | 项目成员可调用 POST 生成一条 `generated_reports` 记录。 |
+| 核心指标 | 响应和持久化 JSON 中包含核心指标和指标口径版本。 |
+| 时间窗口 | 响应和持久化 JSON 中包含 `start_date`、`end_date` 和 `timeframe`。 |
+| 租户隔离 | GET 列表只返回当前租户、当前项目下的报告结果，不泄漏其他租户同名项目。 |
+
 ## 3. 状态机参考
 
 ### 3.1 项目状态
@@ -589,6 +626,7 @@ GET  /api/v1/projects/{project_id}/metrics/trends
 GET  /api/v1/projects/{project_id}/answers
 GET  /api/v1/projects/{project_id}/alerts
 GET  /api/v1/projects/{project_id}/reports
+POST /api/v1/projects/{project_id}/reports
 ```
 
 执行器 API：

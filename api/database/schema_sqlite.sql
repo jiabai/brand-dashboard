@@ -592,6 +592,41 @@ BEGIN
 END;
 
 -- 11. 用户监测任务记录表
+CREATE TABLE IF NOT EXISTS generated_reports (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    tenant_key VARCHAR(255) NOT NULL,
+    report_id VARCHAR(128) NOT NULL,
+    project_id VARCHAR(128) NOT NULL,
+    report_type VARCHAR(32) NOT NULL DEFAULT 'project_summary'
+        CHECK (report_type IN ('project_summary')),
+    title VARCHAR(255) NOT NULL,
+    timeframe VARCHAR(32) NOT NULL DEFAULT 'custom'
+        CHECK (timeframe IN ('custom', 'daily', 'weekly', 'monthly')),
+    start_date DATE NOT NULL,
+    end_date DATE NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'generated'
+        CHECK (status IN ('generated', 'failed')),
+    summary_json TEXT NOT NULL,
+    metrics_json TEXT NOT NULL,
+    alerts_json TEXT,
+    generated_by INTEGER,
+    generated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (tenant_key, report_id),
+    FOREIGN KEY (tenant_key) REFERENCES tenants(tenant_key) ON DELETE CASCADE,
+    FOREIGN KEY (tenant_key, project_id) REFERENCES monitoring_projects(tenant_key, project_id)
+);
+CREATE INDEX IF NOT EXISTS idx_generated_reports_project_generated ON generated_reports (tenant_key, project_id, generated_at);
+CREATE INDEX IF NOT EXISTS idx_generated_reports_project_window ON generated_reports (tenant_key, project_id, start_date, end_date);
+
+CREATE TRIGGER trg_generated_reports_updated_at
+AFTER UPDATE ON generated_reports
+FOR EACH ROW
+BEGIN
+    UPDATE generated_reports SET updated_at = CURRENT_TIMESTAMP WHERE id = OLD.id;
+END;
+
 CREATE TABLE IF NOT EXISTS llm_query_jobs (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     tenant_key VARCHAR(255) NOT NULL,

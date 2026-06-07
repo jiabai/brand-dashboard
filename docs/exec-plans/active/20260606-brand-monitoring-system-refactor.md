@@ -41,6 +41,7 @@ Decision Log, and Outcomes & Retrospective must be kept up to date as work proce
 - [x] Phase 7.1: 新增问答快照 API、前端页面和筛选入口（2026-06-07）
 - [x] Phase 7.2: 接入真实情感分析数据并移除正式页 mock 统计（2026-06-07）
 - [x] Phase 7.3: 新增告警规则、告警事件和项目告警读取 API（2026-06-07）
+- [x] Phase 7.4: 新增报告生成、报告列表和生成报告 read model（2026-06-08）
 - [ ] Phase 7: 完善问答快照、告警、报告和数据质量页面
 - [ ] Phase 8: 清理兼容层，归档计划
 
@@ -77,6 +78,7 @@ Decision Log, and Outcomes & Retrospective must be kept up to date as work proce
 - 2026-06-07：Phase 7.1 的问答快照先以旧 dashboard 的 `tenant_key + job_id` 为入口，能立即复用现有时间筛选、品牌指标和筛选元数据；目标项目级问答快照路由留到 Phase 8 收敛兼容层时统一处理。
 - 2026-06-07：Phase 7.2 情感分析页面可直接复用 Phase 6 的 `metric_snapshots` 情绪比例；快照缺失时再读取 `qa_brand_state` 明细事实，仍然必须明确标记 `data_source`，避免把旧明细聚合误认为新快照口径。
 - 2026-06-07：Phase 7.3 告警事件可以先从同一维度的 `metric_snapshots` 前后两次指标变化触发；这能覆盖提及率下降、负面情绪上升和信源引用率变化，不需要在 MVP 阶段引入独立异常检测引擎。
+- 2026-06-08：Phase 7.4 的“报告导出基础能力”应先固化为可持久化的报告结果，而不是直接生成文件；这样报告列表、后续 PDF/CSV 导出和项目页均可复用同一个 `generated_reports` 快照。
 
 ## Decision Log
 
@@ -130,6 +132,8 @@ Decision Log, and Outcomes & Retrospective must be kept up to date as work proce
 | Phase 7.2 情感数据采用快照优先、明细兜底、空数据显式标记 | `metric_snapshots` 能表达成功 analysis run 的情绪比例；历史或未生成快照的数据仍可从 `qa_brand_state` 读取事实；两者都没有时返回 `data_source=empty`，正式页不再展示 mock | 2026-06-07 / agent |
 | Phase 7.3 告警先落后端规则、事件和项目读取 API | Phase 7 的验收重点是业务闭环和事件记录；先把 `alert_rules` / `alert_events` 与 `metric_snapshots`、`analysis_runs` 血缘固定，再在后续报告或项目页消费该读面，能避免前端先行但无稳定事件来源 | 2026-06-07 / agent |
 | Phase 7.3 告警事件按 `rule + analysis_run + metric_date + dimension_hash` 去重 | 同一个 analysis run 可能被重复评估；事件表必须保证重复执行不制造重复告警，同时保留可追踪的项目、采集批次、指标日期和维度信息 | 2026-06-07 / agent |
+| Phase 7.4 报告先落后端生成结果与列表 API | 验收条件要求项目能生成或导出包含核心指标和时间窗口的报告结果；先以 `generated_reports` 持久化 JSON 快照承接核心指标、时间窗口和告警摘要，后续再在同一结果上扩展文件导出 | 2026-06-08 / agent |
+| Phase 7.4 报告核心指标直接读取 `metric_snapshots` | 报告属于指标消费读面，不应重新扫描旧明细事实；读取快照能继承 Phase 6 的指标口径版本、覆盖率和 analysis run 血缘，并保持所有查询显式携带 `tenant_key` | 2026-06-08 / agent |
 
 ## Context and Orientation
 
@@ -299,6 +303,7 @@ Decision Log, and Outcomes & Retrospective must be kept up to date as work proce
 - 2026-06-07 / Phase 7.1：先新增 `api/tests/test_answer_snapshots_api.py`、`web/src/api/__tests__/answerSnapshots.test.js`、`web/src/utils/__tests__/answerSnapshots.test.js`、`web/src/components/__tests__/answerSnapshotsPage.test.js` 并更新路由测试，确认旧实现下后端返回 404、前端缺少 adapter/页面/工具且 snapshots 路由未启用；补齐 `GET /api/v1/dashboard/answer-snapshots`、`api/v1/repositories/answer_snapshots.py`、Pydantic 响应契约、`AnswerSnapshotsPage`、前端 API adapter、归一化工具和 `/snapshots/:tenantKey/:jobId` 路由后，后端定向测试通过（2 passed, 104 warnings），前端定向测试通过（8 passed）；`uv run --project api ruff check api` 通过；`$env:PYTHONPATH='.'; uv run --project api --extra dev pytest api/tests/ -q` 通过（156 passed, 1263 warnings）；`npm --prefix web test` 通过（76 passed）；`npm --prefix web run lint` 无错误，保留既有 9 个 warning；`npm --prefix web run build` 通过；系统 Chrome + Playwright 对 `/snapshots/:tenantKey/:jobId` 做桌面表格和移动端卡片 mock smoke test 通过，确认原始回答、引用域名可见且无横向溢出；文档 ERROR/WARN 验证通过；`git diff --check` 通过，仅输出既有 LF/CRLF 换行提示。
 - 2026-06-07 / Phase 7.2：先新增 `api/tests/test_sentiment_analysis_api.py`、`web/src/api/__tests__/sentimentAnalysis.test.js`、`web/src/utils/__tests__/sentimentAnalysis.test.js` 和 `web/src/components/__tests__/sentimentAnalysisPage.test.js`，确认旧实现下后端 `sentiment-analysis` 返回 404、前端缺少 adapter/归一化工具且页面仍引用 `MOCK_SENTIMENT` / `WORD_CLOUD_DATA`；补齐 `GET /api/v1/dashboard/sentiment-analysis`、`api/v1/repositories/sentiment_analysis.py`、Pydantic 响应契约、前端 API adapter、`normalizeSentimentAnalysis` 和真实数据页面后，后端定向测试通过（3 passed, 44 warnings），前端定向测试通过（5 passed）；`uv run --project api ruff check api` 通过；`$env:PYTHONPATH='.'; uv run --project api --extra dev pytest api/tests/ -q` 通过（159 passed, 1301 warnings）；`npm --prefix web test` 通过（81 passed）；`npm --prefix web run lint` 无错误，保留既有 8 个 warning；`npm --prefix web run build` 通过；系统 Chrome + Playwright 对 `/sentiment/:tenantKey/:jobId` 做桌面/移动真实数据和移动端空状态 mock smoke test 通过，确认不再展示旧 mock 样本且无横向溢出；文档 ERROR/WARN 验证通过；`git diff --check` 通过，仅输出既有 LF/CRLF 换行提示。
 - 2026-06-07 / Phase 7.3：先新增 `api/tests/test_alert_rules.py`，确认缺少 `alert_rules` / `alert_events` schema、告警评估服务和项目告警 API 时失败；补齐 MySQL/SQLite schema、MySQL 迁移、`api/v1/repositories/alerts.py`、`api/v1/services/alerts.py`、Pydantic 告警响应契约和 `GET /api/v1/projects/{project_id}/alerts` 后，定向测试通过（4 passed, 95 warnings）；`uv run --project api ruff check api` 通过；`$env:PYTHONPATH='.'; uv run --project api --extra dev pytest api/tests/ -q` 通过（163 passed, 1390 warnings）；文档 ERROR/WARN 验证通过；`git diff --check` 通过，仅输出既有 LF/CRLF 换行提示。本阶段未改前端。
+- 2026-06-08 / Phase 7.4：先新增 `api/tests/test_project_reports.py`，确认缺少 `generated_reports` schema、MySQL 迁移、SQLite 外键、项目报告生成 API 和报告列表 API 时失败；补齐 MySQL/SQLite schema、`api/database/migrations/20260608_add_generated_reports.mysql.sql`、`api/v1/repositories/reports.py`、`api/v1/services/reports.py`、Pydantic 报告契约、`POST /api/v1/projects/{project_id}/reports` 和 `GET /api/v1/projects/{project_id}/reports` 后，定向测试通过（4 passed, 128 warnings）；`uv run --project api ruff check api` 通过；`$env:PYTHONPATH='.'; uv run --project api --extra dev pytest api/tests/ -q` 通过（167 passed, 1512 warnings）；文档 ERROR/WARN 验证通过；`git diff --check` 通过，仅输出既有 LF/CRLF 换行提示。本阶段未改前端，也未生成 PDF/CSV 文件。
 
 阶段性验收：
 

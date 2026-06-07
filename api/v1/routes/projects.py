@@ -10,11 +10,14 @@ from api.v1.dependencies.auth import (
     require_current_tenant,
 )
 from api.v1.models.schemas import (
+    GenerateProjectReportRequest,
     MonitoringProjectCreate,
     ProjectAlertsResponse,
     ProjectBrandConfigRequest,
     ProjectBrandConfigResponse,
     ProjectListResponse,
+    ProjectReportListResponse,
+    ProjectReportResponse,
     ProjectResponse,
     PromptSetConfigRequest,
     PromptSetConfigResponse,
@@ -79,6 +82,62 @@ async def get_project(
     if project is None:
         raise HTTPException(status_code=404, detail="Project not found")
     return ProjectResponse(success=True, project=project)
+
+
+@router.get("/{project_id}/reports", response_model=ProjectReportListResponse)
+async def list_project_reports(
+    project_id: str,
+    limit: int = Query(50, ge=1, le=200),
+    tenant: CurrentTenantContext = Depends(get_current_tenant),
+    db: Session = Depends(get_db),
+):
+    reports = project_service.list_project_reports(
+        db,
+        tenant_key=tenant.tenant_key,
+        project_id=project_id,
+        limit=limit,
+    )
+    if reports is None:
+        raise HTTPException(status_code=404, detail="Project not found")
+    return reports
+
+
+@router.post(
+    "/{project_id}/reports",
+    response_model=ProjectReportResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def generate_project_report(
+    project_id: str,
+    request: GenerateProjectReportRequest,
+    tenant: CurrentTenantContext = Depends(get_current_tenant),
+    current_user: CurrentUser = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    try:
+        report = project_service.generate_project_report(
+            db,
+            tenant_key=tenant.tenant_key,
+            project_id=project_id,
+            generated_by=current_user.user_id,
+            request=request,
+        )
+        if report is None:
+            raise HTTPException(status_code=404, detail="Project not found")
+        db.commit()
+        return ProjectReportResponse(success=True, report=report)
+    except HTTPException:
+        db.rollback()
+        raise
+    except IntegrityError as exc:
+        db.rollback()
+        raise HTTPException(status_code=409, detail="Project report conflicts") from exc
+    except ValueError as exc:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to generate report: {exc}") from exc
 
 
 @router.get("/{project_id}/alerts", response_model=ProjectAlertsResponse)
