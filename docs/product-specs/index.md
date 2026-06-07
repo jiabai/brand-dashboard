@@ -22,3 +22,4 @@ Product specs describe user-visible intent and boundaries before or alongside im
 | [20260520-040000-platform-admin-tenant-read-access.md](20260520-040000-platform-admin-tenant-read-access.md) | 平台管理员全租户只读看板：平台运营可查看所有 active 租户 dashboard，但不获得写权限 |
 | [20260521-185332-platform-admin-job-aware-dashboard-entry.md](20260521-185332-platform-admin-job-aware-dashboard-entry.md) | 平台管理员 Job 感知看板入口：平台租户列表展示 job 摘要并使用真实 tenant/job/brand 进入 dashboard |
 | [20260603-000000-admin-activation-email.md](20260603-000000-admin-activation-email.md) | 管理员激活邮件发送：创建租户后通过 SMTP 自动发送激活链接，并保留人工兜底 |
+| [20260606-brand-monitoring-system-refactor.md](20260606-brand-monitoring-system-refactor.md) | 品牌监测业务系统重构：以监测项目为主线，补齐采集、分析、指标、告警和报告闭环 |

@@ -15,6 +15,11 @@ except Exception:
     load_dotenv = None
 
 from .business_services.llm_brand_recognizer import LLMBrandRecognizer
+from .core.database_config import (
+    DatabaseConfigError,
+    build_mysql_database_url,
+    resolve_database_config,
+)
 from .core.plugin_interface import PluginRegistry
 from .core.plugin_manager import PluginManager
 
@@ -277,32 +282,11 @@ class BrandAnalyzer:
             raise ValueError("; ".join(errors))
 
     def _validate_database_config(self, db_cfg: Any) -> Tuple[bool, str]:
-        if not isinstance(db_cfg, dict):
-            return False, "Missing or invalid `brand_analysis.database` object"
-
-        host = db_cfg.get("host")
-        port = db_cfg.get("port", 3306)
-        user = db_cfg.get("user")
-        password = db_cfg.get("password")
-        name = db_cfg.get("name")
-
-        if not isinstance(host, str) or not host.strip():
-            return False, "Missing or invalid `brand_analysis.database.host`"
-        if not isinstance(user, str) or not user.strip():
-            return False, "Missing or invalid `brand_analysis.database.user`"
-        if not isinstance(password, str) or not password.strip():
-            return False, "Missing or invalid `brand_analysis.database.password`"
-        if not isinstance(name, str) or not name.strip():
-            return False, "Missing or invalid `brand_analysis.database.name`"
-
-        if isinstance(port, str):
-            if not port.isdigit():
-                return False, "Invalid `brand_analysis.database.port`"
-            port = int(port)
-        if not isinstance(port, int) or not (1 <= port <= 65535):
-            return False, "Invalid `brand_analysis.database.port`"
-
-        return True, ""
+        try:
+            resolve_database_config(db_cfg)
+            return True, ""
+        except DatabaseConfigError as exc:
+            return False, str(exc)
 
     def _validate_llm_config(self, llm_cfg: Any) -> Tuple[bool, str]:
         if not isinstance(llm_cfg, dict) or not llm_cfg:
@@ -637,26 +621,15 @@ class BrandAnalyzer:
             return self._db_engine
 
         db_cfg = self.config.get("brand_analysis", {}).get("database", {})
-        ok, msg = self._validate_database_config(db_cfg)
-        if not ok:
-            logger.error("Database config invalid: %s", msg)
+        try:
+            url = build_mysql_database_url(db_cfg)
+        except DatabaseConfigError as exc:
+            logger.error("Database config invalid: %s", exc)
             return None
-
-        host = str(db_cfg.get("host")).strip()
-        port = db_cfg.get("port", 3306)
-        user = str(db_cfg.get("user")).strip()
-        password = str(db_cfg.get("password")).strip()
-        name = str(db_cfg.get("name")).strip()
-        if isinstance(port, str):
-            port = int(port)
 
         try:
             from sqlalchemy import create_engine
 
-            url = (
-                f"mysql+pymysql://{user}:{password}@{host}:{port}/{name}"
-                "?charset=utf8mb4"
-            )
             self._db_engine = create_engine(url, pool_pre_ping=True)
             return self._db_engine
         except Exception as e:

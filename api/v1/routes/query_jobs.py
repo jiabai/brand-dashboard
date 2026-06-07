@@ -25,12 +25,14 @@ from api.v1.models.schemas import (
 )
 from api.v1.repositories.connection import get_db
 from api.v1.repositories.executors import get_executor_credentials
+from api.v1.repositories.projects import get_project
 from api.v1.repositories.query_jobs import (
     executor_has_job_scope,
     fetch_next_query_job,
     get_query_job_runs,
     increment_query_job_runs,
     insert_query_jobs,
+    query_job_has_loaded_conversation,
 )
 from api.v1.repositories.query_jobs import (
     list_query_jobs_status as list_query_jobs_status_records,
@@ -145,6 +147,7 @@ async def fetch_query_job(
         id=result.id,
         job_id=result.job_id,
         tenant_key=result.tenant_key,
+        project_id=getattr(result, "project_id", None),
         category=result.category,
         brand=result.brand,
         competitor=competitor,
@@ -172,6 +175,17 @@ async def report_query_job(
 
     if query_job.executed_runs >= query_job.total_runs:
         return ReportQueryJobResponse(success=False, message="任务执行次数已达上限")
+
+    # 兼容期缺少 attempt_id，只能用任务粒度字段确认结果已入库。
+    if not query_job_has_loaded_conversation(
+        db,
+        record_id=id,
+        executor_id=executor_id,
+    ):
+        return ReportQueryJobResponse(
+            success=False,
+            message="任务结果尚未成功入库，不能上报完成",
+        )
 
     try:
         # 2. 更新任务执行次数，并根据次数自动更新状态为 2 (已完成)
@@ -229,6 +243,7 @@ async def list_query_jobs_status(
         QueryJobStatusItem(
             tenant_key=row.tenant_key,
             job_id=row.job_id,
+            project_id=getattr(row, "project_id", None),
             brand=row.brand,
             competitor=json.loads(row.competitor) if row.competitor else None,
             query_content=row.query_content,
@@ -246,6 +261,7 @@ def iter_query_jobs(
     data_dict: Dict[str, Any],
     tenant_key: str,
     job_id: str,
+    project_id: Optional[str],
     effective_from: datetime.datetime,
     effective_to: Optional[datetime.datetime],
     executor_id: str,
@@ -277,6 +293,7 @@ def iter_query_jobs(
             yield {
                 "tenant_key": tenant_key,
                 "job_id": job_id,
+                "project_id": project_id,
                 "category": category,
                 "brand": brand,
                 "competitor": competitor_str,
@@ -305,6 +322,14 @@ async def load_query_jobs(
     if request.tenant_key != tenant.tenant_key:
         raise HTTPException(status_code=400, detail="租户上下文不一致")
 
+    project_id = request.project_id.strip() if request.project_id else None
+    if project_id and not get_project(
+        db,
+        tenant_key=tenant.tenant_key,
+        project_id=project_id,
+    ):
+        raise HTTPException(status_code=404, detail=f"项目不存在: {project_id}")
+
     # 1. 验证租户是否存在
     if not tenant_exists(db, tenant.tenant_key):
         raise HTTPException(
@@ -323,6 +348,7 @@ async def load_query_jobs(
                 data_dict,
                 tenant_key=request.tenant_key,
                 job_id=request.job_id,
+                project_id=project_id,
                 effective_from=request.effective_from,
                 effective_to=request.effective_to,
                 executor_id=request.executor_id,

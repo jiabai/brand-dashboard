@@ -4,8 +4,14 @@ import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import dayjs from 'dayjs';
 
 import { CONFIG } from '../config';
-import { loadQueryJob } from '@/api';
+import { fetchProjects, loadQueryJob } from '@/api';
 import { useDashboardParams } from '@/hooks/useDashboardParams';
+import {
+  LEGACY_PROJECT_VALUE,
+  createInitialQueryJobForm,
+  normalizeProjectOptions,
+  validateQueryJobForm,
+} from './query-jobs/queryJobForm.js';
 import { buildRouteSearch, buildViewPath } from '@/utils/routing';
 
 import SubmissionSuccess from './SubmissionSuccess';
@@ -14,31 +20,15 @@ import { Button } from './ui/button.jsx';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card.jsx';
 import { Input } from './ui/input.jsx';
 import { Separator } from './ui/separator.jsx';
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from './ui/select.jsx';
 import { Textarea } from './ui/textarea.jsx';
-
-const createInitialForm = ({ tenantKey, executorId }) => ({
-  tenant_key: tenantKey || '',
-  job_id: '',
-  executor_id: executorId || '',
-  last_executed_date: dayjs().format('YYYY-MM-DD'),
-  effective_from: dayjs().startOf('day').format('YYYY-MM-DDTHH:mm'),
-  effective_to: '',
-  total_runs: 15,
-  executed_runs: 0,
-  data: {
-    category: '',
-    brand: '',
-    competitor: [''],
-    content: [
-      {
-        keyword: '',
-        query_content: [''],
-      },
-    ],
-  },
-});
-
-const formatDateTime = (value) => (value ? dayjs(value).format('YYYY-MM-DDTHH:mm:ss') : undefined);
 
 const Field = ({ label, required = false, children, error }) => (
   <label className="block space-y-1.5">
@@ -59,46 +49,6 @@ const SectionTitle = ({ children }) => (
   </div>
 );
 
-const normalizePayload = (values) => ({
-  ...values,
-  effective_from: formatDateTime(values.effective_from),
-  effective_to: formatDateTime(values.effective_to),
-  last_executed_date: values.last_executed_date || dayjs().format('YYYY-MM-DD'),
-  total_runs: Number(values.total_runs || 15),
-  executed_runs: Number(values.executed_runs || 0),
-  data: {
-    category: values.data.category.trim(),
-    brand: values.data.brand.trim(),
-    competitor: values.data.competitor.map((item) => item.trim()).filter(Boolean),
-    content: values.data.content
-      .map((item) => ({
-        keyword: item.keyword.trim(),
-        query_content: item.query_content.map((query) => query.trim()).filter(Boolean),
-      }))
-      .filter((item) => item.keyword && item.query_content.length),
-  },
-});
-
-const validateForm = (values) => {
-  const errors = [];
-  const payload = normalizePayload(values);
-
-  if (!payload.tenant_key) errors.push('请输入租户标识 Key');
-  if (!payload.job_id) errors.push('请输入任务 ID');
-  if (!payload.executor_id) errors.push('请输入执行器 ID');
-  if (!payload.last_executed_date) errors.push('请选择最近执行日期');
-  if (!payload.effective_from) errors.push('请选择生效开始时间');
-  if (payload.total_runs < 1) errors.push('总执行次数必须大于 0');
-  if (payload.executed_runs < 0) errors.push('已执行次数不能小于 0');
-  if (payload.executed_runs > payload.total_runs) errors.push('已执行次数不能大于总执行次数');
-  if (!payload.data.category) errors.push('请输入分类名称');
-  if (!payload.data.brand) errors.push('请输入品牌名称');
-  if (!payload.data.competitor.length) errors.push('至少需要一个竞品名称');
-  if (!payload.data.content.length) errors.push('至少需要一个有效内容项和查询语句');
-
-  return { errors, payload };
-};
-
 const CreateQueryJob = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const { tenantKey, jobId } = useDashboardParams();
@@ -106,9 +56,14 @@ const CreateQueryJob = () => {
   const location = useLocation();
   const executorId = searchParams.get('executor_id') || CONFIG.DEFAULT_EXECUTOR_ID;
   const [loading, setLoading] = useState(false);
+  const [isLoadingProjects, setIsLoadingProjects] = useState(false);
   const [result, setResult] = useState(null);
   const [feedback, setFeedback] = useState(null);
-  const [formValues, setFormValues] = useState(() => createInitialForm({ tenantKey, executorId }));
+  const [projectFeedback, setProjectFeedback] = useState('');
+  const [projectOptions, setProjectOptions] = useState([]);
+  const [formValues, setFormValues] = useState(() =>
+    createInitialQueryJobForm({ tenantKey, executorId }),
+  );
 
   useEffect(() => {
     setFormValues((current) => ({
@@ -117,6 +72,34 @@ const CreateQueryJob = () => {
       executor_id: executorId || '',
     }));
   }, [executorId, tenantKey]);
+
+  useEffect(() => {
+    if (!tenantKey) {
+      setProjectOptions([]);
+      return undefined;
+    }
+
+    const controller = new AbortController();
+    setIsLoadingProjects(true);
+    setProjectFeedback('');
+
+    fetchProjects({ tenantKey }, { signal: controller.signal })
+      .then((response) => {
+        setProjectOptions(normalizeProjectOptions(response));
+      })
+      .catch((error) => {
+        if (controller.signal.aborted) return;
+        setProjectOptions([]);
+        setProjectFeedback(error?.message || '项目列表加载失败');
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setIsLoadingProjects(false);
+      });
+
+    return () => {
+      controller.abort();
+    };
+  }, [tenantKey]);
 
   const handleNavigate = useCallback(
     (viewKey) => {
@@ -238,7 +221,7 @@ const CreateQueryJob = () => {
     setFeedback(null);
     setResult(null);
 
-    const { errors, payload } = validateForm(formValues);
+    const { errors, payload } = validateQueryJobForm(formValues);
     if (errors.length) {
       setFeedback({
         type: 'error',
@@ -260,7 +243,11 @@ const CreateQueryJob = () => {
       if (data.success) {
         setFeedback({ type: 'success', title: '任务加载成功', message: data.message || '任务加载成功' });
         setResult({ ...data, job_id: payload.job_id });
-        setFormValues(createInitialForm({ tenantKey, executorId }));
+        setFormValues(createInitialQueryJobForm({
+          tenantKey,
+          executorId,
+          projectId: formValues.project_id,
+        }));
         window.scrollTo({ top: 0, behavior: 'smooth' });
       } else {
         let errorMessage = data.message || '任务加载失败';
@@ -323,6 +310,30 @@ const CreateQueryJob = () => {
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <Field label="租户标识 Key" required>
                 <Input value={formValues.tenant_key} disabled placeholder="tn_..." />
+              </Field>
+              <Field label="关联监测项目">
+                <Select
+                  value={formValues.project_id || LEGACY_PROJECT_VALUE}
+                  onValueChange={(value) => setField('project_id', value)}
+                  disabled={isLoadingProjects}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder={isLoadingProjects ? '正在加载项目' : '选择项目'} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      <SelectItem value={LEGACY_PROJECT_VALUE}>暂不关联项目</SelectItem>
+                      {projectOptions.map((project) => (
+                        <SelectItem key={project.value} value={project.value}>
+                          {project.label}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+                {projectFeedback ? (
+                  <span className="block text-xs text-muted-foreground">{projectFeedback}</span>
+                ) : null}
               </Field>
               <Field label="任务 ID" required>
                 <Input

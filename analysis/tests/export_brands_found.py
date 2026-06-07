@@ -2,17 +2,19 @@ import os
 
 import pymysql
 
+from src.core.database_config import resolve_database_config
+
 
 def export_brands():
-    # 数据库连接配置
-    db_config = {
-        "host": "192.168.31.233",
-        "port": 3306,
-        "user": "root",
-        "password": "123456",
-        "database": "geo",
-        "charset": "utf8mb4",
-    }
+    db_config = resolve_database_config(
+        {
+            "host": "${ANALYSIS_DB_HOST:-127.0.0.1}",
+            "port": "${ANALYSIS_DB_PORT:-3306}",
+            "user": "${ANALYSIS_DB_USER:-root}",
+            "password": "${ANALYSIS_DB_PASSWORD}",
+            "name": "${ANALYSIS_DB_NAME:-geo}",
+        }
+    )
 
     job_id = "job_20260209_123550_e9ba00f6"
     output_file = "brands_found.txt"
@@ -26,8 +28,8 @@ def export_brands():
             port=db_config["port"],
             user=db_config["user"],
             password=db_config["password"],
-            database=db_config["database"],
-            charset=db_config["charset"],
+            database=db_config["name"],
+            charset="utf8mb4",
             cursorclass=pymysql.cursors.DictCursor,
         )
 

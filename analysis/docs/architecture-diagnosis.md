@@ -176,9 +176,9 @@ flowchart TD
 
 ### 2.10 中 — 安全隐患
 
-1. **`analysis_config.json` 包含明文密码**（L7: `"password": "123456"`），已在 `SECURITY.md` 中标记为 Watch Item
+1. **`analysis_config.json` 旧版曾包含明文数据库连接**，已在 2026-06-06 Phase 2.4 改为 `ANALYSIS_DB_*` 环境变量占位符，并由 `tests/test_database_config.py` 覆盖。
 2. **`LLMPingPlugin` 使用 `requests` 库直接调用 LLM API**，绕过了 `LLMOperator` 的重试/缓存/错误处理机制，且日志中可能泄露 API Key
-3. **`import_mention_data.py` 使用 `quote_plus` 编码密码**，其他三处不编码，行为不一致
+3. **数据库连接 URL 构造曾分散在多处**，已在 2026-06-06 Phase 2.4 收敛到 `src/core/database_config.py`，后续新增数据库访问应复用该入口。
 
 ### 2.11 低 — pyproject.toml 配置矛盾
 

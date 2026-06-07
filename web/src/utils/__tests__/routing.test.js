@@ -8,6 +8,18 @@ import {
 
 test('buildViewPath uses jobId only for analysis pages', () => {
   assert.equal(
+    buildViewPath('projects', { tenantKey: 'tn_demo', jobId: 'job_demo' }),
+    '/projects/tn_demo',
+  );
+  assert.equal(
+    buildViewPath('project-detail', {
+      tenantKey: 'tn_demo',
+      jobId: 'job_demo',
+      projectId: 'proj_demo',
+    }),
+    '/projects/tn_demo/proj_demo',
+  );
+  assert.equal(
     buildViewPath('trend', { tenantKey: 'tn_demo', jobId: 'job_demo' }),
     '/trend/tn_demo/job_demo',
   );
@@ -18,6 +30,8 @@ test('buildViewPath uses jobId only for analysis pages', () => {
 });
 
 test('getViewKeyFromPath returns the selected sidebar key', () => {
+  assert.equal(getViewKeyFromPath('/projects/tn_demo'), 'projects');
+  assert.equal(getViewKeyFromPath('/projects/tn_demo/proj_demo'), 'projects');
   assert.equal(getViewKeyFromPath('/dashboard/tn_demo/job_demo'), 'home');
   assert.equal(getViewKeyFromPath('/tasks/tn_demo/status'), 'task-status');
   assert.equal(getViewKeyFromPath('/unknown/path'), 'home');

@@ -60,10 +60,18 @@ pip install -r requirements.txt
 
 确保 `config/analysis_config.json` 文件存在并正确配置了：
 
-- MySQL 连接参数（`database.host/user/password/name` 等）
+- MySQL 连接参数占位符（`database.host/user/password/name` 等）
 - 要启用的插件及其 `datasources/table` / `output` 路径
 - LLM 相关参数（`provider`、`apiKey`、`baseURL`、`model` 等）
 - 阈值和输出格式等通用设置
+
+数据库真实连接信息不写入版本化配置。`config/analysis_config.json` 默认使用环境变量占位符，本地可参考 `.env.example` 配置：
+
+- `ANALYSIS_DB_HOST` -> `database.host`，默认 `127.0.0.1`
+- `ANALYSIS_DB_PORT` -> `database.port`，默认 `3306`
+- `ANALYSIS_DB_USER` -> `database.user`，默认 `root`
+- `ANALYSIS_DB_PASSWORD` -> `database.password`，无默认值，运行需要显式提供
+- `ANALYSIS_DB_NAME` -> `database.name`，默认 `geo`
 
 LLM 参数也支持通过环境变量补全（仅在配置缺失或仍为占位符时生效）：
 

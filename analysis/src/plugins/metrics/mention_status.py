@@ -13,6 +13,7 @@ from typing import Any, Dict, Iterable, List, Optional, Sequence, Set, Tuple
 
 from ...business_services.llm_brand_recognizer import LLMBrandRecognizer
 from ...core.constants import get_brand_variants
+from ...core.database_config import DatabaseConfigError, build_mysql_database_url
 from ...core.llm_operator import LLMConfig, LLMError, LLMOperator, LLMResponse
 from ...core.plugin_interface import AnalysisPlugin, PluginRegistry
 
@@ -92,36 +93,14 @@ class MentionStatusPlugin(AnalysisPlugin):
         if self._db_engine is not None:
             return self._db_engine
 
-        db_cfg = self._get_db_cfg(self.app_config)
-        host = db_cfg.get("host")
-        port = db_cfg.get("port", 3306)
-        user = db_cfg.get("user")
-        password = db_cfg.get("password")
-        name = db_cfg.get("name")
-
-        if not isinstance(host, str) or not host.strip():
-            return None
-        if not isinstance(user, str) or not user.strip():
-            return None
-        if not isinstance(password, str) or not password.strip():
-            return None
-        if not isinstance(name, str) or not name.strip():
-            return None
-
-        if isinstance(port, str):
-            if not port.isdigit():
-                return None
-            port = int(port)
-        if not isinstance(port, int) or not (1 <= port <= 65535):
+        try:
+            url = build_mysql_database_url(self._get_db_cfg(self.app_config))
+        except DatabaseConfigError:
             return None
 
         try:
             from sqlalchemy import create_engine
 
-            url = (
-                f"mysql+pymysql://{user}:{password}@{host}:{port}/{name}"
-                "?charset=utf8mb4"
-            )
             self._db_engine = create_engine(url, pool_pre_ping=True)
             return self._db_engine
         except Exception as e:
@@ -237,7 +216,7 @@ class MentionStatusPlugin(AnalysisPlugin):
 
             # 使用 ON DUPLICATE KEY UPDATE 实现 Upsert
             # 依赖 UNIQUE KEY `uk_tenant_job_conv_brand`
-            # (`tenant_key`, `job_id`, `conversation_id`, `brand`)
+            # (`tenant_key`(191), `job_id`(191), `conversation_id`(191), `brand`)
             sql = text(
                 "INSERT INTO qa_brand_state "
                 "(date, tenant_key, job_id, conversation_id, brand, category, "

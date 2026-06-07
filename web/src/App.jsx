@@ -22,7 +22,10 @@ const BrandShareOfVoiceTable = React.lazy(() => import('./components/BrandShareO
 const CreateQueryJob = React.lazy(() => import('./components/CreateQueryJob.jsx'));
 const QueryJobStatus = React.lazy(() => import('./components/QueryJobStatus.jsx'));
 const AccountManagement = React.lazy(() => import('./components/AccountManagement.jsx'));
+const PlatformExecutorsPage = React.lazy(() => import('./components/platform/PlatformExecutorsPage.jsx'));
 const PlatformTenantsPage = React.lazy(() => import('./components/platform/PlatformTenantsPage.jsx'));
+const ProjectDetailPage = React.lazy(() => import('./components/projects/ProjectDetailPage.jsx'));
+const ProjectListPage = React.lazy(() => import('./components/projects/ProjectListPage.jsx'));
 const TrendAnalysis = React.lazy(() => import('./components/TrendAnalysis.jsx'));
 const SourceAnalysis = React.lazy(() => import('./components/SourceAnalysis.jsx'));
 const SentimentAnalysis = React.lazy(() => import('./components/SentimentAnalysis.jsx'));
@@ -44,6 +47,8 @@ const DashboardLoadingRoute = ({ children }) => {
 };
 
 const ROUTE_ELEMENT_FACTORIES = {
+  projects: () => <ProjectListPage />,
+  'project-detail': () => <ProjectDetailPage />,
   home: () => <HomeView />,
   trend: () => (
     <DashboardLoadingRoute>
@@ -75,6 +80,7 @@ const AppRoutes = () => {
       <Route path="/platform" element={<PlatformRoute><PlatformLayout /></PlatformRoute>}>
         <Route index element={<Navigate to="/platform/tenants" replace />} />
         <Route path="tenants" element={<RouteShell><PlatformTenantsPage /></RouteShell>} />
+        <Route path="executors" element={<RouteShell><PlatformExecutorsPage /></RouteShell>} />
       </Route>
       <Route element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
         {getRoutableRoutes().map((route) => (

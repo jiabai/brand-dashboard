@@ -1,3 +1,4 @@
+from datetime import UTC, datetime
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query
@@ -20,6 +21,9 @@ from api.v1.repositories.auth import (
     verify_invite_code,
 )
 from api.v1.repositories.connection import get_db, get_engine
+from api.v1.repositories.platform_health import (
+    get_platform_collection_health as load_platform_collection_health,
+)
 from api.v1.repositories.tenants import (
     list_platform_tenant_summaries,
     list_user_tenant_summaries,
@@ -87,6 +91,99 @@ def _isoformat_or_none(value):
     if " " in value_text and "T" not in value_text:
         return value_text.replace(" ", "T", 1)
     return value_text
+
+
+def _int_or_zero(value):
+    return int(value or 0)
+
+
+def _platform_collection_summary(row):
+    item = row._mapping
+    return {
+        "executorCount": _int_or_zero(item["executor_count"]),
+        "activeExecutorCount": _int_or_zero(item["active_executor_count"]),
+        "inactiveExecutorCount": _int_or_zero(item["inactive_executor_count"]),
+        "pendingTaskCount": _int_or_zero(item["pending_task_count"]),
+        "reservedTaskCount": _int_or_zero(item["reserved_task_count"]),
+        "runningTaskCount": _int_or_zero(item["running_task_count"]),
+        "failedTaskCount": _int_or_zero(item["failed_task_count"]),
+        "retryableFailedTaskCount": _int_or_zero(item["retryable_failed_task_count"]),
+        "expiredLeaseTaskCount": _int_or_zero(item["expired_lease_task_count"]),
+    }
+
+
+def _executor_health_status(row):
+    item = row._mapping
+    if item["status"] != "active":
+        return "inactive"
+    if _int_or_zero(item["failed_attempt_count"]) > 0:
+        return "error"
+    if (
+        _int_or_zero(item["active_lease_count"]) > 0
+        or _int_or_zero(item["running_attempt_count"]) > 0
+    ):
+        return "active"
+    return "idle"
+
+
+def _platform_executor_health_item(row):
+    item = row._mapping
+    return {
+        "executorId": item["executor_id"],
+        "name": item["name"],
+        "type": item["type"],
+        "status": item["status"],
+        "healthStatus": _executor_health_status(row),
+        "ipAddress": item["ip_address"],
+        "activeLeaseCount": _int_or_zero(item["active_lease_count"]),
+        "runningAttemptCount": _int_or_zero(item["running_attempt_count"]),
+        "failedAttemptCount": _int_or_zero(item["failed_attempt_count"]),
+        "latestAttemptAt": _isoformat_or_none(item["latest_attempt_at"]),
+        "createdAt": _isoformat_or_none(item["created_at"]),
+        "updatedAt": _isoformat_or_none(item["updated_at"]),
+    }
+
+
+def _platform_collection_queue_item(row):
+    item = row._mapping
+    return {
+        "tenantKey": item["tenant_key"],
+        "tenantName": item["tenant_name"],
+        "projectId": item["project_id"],
+        "projectName": item["project_name"],
+        "collectionJobId": item["collection_job_id"],
+        "collectionJobStatus": item["collection_job_status"],
+        "totalTaskCount": _int_or_zero(item["total_task_count"]),
+        "pendingTaskCount": _int_or_zero(item["pending_task_count"]),
+        "reservedTaskCount": _int_or_zero(item["reserved_task_count"]),
+        "runningTaskCount": _int_or_zero(item["running_task_count"]),
+        "succeededTaskCount": _int_or_zero(item["succeeded_task_count"]),
+        "failedTaskCount": _int_or_zero(item["failed_task_count"]),
+        "retryableFailedTaskCount": _int_or_zero(item["retryable_failed_task_count"]),
+        "expiredLeaseTaskCount": _int_or_zero(item["expired_lease_task_count"]),
+    }
+
+
+def _platform_failed_collection_task_item(row):
+    item = row._mapping
+    return {
+        "tenantKey": item["tenant_key"],
+        "tenantName": item["tenant_name"],
+        "projectId": item["project_id"],
+        "projectName": item["project_name"],
+        "collectionJobId": item["collection_job_id"],
+        "collectionTaskId": item["collection_task_id"],
+        "platform": item["platform"],
+        "keyword": item["keyword"],
+        "queryContent": item["query_content"],
+        "attemptCount": _int_or_zero(item["attempt_count"]),
+        "maxAttempts": _int_or_zero(item["max_attempts"]),
+        "isRetryable": _int_or_zero(item["attempt_count"]) < _int_or_zero(item["max_attempts"]),
+        "lastErrorCode": item["last_error_code"],
+        "lastErrorMessage": item["last_error_message"],
+        "leaseOwner": item["lease_owner"],
+        "updatedAt": _isoformat_or_none(item["updated_at"]),
+    }
 
 
 def _platform_tenant_item(row):
@@ -191,6 +288,41 @@ def list_platform_tenants(
                 "total": total,
                 "totalPages": total_pages,
             },
+        },
+    }
+
+
+@router.get("/platform/collection-health")
+def get_platform_collection_health(
+    failed_task_limit: Annotated[
+        int, Query(alias="failedTaskLimit", ge=1, le=100)
+    ] = 20,
+    db: Session = Depends(get_db),
+    _platform_admin: CurrentUser = Depends(require_platform_admin),
+):
+    now = datetime.now(UTC)
+    health = load_platform_collection_health(
+        db,
+        now=now,
+        failed_task_limit=failed_task_limit,
+    )
+    return {
+        "status": "success",
+        "code": 200,
+        "message": "获取采集健康度成功",
+        "data": {
+            "generatedAt": now.isoformat(),
+            "summary": _platform_collection_summary(health["summary"]),
+            "executors": [
+                _platform_executor_health_item(row) for row in health["executors"]
+            ],
+            "queues": [
+                _platform_collection_queue_item(row) for row in health["queues"]
+            ],
+            "failedTasks": [
+                _platform_failed_collection_task_item(row)
+                for row in health["failed_tasks"]
+            ],
         },
     }
 

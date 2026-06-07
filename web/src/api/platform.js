@@ -18,3 +18,9 @@ export const fetchPlatformTenants = (
 export const createPlatformTenant = (payload, options) => {
   return post('/api/v1/platform/tenants', payload, platformOptions(options));
 };
+
+export const fetchPlatformCollectionHealth = ({ failedTaskLimit = 20 } = {}, options) => {
+  const params = buildQueryString({ failedTaskLimit });
+  const suffix = params ? `?${params}` : '';
+  return fetch(`/api/v1/platform/collection-health${suffix}`, platformOptions(options));
+};

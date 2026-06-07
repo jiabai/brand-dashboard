@@ -20,14 +20,24 @@ export const normalizeViewKey = (viewKey) => {
   return DEFAULT_VIEW_KEY;
 };
 
-export const buildViewPath = (viewKey, { tenantKey, jobId, defaults = {} } = {}) => {
+export const buildViewPath = (viewKey, {
+  tenantKey,
+  jobId,
+  projectId,
+  defaults = {},
+} = {}) => {
   const normalizedView = normalizeViewKey(viewKey);
   const route = getRouteByViewKey(normalizedView);
   const nextTenantKey = tenantKey || defaults.tenantKey || '';
   const nextJobId = jobId || defaults.jobId || '';
+  const nextProjectId = projectId || defaults.projectId || '';
 
   if (route.parentSegment === 'tasks') {
     return `/${route.parentSegment}/${encodePathSegment(nextTenantKey)}/${route.taskAction}`;
+  }
+
+  if (route.requiresProjectId) {
+    return `/${route.routeSegment}/${encodePathSegment(nextTenantKey)}/${encodePathSegment(nextProjectId)}`;
   }
 
   if (route.requiresJobId) {
@@ -45,6 +55,10 @@ export const getViewKeyFromPath = (pathname = '') => {
 
   if (segments[0] === 'tasks') {
     return getRouteByTaskAction(segments[2])?.viewKey || DEFAULT_VIEW_KEY;
+  }
+
+  if (segments[0] === 'projects') {
+    return 'projects';
   }
 
   return getRouteByPathSegment(segments[0])?.viewKey || DEFAULT_VIEW_KEY;

@@ -120,6 +120,103 @@ BEGIN
 END;
 
 
+-- Monitoring project configuration model
+CREATE TABLE IF NOT EXISTS monitoring_projects (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    tenant_key VARCHAR(255) NOT NULL,
+    project_id VARCHAR(128) NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    industry VARCHAR(100),
+    category VARCHAR(100),
+    status VARCHAR(20) NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'active', 'paused', 'archived')),
+    created_by INTEGER,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (tenant_key, project_id),
+    FOREIGN KEY (tenant_key) REFERENCES tenants(tenant_key) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_monitoring_projects_tenant_status ON monitoring_projects (tenant_key, status);
+CREATE INDEX IF NOT EXISTS idx_monitoring_projects_tenant_category ON monitoring_projects (tenant_key, category);
+
+CREATE TRIGGER trg_monitoring_projects_updated_at
+AFTER UPDATE ON monitoring_projects
+FOR EACH ROW
+BEGIN
+    UPDATE monitoring_projects SET updated_at = CURRENT_TIMESTAMP WHERE id = OLD.id;
+END;
+
+CREATE TABLE IF NOT EXISTS project_brands (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    tenant_key VARCHAR(255) NOT NULL,
+    project_id VARCHAR(128) NOT NULL,
+    brand_id VARCHAR(128) NOT NULL,
+    brand_name VARCHAR(255) NOT NULL,
+    role VARCHAR(20) NOT NULL DEFAULT 'competitor' CHECK (role IN ('target', 'competitor', 'watch_only')),
+    aliases TEXT,
+    status VARCHAR(20) NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'inactive')),
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (tenant_key, project_id, brand_id, role),
+    FOREIGN KEY (tenant_key, project_id) REFERENCES monitoring_projects(tenant_key, project_id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_project_brands_project_role ON project_brands (tenant_key, project_id, role);
+CREATE INDEX IF NOT EXISTS idx_project_brands_brand ON project_brands (tenant_key, brand_id);
+
+CREATE TRIGGER trg_project_brands_updated_at
+AFTER UPDATE ON project_brands
+FOR EACH ROW
+BEGIN
+    UPDATE project_brands SET updated_at = CURRENT_TIMESTAMP WHERE id = OLD.id;
+END;
+
+CREATE TABLE IF NOT EXISTS prompt_sets (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    tenant_key VARCHAR(255) NOT NULL,
+    project_id VARCHAR(128) NOT NULL,
+    prompt_set_id VARCHAR(128) NOT NULL,
+    version INTEGER NOT NULL DEFAULT 1,
+    name VARCHAR(255),
+    status VARCHAR(20) NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'active', 'archived')),
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (tenant_key, prompt_set_id),
+    UNIQUE (tenant_key, project_id, version),
+    FOREIGN KEY (tenant_key, project_id) REFERENCES monitoring_projects(tenant_key, project_id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_prompt_sets_project_status ON prompt_sets (tenant_key, project_id, status);
+
+CREATE TRIGGER trg_prompt_sets_updated_at
+AFTER UPDATE ON prompt_sets
+FOR EACH ROW
+BEGIN
+    UPDATE prompt_sets SET updated_at = CURRENT_TIMESTAMP WHERE id = OLD.id;
+END;
+
+CREATE TABLE IF NOT EXISTS prompt_items (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    tenant_key VARCHAR(255) NOT NULL,
+    prompt_set_id VARCHAR(128) NOT NULL,
+    prompt_item_id VARCHAR(128) NOT NULL,
+    keyword VARCHAR(100) NOT NULL,
+    query_content TEXT NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'inactive')),
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (tenant_key, prompt_set_id, prompt_item_id),
+    FOREIGN KEY (tenant_key, prompt_set_id) REFERENCES prompt_sets(tenant_key, prompt_set_id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_prompt_items_prompt_set_status ON prompt_items (tenant_key, prompt_set_id, status);
+CREATE INDEX IF NOT EXISTS idx_prompt_items_keyword ON prompt_items (tenant_key, keyword);
+
+CREATE TRIGGER trg_prompt_items_updated_at
+AFTER UPDATE ON prompt_items
+FOR EACH ROW
+BEGIN
+    UPDATE prompt_items SET updated_at = CURRENT_TIMESTAMP WHERE id = OLD.id;
+END;
+
+
 -- ---------------------------------------------------------
 -- PART 2: Business Logic (Conversations, Jobs, Analytics)
 -- ---------------------------------------------------------
@@ -216,11 +313,150 @@ BEGIN
     UPDATE executors SET updated_at = CURRENT_TIMESTAMP WHERE id = OLD.id;
 END;
 
--- 9. 用户监测任务记录表
+-- 9. Collection lifecycle model
+CREATE TABLE IF NOT EXISTS collection_jobs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    tenant_key VARCHAR(255) NOT NULL,
+    collection_job_id VARCHAR(128) NOT NULL,
+    project_id VARCHAR(128) NOT NULL,
+    prompt_set_id VARCHAR(128),
+    source_job_id VARCHAR(255),
+    status VARCHAR(20) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'running', 'succeeded', 'failed', 'expired', 'cancelled')),
+    window_start TIMESTAMP,
+    window_end TIMESTAMP,
+    expected_task_count INTEGER NOT NULL DEFAULT 0,
+    succeeded_task_count INTEGER NOT NULL DEFAULT 0,
+    failed_task_count INTEGER NOT NULL DEFAULT 0,
+    created_by INTEGER,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (tenant_key, collection_job_id),
+    FOREIGN KEY (tenant_key) REFERENCES tenants(tenant_key) ON DELETE CASCADE,
+    FOREIGN KEY (tenant_key, project_id) REFERENCES monitoring_projects(tenant_key, project_id),
+    FOREIGN KEY (tenant_key, prompt_set_id) REFERENCES prompt_sets(tenant_key, prompt_set_id)
+);
+CREATE INDEX IF NOT EXISTS idx_collection_jobs_tenant_project_status ON collection_jobs (tenant_key, project_id, status);
+CREATE INDEX IF NOT EXISTS idx_collection_jobs_prompt_set ON collection_jobs (tenant_key, prompt_set_id);
+CREATE INDEX IF NOT EXISTS idx_collection_jobs_source_job ON collection_jobs (tenant_key, source_job_id);
+
+CREATE TRIGGER trg_collection_jobs_updated_at
+AFTER UPDATE ON collection_jobs
+FOR EACH ROW
+BEGIN
+    UPDATE collection_jobs SET updated_at = CURRENT_TIMESTAMP WHERE id = OLD.id;
+END;
+
+CREATE TABLE IF NOT EXISTS collection_tasks (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    tenant_key VARCHAR(255) NOT NULL,
+    collection_task_id VARCHAR(128) NOT NULL,
+    collection_job_id VARCHAR(128) NOT NULL,
+    project_id VARCHAR(128) NOT NULL,
+    prompt_set_id VARCHAR(128),
+    prompt_item_id VARCHAR(128),
+    platform VARCHAR(64) NOT NULL,
+    query_content TEXT NOT NULL,
+    run_index INTEGER NOT NULL DEFAULT 1,
+    status VARCHAR(20) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'reserved', 'running', 'succeeded', 'failed', 'expired', 'cancelled')),
+    lease_owner VARCHAR(128),
+    lease_until TIMESTAMP,
+    reserved_at TIMESTAMP,
+    started_at TIMESTAMP,
+    finished_at TIMESTAMP,
+    attempt_count INTEGER NOT NULL DEFAULT 0,
+    max_attempts INTEGER NOT NULL DEFAULT 3,
+    last_error_code VARCHAR(64),
+    last_error_message TEXT,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (tenant_key, collection_task_id),
+    FOREIGN KEY (tenant_key, collection_job_id) REFERENCES collection_jobs(tenant_key, collection_job_id) ON DELETE CASCADE,
+    FOREIGN KEY (tenant_key, project_id) REFERENCES monitoring_projects(tenant_key, project_id),
+    FOREIGN KEY (tenant_key, prompt_set_id, prompt_item_id) REFERENCES prompt_items(tenant_key, prompt_set_id, prompt_item_id),
+    FOREIGN KEY (lease_owner) REFERENCES executors(executor_id) ON DELETE SET NULL
+);
+CREATE INDEX IF NOT EXISTS idx_collection_tasks_fetch ON collection_tasks (tenant_key, status, lease_until, id);
+CREATE INDEX IF NOT EXISTS idx_collection_tasks_job_status ON collection_tasks (tenant_key, collection_job_id, status);
+CREATE INDEX IF NOT EXISTS idx_collection_tasks_project ON collection_tasks (tenant_key, project_id, status);
+CREATE INDEX IF NOT EXISTS idx_collection_tasks_prompt ON collection_tasks (tenant_key, prompt_set_id, prompt_item_id);
+CREATE INDEX IF NOT EXISTS idx_collection_tasks_lease_owner ON collection_tasks (lease_owner, status, tenant_key);
+
+CREATE TRIGGER trg_collection_tasks_updated_at
+AFTER UPDATE ON collection_tasks
+FOR EACH ROW
+BEGIN
+    UPDATE collection_tasks SET updated_at = CURRENT_TIMESTAMP WHERE id = OLD.id;
+END;
+
+CREATE TABLE IF NOT EXISTS collection_attempts (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    tenant_key VARCHAR(255) NOT NULL,
+    attempt_id VARCHAR(128) NOT NULL,
+    collection_task_id VARCHAR(128) NOT NULL,
+    executor_id VARCHAR(128),
+    status VARCHAR(20) NOT NULL DEFAULT 'running' CHECK (status IN ('running', 'succeeded', 'failed', 'timeout', 'cancelled')),
+    started_at TIMESTAMP,
+    finished_at TIMESTAMP,
+    error_code VARCHAR(64),
+    error_message TEXT,
+    raw_response_id VARCHAR(255),
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (tenant_key, attempt_id),
+    FOREIGN KEY (tenant_key, collection_task_id) REFERENCES collection_tasks(tenant_key, collection_task_id) ON DELETE CASCADE,
+    FOREIGN KEY (executor_id) REFERENCES executors(executor_id) ON DELETE SET NULL
+);
+CREATE INDEX IF NOT EXISTS idx_collection_attempts_task ON collection_attempts (tenant_key, collection_task_id);
+CREATE INDEX IF NOT EXISTS idx_collection_attempts_executor_status ON collection_attempts (tenant_key, executor_id, status);
+CREATE INDEX IF NOT EXISTS idx_collection_attempts_executor_fk ON collection_attempts (executor_id);
+
+CREATE TRIGGER trg_collection_attempts_updated_at
+AFTER UPDATE ON collection_attempts
+FOR EACH ROW
+BEGIN
+    UPDATE collection_attempts SET updated_at = CURRENT_TIMESTAMP WHERE id = OLD.id;
+END;
+
+-- 10. Analysis run lifecycle model
+CREATE TABLE IF NOT EXISTS analysis_runs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    tenant_key VARCHAR(255) NOT NULL,
+    analysis_run_id VARCHAR(128) NOT NULL,
+    project_id VARCHAR(128) NOT NULL,
+    collection_job_id VARCHAR(128) NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'running', 'succeeded', 'failed', 'stale')),
+    plugin_versions TEXT,
+    model_config_hash VARCHAR(128),
+    input_watermark VARCHAR(255),
+    started_at TIMESTAMP,
+    finished_at TIMESTAMP,
+    stale_at TIMESTAMP,
+    error_code VARCHAR(64),
+    error_message TEXT,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (tenant_key, analysis_run_id),
+    FOREIGN KEY (tenant_key) REFERENCES tenants(tenant_key) ON DELETE CASCADE,
+    FOREIGN KEY (tenant_key, project_id) REFERENCES monitoring_projects(tenant_key, project_id),
+    FOREIGN KEY (tenant_key, collection_job_id) REFERENCES collection_jobs(tenant_key, collection_job_id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_analysis_runs_tenant_project_status ON analysis_runs (tenant_key, project_id, status);
+CREATE INDEX IF NOT EXISTS idx_analysis_runs_collection_job ON analysis_runs (tenant_key, collection_job_id);
+CREATE INDEX IF NOT EXISTS idx_analysis_runs_status_updated ON analysis_runs (tenant_key, status, updated_at);
+
+CREATE TRIGGER trg_analysis_runs_updated_at
+AFTER UPDATE ON analysis_runs
+FOR EACH ROW
+BEGIN
+    UPDATE analysis_runs SET updated_at = CURRENT_TIMESTAMP WHERE id = OLD.id;
+END;
+
+-- 11. 用户监测任务记录表
 CREATE TABLE IF NOT EXISTS llm_query_jobs (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     tenant_key VARCHAR(255) NOT NULL,
     job_id VARCHAR(255) NOT NULL,
+    project_id VARCHAR(128),
     category VARCHAR(64) NOT NULL,
     brand VARCHAR(50),
     competitor TEXT,
@@ -240,6 +476,7 @@ CREATE TABLE IF NOT EXISTS llm_query_jobs (
     FOREIGN KEY (executor_id) REFERENCES executors(executor_id) ON DELETE SET NULL
 );
 CREATE INDEX IF NOT EXISTS idx_lqj_tenant_job ON llm_query_jobs (tenant_key, job_id);
+CREATE INDEX IF NOT EXISTS idx_lqj_project ON llm_query_jobs (tenant_key, project_id);
 CREATE INDEX IF NOT EXISTS idx_lqj_brand ON llm_query_jobs (brand);
 CREATE INDEX IF NOT EXISTS idx_lqj_category ON llm_query_jobs (category);
 CREATE INDEX IF NOT EXISTS idx_lqj_keyword ON llm_query_jobs (keyword);
@@ -306,6 +543,7 @@ CREATE TABLE IF NOT EXISTS qa_brand_state (
     brands_found TEXT,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT uk_tenant_job_conv_brand UNIQUE (tenant_key, job_id, conversation_id, brand),
     FOREIGN KEY (tenant_key) REFERENCES tenants(tenant_key) ON DELETE CASCADE
 );
 CREATE INDEX IF NOT EXISTS idx_qbrs_tenant_date ON qa_brand_state (tenant_key, date);

@@ -3,10 +3,10 @@ from dataclasses import dataclass
 from datetime import date, datetime
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Set, Tuple
-from urllib.parse import quote_plus
 
 from sqlalchemy import bindparam, create_engine, text
 
+from ...core.database_config import build_mysql_database_url, resolve_database_config
 from ...core.plugin_interface import AnalysisPlugin, PluginRegistry
 
 
@@ -33,28 +33,11 @@ def _load_analysis_config() -> Dict[str, Any]:
 
 def _get_db_cfg(config: Dict[str, Any]) -> Dict[str, Any]:
     db_cfg = (config.get("brand_analysis") or {}).get("database") or {}
-    required = ["host", "port", "user", "password", "name"]
-    missing = [k for k in required if not db_cfg.get(k)]
-    if missing:
-        raise ValueError(f"Missing database config keys: {', '.join(missing)}")
-    return db_cfg
+    return resolve_database_config(db_cfg)
 
 
 def _create_db_engine(db_cfg: Dict[str, Any]):
-    host = str(db_cfg["host"]).strip()
-    port = int(db_cfg.get("port", 3306))
-    user = str(db_cfg["user"]).strip()
-    password = str(db_cfg["password"])
-    name = str(db_cfg["name"]).strip()
-
-    user_q = quote_plus(user)
-    password_q = quote_plus(password)
-    host_q = host
-
-    url = (
-        f"mysql+pymysql://{user_q}:{password_q}@{host_q}:{port}/{name}"
-        "?charset=utf8mb4"
-    )
+    url = build_mysql_database_url(db_cfg)
     return create_engine(url, pool_pre_ping=True)
 
 

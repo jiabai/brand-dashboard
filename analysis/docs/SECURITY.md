@@ -32,6 +32,6 @@
 
 ## Current Watch Items
 
-- `config/analysis_config.json` 当前包含本地数据库连接字段。后续应评估是否拆成 sample 配置与私有本地配置。
+- `config/analysis_config.json` 已改为环境变量占位符；真实数据库凭据必须通过环境变量、未跟踪的 `.env` 或密钥管理器注入。
 - `.env` 存在于工作区，确认 `.gitignore` 持续忽略它。
 - `tests/*_test.py` 中涉及真实 provider 的测试应默认视为手动/集成验证，避免在无密钥环境中误跑。

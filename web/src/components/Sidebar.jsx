@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import {
   BarChart3,
   BookOpen,
+  FolderKanban,
   Home,
   Image,
   List,
@@ -32,6 +33,7 @@ import { buildRouteSearch, buildViewPath, getViewKeyFromPath } from '@/utils/rou
 const MENU_ICON_MAP = {
   BarChartOutlined: BarChart3,
   BookOutlined: BookOpen,
+  FolderKanbanOutlined: FolderKanban,
   HomeOutlined: Home,
   LineChartOutlined: TrendingUp,
   MessageOutlined: MessageSquare,

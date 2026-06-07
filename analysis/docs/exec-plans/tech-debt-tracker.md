@@ -1,12 +1,12 @@
 # Tech Debt Tracker
 
-Last updated: 2026-05-11
+Last updated: 2026-06-06
 
 ## High Priority
 
 | Topic | Why it matters | Source | Removal Condition |
 |------|----------------|--------|-------------------|
-| 配置样例与真实凭据分离 | 默认配置含数据库连接字段，容易混淆本地私有配置和可提交样例。 | `config/analysis_config.json`, `docs/SECURITY.md` | 提供 sample 配置或私有配置策略，默认提交文件不含真实凭据。 |
+| 暂无 | - | - | - |
 
 ## Medium Priority
 
@@ -26,3 +26,9 @@ Last updated: 2026-05-11
 - Add debt here only when it spans more than one file or more than one task.
 - Remove or downgrade debt when a change clearly addresses it.
 - Link back to the plan, design doc or code path that best explains the issue.
+
+## Resolved
+
+| Topic | Resolution | Date |
+|------|------------|------|
+| 配置样例与真实凭据分离 | `config/analysis_config.json` 已改为 `ANALYSIS_DB_*` 环境变量占位符，新增 `.env.example`，并由 `tests/test_database_config.py` 防止真实连接信息重新进入版本化配置。 | 2026-06-06 |

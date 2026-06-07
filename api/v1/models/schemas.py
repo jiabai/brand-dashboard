@@ -1,6 +1,6 @@
 from datetime import date, datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -121,6 +121,12 @@ class QueryJobData(BaseModel):
 class LoadQueryJobsRequest(BaseModel):
     tenant_key: str = Field(..., min_length=1, description="租户Key")
     job_id: str = Field(..., min_length=1, description="任务ID")
+    project_id: Optional[str] = Field(
+        None,
+        min_length=1,
+        max_length=128,
+        description="关联监测项目ID",
+    )
     effective_from: datetime = Field(..., description="生效开始时间")
     effective_to: Optional[datetime] = Field(None, description="生效结束时间（NULL表示未结束）")
     executor_id: str = Field(..., min_length=1, description="执行器ID")
@@ -133,6 +139,136 @@ class LoadQueryJobsResponse(BaseModel):
     success: bool = Field(..., description="是否成功")
     inserted_rows: int = Field(..., description="插入行数")
     message: str = Field(..., description="响应消息")
+
+
+ProjectStatus = Literal["draft", "active", "paused", "archived"]
+ProjectBrandRole = Literal["target", "competitor", "watch_only"]
+ProjectBrandStatus = Literal["active", "inactive"]
+PromptSetStatus = Literal["draft", "active", "archived"]
+PromptItemStatus = Literal["active", "inactive"]
+
+
+class MonitoringProjectCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    project_id: Optional[str] = Field(
+        None,
+        min_length=1,
+        max_length=128,
+        description="Stable project id",
+    )
+    name: str = Field(..., min_length=1, max_length=255, description="Project name")
+    industry: Optional[str] = Field(None, max_length=100, description="Industry")
+    category: Optional[str] = Field(None, max_length=100, description="Category")
+    status: ProjectStatus = Field("draft", description="Project status")
+
+
+class ProjectBrandConfigRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    brand_id: str = Field(..., min_length=1, max_length=128, description="Stable brand id")
+    brand_name: str = Field(..., min_length=1, max_length=255, description="Display brand name")
+    role: ProjectBrandRole = Field("competitor", description="Brand role")
+    aliases: List[str] = Field(default_factory=list, description="Brand aliases")
+    status: ProjectBrandStatus = Field("active", description="Brand config status")
+
+
+class PromptItemConfigRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    prompt_item_id: str = Field(
+        ...,
+        min_length=1,
+        max_length=128,
+        description="Stable prompt item id",
+    )
+    keyword: str = Field(..., min_length=1, max_length=100, description="Prompt keyword")
+    query_content: str = Field(..., min_length=1, description="Prompt content")
+    status: PromptItemStatus = Field("active", description="Prompt item status")
+    sort_order: int = Field(0, description="Sort order")
+
+
+class PromptSetConfigRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    prompt_set_id: str = Field(
+        ...,
+        min_length=1,
+        max_length=128,
+        description="Stable prompt set id",
+    )
+    version: int = Field(1, ge=1, description="Prompt set version")
+    name: Optional[str] = Field(None, max_length=255, description="Prompt set name")
+    status: PromptSetStatus = Field("draft", description="Prompt set status")
+    items: List[PromptItemConfigRequest] = Field(..., min_length=1, description="Prompt items")
+
+
+class ProjectBrandResponse(BaseModel):
+    brand_id: str
+    brand_name: str
+    role: ProjectBrandRole
+    aliases: List[str] = Field(default_factory=list)
+    status: ProjectBrandStatus
+    created_at: datetime
+    updated_at: datetime
+
+
+class PromptItemResponse(BaseModel):
+    prompt_item_id: str
+    keyword: str
+    query_content: str
+    status: PromptItemStatus
+    sort_order: int
+    created_at: datetime
+    updated_at: datetime
+
+
+class PromptSetResponse(BaseModel):
+    prompt_set_id: str
+    version: int
+    name: Optional[str] = None
+    status: PromptSetStatus
+    items: List[PromptItemResponse] = Field(default_factory=list)
+    created_at: datetime
+    updated_at: datetime
+
+
+class MonitoringProjectSummary(BaseModel):
+    tenant_key: str
+    project_id: str
+    name: str
+    industry: Optional[str] = None
+    category: Optional[str] = None
+    status: ProjectStatus
+    created_by: Optional[int] = None
+    created_at: datetime
+    updated_at: datetime
+
+
+class MonitoringProjectDetail(MonitoringProjectSummary):
+    brands: List[ProjectBrandResponse] = Field(default_factory=list)
+    prompt_sets: List[PromptSetResponse] = Field(default_factory=list)
+
+
+class ProjectListResponse(BaseModel):
+    success: bool
+    count: int
+    projects: List[MonitoringProjectSummary] = Field(default_factory=list)
+
+
+class ProjectResponse(BaseModel):
+    success: bool
+    project: MonitoringProjectDetail
+
+
+class ProjectBrandConfigResponse(BaseModel):
+    success: bool
+    brand: ProjectBrandResponse
+
+
+class PromptSetConfigResponse(BaseModel):
+    success: bool
+    prompt_set: PromptSetResponse
 
 
 class ConversationReferenceItem(BaseModel):
@@ -205,6 +341,7 @@ class QueryJobDetail(BaseModel):
     id: int = Field(..., description="任务记录唯一主键ID")
     job_id: str = Field(..., description="任务组ID")
     tenant_key: str = Field(..., description="租户Key")
+    project_id: Optional[str] = Field(None, description="关联监测项目ID")
     category: str = Field(..., description="分类")
     brand: Optional[str] = Field(None, description="品牌")
     competitor: Optional[List[str]] = Field(None, description="竞品列表")
@@ -215,6 +352,7 @@ class QueryJobDetail(BaseModel):
 class QueryJobStatusItem(BaseModel):
     tenant_key: str = Field(..., description="租户Key")
     job_id: str = Field(..., description="任务ID")
+    project_id: Optional[str] = Field(None, description="关联监测项目ID")
     brand: Optional[str] = Field(None, description="品牌")
     competitor: Optional[List[str]] = Field(None, description="竞品列表")
     query_content: str = Field(..., description="查询内容")
@@ -227,6 +365,93 @@ class FetchQueryJobResponse(BaseModel):
     success: bool = Field(..., description="是否成功")
     count: int = Field(..., description="任务数量")
     jobs: Optional[QueryJobDetail] = Field(None, description="任务详情")
+
+
+CollectionTaskStatus = Literal[
+    "pending",
+    "reserved",
+    "running",
+    "succeeded",
+    "failed",
+    "expired",
+    "cancelled",
+]
+
+
+class CollectionTaskDetail(BaseModel):
+    id: int = Field(..., description="任务记录唯一主键ID")
+    tenant_key: str = Field(..., description="租户Key")
+    collection_task_id: str = Field(..., description="采集任务ID")
+    collection_job_id: str = Field(..., description="采集批次ID")
+    project_id: str = Field(..., description="监测项目ID")
+    prompt_set_id: Optional[str] = Field(None, description="问题集ID")
+    prompt_item_id: Optional[str] = Field(None, description="问题项ID")
+    platform: str = Field(..., description="AI平台")
+    query_content: str = Field(..., description="查询内容")
+    run_index: int = Field(..., description="批次内执行序号")
+    status: CollectionTaskStatus = Field(..., description="采集任务状态")
+    lease_owner: Optional[str] = Field(None, description="当前租约执行器")
+    lease_until: Optional[datetime] = Field(None, description="租约到期时间")
+    attempt_count: int = Field(..., description="已尝试次数")
+    max_attempts: int = Field(..., description="最大尝试次数")
+
+
+class FetchCollectionTaskResponse(BaseModel):
+    success: bool = Field(..., description="是否成功")
+    count: int = Field(..., description="任务数量")
+    task: Optional[CollectionTaskDetail] = Field(None, description="采集任务详情")
+
+
+CollectionAttemptStatus = Literal[
+    "running",
+    "succeeded",
+    "failed",
+    "timeout",
+    "cancelled",
+]
+
+CollectionAttemptCompleteStatus = Literal[
+    "succeeded",
+    "failed",
+    "timeout",
+    "cancelled",
+]
+
+
+class StartCollectionAttemptRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    tenant_key: str = Field(..., min_length=1, description="租户Key")
+    collection_task_id: str = Field(..., min_length=1, max_length=128, description="采集任务ID")
+
+
+class CompleteCollectionAttemptRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    tenant_key: str = Field(..., min_length=1, description="租户Key")
+    status: CollectionAttemptCompleteStatus = Field(..., description="完成状态")
+    error_code: Optional[str] = Field(None, max_length=64, description="错误编码")
+    error_message: Optional[str] = Field(None, description="错误信息")
+    raw_response_id: Optional[str] = Field(None, max_length=255, description="原始响应ID")
+
+
+class CollectionAttemptDetail(BaseModel):
+    id: int = Field(..., description="Attempt 记录唯一主键ID")
+    tenant_key: str = Field(..., description="租户Key")
+    attempt_id: str = Field(..., description="执行尝试ID")
+    collection_task_id: str = Field(..., description="采集任务ID")
+    executor_id: Optional[str] = Field(None, description="执行器ID")
+    status: CollectionAttemptStatus = Field(..., description="执行尝试状态")
+    started_at: Optional[datetime] = Field(None, description="开始时间")
+    finished_at: Optional[datetime] = Field(None, description="完成时间")
+    error_code: Optional[str] = Field(None, description="错误编码")
+    error_message: Optional[str] = Field(None, description="错误信息")
+    raw_response_id: Optional[str] = Field(None, description="原始响应ID")
+
+
+class CollectionAttemptResponse(BaseModel):
+    success: bool = Field(..., description="是否成功")
+    attempt: CollectionAttemptDetail = Field(..., description="执行尝试详情")
 
 
 class QueryJobStatusResponse(BaseModel):

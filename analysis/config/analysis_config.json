@@ -1,11 +1,11 @@
 {
   "brand_analysis": {
     "database": {
-      "host": "192.168.31.233",
-      "port": 3306,
-      "user": "root",
-      "password": "123456",
-      "name": "geo"
+      "host": "${ANALYSIS_DB_HOST:-127.0.0.1}",
+      "port": "${ANALYSIS_DB_PORT:-3306}",
+      "user": "${ANALYSIS_DB_USER:-root}",
+      "password": "${ANALYSIS_DB_PASSWORD}",
+      "name": "${ANALYSIS_DB_NAME:-geo}"
     },
     "plugins": {
       "mention_status": {

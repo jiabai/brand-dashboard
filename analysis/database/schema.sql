@@ -99,6 +99,79 @@ CREATE TABLE IF NOT EXISTS invitation_codes (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 
+-- Monitoring project configuration model
+CREATE TABLE IF NOT EXISTS `monitoring_projects` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT 'Primary key',
+  `tenant_key` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Tenant key',
+  `project_id` varchar(128) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Stable project id',
+  `name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Project name',
+  `industry` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Industry',
+  `category` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Category',
+  `status` enum('draft','active','paused','archived') NOT NULL DEFAULT 'draft' COMMENT 'Project status',
+  `created_by` bigint(20) DEFAULT NULL COMMENT 'Creator user id',
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Created time',
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'Updated time',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_tenant_project` (`tenant_key`,`project_id`),
+  KEY `idx_monitoring_projects_tenant_status` (`tenant_key`,`status`),
+  KEY `idx_monitoring_projects_tenant_category` (`tenant_key`,`category`),
+  CONSTRAINT `monitoring_projects_ibfk_tenant` FOREIGN KEY (`tenant_key`) REFERENCES `tenants` (`tenant_key`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Monitoring projects';
+
+CREATE TABLE IF NOT EXISTS `project_brands` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT 'Primary key',
+  `tenant_key` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Tenant key',
+  `project_id` varchar(128) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Stable project id',
+  `brand_id` varchar(128) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Stable brand id',
+  `brand_name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Display brand name',
+  `role` enum('target','competitor','watch_only') NOT NULL DEFAULT 'competitor' COMMENT 'Brand role',
+  `aliases` json DEFAULT NULL COMMENT 'Brand aliases',
+  `status` enum('active','inactive') NOT NULL DEFAULT 'active' COMMENT 'Brand config status',
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Created time',
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'Updated time',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_tenant_project_brand_role` (`tenant_key`,`project_id`,`brand_id`,`role`),
+  KEY `idx_project_brands_project_role` (`tenant_key`,`project_id`,`role`),
+  KEY `idx_project_brands_brand` (`tenant_key`,`brand_id`),
+  CONSTRAINT `project_brands_ibfk_project` FOREIGN KEY (`tenant_key`,`project_id`) REFERENCES `monitoring_projects` (`tenant_key`,`project_id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Project brand configuration';
+
+CREATE TABLE IF NOT EXISTS `prompt_sets` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT 'Primary key',
+  `tenant_key` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Tenant key',
+  `project_id` varchar(128) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Stable project id',
+  `prompt_set_id` varchar(128) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Stable prompt set id',
+  `version` int(11) NOT NULL DEFAULT '1' COMMENT 'Prompt set version',
+  `name` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Prompt set name',
+  `status` enum('draft','active','archived') NOT NULL DEFAULT 'draft' COMMENT 'Prompt set status',
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Created time',
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'Updated time',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_tenant_prompt_set` (`tenant_key`,`prompt_set_id`),
+  UNIQUE KEY `uk_tenant_project_prompt_version` (`tenant_key`,`project_id`,`version`),
+  KEY `idx_prompt_sets_project_status` (`tenant_key`,`project_id`,`status`),
+  CONSTRAINT `prompt_sets_ibfk_project` FOREIGN KEY (`tenant_key`,`project_id`) REFERENCES `monitoring_projects` (`tenant_key`,`project_id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Project prompt sets';
+
+CREATE TABLE IF NOT EXISTS `prompt_items` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT 'Primary key',
+  `tenant_key` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Tenant key',
+  `prompt_set_id` varchar(128) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Stable prompt set id',
+  `prompt_item_id` varchar(128) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Stable prompt item id',
+  `keyword` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Prompt keyword',
+  `query_content` text COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Prompt content',
+  `status` enum('active','inactive') NOT NULL DEFAULT 'active' COMMENT 'Prompt item status',
+  `sort_order` int(11) NOT NULL DEFAULT '0' COMMENT 'Sort order',
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Created time',
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'Updated time',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_tenant_prompt_item` (`tenant_key`,`prompt_set_id`,`prompt_item_id`),
+  KEY `idx_prompt_items_prompt_set_status` (`tenant_key`,`prompt_set_id`,`status`),
+  KEY `idx_prompt_items_keyword` (`tenant_key`,`keyword`),
+  CONSTRAINT `prompt_items_ibfk_prompt_set` FOREIGN KEY (`tenant_key`,`prompt_set_id`) REFERENCES `prompt_sets` (`tenant_key`,`prompt_set_id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Prompt items';
+
+
 -- ---------------------------------------------------------
 -- PART 2: Business Logic (Conversations, Jobs, Analytics)
 -- Source: database_schema.sql
@@ -179,11 +252,126 @@ CREATE TABLE IF NOT EXISTS `executors` (
   UNIQUE KEY `uk_executor_id` (`executor_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='执行器信息表';
 
--- 9. 用户监测任务记录表
+-- 9. Collection lifecycle model
+CREATE TABLE IF NOT EXISTS `collection_jobs` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT 'Primary key',
+  `tenant_key` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Tenant key',
+  `collection_job_id` varchar(128) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Stable collection job id',
+  `project_id` varchar(128) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Monitoring project id',
+  `prompt_set_id` varchar(128) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Prompt set id used by this run',
+  `source_job_id` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Legacy llm_query_jobs job_id during compatibility period',
+  `status` enum('pending','running','succeeded','failed','expired','cancelled') NOT NULL DEFAULT 'pending' COMMENT 'Collection job status',
+  `window_start` timestamp NULL DEFAULT NULL COMMENT 'Collection window start',
+  `window_end` timestamp NULL DEFAULT NULL COMMENT 'Collection window end',
+  `expected_task_count` int(11) NOT NULL DEFAULT '0' COMMENT 'Expected task count',
+  `succeeded_task_count` int(11) NOT NULL DEFAULT '0' COMMENT 'Succeeded task count',
+  `failed_task_count` int(11) NOT NULL DEFAULT '0' COMMENT 'Failed task count',
+  `created_by` bigint(20) DEFAULT NULL COMMENT 'Creator user id',
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Created time',
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'Updated time',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_tenant_collection_job` (`tenant_key`,`collection_job_id`),
+  KEY `idx_collection_jobs_tenant_project_status` (`tenant_key`,`project_id`,`status`),
+  KEY `idx_collection_jobs_prompt_set` (`tenant_key`,`prompt_set_id`),
+  KEY `idx_collection_jobs_source_job` (`tenant_key`,`source_job_id`),
+  CONSTRAINT `collection_jobs_ibfk_tenant` FOREIGN KEY (`tenant_key`) REFERENCES `tenants` (`tenant_key`) ON DELETE CASCADE,
+  CONSTRAINT `collection_jobs_ibfk_project` FOREIGN KEY (`tenant_key`,`project_id`) REFERENCES `monitoring_projects` (`tenant_key`,`project_id`),
+  CONSTRAINT `collection_jobs_ibfk_prompt_set` FOREIGN KEY (`tenant_key`,`prompt_set_id`) REFERENCES `prompt_sets` (`tenant_key`,`prompt_set_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Collection job batches';
+
+CREATE TABLE IF NOT EXISTS `collection_tasks` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT 'Primary key',
+  `tenant_key` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Tenant key',
+  `collection_task_id` varchar(128) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Stable collection task id',
+  `collection_job_id` varchar(128) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Collection job id',
+  `project_id` varchar(128) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Monitoring project id',
+  `prompt_set_id` varchar(128) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Prompt set id',
+  `prompt_item_id` varchar(128) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Prompt item id',
+  `platform` varchar(64) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'AI platform',
+  `query_content` text COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Prompt content',
+  `run_index` int(11) NOT NULL DEFAULT '1' COMMENT 'Run index inside the collection job',
+  `status` enum('pending','reserved','running','succeeded','failed','expired','cancelled') NOT NULL DEFAULT 'pending' COMMENT 'Collection task status',
+  `lease_owner` varchar(128) DEFAULT NULL COMMENT 'Executor holding the current lease',
+  `lease_until` timestamp NULL DEFAULT NULL COMMENT 'Lease expiry time',
+  `reserved_at` timestamp NULL DEFAULT NULL COMMENT 'Reserved time',
+  `started_at` timestamp NULL DEFAULT NULL COMMENT 'Started time',
+  `finished_at` timestamp NULL DEFAULT NULL COMMENT 'Finished time',
+  `attempt_count` int(11) NOT NULL DEFAULT '0' COMMENT 'Attempt count',
+  `max_attempts` int(11) NOT NULL DEFAULT '3' COMMENT 'Max attempts before terminal failure',
+  `last_error_code` varchar(64) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Last error code',
+  `last_error_message` text COLLATE utf8mb4_unicode_ci COMMENT 'Last error message',
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Created time',
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'Updated time',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_tenant_collection_task` (`tenant_key`,`collection_task_id`),
+  KEY `idx_collection_tasks_fetch` (`tenant_key`,`status`,`lease_until`,`id`),
+  KEY `idx_collection_tasks_job_status` (`tenant_key`,`collection_job_id`,`status`),
+  KEY `idx_collection_tasks_project` (`tenant_key`,`project_id`,`status`),
+  KEY `idx_collection_tasks_prompt` (`tenant_key`,`prompt_set_id`,`prompt_item_id`),
+  KEY `idx_collection_tasks_lease_owner` (`lease_owner`,`status`,`tenant_key`),
+  CONSTRAINT `collection_tasks_ibfk_job` FOREIGN KEY (`tenant_key`,`collection_job_id`) REFERENCES `collection_jobs` (`tenant_key`,`collection_job_id`) ON DELETE CASCADE,
+  CONSTRAINT `collection_tasks_ibfk_project` FOREIGN KEY (`tenant_key`,`project_id`) REFERENCES `monitoring_projects` (`tenant_key`,`project_id`),
+  CONSTRAINT `collection_tasks_ibfk_prompt_item` FOREIGN KEY (`tenant_key`,`prompt_set_id`,`prompt_item_id`) REFERENCES `prompt_items` (`tenant_key`,`prompt_set_id`,`prompt_item_id`),
+  CONSTRAINT `collection_tasks_ibfk_executor` FOREIGN KEY (`lease_owner`) REFERENCES `executors` (`executor_id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Collection tasks';
+
+CREATE TABLE IF NOT EXISTS `collection_attempts` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT 'Primary key',
+  `tenant_key` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Tenant key',
+  `attempt_id` varchar(128) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Stable attempt id',
+  `collection_task_id` varchar(128) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Collection task id',
+  `executor_id` varchar(128) DEFAULT NULL COMMENT 'Executor id',
+  `status` enum('running','succeeded','failed','timeout','cancelled') NOT NULL DEFAULT 'running' COMMENT 'Attempt status',
+  `started_at` timestamp NULL DEFAULT NULL COMMENT 'Started time',
+  `finished_at` timestamp NULL DEFAULT NULL COMMENT 'Finished time',
+  `error_code` varchar(64) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Error code',
+  `error_message` text COLLATE utf8mb4_unicode_ci COMMENT 'Error message',
+  `raw_response_id` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Raw response id or external artifact id',
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Created time',
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'Updated time',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_tenant_collection_attempt` (`tenant_key`,`attempt_id`),
+  KEY `idx_collection_attempts_task` (`tenant_key`,`collection_task_id`),
+  KEY `idx_collection_attempts_executor_status` (`tenant_key`,`executor_id`,`status`),
+  KEY `idx_collection_attempts_executor_fk` (`executor_id`),
+  CONSTRAINT `collection_attempts_ibfk_task` FOREIGN KEY (`tenant_key`,`collection_task_id`) REFERENCES `collection_tasks` (`tenant_key`,`collection_task_id`) ON DELETE CASCADE,
+  CONSTRAINT `collection_attempts_ibfk_executor` FOREIGN KEY (`executor_id`) REFERENCES `executors` (`executor_id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Collection execution attempts';
+
+-- 10. Analysis run lifecycle model
+CREATE TABLE IF NOT EXISTS `analysis_runs` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT 'Primary key',
+  `tenant_key` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Tenant key',
+  `analysis_run_id` varchar(128) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Stable analysis run id',
+  `project_id` varchar(128) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Monitoring project id',
+  `collection_job_id` varchar(128) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Source collection job id',
+  `status` enum('pending','running','succeeded','failed','stale') NOT NULL DEFAULT 'pending' COMMENT 'Analysis run status',
+  `plugin_versions` json DEFAULT NULL COMMENT 'Analysis plugin versions',
+  `model_config_hash` varchar(128) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Model/config hash for reproducibility',
+  `input_watermark` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Input data watermark',
+  `started_at` timestamp NULL DEFAULT NULL COMMENT 'Started time',
+  `finished_at` timestamp NULL DEFAULT NULL COMMENT 'Finished time',
+  `stale_at` timestamp NULL DEFAULT NULL COMMENT 'Time when upstream data or config made this run stale',
+  `error_code` varchar(64) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Failure error code',
+  `error_message` text COLLATE utf8mb4_unicode_ci COMMENT 'Failure or stale reason',
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Created time',
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'Updated time',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_tenant_analysis_run` (`tenant_key`,`analysis_run_id`),
+  KEY `idx_analysis_runs_tenant_project_status` (`tenant_key`,`project_id`,`status`),
+  KEY `idx_analysis_runs_collection_job` (`tenant_key`,`collection_job_id`),
+  KEY `idx_analysis_runs_status_updated` (`tenant_key`,`status`,`updated_at`),
+  CONSTRAINT `analysis_runs_ibfk_tenant` FOREIGN KEY (`tenant_key`) REFERENCES `tenants` (`tenant_key`) ON DELETE CASCADE,
+  CONSTRAINT `analysis_runs_ibfk_project` FOREIGN KEY (`tenant_key`,`project_id`) REFERENCES `monitoring_projects` (`tenant_key`,`project_id`),
+  CONSTRAINT `analysis_runs_ibfk_collection_job` FOREIGN KEY (`tenant_key`,`collection_job_id`) REFERENCES `collection_jobs` (`tenant_key`,`collection_job_id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Analysis run lifecycle records';
+
+-- 11. 用户监测任务记录表
 CREATE TABLE IF NOT EXISTS `llm_query_jobs` (
   `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '任务记录唯一主键ID，自增',
   `tenant_key` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '租户唯一字符串标识（tenants.tenant_key）',
   `job_id` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '作业ID',
+  `project_id` varchar(128) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '关联监测项目ID，兼容期可为空',
   `category` varchar(64) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '商品大类（比如“汽车”）',
   `brand` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '目标品牌（如“蔚来”，可为NULL表示未指定具体品牌）',
   `competitor` json DEFAULT NULL COMMENT '竞品品牌（如“小鹏”“理想”，可为NULL表示未指定竞品）',
@@ -201,6 +389,7 @@ CREATE TABLE IF NOT EXISTS `llm_query_jobs` (
   `is_deleted` tinyint(4) NOT NULL DEFAULT '0' COMMENT '软删除标识：0-未删除，1-已删除',
   PRIMARY KEY (`id`),
   KEY `idx_tenant_job` (`tenant_key`,`job_id`),
+  KEY `idx_lqj_project` (`tenant_key`,`project_id`),
   KEY `idx_brand` (`brand`),
   KEY `idx_category` (`category`),
   KEY `idx_keyword` (`keyword`),
@@ -257,7 +446,7 @@ CREATE TABLE IF NOT EXISTS `qa_brand_state` (
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   PRIMARY KEY (`id`),
-  UNIQUE KEY `uk_tenant_job_conv_brand` (`tenant_key`,`job_id`,`conversation_id`,`brand`),
+  UNIQUE KEY `uk_tenant_job_conv_brand` (`tenant_key`(191),`job_id`(191),`conversation_id`(191),`brand`),
   KEY `idx_tenant_date` (`tenant_key`,`date`),
   KEY `idx_tenant_brand` (`tenant_key`,`brand`),
   KEY `idx_tenant_platform` (`tenant_key`,`platform`),

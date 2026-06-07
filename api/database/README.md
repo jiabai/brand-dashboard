@@ -18,7 +18,38 @@
 
 ## 🗂️ 核心表结构
 
-### 1. llm_conversations - LLM 对话内容主表
+### 1. monitoring_projects - 监测项目配置表
+租户内长期品牌监测项目的主配置，使用 `(tenant_key, project_id)` 作为稳定业务键。
+
+**主要字段：**
+- `tenant_key` - 租户唯一标识
+- `project_id` - 项目稳定 ID
+- `name` - 项目名称
+- `industry` - 行业
+- `category` - 品类
+- `status` - 项目状态（draft/active/paused/archived）
+
+### 2. project_brands - 项目品牌配置表
+保存项目中的目标品牌、竞品和仅观察品牌，并随项目删除级联清理。
+
+**主要字段：**
+- `project_id` - 所属项目
+- `brand_id` - 品牌稳定 ID
+- `brand_name` - 品牌标准名称
+- `role` - 品牌角色（target/competitor/watch_only）
+- `aliases` - 品牌别名 JSON
+
+### 3. prompt_sets / prompt_items - 项目问题集与问题项
+保存项目级消费者问题集版本，以及每个问题集内的具体问题。
+
+**主要字段：**
+- `prompt_set_id` - 问题集稳定 ID
+- `version` - 项目内问题集版本
+- `prompt_item_id` - 问题项稳定 ID
+- `keyword` - 问题关键词
+- `query_content` - 问题内容
+
+### 4. llm_conversations - LLM 对话内容主表
 存储从 AI 平台抓取的原始对话内容。
 
 **主要字段：**
@@ -33,7 +64,7 @@
 - `answer_content` - AI 回答内容
 - `extracted_at` - 文件原始生成时间
 
-### 2. llm_conversation_references - 对话引用链接表
+### 5. llm_conversation_references - 对话引用链接表
 存储对话中提到的参考链接和元数据。
 
 **主要字段：**
@@ -42,7 +73,7 @@
 - `site_name` - 站点名称
 - `content_type` - 内容类型（news, tech_review 等）
 
-### 3. llm_query_jobs - 用户咨询任务记录表
+### 6. llm_query_jobs - 用户咨询任务记录表
 存储用户提交的任务配置和待查询问题模板。
 
 **主要字段：**
@@ -55,7 +86,7 @@
 - `total_runs` - 总执行次数
 - `executed_runs` - 已执行次数
 
-### 4. qa_brand_state - 品牌问答状态详情表
+### 7. qa_brand_state - 品牌问答状态详情表
 记录品牌在每个问答中的具体表现。
 
 **主要字段：**
@@ -64,7 +95,11 @@
 - `sentiment_status` - 情感状态
 - `brands_found` - 发现的所有品牌 (JSON)
 
-### 5. qa_brand_summary - 品牌汇总统计表
+**幂等约束：**
+- `uk_tenant_job_conv_brand` - 约束同一 `(tenant_key, job_id, conversation_id, brand)` 只保留一条品牌状态事实，支撑 `mention_status` 重跑时的 upsert。
+- 历史库应用该约束前，先执行 `api/scripts/check_duplicate_analysis_rows.py` 检查重复数据。
+
+### 8. qa_brand_summary - 品牌汇总统计表
 存储按日、按品牌、按平台的统计摘要。
 
 **主要字段：**
@@ -72,7 +107,7 @@
 - `first_mention_rate` - 首位提及率
 - `positive_ratio` - 正面情感比例
 
-### 6. qa_reference - 问答引用详情表（分析用）
+### 9. qa_reference - 问答引用详情表（分析用）
 专门用于分析的引用链接表，包含发稿链接校验。
 
 **主要字段：**

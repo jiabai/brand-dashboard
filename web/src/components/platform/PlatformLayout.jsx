@@ -8,7 +8,7 @@ import { Button } from '../ui/button.jsx';
 
 const navItems = [
   { label: '租户管理', to: '/platform/tenants', icon: Building2, enabled: true },
-  { label: '执行器', to: '/platform/executors', icon: ServerCog, enabled: false },
+  { label: '执行器', to: '/platform/executors', icon: ServerCog, enabled: true },
 ];
 
 const PlatformLayout = () => {

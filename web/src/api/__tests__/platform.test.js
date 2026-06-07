@@ -1,7 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { createPlatformTenant, fetchPlatformTenants } from '../platform.js';
+import {
+  createPlatformTenant,
+  fetchPlatformCollectionHealth,
+  fetchPlatformTenants,
+} from '../platform.js';
 import { clearAuthSession, writeAuthSession } from '../../auth/storage.js';
 
 class MemoryStorage {
@@ -110,4 +114,28 @@ test('platform create API posts json without tenant header', async () => {
     tenantName: 'Acme',
     adminEmail: 'owner@acme.test',
   });
+});
+
+test('platform collection health API skips tenant header', async () => {
+  writeAuthSession({
+    accessToken: 'platform-token',
+    currentTenantKey: 'tn_customer',
+    user: {
+      platformRoles: ['platform_admin'],
+      tenants: [{ tenantKey: 'tn_customer', status: 'active' }],
+    },
+  });
+  let request;
+  globalThis.fetch = async (url, options) => {
+    request = { url, options };
+    return jsonResponse({ data: { summary: {}, executors: [], queues: [], failedTasks: [] } });
+  };
+
+  await fetchPlatformCollectionHealth({ failedTaskLimit: 5 });
+
+  const parsed = new URL(request.url, 'http://localhost');
+  assert.equal(parsed.pathname, '/api/v1/platform/collection-health');
+  assert.equal(parsed.searchParams.get('failedTaskLimit'), '5');
+  assert.equal(request.options.headers.Authorization, 'Bearer platform-token');
+  assert.equal(request.options.headers['X-Tenant-Key'], undefined);
 });

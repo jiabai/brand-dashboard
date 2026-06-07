@@ -17,10 +17,13 @@ from api.v1.routes import (
     analysis,
     auth,
     brand_strategy,
+    collection_attempts,
+    collection_tasks,
     config,
     conversation,
     dashboard,
     executors,
+    projects,
     query_jobs,
 )
 from api.v1.services.job_reset_scheduler import start_scheduler
@@ -71,9 +74,20 @@ app.include_router(auth.router, prefix="/api/v1", tags=["auth"])
 app.include_router(config.router, prefix="/api/v1/config", tags=["config"])
 app.include_router(dashboard.router, prefix="/api/v1/dashboard", tags=["dashboard"])
 app.include_router(brand_strategy.router, prefix="/api/v1/analysis", tags=["analysis"])
+app.include_router(
+    collection_attempts.router,
+    prefix="/api/v1/collection-attempts",
+    tags=["collection-attempts"],
+)
+app.include_router(
+    collection_tasks.router,
+    prefix="/api/v1/collection-tasks",
+    tags=["collection-tasks"],
+)
 app.include_router(query_jobs.router, prefix="/api/v1/query-jobs", tags=["query-jobs"])
 app.include_router(executors.router, prefix="/api/v1/executors", tags=["executors"])
 app.include_router(conversation.router, prefix="/api/v1/conversation", tags=["conversation"])
+app.include_router(projects.router, prefix="/api/v1/projects", tags=["projects"])
 
 @app.get("/", response_model=Dict[str, str])
 async def root():

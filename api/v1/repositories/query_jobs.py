@@ -59,7 +59,15 @@ def fetch_next_query_job(
         text(
             f"""
             SELECT
-              id, job_id, tenant_key, category, brand, competitor, keyword, query_content
+              id,
+              job_id,
+              tenant_key,
+              project_id,
+              category,
+              brand,
+              competitor,
+              keyword,
+              query_content
             FROM llm_query_jobs
             WHERE {" AND ".join(where_clauses)}
             ORDER BY
@@ -83,6 +91,34 @@ def get_query_job_runs(db: Session, *, record_id: int, executor_id: str):
         ),
         {"id": record_id, "executor_id": executor_id},
     ).first()
+
+
+def query_job_has_loaded_conversation(
+    db: Session,
+    *,
+    record_id: int,
+    executor_id: str,
+) -> bool:
+    row = db.execute(
+        text(
+            """
+            SELECT 1
+            FROM llm_query_jobs q
+            WHERE q.id = :id
+              AND q.executor_id = :executor_id
+              AND EXISTS (
+                  SELECT 1
+                  FROM llm_conversations c
+                  WHERE c.tenant_key = q.tenant_key
+                    AND c.job_id = q.job_id
+                    AND c.query_content = q.query_content
+              )
+            LIMIT 1
+            """
+        ),
+        {"id": record_id, "executor_id": executor_id},
+    ).first()
+    return row is not None
 
 
 def executor_has_job_scope(
@@ -170,6 +206,7 @@ def list_query_jobs_status(
             SELECT
               tenant_key,
               job_id,
+              project_id,
               brand,
               competitor,
               query_content,
@@ -192,6 +229,7 @@ def insert_query_jobs(db: Session, rows: Iterable[Dict[str, Any]]) -> int:
             INSERT INTO llm_query_jobs (
               tenant_key,
               job_id,
+              project_id,
               category,
               brand,
               competitor,
@@ -210,6 +248,7 @@ def insert_query_jobs(db: Session, rows: Iterable[Dict[str, Any]]) -> int:
             VALUES (
               :tenant_key,
               :job_id,
+              :project_id,
               :category,
               :brand,
               :competitor,

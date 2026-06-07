@@ -1,4 +1,23 @@
 export const ROUTES = {
+  projects: {
+    viewKey: 'projects',
+    path: '/projects/:tenantKey',
+    routeSegment: 'projects',
+    menuLabel: '监测项目',
+    menuIcon: 'FolderKanbanOutlined',
+    menuSection: 'main',
+    requiresJobId: false,
+  },
+  'project-detail': {
+    viewKey: 'project-detail',
+    path: '/projects/:tenantKey/:projectId',
+    routeSegment: 'projects',
+    menuLabel: '项目详情',
+    menuIcon: 'FolderKanbanOutlined',
+    menuSection: 'hidden',
+    requiresJobId: false,
+    requiresProjectId: true,
+  },
   home: {
     viewKey: 'home',
     path: '/dashboard/:tenantKey/:jobId',
