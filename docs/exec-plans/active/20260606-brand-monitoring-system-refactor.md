@@ -36,7 +36,8 @@ Decision Log, and Outcomes & Retrospective must be kept up to date as work proce
 - [x] Phase 6.1: 新增 metric_snapshots schema、迁移和 analysis 镜像 schema（2026-06-07）
 - [x] Phase 6.2: 新增指标快照生成 service/repository，并固定 `brand_metrics_v1` 口径（2026-06-07）
 - [x] Phase 6.3: 品牌提及类 dashboard 查询改为快照优先、旧明细兜底（2026-06-07）
-- [ ] Phase 6: 建设指标快照 read model 并迁移 dashboard 查询
+- [x] Phase 6.4: 前端展示指标生成时间、采集覆盖和分析完整性（2026-06-07）
+- [x] Phase 6: 建设指标快照 read model 并迁移 dashboard 查询（2026-06-07）
 - [ ] Phase 7: 完善问答快照、告警、报告和数据质量页面
 - [ ] Phase 8: 清理兼容层，归档计划
 
@@ -69,6 +70,7 @@ Decision Log, and Outcomes & Retrospective must be kept up to date as work proce
 - 2026-06-07：Phase 6.1 发现指标快照的自然维度键会把 `tenant_key/project_id/metric/brand/platform/keyword/definition/analysis_run` 组合得很长；在 MySQL `utf8mb4` 下直接做完整复合唯一键容易超过索引长度，因此需要用 `dimension_hash` 收敛维度唯一性。
 - 2026-06-07：Phase 6.2 需要区分“任意信源引用率”和“发稿链接覆盖率”。本阶段的 `reference_rate` 只判断同一回答是否存在至少一条 `qa_reference`，不依赖 `is_published_link`；发稿链接覆盖率后续可作为单独指标扩展。
 - 2026-06-07：Phase 6.3 发现并非所有 dashboard 查询都能直接由首版快照替代；`platform-mention-rates` 仍需要 category 维度，引用相关接口仍需要 domain/url/content_type/`is_published_link` 明细，因此本阶段只迁移品牌提及类读面。
+- 2026-06-07：Phase 6.4 可以直接复用 `brand-metrics` 作为首页指标质量入口；前端已依赖该接口加载目标品牌和竞品列表，因此把新鲜度、覆盖率和分析完整性放入 response metadata，不需要新增页面级请求。
 
 ## Decision Log
 
@@ -114,6 +116,8 @@ Decision Log, and Outcomes & Retrospective must be kept up to date as work proce
 | Phase 6.3 保持 DashboardService/API 响应契约不变 | 前端暂不改展示；Repository 层先实现快照优先和明细兜底，可让现有 dashboard 回归测试继续覆盖 API 行为 | 2026-06-07 / agent |
 | Phase 6.3 用 `collection_jobs.source_job_id` 桥接旧 dashboard job_id | 兼容期 URL 仍传 legacy `job_id`，快照绑定的是新 `collection_job_id` 和 `analysis_run_id`；通过 source job 桥接避免打断旧入口 | 2026-06-07 / agent |
 | Phase 6.3 只迁移 `brand_metrics_v1` 能完整表达的读取面 | category、domain、url、content_type 和发稿链接等明细维度暂未进入指标快照；直接迁移会造成口径丢失 | 2026-06-07 / agent |
+| Phase 6.4 将快照质量信息挂在 `brand-metrics.metadata` | 首页 dashboard 已读取 `brand-metrics`，metadata 能承载数据来源、新鲜度、覆盖率和分析完整性，且不破坏现有 data 数组契约 | 2026-06-07 / agent |
+| Phase 6.4 快照质量查询失败时降级为 `legacy_aggregation` 标记 | 质量提示不能让核心 dashboard 数据读取失败；缺失快照或兼容期旧数据应明确展示为明细聚合和快照未生成 | 2026-06-07 / agent |
 
 ## Context and Orientation
 
@@ -279,6 +283,7 @@ Decision Log, and Outcomes & Retrospective must be kept up to date as work proce
 - 2026-06-07 / Phase 6.1：先新增 `api/tests/test_metric_snapshot_schema.py` 并确认缺少 `metric_snapshots` 表和迁移脚本时失败；补齐 API MySQL/SQLite schema、analysis schema 镜像和 `api/database/migrations/20260607_add_metric_snapshots.mysql.sql` 后，定向 schema 测试通过（3 passed）；`uv run --project api ruff check api` 通过；`$env:PYTHONPATH='.'; uv run --project api --extra dev pytest api/tests/ -q` 通过（144 passed, 993 warnings）；`python scripts/validate_agents_docs.py --level ERROR` 和 `--level WARN` 均为 0 错误、0 警告；`git diff --check` 通过，仅输出既有 LF/CRLF 换行提示。本阶段未改前端，也未实现快照生成逻辑。
 - 2026-06-07 / Phase 6.2：先新增 `api/tests/test_metric_snapshot_generation.py` 并确认缺少 `metric_snapshots` 服务时失败；补齐 `api/v1/services/metric_snapshots.py` 和 `api/v1/repositories/metric_snapshots.py` 后，定向指标快照生成测试通过（2 passed, 68 warnings），覆盖提及率、首位提及率、Top3 提及率、正/负/中性/未知情绪占比、任意信源引用率、失败 run 拒绝和重复生成幂等性；`uv run --project api ruff check api` 通过；`$env:PYTHONPATH='.'; uv run --project api --extra dev pytest api/tests/ -q` 通过（146 passed, 1061 warnings）；`python scripts/validate_agents_docs.py --level ERROR` 和 `--level WARN` 均为 0 错误、0 警告；`git diff --check` 通过，仅输出既有 LF/CRLF 换行提示。本阶段未改前端，也未迁移 dashboard 查询。
 - 2026-06-07 / Phase 6.3：先新增 `api/tests/test_dashboard_metric_snapshot_priority.py` 并确认当前 dashboard 仍返回旧明细聚合结果；补齐 `metric_snapshots` dashboard 读函数，并让 `brand_mention` / `filter_metadata` 相关仓储快照优先、旧明细兜底后，定向快照优先测试通过（5 passed, 88 warnings），旧 dashboard 回归组合通过（26 passed, 88 warnings）；`uv run --project api ruff check api` 通过；`$env:PYTHONPATH='.'; uv run --project api --extra dev pytest api/tests/ -q` 通过（151 passed, 1143 warnings）；`python scripts/validate_agents_docs.py --level ERROR` 和 `--level WARN` 均为 0 错误、0 警告；`git diff --check` 通过，仅输出既有 LF/CRLF 换行提示。本阶段未改前端，也未迁移 category 或引用明细相关 dashboard 读取面。
+- 2026-06-07 / Phase 6.4：先新增后端快照质量 metadata 测试、`brand-metrics` 路由透传测试、前端 metadata 归一化测试和 `BrandMentionRate` 展示契约测试，并确认旧实现缺少对应方法、工具和展示文案时失败；补齐 `query_snapshot_quality_metadata`、`DashboardService.get_metric_snapshot_metadata`、`brand-metrics.metadata` 扩展、前端指标质量面板和空状态文案后，后端定向组合通过（29 passed, 110 warnings），前端定向组合通过（4 passed）；`uv run --project api ruff check api` 通过；`$env:PYTHONPATH='.'; uv run --project api --extra dev pytest api/tests/ -q` 通过（154 passed, 1165 warnings）；`npm --prefix web test` 通过（71 passed）；`npm --prefix web run lint` 无错误，保留既有 9 个 warning；`npm --prefix web run build` 通过；系统 Chrome + Playwright 对首页 dashboard 做桌面/移动 mock smoke test 通过，确认质量面板不横向溢出且生成时间、覆盖率、分析完整性完整可见；文档 ERROR/WARN 验证通过；`git diff --check` 通过，仅输出既有 LF/CRLF 换行提示。
 
 阶段性验收：
 

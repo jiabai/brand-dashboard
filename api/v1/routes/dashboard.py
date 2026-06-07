@@ -272,18 +272,25 @@ async def get_brand_metrics(
             brand=brand,
             platform=platform,
         )
+        snapshot_metadata = service.get_metric_snapshot_metadata(
+            tenant_key=tenant_key,
+            job_id=job_id,
+            query_start_date=query_start_date,
+            query_end_date=query_end_date,
+        )
         return BrandMetricsResponse(
             status="success",
             data=metrics,
-            metadata={
-                "tenant_key": tenant_key,
-                "job_id": job_id,
-                "timeframe": timeframe.value,
-                "start_date": query_start_date.strftime("%Y%m%d"),
-                "end_date": query_end_date.strftime("%Y%m%d"),
-                "calculation_method": "mention_count_ratio",
-                "row_count": len(metrics),
-            },
+            metadata=_build_metadata(
+                tenant_key=tenant_key,
+                job_id=job_id,
+                timeframe=timeframe.value,
+                start_date=query_start_date.strftime("%Y%m%d"),
+                end_date=query_end_date.strftime("%Y%m%d"),
+                calculation_method="mention_count_ratio",
+                row_count=len(metrics),
+                **snapshot_metadata,
+            ),
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e

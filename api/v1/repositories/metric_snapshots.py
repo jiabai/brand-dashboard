@@ -380,3 +380,122 @@ def query_snapshot_keyword_platform_brand_rates(
         }
         for row in rows
     ]
+
+
+def _serialize_timestamp(value: Any) -> str | None:
+    if value is None:
+        return None
+    if hasattr(value, "strftime"):
+        return value.strftime("%Y-%m-%d %H:%M:%S")
+    return str(value)
+
+
+def _to_optional_float(value: Any) -> float | None:
+    return round(float(value), 6) if value is not None else None
+
+
+def _to_optional_int(value: Any) -> int | None:
+    return int(value) if value is not None else None
+
+
+def _missing_snapshot_metadata(
+    metric_definition_version: str = "brand_metrics_v1",
+) -> dict[str, Any]:
+    return {
+        "data_source": "legacy_aggregation",
+        "snapshot_status": "missing",
+        "metric_definition_version": metric_definition_version,
+        "analysis_run_id": None,
+        "metric_generated_at": None,
+        "metric_coverage_rate": None,
+        "metric_expected_task_count": None,
+        "metric_succeeded_task_count": None,
+        "metric_failed_task_count": None,
+        "metric_analyzed_answer_count": None,
+        "metric_snapshot_count": 0,
+        "metric_dimension_count": 0,
+    }
+
+
+def query_snapshot_quality_metadata(
+    engine,
+    *,
+    tenant_key: str,
+    job_id: str,
+    start_date: date,
+    end_date: date,
+    metric_definition_version: str = "brand_metrics_v1",
+) -> dict[str, Any]:
+    query = (
+        _latest_run_cte()
+        + """
+        , snapshot_rows AS (
+            SELECT
+              ms.analysis_run_id,
+              ms.metric_definition_version,
+              ms.generated_at,
+              ms.coverage_rate,
+              ms.expected_task_count,
+              ms.succeeded_task_count,
+              ms.failed_task_count,
+              ms.analyzed_answer_count,
+              ms.metric_date,
+              ms.dimension_hash
+            FROM metric_snapshots ms
+            JOIN latest_run lr
+              ON lr.analysis_run_id = ms.analysis_run_id
+            WHERE ms.tenant_key = :tenant_key
+              AND ms.metric_definition_version = :metric_definition_version
+              AND ms.metric_date BETWEEN :start_date AND :end_date
+        ),
+        dimension_rows AS (
+            SELECT
+              metric_date,
+              dimension_hash,
+              MAX(analyzed_answer_count) AS analyzed_answer_count
+            FROM snapshot_rows
+            GROUP BY metric_date, dimension_hash
+        )
+        SELECT
+          (SELECT analysis_run_id FROM latest_run) AS analysis_run_id,
+          MAX(metric_definition_version) AS metric_definition_version,
+          MAX(generated_at) AS metric_generated_at,
+          MIN(coverage_rate) AS metric_coverage_rate,
+          MAX(expected_task_count) AS metric_expected_task_count,
+          MAX(succeeded_task_count) AS metric_succeeded_task_count,
+          MAX(failed_task_count) AS metric_failed_task_count,
+          COUNT(*) AS metric_snapshot_count,
+          (SELECT COUNT(*) FROM dimension_rows) AS metric_dimension_count,
+          (SELECT COALESCE(SUM(analyzed_answer_count), 0) FROM dimension_rows)
+            AS metric_analyzed_answer_count
+        FROM snapshot_rows
+        """
+    )
+    params = {
+        "tenant_key": tenant_key,
+        "job_id": job_id,
+        "start_date": start_date,
+        "end_date": end_date,
+        "metric_definition_version": metric_definition_version,
+    }
+
+    with engine.connect() as conn:
+        row = conn.execute(text(query), params).fetchone()
+
+    if row is None or int(row[7] or 0) == 0:
+        return _missing_snapshot_metadata(metric_definition_version)
+
+    return {
+        "data_source": "metric_snapshot",
+        "snapshot_status": "available",
+        "metric_definition_version": row[1] or metric_definition_version,
+        "analysis_run_id": row[0],
+        "metric_generated_at": _serialize_timestamp(row[2]),
+        "metric_coverage_rate": _to_optional_float(row[3]),
+        "metric_expected_task_count": _to_optional_int(row[4]),
+        "metric_succeeded_task_count": _to_optional_int(row[5]),
+        "metric_failed_task_count": _to_optional_int(row[6]),
+        "metric_analyzed_answer_count": _to_optional_int(row[9]),
+        "metric_snapshot_count": _to_optional_int(row[7]) or 0,
+        "metric_dimension_count": _to_optional_int(row[8]) or 0,
+    }

@@ -448,3 +448,66 @@ def test_brand_metrics_falls_back_to_legacy_aggregation_when_snapshots_are_missi
     assert metric.top3_mention_rate == 0.5
     assert metric.prompt_count == 2
     assert metric.keyword_coverage == 1
+
+
+def test_metric_snapshot_metadata_exposes_freshness_coverage_and_completeness():
+    engine = _build_engine()
+    with Session(engine) as session:
+        _seed_project_run(session)
+        _seed_metric_snapshots(session)
+
+    service = DashboardService(engine)
+
+    metadata = service.get_metric_snapshot_metadata(
+        tenant_key="tenant_a",
+        job_id="legacy_job_a",
+        query_start_date=date(2026, 6, 7),
+        query_end_date=date(2026, 6, 7),
+    )
+
+    assert metadata["data_source"] == "metric_snapshot"
+    assert metadata["snapshot_status"] == "available"
+    assert metadata["metric_definition_version"] == "brand_metrics_v1"
+    assert metadata["analysis_run_id"] == "analysis_run_a"
+    assert metadata["metric_generated_at"] == "2026-06-07 11:00:00"
+    assert metadata["metric_coverage_rate"] == 1.0
+    assert metadata["metric_expected_task_count"] == 20
+    assert metadata["metric_succeeded_task_count"] == 20
+    assert metadata["metric_failed_task_count"] == 0
+    assert metadata["metric_analyzed_answer_count"] == 20
+    assert metadata["metric_snapshot_count"] == 6
+    assert metadata["metric_dimension_count"] == 2
+
+
+def test_metric_snapshot_metadata_marks_legacy_fallback_when_snapshot_is_missing():
+    engine = _build_engine()
+    now = datetime(2026, 6, 7, 10, 0, 0, tzinfo=UTC)
+    with Session(engine) as session:
+        session.execute(
+            text(
+                """
+                INSERT INTO tenants (tenant_key, tenant_name, status, created_at, updated_at)
+                VALUES ('tenant_a', 'Tenant A', 'active', :now, :now)
+                """
+            ),
+            {"now": now},
+        )
+        _seed_legacy_brand_facts(
+            session,
+            job_id="legacy_job_without_snapshot",
+            analysis_run_id=None,
+        )
+
+    service = DashboardService(engine)
+
+    metadata = service.get_metric_snapshot_metadata(
+        tenant_key="tenant_a",
+        job_id="legacy_job_without_snapshot",
+        query_start_date=date(2026, 6, 7),
+        query_end_date=date(2026, 6, 7),
+    )
+
+    assert metadata["data_source"] == "legacy_aggregation"
+    assert metadata["snapshot_status"] == "missing"
+    assert metadata["metric_generated_at"] is None
+    assert metadata["metric_coverage_rate"] is None

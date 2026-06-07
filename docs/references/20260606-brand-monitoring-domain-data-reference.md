@@ -387,6 +387,30 @@ Phase 6.3 将品牌提及类 dashboard 读取面迁移为快照优先。实现�
 
 当匹配不到可用快照时，Repository 返回空列表并继续执行旧明细聚合。这样旧 dashboard、历史 job 和尚未生成快照的采集批次仍能工作；Phase 6.4 再在前端展示快照新鲜度和覆盖率，帮助用户理解数据来源。
 
+### 2.5.7 Phase 6.4 Dashboard 数据新鲜度与覆盖率
+
+Phase 6.4 在 `brand-metrics` 响应的 `metadata` 中增加快照质量字段，不改变 `data` 数组中的品牌指标结构。前端首页继续通过同一个接口加载目标品牌和竞品列表，并使用 metadata 展示数据来源、指标生成时间、采集覆盖和分析完整性。
+
+新增 metadata 字段：
+
+| 字段 | 说明 |
+|------|------|
+| `data_source` | `metric_snapshot` 表示当前窗口匹配到指标快照；`legacy_aggregation` 表示回退到旧明细聚合。 |
+| `snapshot_status` | `available` 表示快照可用；`missing` 表示快照未生成或当前窗口无可用快照。 |
+| `metric_definition_version` | 当前质量信息对应的指标口径版本，首版为 `brand_metrics_v1`。 |
+| `analysis_run_id` | 生成快照的分析运行 ID；旧明细聚合或快照缺失时为空。 |
+| `metric_generated_at` | 快照生成时间，用于 dashboard 新鲜度展示。 |
+| `metric_coverage_rate` | 采集覆盖率，值为 0-1 的比例；缺失时前端展示“覆盖率待生成”。 |
+| `metric_expected_task_count` / `metric_succeeded_task_count` / `metric_failed_task_count` | 采集任务完整性计数，用于前端展示“成功 / 预期 / 失败”。 |
+| `metric_analyzed_answer_count` | 当前指标窗口实际纳入分析的回答数，按日期和维度去重后汇总。 |
+| `metric_snapshot_count` / `metric_dimension_count` | 当前窗口命中的快照行数和业务维度数，用于排障与后续数据质量页。 |
+
+前端展示策略：
+
+- 当 `data_source = metric_snapshot` 且 `snapshot_status = available` 时，展示“指标快照”、生成时间、覆盖率、分析完整性和纳入分析回答数。
+- 当快照缺失或质量查询失败时，展示“明细聚合”和“快照未生成”，并明确提示当前数据来自历史明细聚合，避免用户把旧聚合误解为已生成快照。
+- 空状态文案不再描述为“接口未返回可展示的数据”，而是提示当前筛选下没有品牌指标，若刚完成采集需等待分析和指标快照生成。
+
 ## 3. 状态机参考
 
 ### 3.1 项目状态
