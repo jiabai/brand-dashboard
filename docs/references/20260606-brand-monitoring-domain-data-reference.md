@@ -265,6 +265,29 @@ mysql -u root -p geo < api/database/migrations/20260607_add_analysis_run_model.m
 | 指标快照生成 | Phase 6 从成功的 analysis run 生成 `metric_snapshots`。 |
 | 重试与失败可观测 | Phase 5.3 基于 `failed` run 的错误字段和输入水位实现 retry。 |
 
+### 2.5.2 Phase 5.2 系统分析服务与事实血缘
+
+Phase 5.2 将 `analysis/` 下已有的 `mention_status` 与 `reference_status` 插件接入 API 侧的内部系统分析服务。服务入口为 `api/v1/services/analysis_runner.py`，本阶段暂不开放公开路由；调用方传入 `tenant_key` 和 `collection_job_id` 后，服务负责创建或复用 `analysis_run_id`、推进 `analysis_runs` 状态，并把分析事实写回带运行血缘的事实表。
+
+兼容期内，原始回答和引用仍保存在旧表 `llm_conversations`、`llm_conversation_references`，并且旧表仍以 `job_id` 作为采集批次标识。因此本阶段使用 `collection_jobs.source_job_id` 作为桥接键读取旧原始数据；若 `source_job_id` 为空，则回退使用 `collection_job_id`。这个桥接策略只服务于兼容期，长期目标仍是让原始回答和引用直接持有新的采集批次、任务和 attempt 血缘。
+
+品牌上下文来自同租户、同项目的 active `project_brands`。服务要求至少存在一个 active target brand；competitor brand 则作为插件上下文传入。插件运行后，事实写入规则如下：
+
+| 事实表 | 新增血缘字段 | 幂等键策略 |
+|--------|--------------|------------|
+| `qa_brand_state` | `analysis_run_id`，可为空，外键引用 `(tenant_key, analysis_run_id)` | 继续按 `(tenant_key, job_id, conversation_id, brand)` upsert；重跑会更新同一事实行的 `analysis_run_id`。 |
+| `qa_reference` | `analysis_run_id`，可为空，外键引用 `(tenant_key, analysis_run_id)` | 兼容期继续按 `(tenant_key, conversation_id, url)` upsert；重跑会更新同一引用事实的 `analysis_run_id`。 |
+
+`analysis_run_id` 采用 nullable 字段，是为了保留历史事实行和旧 dashboard 查询的兼容性。它不进入旧唯一键，避免同一回答因为不同 analysis run 重复出现在兼容 dashboard 聚合里；后续 Phase 6 的指标快照会使用成功的 `analysis_runs` 生成稳定 read model，而不是直接把多个重跑事实暴露给用户。
+
+MySQL 迁移脚本：
+
+```powershell
+mysql -u root -p geo < api/database/migrations/20260607_add_analysis_run_id_to_analysis_facts.mysql.sql
+```
+
+本阶段的服务成功条件是：采集批次必须已 `succeeded`，项目必须有 active target brand，至少有一类原始数据可供插件处理。任一插件或输入异常会把 `analysis_runs` 结束为 `failed` 并记录错误信息。更细的失败分类、重试入口和运行观测面留到 Phase 5.3 实现。
+
 ## 3. 状态机参考
 
 ### 3.1 项目状态

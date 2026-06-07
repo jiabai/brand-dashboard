@@ -142,6 +142,7 @@ class MentionStatusPlugin(AnalysisPlugin):
         for a in answers:
             tenant_key = self._required_str(a, "tenant_key")
             job_id = self._required_str(a, "job_id")
+            analysis_run_id = self._required_str(a, "analysis_run_id")
             conversation_id = self._required_str(a, "conversation_id")
             brand = self._required_str(a, "brand")
             category = self._required_str(a, "category")
@@ -180,6 +181,7 @@ class MentionStatusPlugin(AnalysisPlugin):
                     "date": answer_date,
                     "tenant_key": tenant_key,
                     "job_id": job_id,
+                    "analysis_run_id": analysis_run_id,
                     "conversation_id": conversation_id,
                     "brand": brand,
                     "category": category,
@@ -214,32 +216,88 @@ class MentionStatusPlugin(AnalysisPlugin):
         try:
             from sqlalchemy import text
 
-            # 使用 ON DUPLICATE KEY UPDATE 实现 Upsert
-            # 依赖 UNIQUE KEY `uk_tenant_job_conv_brand`
-            # (`tenant_key`(191), `job_id`(191), `conversation_id`(191), `brand`)
-            sql = text(
-                "INSERT INTO qa_brand_state "
-                "(date, tenant_key, job_id, conversation_id, brand, category, "
-                "platform, keyword, is_mentioned, "
-                "is_first_mentioned, is_top3_mentioned, "
-                "sentiment_status, brands_found) "
-                "VALUES "
-                "(:date, :tenant_key, :job_id, :conversation_id, :brand, "
-                ":category, :platform, :keyword, :is_mentioned, "
-                ":is_first_mentioned, :is_top3_mentioned, "
-                ":sentiment_status, :brands_found) "
-                "ON DUPLICATE KEY UPDATE "
-                "date = VALUES(date), "
-                "category = VALUES(category), "
-                "platform = VALUES(platform), "
-                "keyword = VALUES(keyword), "
-                "is_mentioned = VALUES(is_mentioned), "
-                "is_first_mentioned = VALUES(is_first_mentioned), "
-                "is_top3_mentioned = VALUES(is_top3_mentioned), "
-                "sentiment_status = VALUES(sentiment_status), "
-                "brands_found = VALUES(brands_found), "
-                "updated_at = CURRENT_TIMESTAMP"
-            )
+            if engine.dialect.name == "sqlite":
+                sql = text(
+                    """
+                    INSERT INTO qa_brand_state
+                      (
+                        date,
+                        tenant_key,
+                        job_id,
+                        analysis_run_id,
+                        conversation_id,
+                        brand,
+                        category,
+                        platform,
+                        keyword,
+                        is_mentioned,
+                        is_first_mentioned,
+                        is_top3_mentioned,
+                        sentiment_status,
+                        brands_found
+                      )
+                    VALUES
+                      (
+                        :date,
+                        :tenant_key,
+                        :job_id,
+                        :analysis_run_id,
+                        :conversation_id,
+                        :brand,
+                        :category,
+                        :platform,
+                        :keyword,
+                        :is_mentioned,
+                        :is_first_mentioned,
+                        :is_top3_mentioned,
+                        :sentiment_status,
+                        :brands_found
+                      )
+                    ON CONFLICT(tenant_key, job_id, conversation_id, brand)
+                    DO UPDATE SET
+                      date = excluded.date,
+                      analysis_run_id = excluded.analysis_run_id,
+                      category = excluded.category,
+                      platform = excluded.platform,
+                      keyword = excluded.keyword,
+                      is_mentioned = excluded.is_mentioned,
+                      is_first_mentioned = excluded.is_first_mentioned,
+                      is_top3_mentioned = excluded.is_top3_mentioned,
+                      sentiment_status = excluded.sentiment_status,
+                      brands_found = excluded.brands_found,
+                      updated_at = CURRENT_TIMESTAMP
+                    """
+                )
+            else:
+                # 使用 ON DUPLICATE KEY UPDATE 实现 Upsert
+                # 依赖 UNIQUE KEY `uk_tenant_job_conv_brand`
+                # (`tenant_key`(191), `job_id`(191), `conversation_id`(191), `brand`)
+                sql = text(
+                    "INSERT INTO qa_brand_state "
+                    "(date, tenant_key, job_id, analysis_run_id, "
+                    "conversation_id, brand, category, "
+                    "platform, keyword, is_mentioned, "
+                    "is_first_mentioned, is_top3_mentioned, "
+                    "sentiment_status, brands_found) "
+                    "VALUES "
+                    "(:date, :tenant_key, :job_id, :analysis_run_id, "
+                    ":conversation_id, :brand, "
+                    ":category, :platform, :keyword, :is_mentioned, "
+                    ":is_first_mentioned, :is_top3_mentioned, "
+                    ":sentiment_status, :brands_found) "
+                    "ON DUPLICATE KEY UPDATE "
+                    "date = VALUES(date), "
+                    "analysis_run_id = VALUES(analysis_run_id), "
+                    "category = VALUES(category), "
+                    "platform = VALUES(platform), "
+                    "keyword = VALUES(keyword), "
+                    "is_mentioned = VALUES(is_mentioned), "
+                    "is_first_mentioned = VALUES(is_first_mentioned), "
+                    "is_top3_mentioned = VALUES(is_top3_mentioned), "
+                    "sentiment_status = VALUES(sentiment_status), "
+                    "brands_found = VALUES(brands_found), "
+                    "updated_at = CURRENT_TIMESTAMP"
+                )
 
             inserted = 0
             for i in range(0, len(rows), chunk_size):
@@ -553,6 +611,11 @@ class MentionStatusPlugin(AnalysisPlugin):
                     str(tenant_key) if tenant_key is not None else None
                 ),
                 "job_id": str(job_id) if job_id is not None else None,
+                "analysis_run_id": (
+                    str(self._extract_value(result, "analysis_run_id"))
+                    if self._extract_value(result, "analysis_run_id") is not None
+                    else None
+                ),
                 "conversation_id": conversation_id_str,
                 "category": str(category) if category is not None else None,
                 "platform": str(platform) if platform is not None else None,

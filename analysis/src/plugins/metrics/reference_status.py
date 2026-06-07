@@ -327,6 +327,7 @@ class ReferenceStatusPlugin(AnalysisPlugin):
 
             tenant_key = a.get("tenant_key")
             job_id = a.get("job_id")
+            analysis_run_id = a.get("analysis_run_id")
             conversation_id = a.get("conversation_id")
             platform = a.get("platform")
             brand = a.get("brand")
@@ -372,6 +373,11 @@ class ReferenceStatusPlugin(AnalysisPlugin):
                 "date": row_date,
                 "tenant_key": str(tenant_key),
                 "job_id": str(job_id),
+                "analysis_run_id": (
+                    str(analysis_run_id)
+                    if analysis_run_id not in (None, "")
+                    else None
+                ),
                 "conversation_id": str(conversation_id),
                 "platform": str(platform),
                 "brand": brand_str,
@@ -398,30 +404,86 @@ class ReferenceStatusPlugin(AnalysisPlugin):
         try:
             from sqlalchemy import text
 
-            stmt = text(
-                """
-                INSERT INTO qa_reference
-                  (date, tenant_key, job_id, conversation_id, platform,
-                   brand, category, keyword, query_content, url,
-                   is_published_link, domain, content_type)
-                VALUES
-                  (:date, :tenant_key, :job_id, :conversation_id, :platform,
-                   :brand, :category, :keyword, :query_content, :url,
-                   :is_published_link, :domain, :content_type)
-                ON DUPLICATE KEY UPDATE
-                  date = VALUES(date),
-                  tenant_key = VALUES(tenant_key),
-                  job_id = VALUES(job_id),
-                  platform = VALUES(platform),
-                  brand = VALUES(brand),
-                  category = VALUES(category),
-                  keyword = VALUES(keyword),
-                  query_content = VALUES(query_content),
-                  is_published_link = VALUES(is_published_link),
-                  domain = VALUES(domain),
-                  content_type = VALUES(content_type)
-                """
-            )
+            if engine.dialect.name == "sqlite":
+                stmt = text(
+                    """
+                    INSERT INTO qa_reference
+                      (
+                        date,
+                        tenant_key,
+                        job_id,
+                        analysis_run_id,
+                        conversation_id,
+                        platform,
+                        brand,
+                        category,
+                        keyword,
+                        query_content,
+                        url,
+                        is_published_link,
+                        domain,
+                        content_type
+                      )
+                    VALUES
+                      (
+                        :date,
+                        :tenant_key,
+                        :job_id,
+                        :analysis_run_id,
+                        :conversation_id,
+                        :platform,
+                        :brand,
+                        :category,
+                        :keyword,
+                        :query_content,
+                        :url,
+                        :is_published_link,
+                        :domain,
+                        :content_type
+                      )
+                    ON CONFLICT(tenant_key, conversation_id, url)
+                    DO UPDATE SET
+                      date = excluded.date,
+                      job_id = excluded.job_id,
+                      analysis_run_id = excluded.analysis_run_id,
+                      platform = excluded.platform,
+                      brand = excluded.brand,
+                      category = excluded.category,
+                      keyword = excluded.keyword,
+                      query_content = excluded.query_content,
+                      is_published_link = excluded.is_published_link,
+                      domain = excluded.domain,
+                      content_type = excluded.content_type,
+                      updated_at = CURRENT_TIMESTAMP
+                    """
+                )
+            else:
+                stmt = text(
+                    """
+                    INSERT INTO qa_reference
+                      (date, tenant_key, job_id, analysis_run_id, conversation_id,
+                       platform, brand, category, keyword, query_content, url,
+                       is_published_link, domain, content_type)
+                    VALUES
+                      (:date, :tenant_key, :job_id, :analysis_run_id,
+                       :conversation_id, :platform, :brand, :category,
+                       :keyword, :query_content, :url, :is_published_link,
+                       :domain, :content_type)
+                    ON DUPLICATE KEY UPDATE
+                      date = VALUES(date),
+                      tenant_key = VALUES(tenant_key),
+                      job_id = VALUES(job_id),
+                      analysis_run_id = VALUES(analysis_run_id),
+                      platform = VALUES(platform),
+                      brand = VALUES(brand),
+                      category = VALUES(category),
+                      keyword = VALUES(keyword),
+                      query_content = VALUES(query_content),
+                      is_published_link = VALUES(is_published_link),
+                      domain = VALUES(domain),
+                      content_type = VALUES(content_type)
+                    """
+                )
 
             with engine.begin() as conn:
                 conn.execute(stmt, rows)
@@ -987,6 +1049,11 @@ class ReferenceStatusPlugin(AnalysisPlugin):
                 "date": record_date,
                 "tenant_key": tenant_key_str,
                 "job_id": str(job_id) if job_id is not None else None,
+                "analysis_run_id": (
+                    str(self._extract_value(result, "analysis_run_id"))
+                    if self._extract_value(result, "analysis_run_id") is not None
+                    else None
+                ),
                 "conversation_id": conversation_id_str,
                 "platform": str(platform) if platform is not None else None,
                 "brand": brand_str,

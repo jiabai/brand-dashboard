@@ -5,11 +5,10 @@
 
 ## 进行中
 
-当前无进行中任务。下一步为 Phase 5.2。
+- 当前无进行中任务。下一步为 Phase 5.3。
 
 ## 待办
 
-- [ ] Phase 5.2 将 `analysis/` 插件接入系统分析服务。✅ 验证条件：分析服务可以对指定项目/采集批次运行插件，并写入带 `analysis_run_id` 的事实表。
 - [ ] Phase 5.3 分析失败可观测和可重试。✅ 验证条件：失败原因入库，retry API 或内部重试入口可用，失败不会污染指标快照。
 - [ ] Phase 6.1 新增指标快照模型。✅ 验证条件：`metric_snapshots` 支持 metric name、value、date、brand、platform、keyword、definition version、analysis run、coverage 字段。
 - [ ] Phase 6.2 生成品牌指标快照。✅ 验证条件：提及率、首位提及率、Top3 提及率、情绪占比和信源引用率口径测试通过。
@@ -26,6 +25,7 @@
 
 ## 已完成
 
+- [x] Phase 5.2 将 `analysis/` 插件接入系统分析服务。✅ 验证条件：分析服务可以对指定项目/采集批次运行插件，并写入带 `analysis_run_id` 的事实表。
 - [x] Phase 5.1 新增 `analysis_runs`。✅ 验证条件：分析运行状态机覆盖 pending、running、succeeded、failed、stale，测试通过。
 - [x] Phase 4.4 平台后台展示采集健康度。✅ 验证条件：平台管理员可看到执行器健康、队列长度、失败任务，不发送 `X-Tenant-Key`。
 - [x] Phase 4.3 新增 attempt start/complete 接口。✅ 验证条件：成功、失败、超时、重试路径都有 API 测试。

@@ -432,6 +432,7 @@ CREATE TABLE IF NOT EXISTS `qa_brand_state` (
   `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT 'Auto-increment primary key',
   `job_id` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '任务唯一标识（llm_query_jobs.job_id）',
   `tenant_key` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '租户唯一字符串标识（tenants.tenant_key）',
+  `analysis_run_id` varchar(128) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '生成该事实的分析运行ID',
   `date` date NOT NULL COMMENT 'Date of the record',
   `conversation_id` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '对话唯一标识，通常是文件名中的唯一标识符，确保每个对话的唯一性',
   `brand` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Brand name mentioned',
@@ -452,7 +453,9 @@ CREATE TABLE IF NOT EXISTS `qa_brand_state` (
   KEY `idx_tenant_platform` (`tenant_key`,`platform`),
   KEY `idx_tenant_sentiment_status` (`tenant_key`,`sentiment_status`),
   KEY `idx_tenant_conversation_id` (`tenant_key`,`conversation_id`),
-  CONSTRAINT `qa_brand_state_ibfk_tenant` FOREIGN KEY (`tenant_key`) REFERENCES `tenants` (`tenant_key`) ON DELETE CASCADE
+  KEY `idx_qbrs_analysis_run` (`tenant_key`,`analysis_run_id`),
+  CONSTRAINT `qa_brand_state_ibfk_tenant` FOREIGN KEY (`tenant_key`) REFERENCES `tenants` (`tenant_key`) ON DELETE CASCADE,
+  CONSTRAINT `qa_brand_state_ibfk_analysis_run` FOREIGN KEY (`tenant_key`,`analysis_run_id`) REFERENCES `analysis_runs` (`tenant_key`,`analysis_run_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Records of brand status in Q&A'; 
 
 -- 12. 问答引用详情表
@@ -460,6 +463,7 @@ CREATE TABLE IF NOT EXISTS `qa_reference` (
   `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '主键ID，数据库自增，唯一标识每条引用记录',
   `job_id` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '任务唯一标识（llm_query_jobs.job_id）',
   `tenant_key` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '租户唯一字符串标识（tenants.tenant_key）',
+  `analysis_run_id` varchar(128) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '生成该事实的分析运行ID',
   `date` date NOT NULL COMMENT 'Date of the record',
   `conversation_id` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '对话ID，标识单次AI对话的唯一ID，一个conversation_id对应一条对话的引用链接',
   `platform` varchar(64) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '平台名称',
@@ -482,7 +486,9 @@ CREATE TABLE IF NOT EXISTS `qa_reference` (
   KEY `idx_domain` (`domain`),
   KEY `idx_content_type` (`content_type`),
   KEY `idx_is_published_link` (`is_published_link`),
-  CONSTRAINT `qa_reference_ibfk_tenant` FOREIGN KEY (`tenant_key`) REFERENCES `tenants` (`tenant_key`) ON DELETE CASCADE
+  KEY `idx_qr_analysis_run` (`tenant_key`,`analysis_run_id`),
+  CONSTRAINT `qa_reference_ibfk_tenant` FOREIGN KEY (`tenant_key`) REFERENCES `tenants` (`tenant_key`) ON DELETE CASCADE,
+  CONSTRAINT `qa_reference_ibfk_analysis_run` FOREIGN KEY (`tenant_key`,`analysis_run_id`) REFERENCES `analysis_runs` (`tenant_key`,`analysis_run_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC COMMENT='存储对话中引用链接的关联表';
 
 

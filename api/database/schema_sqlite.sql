@@ -530,6 +530,7 @@ CREATE TABLE IF NOT EXISTS qa_brand_state (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     job_id VARCHAR(255) NOT NULL,
     tenant_key VARCHAR(255) NOT NULL,
+    analysis_run_id VARCHAR(128),
     date DATE NOT NULL,
     conversation_id VARCHAR(255) NOT NULL,
     brand VARCHAR(50) NOT NULL,
@@ -544,13 +545,15 @@ CREATE TABLE IF NOT EXISTS qa_brand_state (
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT uk_tenant_job_conv_brand UNIQUE (tenant_key, job_id, conversation_id, brand),
-    FOREIGN KEY (tenant_key) REFERENCES tenants(tenant_key) ON DELETE CASCADE
+    FOREIGN KEY (tenant_key) REFERENCES tenants(tenant_key) ON DELETE CASCADE,
+    FOREIGN KEY (tenant_key, analysis_run_id) REFERENCES analysis_runs(tenant_key, analysis_run_id)
 );
 CREATE INDEX IF NOT EXISTS idx_qbrs_tenant_date ON qa_brand_state (tenant_key, date);
 CREATE INDEX IF NOT EXISTS idx_qbrs_tenant_brand ON qa_brand_state (tenant_key, brand);
 CREATE INDEX IF NOT EXISTS idx_qbrs_tenant_platform ON qa_brand_state (tenant_key, platform);
 CREATE INDEX IF NOT EXISTS idx_qbrs_tenant_sentiment ON qa_brand_state (tenant_key, sentiment_status);
 CREATE INDEX IF NOT EXISTS idx_qbrs_tenant_conversation ON qa_brand_state (tenant_key, conversation_id);
+CREATE INDEX IF NOT EXISTS idx_qbrs_analysis_run ON qa_brand_state (tenant_key, analysis_run_id);
 
 CREATE TRIGGER trg_qa_brand_state_updated_at
 AFTER UPDATE ON qa_brand_state
@@ -564,6 +567,7 @@ CREATE TABLE IF NOT EXISTS qa_reference (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     job_id VARCHAR(255) NOT NULL,
     tenant_key VARCHAR(255) NOT NULL,
+    analysis_run_id VARCHAR(128),
     date DATE NOT NULL,
     conversation_id VARCHAR(255) NOT NULL,
     platform VARCHAR(64) NOT NULL,
@@ -578,7 +582,8 @@ CREATE TABLE IF NOT EXISTS qa_reference (
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     UNIQUE (tenant_key, conversation_id, url),
-    FOREIGN KEY (tenant_key) REFERENCES tenants(tenant_key) ON DELETE CASCADE
+    FOREIGN KEY (tenant_key) REFERENCES tenants(tenant_key) ON DELETE CASCADE,
+    FOREIGN KEY (tenant_key, analysis_run_id) REFERENCES analysis_runs(tenant_key, analysis_run_id)
 );
 CREATE INDEX IF NOT EXISTS idx_qr_platform ON qa_reference (platform);
 CREATE INDEX IF NOT EXISTS idx_qr_brand ON qa_reference (brand);
@@ -587,6 +592,7 @@ CREATE INDEX IF NOT EXISTS idx_qr_keyword ON qa_reference (keyword);
 CREATE INDEX IF NOT EXISTS idx_qr_domain ON qa_reference (domain);
 CREATE INDEX IF NOT EXISTS idx_qr_content_type ON qa_reference (content_type);
 CREATE INDEX IF NOT EXISTS idx_qr_is_published_link ON qa_reference (is_published_link);
+CREATE INDEX IF NOT EXISTS idx_qr_analysis_run ON qa_reference (tenant_key, analysis_run_id);
 
 CREATE TRIGGER trg_qa_reference_updated_at
 AFTER UPDATE ON qa_reference
