@@ -411,6 +411,41 @@ Phase 6.4 在 `brand-metrics` 响应的 `metadata` 中增加快照质量字段�
 - 当快照缺失或质量查询失败时，展示“明细聚合”和“快照未生成”，并明确提示当前数据来自历史明细聚合，避免用户把旧聚合误解为已生成快照。
 - 空状态文案不再描述为“接口未返回可展示的数据”，而是提示当前筛选下没有品牌指标，若刚完成采集需等待分析和指标快照生成。
 
+### 2.5.8 Phase 7.1 问答快照页
+
+Phase 7.1 新增问答快照读面，用于从 dashboard 直接查看原始回答，并按品牌、平台、关键词、情绪和是否引用筛选。兼容期仍使用 `tenant_key + job_id` 作为入口；后续 Phase 8 再把旧 job 路由收敛到项目运行页。
+
+API：
+
+```text
+GET /api/v1/dashboard/answer-snapshots
+```
+
+查询参数：
+
+| 参数 | 说明 |
+|------|------|
+| `tenant_key` / `job_id` | 当前 dashboard 查询边界，所有 SQL 必须带租户过滤。 |
+| `timeframe` / `start_date` / `end_date` | 复用 dashboard 时间窗口；`specific_day` 必须传起止日期。 |
+| `brand` | 可选品牌筛选，来自 `qa_brand_state.brand`。 |
+| `platform` / `keyword` | 可选原始回答维度筛选，来自 `llm_conversations`。 |
+| `sentiment` | 可选情绪筛选，来自 `qa_brand_state.sentiment_status`。 |
+| `has_reference` | 可选引用状态筛选，基于 `qa_reference` 当前品牌和时间窗口下的引用数。 |
+| `limit` / `offset` | 分页参数，当前页面默认读取 50 条。 |
+
+响应 `data` 中每条记录包含：
+
+| 字段 | 来源与说明 |
+|------|------|
+| `conversation_id` | 原始回答 ID。 |
+| `date` | 业务日期，格式 `YYYYMMDD`。 |
+| `platform` / `brand` / `keyword` | 回答维度和筛选上下文。 |
+| `query_content` / `answer_content` | 原始问题与回答内容。 |
+| `sentiment_status` / `is_mentioned` | 品牌分析事实。 |
+| `has_reference` / `reference_count` / `references` | 引用状态和最多当前页对应引用明细。 |
+
+Repository 以 `llm_conversations` 为主表，左连接 `qa_brand_state` 和按 `conversation_id` 聚合后的 `qa_reference`。这样没有引用的回答仍能展示；当筛选 `has_reference=false` 时，可明确看到“无引用”回答。若传入 `brand` 或 `sentiment`，查询必须命中同租户同 job 的 `qa_brand_state`，避免用原始回答表的品牌字段误判分析结果。
+
 ## 3. 状态机参考
 
 ### 3.1 项目状态

@@ -6,6 +6,7 @@ from sqlalchemy import Engine
 
 from api.v1.dependencies.auth import get_current_tenant_for_dashboard_read
 from api.v1.models.schemas import (
+    AnswerSnapshotsResponse,
     AvailableDatesResponse,
     BrandMentionTrendResponse,
     BrandMetricsResponse,
@@ -296,6 +297,65 @@ async def get_brand_metrics(
         raise HTTPException(status_code=400, detail=str(e)) from e
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"获取品牌总指标失败: {str(e)}") from e
+
+
+@router.get("/answer-snapshots", response_model=AnswerSnapshotsResponse)
+async def get_answer_snapshots(
+    tenant_key: str = Query(..., description="租户唯一字符串标识（tenants.tenant_key）"),
+    job_id: str = Query(..., description="任务ID"),
+    timeframe: TimeFrame = Query(..., description="时间范围"),
+    start_date: Optional[str] = Query(None, description="起始日期(格式: YYYYMMDD)"),
+    end_date: Optional[str] = Query(None, description="结束日期(格式: YYYYMMDD)"),
+    brand: Optional[str] = Query(None, description="品牌名称"),
+    platform: Optional[str] = Query(None, description="平台名称"),
+    keyword: Optional[str] = Query(None, description="关键词"),
+    sentiment: Optional[str] = Query(None, description="情绪状态"),
+    has_reference: Optional[bool] = Query(None, description="是否有引用"),
+    limit: int = Query(50, ge=1, le=100, description="返回条数"),
+    offset: int = Query(0, ge=0, description="偏移量"),
+    service: DashboardService = Depends(get_dashboard_service),
+):
+    try:
+        query_start_date, query_end_date = service.resolve_date_range(
+            timeframe, start_date, end_date,
+        )
+        data, total_count = service.get_answer_snapshots(
+            tenant_key=tenant_key,
+            job_id=job_id,
+            query_start_date=query_start_date,
+            query_end_date=query_end_date,
+            brand=brand,
+            platform=platform,
+            keyword=keyword,
+            sentiment=sentiment,
+            has_reference=has_reference,
+            limit=limit,
+            offset=offset,
+        )
+        return AnswerSnapshotsResponse(
+            status="success",
+            data=data,
+            metadata=_build_metadata(
+                tenant_key=tenant_key,
+                job_id=job_id,
+                timeframe=timeframe.value,
+                start_date=query_start_date.strftime("%Y%m%d"),
+                end_date=query_end_date.strftime("%Y%m%d"),
+                brand=brand,
+                platform=platform,
+                keyword=keyword,
+                sentiment=sentiment,
+                has_reference=has_reference,
+                limit=limit,
+                offset=offset,
+                row_count=len(data),
+                total_count=total_count,
+            ),
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"获取问答快照失败: {str(e)}") from e
 
 
 @router.get("/platform-metrics-by-brand", response_model=PlatformMetricsByBrandResponse)

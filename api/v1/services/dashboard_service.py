@@ -4,6 +4,7 @@ from typing import Any, List, Optional, Tuple
 from sqlalchemy import Engine
 
 from api.v1.models.schemas import (
+    AnswerSnapshotItem,
     BrandMentionTrendItem,
     BrandMetricsItem,
     CitationTypeStatsItem,
@@ -20,6 +21,7 @@ from api.v1.models.schemas import (
     PostCitationRateData,
     TimeFrame,
 )
+from api.v1.repositories.answer_snapshots import query_answer_snapshots
 from api.v1.repositories.brand_mention import (
     query_brand_metrics,
     query_brand_platform_keyword_daily_mention_rates,
@@ -301,6 +303,36 @@ class DashboardService:
                 "metric_snapshot_count": 0,
                 "metric_dimension_count": 0,
             }
+
+    def get_answer_snapshots(
+        self,
+        tenant_key: str,
+        job_id: str,
+        query_start_date: date,
+        query_end_date: date,
+        brand: Optional[str] = None,
+        platform: Optional[str] = None,
+        keyword: Optional[str] = None,
+        sentiment: Optional[str] = None,
+        has_reference: Optional[bool] = None,
+        limit: int = 50,
+        offset: int = 0,
+    ) -> Tuple[List[AnswerSnapshotItem], int]:
+        rows, total_count = query_answer_snapshots(
+            self._engine,
+            tenant_key=tenant_key,
+            job_id=job_id,
+            start_date=query_start_date,
+            end_date=query_end_date,
+            brand=brand,
+            platform=platform,
+            keyword=keyword,
+            sentiment=sentiment,
+            has_reference=has_reference,
+            limit=limit,
+            offset=offset,
+        )
+        return [AnswerSnapshotItem(**row) for row in rows], total_count
 
     def get_platform_metrics_by_brand(
         self, tenant_key: str, job_id: str, brand: str,

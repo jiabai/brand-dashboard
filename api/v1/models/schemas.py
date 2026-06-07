@@ -608,6 +608,37 @@ class BrandMetricsResponse(BaseModel):
     metadata: Dict[str, Any] = Field(..., description="元数据")
 
 
+class AnswerSnapshotReferenceItem(BaseModel):
+    url: str = Field(..., description="引用 URL")
+    domain: Optional[str] = Field(None, description="引用域名")
+    content_type: Optional[str] = Field(None, description="引用内容类型")
+    is_published_link: bool = Field(False, description="是否为发稿链接")
+
+
+class AnswerSnapshotItem(BaseModel):
+    conversation_id: str = Field(..., description="原始回答 ID")
+    date: str = Field(..., description="回答业务日期 YYYYMMDD")
+    platform: str = Field(..., description="平台")
+    brand: str = Field(..., description="品牌")
+    keyword: str = Field(..., description="关键词")
+    query_content: str = Field(..., description="问题内容")
+    answer_content: str = Field(..., description="回答内容")
+    sentiment_status: str = Field(..., description="情绪状态")
+    is_mentioned: bool = Field(..., description="是否提及品牌")
+    has_reference: bool = Field(..., description="是否有引用")
+    reference_count: int = Field(..., description="引用数量")
+    references: List[AnswerSnapshotReferenceItem] = Field(
+        default_factory=list,
+        description="引用明细",
+    )
+
+
+class AnswerSnapshotsResponse(BaseModel):
+    status: str = Field(..., description="响应状态")
+    data: List[AnswerSnapshotItem] = Field(..., description="问答快照列表")
+    metadata: Dict[str, Any] = Field(..., description="元数据")
+
+
 class AvailableDatesResponse(BaseModel):
     status: str = Field(..., description="响应状态")
     data: List[str] = Field(..., description="日期列表 (YYYY-MM-DD)")

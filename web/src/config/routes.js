@@ -65,10 +65,11 @@ export const ROUTES = {
   },
   snapshots: {
     viewKey: 'snapshots',
+    path: '/snapshots/:tenantKey/:jobId',
+    routeSegment: 'snapshots',
     menuLabel: '问答快照',
     menuIcon: 'PictureOutlined',
     menuSection: 'main',
-    disabled: true,
     requiresJobId: true,
   },
   settings: {

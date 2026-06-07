@@ -22,6 +22,7 @@ const BrandShareOfVoiceTable = React.lazy(() => import('./components/BrandShareO
 const CreateQueryJob = React.lazy(() => import('./components/CreateQueryJob.jsx'));
 const QueryJobStatus = React.lazy(() => import('./components/QueryJobStatus.jsx'));
 const AccountManagement = React.lazy(() => import('./components/AccountManagement.jsx'));
+const AnswerSnapshotsPage = React.lazy(() => import('./components/AnswerSnapshotsPage.jsx'));
 const PlatformExecutorsPage = React.lazy(() => import('./components/platform/PlatformExecutorsPage.jsx'));
 const PlatformTenantsPage = React.lazy(() => import('./components/platform/PlatformTenantsPage.jsx'));
 const ProjectDetailPage = React.lazy(() => import('./components/projects/ProjectDetailPage.jsx'));
@@ -58,6 +59,7 @@ const ROUTE_ELEMENT_FACTORIES = {
   platforms: () => <BrandShareOfVoiceTable />,
   sources: () => <SourceAnalysis />,
   sentiment: () => <SentimentAnalysis />,
+  snapshots: () => <AnswerSnapshotsPage />,
   accounts: () => <AccountManagement />,
   'task-load': () => <CreateQueryJob />,
   'task-status': () => <QueryJobStatus />,

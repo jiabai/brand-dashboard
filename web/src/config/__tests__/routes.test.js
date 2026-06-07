@@ -11,6 +11,8 @@ import {
 
 test('route config describes analysis and tenant routes from one source', () => {
   assert.equal(getRouteByViewKey('home').path, '/dashboard/:tenantKey/:jobId');
+  assert.equal(getRouteByViewKey('snapshots').path, '/snapshots/:tenantKey/:jobId');
+  assert.equal(getRouteByPathSegment('snapshots').viewKey, 'snapshots');
   assert.equal(getRouteByViewKey('projects').path, '/projects/:tenantKey');
   assert.equal(getRouteByViewKey('project-detail').path, '/projects/:tenantKey/:projectId');
   assert.equal(getRouteByViewKey('accounts').path, '/accounts/:tenantKey');
@@ -38,6 +40,7 @@ test('only routable route entries are exposed to App route generation', () => {
       'platforms',
       'sources',
       'sentiment',
+      'snapshots',
       'accounts',
       'task-load',
       'task-status',
