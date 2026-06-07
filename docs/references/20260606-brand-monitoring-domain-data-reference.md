@@ -338,7 +338,34 @@ MySQL 迁移脚本：
 mysql -u root -p geo < api/database/migrations/20260607_add_metric_snapshots.mysql.sql
 ```
 
-快照生成规则在 Phase 6.2 补齐。生成器必须只使用 `status='succeeded'` 的 analysis run，且写入时必须携带同租户 `tenant_key`，不能跨项目或跨租户聚合。
+生成器必须只使用 `status='succeeded'` 的 analysis run，且写入时必须携带同租户 `tenant_key`，不能跨项目或跨租户聚合。
+
+### 2.5.5 Phase 6.2 指标快照生成口径
+
+Phase 6.2 新增内部服务 `api/v1/services/metric_snapshots.py` 和仓储 `api/v1/repositories/metric_snapshots.py`，从成功的 `analysis_runs` 生成 `metric_snapshots`。本阶段仍不改 dashboard 查询；Phase 6.3 再让 dashboard 优先读取快照。
+
+服务入口为 `generate_metric_snapshots_for_analysis_run(db, tenant_key, analysis_run_id)`。入口约束：
+
+- `analysis_runs.status` 必须为 `succeeded`，否则返回 409，不写入快照。
+- 所有读取都带 `tenant_key`，并通过 `analysis_run_id` 限定同一次分析输出。
+- 当前生成粒度为 `(metric_date, brand, platform, keyword)`，`brand_id` 优先从同项目 active `project_brands.brand_name` 精确匹配；无匹配时暂以事实中的 `brand` 作为兼容回退。
+- `coverage_rate = collection_jobs.succeeded_task_count / collection_jobs.expected_task_count`；当 expected 为 0 时保存为空，避免制造虚假的完整性。
+- 快照写入使用 `metric_snapshots` 的幂等唯一键 upsert；重复生成同一个 analysis run 不会插入重复行。
+
+首版口径版本为 `brand_metrics_v1`，所有值均以 `ratio` 写入，并保留 6 位小数：
+
+| `metric_name` | 口径 |
+|------|------|
+| `mention_rate` | 同一品牌/日期/平台/关键词下，`is_mentioned = 1` 的去重回答数 / 纳入分析的去重回答数。 |
+| `first_mention_rate` | `is_first_mentioned = 1` 的去重回答数 / 纳入分析的去重回答数。 |
+| `top3_mention_rate` | `is_top3_mentioned = 1` 的去重回答数 / 纳入分析的去重回答数。 |
+| `sentiment_positive_ratio` | `sentiment_status = positive` 的去重回答数 / 纳入分析的去重回答数。 |
+| `sentiment_negative_ratio` | `sentiment_status = negative` 的去重回答数 / 纳入分析的去重回答数。 |
+| `sentiment_neutral_ratio` | `sentiment_status = neutral` 的去重回答数 / 纳入分析的去重回答数。 |
+| `sentiment_unknown_ratio` | 情绪值不属于 positive/negative/neutral 的去重回答数 / 纳入分析的去重回答数。 |
+| `reference_rate` | 同一 analysis run、品牌、日期、平台和关键词下，在 `qa_reference` 中存在至少一条引用的去重回答数 / 纳入分析的去重回答数。 |
+
+`reference_rate` 表达“回答是否带任意信源引用”，不等同于旧指标文档中的发稿链接覆盖率；后者依赖 `is_published_link`，应在后续作为独立指标或新口径版本扩展。
 
 ## 3. 状态机参考
 
