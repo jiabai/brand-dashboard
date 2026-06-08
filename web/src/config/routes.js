@@ -134,6 +134,9 @@ export const DEFAULT_VIEW_KEY = 'projects';
 
 export const ROUTE_DEFINITIONS = Object.values(ROUTES);
 
+const PRODUCT_SHAPE_MENU_SECTIONS = new Set(['main', 'hidden']);
+const LEGACY_COMPATIBILITY_MENU_SECTION = 'legacy';
+
 export const getRouteByViewKey = (viewKey) =>
   ROUTES[viewKey] || ROUTES[DEFAULT_VIEW_KEY];
 
@@ -145,6 +148,16 @@ export const getRouteByTaskAction = (taskAction) =>
 
 export const getRoutableRoutes = () =>
   ROUTE_DEFINITIONS.filter((route) => Boolean(route.path));
+
+export const getProductShapeRoutes = () =>
+  ROUTE_DEFINITIONS.filter(
+    (route) => Boolean(route.path) && PRODUCT_SHAPE_MENU_SECTIONS.has(route.menuSection),
+  );
+
+export const getLegacyCompatibilityRoutes = () =>
+  ROUTE_DEFINITIONS.filter(
+    (route) => Boolean(route.path) && route.menuSection === LEGACY_COMPATIBILITY_MENU_SECTION,
+  );
 
 export const getSidebarMenuRoutes = () =>
   ROUTE_DEFINITIONS.filter((route) => route.menuSection === 'main');

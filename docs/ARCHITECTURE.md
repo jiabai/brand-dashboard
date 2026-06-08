@@ -75,7 +75,7 @@ brand-dashboard/
 
 - 前后端分离：`web/` 只通过 REST API 获取数据，不直接访问数据库。
 - 项目优先：租户用户默认进入 `/projects/:tenantKey`；项目承载品牌、竞品、问题集、采集、分析、指标、告警、报告和数据质量。
-- Legacy 兼容：`/dashboard/:tenantKey/:jobId`、`/tasks/:tenantKey/status` 等旧 job/task 路由继续可直接访问，但不再暴露为主导航入口。
+- Legacy 兼容边界：系统只兼容历史资产，包括历史链接、历史数据、排障读面和兼容期桥接字段；不兼容历史产品形态。`/dashboard/:tenantKey/:jobId`、`/tasks/:tenantKey/status` 等旧 job/task 路由继续可直接访问，但不再暴露为主导航入口；新主流程、新页面和新 API 不再把 `job_id` 作为产品入口。
 - 多租户隔离：所有业务查询必须显式携带服务端校验后的 `tenant_key`，Repository 层强制租户过滤。
 - 数据生命周期分层：配置层、采集层、原始层、分析层、指标快照层、洞察交付层各自有明确边界。
 - 指标 read model：dashboard、报告、告警和数据质量优先读取 `metric_snapshots`；兼容期缺失快照时，部分旧 dashboard 读面仍允许从历史明细兜底。
@@ -105,6 +105,8 @@ brand-dashboard/
 | 平台后台 | `/platform/tenants`、`/platform/executors` | 平台管理员入口 |
 | legacy dashboard | `/dashboard/:tenantKey/:jobId`、`/trend/:tenantKey/:jobId`、`/platforms/:tenantKey/:jobId`、`/sources/:tenantKey/:jobId`、`/sentiment/:tenantKey/:jobId`、`/snapshots/:tenantKey/:jobId` | 直接访问可用，不在主导航中展示 |
 | legacy task | `/tasks/:tenantKey/new`、`/tasks/:tenantKey/status` | 直接访问可用，不在主导航中展示 |
+
+路由配置以 `web/src/config/routes.js` 为单一策略源：`getProductShapeRoutes()` 表示当前产品形态，必须保持项目优先且不依赖 `job_id`；`getLegacyCompatibilityRoutes()` 表示历史兼容资产，只允许作为直接访问和排障入口保留。
 
 ## 架构边界
 

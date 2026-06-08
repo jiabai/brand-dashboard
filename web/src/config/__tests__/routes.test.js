@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
+import * as routeConfig from '../routes.js';
 import {
   DEFAULT_VIEW_KEY,
   getRouteByPathSegment,
@@ -37,6 +38,26 @@ test('legacy job and task routes remain routable for compatibility', () => {
     getRoutableRoutes()
       .filter((route) => route.menuSection === 'legacy')
       .map((route) => route.viewKey),
+    ['home', 'trend', 'platforms', 'sources', 'sentiment', 'snapshots', 'task-load', 'task-status'],
+  );
+});
+
+test('route policy preserves historical assets without restoring legacy product shape', () => {
+  assert.equal(typeof routeConfig.getProductShapeRoutes, 'function');
+  assert.equal(typeof routeConfig.getLegacyCompatibilityRoutes, 'function');
+
+  assert.deepEqual(
+    routeConfig.getProductShapeRoutes().map((route) => route.viewKey),
+    ['projects', 'project-detail', 'project-quality', 'accounts'],
+  );
+  assert.deepEqual(
+    routeConfig.getProductShapeRoutes()
+      .filter((route) => route.requiresJobId)
+      .map((route) => route.viewKey),
+    [],
+  );
+  assert.deepEqual(
+    routeConfig.getLegacyCompatibilityRoutes().map((route) => route.viewKey),
     ['home', 'trend', 'platforms', 'sources', 'sentiment', 'snapshots', 'task-load', 'task-status'],
   );
 });

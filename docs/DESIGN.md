@@ -14,6 +14,7 @@
 - 风格：暖色浅底、运营工具型界面，强调扫描效率和稳定信息层级。
 - 页面主流程：租户默认进入“监测项目”，再进入项目详情、数据质量、报告等项目上下文页面。
 - 侧边栏：主导航只展示当前主流程入口，不展示 legacy dashboard/task 排障路由。
+- 兼容边界：新页面、新导航和新交互不复刻旧 `tenant_key + job_id` 产品形态；历史 dashboard/task 只作为直接访问和排障资产保留。
 - 页面底色：默认使用 warm canvas，不使用深紫或紫蓝作为全局背景。
 - 主强调：coral 仅用于主操作、active 标记和少量关键状态。
 - 卡片：默认 8px 圆角、1px warm hairline border、低阴影或无阴影；避免卡片套卡片。
@@ -50,6 +51,7 @@
 
 - 路由状态：`react-router-dom` 管理页面路径；`web/src/config/routes.js` 是路由、菜单和 legacy 入口的单一配置源。
 - 默认路由：租户用户默认进入 `projects`，未知租户路径回退到项目列表；平台管理员默认进入 `/platform/tenants`。
+- 路由策略：`getProductShapeRoutes()` 表示当前产品形态，必须保持项目优先且不要求 `jobId`；`getLegacyCompatibilityRoutes()` 表示历史兼容资产，可参与 App 路由生成但不得回到主导航。
 - URL 参数：`useDashboardParams` 统一读取路径参数和查询参数；项目页使用 `tenantKey/projectId`，legacy 分析页使用 `tenantKey/jobId`。
 - 时间筛选：`useTimeframeManager` 管理 dashboard 兼容页的 timeframe、可用日期和 URL 日期参数同步。
 - 数据获取：业务组件通过 `web/src/api/` Adapter 调用后端端点，不在组件中手写 API URL。
