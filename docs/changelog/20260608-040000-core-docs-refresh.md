@@ -9,7 +9,7 @@
 
 ## 边界说明
 
-本阶段只更新核心入口文档，不迁移 ExecPlan，也不删除 `TASKS.md`。详细领域模型、兼容策略和逐阶段验证仍以 `docs/references/20260606-brand-monitoring-domain-data-reference.md` 和 active ExecPlan 为准。
+本阶段只更新核心入口文档，不迁移 ExecPlan，也不删除 `TASKS.md`。详细领域模型、兼容策略和逐阶段验证仍以 `docs/references/20260606-brand-monitoring-domain-data-reference.md` 和后续归档到 completed 的 ExecPlan 为准。
 
 ## 验证
 

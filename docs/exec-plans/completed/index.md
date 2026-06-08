@@ -27,3 +27,4 @@
 | [20260520-040000-platform-admin-tenant-read-access.md](20260520-040000-platform-admin-tenant-read-access.md) | 平台管理员 dashboard 级全租户只读访问，不放开租户写接口 | 2026-05-20 |
 | [20260521-185332-platform-admin-job-aware-dashboard-entry.md](20260521-185332-platform-admin-job-aware-dashboard-entry.md) | 平台管理员租户列表展示 job 摘要，并用真实 tenant/job/brand 进入 dashboard | 2026-05-21 |
 | [20260603-000000-admin-activation-email.md](20260603-000000-admin-activation-email.md) | 管理员激活邮件发送：SMTP 配置、租户创建后自动发信、前端发送状态提示和激活链接自动填充 | 2026-06-03 |
+| [20260606-brand-monitoring-system-refactor.md](20260606-brand-monitoring-system-refactor.md) | 品牌监测业务系统重构：项目模型、采集 attempt、分析运行、指标快照、问答快照、告警、报告和数据质量 | 2026-06-08 |

@@ -46,7 +46,8 @@ Decision Log, and Outcomes & Retrospective must be kept up to date as work proce
 - [x] Phase 7: 完善问答快照、告警、报告和数据质量页面（2026-06-08）
 - [x] Phase 8.1: 清理旧 job 主导航暴露，保留兼容路由（2026-06-08）
 - [x] Phase 8.2: 更新核心架构文档和 README（2026-06-08）
-- [ ] Phase 8: 清理兼容层，归档计划
+- [x] Phase 8.3: 归档 ExecPlan、删除 `TASKS.md` 并更新索引（2026-06-08）
+- [x] Phase 8: 清理兼容层，归档计划（2026-06-08）
 
 ## Surprises & Discoveries
 
@@ -85,6 +86,7 @@ Decision Log, and Outcomes & Retrospective must be kept up to date as work proce
 - 2026-06-08：Phase 7.5 可以复用 Phase 5.3 的 analysis retry API 作为重算入口；数据质量页只需要呈现 stale run 和 retry 动作，不需要新增另一套重算 API。
 - 2026-06-08：Phase 8.1 清理主导航时不应删除旧 dashboard/task 路由；它们仍承担兼容期排障和历史链接访问，只从侧边栏和默认跳转中退出。
 - 2026-06-08：Phase 8.2 发现 README、ARCHITECTURE、DESIGN、SECURITY 仍把旧 dashboard/job 当作核心主线；这些文档需要改为项目优先架构快照，详细迁移细节继续留在 reference 和 ExecPlan 中。
+- 2026-06-08：Phase 8.3 归档后根目录不再保留 `TASKS.md`；后续新重构或非平凡任务需要重新创建独立任务清单和 active ExecPlan。
 
 ## Decision Log
 
@@ -145,6 +147,7 @@ Decision Log, and Outcomes & Retrospective must be kept up to date as work proce
 | Phase 8.1 将旧 job/task 入口标记为 `legacy` 而不是删除 | 用户主流程需要从项目列表进入，但旧 `/dashboard/:tenantKey/:jobId`、`/tasks/:tenantKey/status` 等路径仍需要支持历史链接和排障；路由继续参与 App route 生成，只是不进入侧边栏菜单 | 2026-06-08 / agent |
 | Phase 8.1 租户默认跳转改为项目列表 | 登录后直接进入 `/projects/:tenantKey`，让新增项目、数据质量、报告和后续项目运行页成为主工作流入口；保留 protected route 原始来源跳转，避免打断用户访问旧兼容链接 | 2026-06-08 / agent |
 | Phase 8.2 核心文档写当前状态，长篇迁移细节留在 reference/ExecPlan | `docs/ARCHITECTURE.md`、`docs/DESIGN.md`、`docs/SECURITY.md` 和 README 是新人入口，必须优先描述已经落地的项目中心架构；阶段性迁移取舍、旧表映射和 API 细节继续由 reference 和 active ExecPlan 承载 | 2026-06-08 / agent |
+| Phase 8.3 完成后删除根目录 `TASKS.md`，保留 completed ExecPlan 作为审计记录 | 项目规则要求任务清单只在进行中任务存在时保留；完成后应以 completed ExecPlan、changelog 和核心文档承接长期上下文 | 2026-06-08 / agent |
 
 ## Context and Orientation
 
@@ -156,7 +159,7 @@ Decision Log, and Outcomes & Retrospective must be kept up to date as work proce
 | 架构设计 | `docs/design-docs/20260606-brand-monitoring-target-architecture.md` |
 | 架构评估 | `docs/design-docs/20260606-brand-monitoring-business-architecture-refactor.md` |
 | 参考文档 | `docs/references/20260606-brand-monitoring-domain-data-reference.md` |
-| 执行计划 | `docs/exec-plans/active/20260606-brand-monitoring-system-refactor.md` |
+| 执行计划 | `docs/exec-plans/completed/20260606-brand-monitoring-system-refactor.md` |
 
 关键现有代码区域：
 
@@ -318,6 +321,7 @@ Decision Log, and Outcomes & Retrospective must be kept up to date as work proce
 - 2026-06-08 / Phase 7.5：先新增 `api/tests/test_project_data_quality.py`、项目数据质量 API adapter 测试、analysis retry adapter 测试、项目展示归一化测试、路由测试和 `ProjectDataQualityPage` 展示契约测试，并确认旧实现缺少项目数据质量 API、前端 adapter、路由和页面时失败；补齐 `GET /api/v1/projects/{project_id}/data-quality`、`api/v1/repositories/data_quality.py`、`api/v1/services/data_quality.py`、Pydantic 数据质量契约、`/projects/:tenantKey/:projectId/quality` 隐藏路由和数据质量页面后，后端定向测试通过（2 passed, 66 warnings），前端定向组合通过（18 passed）；`uv run --project api ruff check api` 通过；`$env:PYTHONPATH='.'; uv run --project api --extra dev pytest api/tests -q` 通过（169 passed, 1572 warnings）；`npm --prefix web test` 通过（87 passed）；`npm --prefix web run lint` 无错误，保留既有 8 个 warning；`npm --prefix web run build` 通过；系统 Chrome + Playwright 对 `/projects/tn_acme/proj_acme/quality` 做桌面/移动 mock smoke test 通过，确认数据质量标题、失败采集、75.0% 覆盖率和重新分析入口可见，且无 console error 或横向溢出；文档 ERROR/WARN 验证通过；`git diff --check` 通过，仅输出既有 LF/CRLF 换行提示。
 - 2026-06-08 / Phase 8.1：先更新 `web/src/config/__tests__/routes.test.js`、`web/src/utils/__tests__/routing.test.js` 和 `web/src/auth/__tests__/redirect.test.js`，确认旧实现下默认入口仍为 `home`、租户登录仍跳旧任务状态页、侧边栏仍暴露旧 dashboard/task 入口；补齐 `DEFAULT_VIEW_KEY='projects'`、租户默认跳项目列表、旧 job/task 路由 `menuSection='legacy'` 和侧边栏空任务分组隐藏后，定向测试通过（11 passed）；`npm --prefix web test` 通过（88 passed）；`npm --prefix web run lint` 无错误，保留既有 8 个 warning；`npm --prefix web run build` 通过；系统 Chrome + Playwright 对 `/` 和 `/tasks/tn_acme/status` 做 mock smoke test 通过，确认默认进入 `/projects/tn_acme`，项目页侧边栏不再显示旧任务/首页/趋势入口，旧任务状态路径仍可直接打开，且无 console error 或横向溢出；文档 ERROR/WARN 验证通过。
 - 2026-06-08 / Phase 8.2：重写 README、`docs/ARCHITECTURE.md`、`docs/DESIGN.md` 和 `docs/SECURITY.md`，使核心入口文档从旧 dashboard/job 主线更新为项目优先架构快照；同步更新 `TASKS.md` 和 changelog；`python scripts/validate_agents_docs.py --level ERROR` 与 `python scripts/validate_agents_docs.py --level WARN` 均为 0 错误、0 警告；核心文档陈旧表述搜索未再发现旧 dashboard/job 作为主线的表述，仅保留 README 中旧任务兼容环境变量说明；`git diff --check` 通过，仅输出既有 LF/CRLF 换行提示。本阶段未改代码。
+- 2026-06-08 / Phase 8.3：将本 ExecPlan 归档到 `docs/exec-plans/completed/`，更新 active/completed index，删除根目录 `TASKS.md`，同步技术债引用和 Phase 8.2 changelog 归档指向；`uv run --project api ruff check api` 通过；`$env:PYTHONPATH='.'; uv run --project api --extra dev pytest api/tests/ -q` 通过（169 passed, 1572 warnings）；`npm --prefix web test` 通过（88 passed）；`npm --prefix web run lint` 无错误，保留既有 8 个 warning；`npm --prefix web run build` 通过；`python scripts/validate_agents_docs.py --level ERROR` 与 `--level WARN` 均为 0 错误、0 警告；`git diff --check` 通过，仅输出既有 LF/CRLF 换行提示。
 
 阶段性验收：
 
@@ -336,4 +340,20 @@ Decision Log, and Outcomes & Retrospective must be kept up to date as work proce
 
 ## Outcomes & Retrospective
 
-待后续实施阶段更新。
+本次重构已完成既定 MVP：系统主入口从旧 `tenant_key + job_id` dashboard 收敛为项目优先的品牌监测业务系统，旧 dashboard 和任务状态页继续作为兼容路径保留。
+
+已完成：
+
+- 建立监测项目、项目品牌、问题集和问题项模型，并提供项目 API 与前端项目入口。
+- 将采集过程拆分为 `collection_jobs`、`collection_tasks`、`collection_attempts`，补齐领取 lease、attempt start/complete 和平台健康度。
+- 引入 `analysis_runs`，把 analysis 插件接入系统级分析服务，事实表写入分析血缘，并支持失败观测与 retry。
+- 建设 `metric_snapshots` read model，固定首版品牌指标口径，并让 dashboard 品牌指标读取快照优先、旧明细兜底。
+- 补齐问答快照、真实情感数据、告警规则与事件、生成报告和项目数据质量页面。
+- 将租户默认入口和主导航调整为项目优先，旧 job/task 入口退出主导航但保留历史兼容路由。
+- 更新 README、ARCHITECTURE、DESIGN、SECURITY、领域参考、changelog 和本 ExecPlan，让新人入口描述当前项目中心架构。
+
+后续可继续推进：
+
+- 将旧 `/query-jobs/fetch` 与新 collection task 协议做更深兼容映射，最终减少旧任务模型职责。
+- 为引用表引入 URL hash 和历史重复数据清理，关闭 Phase 2 技术债中登记的兼容风险。
+- 把报告结果扩展为 PDF/CSV 等文件导出，并将告警、质量和报告更深地嵌入项目详情页。
