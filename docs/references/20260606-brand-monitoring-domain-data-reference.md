@@ -598,6 +598,28 @@ GET /api/v1/projects/{project_id}/data-quality
 | 指标覆盖率 | 页面展示覆盖率、任务计数、分析回答数、快照数和口径版本。 |
 | 租户隔离 | API 只读取当前租户、当前项目的数据；其他租户同名项目不泄漏。 |
 
+### 2.5.13 Phase 8.1 主导航兼容层清理
+
+Phase 8.1 将租户工作台的主入口从旧 `tenant_key + job_id` dashboard 收敛到监测项目列表。该阶段只清理“主导航暴露”，不删除旧路由和旧 API，避免历史链接、排障路径和兼容期 dashboard 读取面中断。
+
+导航策略：
+
+| 范围 | 策略 | 说明 |
+|------|------|------|
+| 默认入口 | 租户用户登录后进入 `/projects/:tenantKey` | 项目列表成为客户主流程入口。 |
+| 主侧边栏 | 仅展示 `projects` 和 `accounts` | 旧分析页、任务页、禁用设置和订阅入口不再作为主工作流暴露。 |
+| 旧 dashboard 路由 | 标记为 `legacy`，继续参与路由生成 | `/dashboard/:tenantKey/:jobId`、`/trend/:tenantKey/:jobId`、`/platforms/:tenantKey/:jobId`、`/sources/:tenantKey/:jobId`、`/sentiment/:tenantKey/:jobId`、`/snapshots/:tenantKey/:jobId` 仍可直接访问。 |
+| 旧任务路由 | 标记为 `legacy`，继续参与路由生成 | `/tasks/:tenantKey/new` 和 `/tasks/:tenantKey/status` 仍可作为兼容排障入口。 |
+| 原始来源跳转 | 保留 protected route 的 `from` 跳转 | 用户直接访问旧兼容链接并登录后仍回到原目标页面。 |
+
+验收口径：
+
+| 项 | 说明 |
+|----|------|
+| 项目优先 | `DEFAULT_VIEW_KEY` 和租户登录默认跳转均指向项目列表。 |
+| 隐藏旧入口 | `getSidebarMenuRoutes()` 不再返回旧 job 分析页或旧任务入口。 |
+| 路由兼容 | `getRoutableRoutes()` 仍包含旧 dashboard 和 task 路由。 |
+
 ## 3. 状态机参考
 
 ### 3.1 项目状态

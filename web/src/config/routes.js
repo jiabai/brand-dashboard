@@ -35,7 +35,7 @@ export const ROUTES = {
     routeSegment: 'dashboard',
     menuLabel: '首页',
     menuIcon: 'HomeOutlined',
-    menuSection: 'main',
+    menuSection: 'legacy',
     requiresJobId: true,
   },
   trend: {
@@ -44,7 +44,7 @@ export const ROUTES = {
     routeSegment: 'trend',
     menuLabel: '趋势分析',
     menuIcon: 'LineChartOutlined',
-    menuSection: 'main',
+    menuSection: 'legacy',
     requiresJobId: true,
   },
   platforms: {
@@ -53,7 +53,7 @@ export const ROUTES = {
     routeSegment: 'platforms',
     menuLabel: '分平台分析',
     menuIcon: 'BarChartOutlined',
-    menuSection: 'main',
+    menuSection: 'legacy',
     requiresJobId: true,
   },
   sources: {
@@ -62,7 +62,7 @@ export const ROUTES = {
     routeSegment: 'sources',
     menuLabel: '信源分析',
     menuIcon: 'MessageOutlined',
-    menuSection: 'main',
+    menuSection: 'legacy',
     requiresJobId: true,
   },
   sentiment: {
@@ -71,7 +71,7 @@ export const ROUTES = {
     routeSegment: 'sentiment',
     menuLabel: '情感分析',
     menuIcon: 'SmileOutlined',
-    menuSection: 'main',
+    menuSection: 'legacy',
     requiresJobId: true,
   },
   snapshots: {
@@ -80,14 +80,14 @@ export const ROUTES = {
     routeSegment: 'snapshots',
     menuLabel: '问答快照',
     menuIcon: 'PictureOutlined',
-    menuSection: 'main',
+    menuSection: 'legacy',
     requiresJobId: true,
   },
   settings: {
     viewKey: 'settings',
     menuLabel: '品牌设置',
     menuIcon: 'SettingOutlined',
-    menuSection: 'main',
+    menuSection: 'hidden',
     disabled: true,
     requiresJobId: true,
   },
@@ -104,7 +104,7 @@ export const ROUTES = {
     viewKey: 'subscribe',
     menuLabel: '订阅',
     menuIcon: 'BookOutlined',
-    menuSection: 'main',
+    menuSection: 'hidden',
     disabled: true,
     requiresJobId: false,
   },
@@ -115,7 +115,7 @@ export const ROUTES = {
     taskAction: 'new',
     menuLabel: '新建任务',
     menuIcon: 'PlusOutlined',
-    menuSection: 'task',
+    menuSection: 'legacy',
     requiresJobId: false,
   },
   'task-status': {
@@ -125,12 +125,12 @@ export const ROUTES = {
     taskAction: 'status',
     menuLabel: '任务状态',
     menuIcon: 'UnorderedListOutlined',
-    menuSection: 'task',
+    menuSection: 'legacy',
     requiresJobId: false,
   },
 };
 
-export const DEFAULT_VIEW_KEY = 'home';
+export const DEFAULT_VIEW_KEY = 'projects';
 
 export const ROUTE_DEFINITIONS = Object.values(ROUTES);
 

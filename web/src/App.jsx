@@ -73,7 +73,7 @@ const AppRoutes = () => {
   const hasDefaultPath = isPlatformAdmin || Boolean(currentTenantKey);
   const defaultPath = isPlatformAdmin
     ? '/platform/tenants'
-    : buildViewPath('task-status', { tenantKey: currentTenantKey });
+    : buildViewPath('projects', { tenantKey: currentTenantKey });
 
   return (
     <Routes>

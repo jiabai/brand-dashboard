@@ -32,14 +32,14 @@ test('login keeps original protected destination before role defaults', () => {
   );
 });
 
-test('tenant user direct login redirects to tenant task status', () => {
+test('tenant user direct login redirects to project list', () => {
   assert.equal(
     getLoginRedirectTarget({
       location: { state: null },
       session: { user: { platformRoles: [] } },
       tenantKey: 'tn_member',
     }),
-    '/tasks/tn_member/status',
+    '/projects/tn_member',
   );
 });
 

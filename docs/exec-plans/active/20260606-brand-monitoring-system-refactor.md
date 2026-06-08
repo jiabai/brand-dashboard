@@ -43,7 +43,8 @@ Decision Log, and Outcomes & Retrospective must be kept up to date as work proce
 - [x] Phase 7.3: 新增告警规则、告警事件和项目告警读取 API（2026-06-07）
 - [x] Phase 7.4: 新增报告生成、报告列表和生成报告 read model（2026-06-08）
 - [x] Phase 7.5: 新增项目数据质量 API 和数据质量页面（2026-06-08）
-- [ ] Phase 7: 完善问答快照、告警、报告和数据质量页面
+- [x] Phase 7: 完善问答快照、告警、报告和数据质量页面（2026-06-08）
+- [x] Phase 8.1: 清理旧 job 主导航暴露，保留兼容路由（2026-06-08）
 - [ ] Phase 8: 清理兼容层，归档计划
 
 ## Surprises & Discoveries
@@ -81,6 +82,7 @@ Decision Log, and Outcomes & Retrospective must be kept up to date as work proce
 - 2026-06-07：Phase 7.3 告警事件可以先从同一维度的 `metric_snapshots` 前后两次指标变化触发；这能覆盖提及率下降、负面情绪上升和信源引用率变化，不需要在 MVP 阶段引入独立异常检测引擎。
 - 2026-06-08：Phase 7.4 的“报告导出基础能力”应先固化为可持久化的报告结果，而不是直接生成文件；这样报告列表、后续 PDF/CSV 导出和项目页均可复用同一个 `generated_reports` 快照。
 - 2026-06-08：Phase 7.5 可以复用 Phase 5.3 的 analysis retry API 作为重算入口；数据质量页只需要呈现 stale run 和 retry 动作，不需要新增另一套重算 API。
+- 2026-06-08：Phase 8.1 清理主导航时不应删除旧 dashboard/task 路由；它们仍承担兼容期排障和历史链接访问，只从侧边栏和默认跳转中退出。
 
 ## Decision Log
 
@@ -138,6 +140,8 @@ Decision Log, and Outcomes & Retrospective must be kept up to date as work proce
 | Phase 7.4 报告核心指标直接读取 `metric_snapshots` | 报告属于指标消费读面，不应重新扫描旧明细事实；读取快照能继承 Phase 6 的指标口径版本、覆盖率和 analysis run 血缘，并保持所有查询显式携带 `tenant_key` | 2026-06-08 / agent |
 | Phase 7.5 数据质量页以项目为入口，动作复用 analysis retry | Phase 7.5 的目标是质量可见性和可重算入口；失败采集、stale analysis run 和指标覆盖率由项目 API 聚合，真正重算仍调用既有 `/api/v1/analysis-runs/{analysis_run_id}/retry`，避免重复状态机 | 2026-06-08 / agent |
 | Phase 7.5 指标覆盖率按项目 `metric_snapshots` 聚合 | 数据质量页不再依赖兼容期 `job_id`；项目级查询直接读取 `metric_snapshots` 的覆盖率、任务计数、维度数和快照数，保持与 Phase 6 的指标 read model 一致 | 2026-06-08 / agent |
+| Phase 8.1 将旧 job/task 入口标记为 `legacy` 而不是删除 | 用户主流程需要从项目列表进入，但旧 `/dashboard/:tenantKey/:jobId`、`/tasks/:tenantKey/status` 等路径仍需要支持历史链接和排障；路由继续参与 App route 生成，只是不进入侧边栏菜单 | 2026-06-08 / agent |
+| Phase 8.1 租户默认跳转改为项目列表 | 登录后直接进入 `/projects/:tenantKey`，让新增项目、数据质量、报告和后续项目运行页成为主工作流入口；保留 protected route 原始来源跳转，避免打断用户访问旧兼容链接 | 2026-06-08 / agent |
 
 ## Context and Orientation
 
@@ -309,6 +313,7 @@ Decision Log, and Outcomes & Retrospective must be kept up to date as work proce
 - 2026-06-07 / Phase 7.3：先新增 `api/tests/test_alert_rules.py`，确认缺少 `alert_rules` / `alert_events` schema、告警评估服务和项目告警 API 时失败；补齐 MySQL/SQLite schema、MySQL 迁移、`api/v1/repositories/alerts.py`、`api/v1/services/alerts.py`、Pydantic 告警响应契约和 `GET /api/v1/projects/{project_id}/alerts` 后，定向测试通过（4 passed, 95 warnings）；`uv run --project api ruff check api` 通过；`$env:PYTHONPATH='.'; uv run --project api --extra dev pytest api/tests/ -q` 通过（163 passed, 1390 warnings）；文档 ERROR/WARN 验证通过；`git diff --check` 通过，仅输出既有 LF/CRLF 换行提示。本阶段未改前端。
 - 2026-06-08 / Phase 7.4：先新增 `api/tests/test_project_reports.py`，确认缺少 `generated_reports` schema、MySQL 迁移、SQLite 外键、项目报告生成 API 和报告列表 API 时失败；补齐 MySQL/SQLite schema、`api/database/migrations/20260608_add_generated_reports.mysql.sql`、`api/v1/repositories/reports.py`、`api/v1/services/reports.py`、Pydantic 报告契约、`POST /api/v1/projects/{project_id}/reports` 和 `GET /api/v1/projects/{project_id}/reports` 后，定向测试通过（4 passed, 128 warnings）；`uv run --project api ruff check api` 通过；`$env:PYTHONPATH='.'; uv run --project api --extra dev pytest api/tests/ -q` 通过（167 passed, 1512 warnings）；文档 ERROR/WARN 验证通过；`git diff --check` 通过，仅输出既有 LF/CRLF 换行提示。本阶段未改前端，也未生成 PDF/CSV 文件。
 - 2026-06-08 / Phase 7.5：先新增 `api/tests/test_project_data_quality.py`、项目数据质量 API adapter 测试、analysis retry adapter 测试、项目展示归一化测试、路由测试和 `ProjectDataQualityPage` 展示契约测试，并确认旧实现缺少项目数据质量 API、前端 adapter、路由和页面时失败；补齐 `GET /api/v1/projects/{project_id}/data-quality`、`api/v1/repositories/data_quality.py`、`api/v1/services/data_quality.py`、Pydantic 数据质量契约、`/projects/:tenantKey/:projectId/quality` 隐藏路由和数据质量页面后，后端定向测试通过（2 passed, 66 warnings），前端定向组合通过（18 passed）；`uv run --project api ruff check api` 通过；`$env:PYTHONPATH='.'; uv run --project api --extra dev pytest api/tests -q` 通过（169 passed, 1572 warnings）；`npm --prefix web test` 通过（87 passed）；`npm --prefix web run lint` 无错误，保留既有 8 个 warning；`npm --prefix web run build` 通过；系统 Chrome + Playwright 对 `/projects/tn_acme/proj_acme/quality` 做桌面/移动 mock smoke test 通过，确认数据质量标题、失败采集、75.0% 覆盖率和重新分析入口可见，且无 console error 或横向溢出；文档 ERROR/WARN 验证通过；`git diff --check` 通过，仅输出既有 LF/CRLF 换行提示。
+- 2026-06-08 / Phase 8.1：先更新 `web/src/config/__tests__/routes.test.js`、`web/src/utils/__tests__/routing.test.js` 和 `web/src/auth/__tests__/redirect.test.js`，确认旧实现下默认入口仍为 `home`、租户登录仍跳旧任务状态页、侧边栏仍暴露旧 dashboard/task 入口；补齐 `DEFAULT_VIEW_KEY='projects'`、租户默认跳项目列表、旧 job/task 路由 `menuSection='legacy'` 和侧边栏空任务分组隐藏后，定向测试通过（11 passed）；`npm --prefix web test` 通过（88 passed）；`npm --prefix web run lint` 无错误，保留既有 8 个 warning；`npm --prefix web run build` 通过；系统 Chrome + Playwright 对 `/` 和 `/tasks/tn_acme/status` 做 mock smoke test 通过，确认默认进入 `/projects/tn_acme`，项目页侧边栏不再显示旧任务/首页/趋势入口，旧任务状态路径仍可直接打开，且无 console error 或横向溢出；文档 ERROR/WARN 验证通过。
 
 阶段性验收：
 

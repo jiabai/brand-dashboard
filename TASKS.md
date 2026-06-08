@@ -5,16 +5,16 @@
 
 ## 进行中
 
-- 当前无进行中任务。下一步为 Phase 8.1。
+- 当前无进行中任务。下一步为 Phase 8.2。
 
 ## 待办
 
-- [ ] Phase 8.1 清理旧 job 主导航暴露。✅ 验证条件：用户主流程以项目为入口，旧任务入口仍可通过兼容路径排障。
 - [ ] Phase 8.2 更新核心架构文档和 README。✅ 验证条件：`docs/ARCHITECTURE.md`、`docs/DESIGN.md`、`docs/SECURITY.md`、README 与新架构一致。
 - [ ] Phase 8.3 归档 ExecPlan 并删除本文件。✅ 验证条件：所有任务完成，ExecPlan 移动到 `docs/exec-plans/completed/`，`TASKS.md` 删除，`python scripts/validate_agents_docs.py --level WARN` 通过。
 
 ## 已完成
 
+- [x] Phase 8.1 清理旧 job 主导航暴露。✅ 验证条件：用户主流程以项目为入口，旧任务入口仍可通过兼容路径排障。
 - [x] Phase 7.5 新增数据质量页。✅ 验证条件：页面展示失败采集、过期分析、指标覆盖率和可重算入口。
 - [x] Phase 7.4 新增报告导出基础能力。✅ 验证条件：项目可生成或导出一个包含核心指标和时间窗口的报告结果。
 - [x] Phase 7.3 新增告警规则与告警事件。✅ 验证条件：提及率下降、负面情绪上升、信源变化至少一种规则可触发并记录事件。

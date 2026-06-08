@@ -115,15 +115,19 @@ const Sidebar = () => {
         </div>
       </SidebarHeader>
       <SidebarContent>
+        {TASK_MENU_ITEMS.length ? (
+          <>
+            <SidebarMenuSection
+              label="任务"
+              items={TASK_MENU_ITEMS}
+              selectedKey={selectedKey}
+              onSelect={handleMenuSelect}
+            />
+            <SidebarSeparator />
+          </>
+        ) : null}
         <SidebarMenuSection
-          label="任务"
-          items={TASK_MENU_ITEMS}
-          selectedKey={selectedKey}
-          onSelect={handleMenuSelect}
-        />
-        <SidebarSeparator />
-        <SidebarMenuSection
-          label="分析"
+          label="工作台"
           items={MENU_ITEMS}
           selectedKey={selectedKey}
           onSelect={handleMenuSelect}

@@ -17,5 +17,5 @@ export const getLoginRedirectTarget = ({
 
   if (!tenantKey) return '/login';
 
-  return buildViewPath('task-status', { tenantKey });
+  return buildViewPath('projects', { tenantKey });
 };

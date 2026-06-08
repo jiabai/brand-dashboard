@@ -43,7 +43,7 @@ test('getViewKeyFromPath returns the selected sidebar key', () => {
   assert.equal(getViewKeyFromPath('/projects/tn_demo/proj_demo/quality'), 'projects');
   assert.equal(getViewKeyFromPath('/dashboard/tn_demo/job_demo'), 'home');
   assert.equal(getViewKeyFromPath('/tasks/tn_demo/status'), 'task-status');
-  assert.equal(getViewKeyFromPath('/unknown/path'), 'home');
+  assert.equal(getViewKeyFromPath('/unknown/path'), 'projects');
 });
 
 test('buildRouteSearch removes trend-only filters outside the trend page', () => {
