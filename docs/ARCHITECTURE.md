@@ -2,80 +2,113 @@
 
 ## 概述
 
-Brand Analysis Dashboard 是一个品牌分析仪表板应用，前端 React 18 + shadcn/ui（基于 Radix UI）+ Tailwind 提供可视化界面，后端 FastAPI + SQLAlchemy + MySQL 提供多租户数据服务。前后端通过 REST API 通信，支持 Docker 部署。
+Brand Dashboard 当前已从单纯的 `tenant_key + job_id` 品牌分析看板，演进为以“监测项目”为主线的多租户品牌监测业务系统。前端使用 React 18 + shadcn/ui + Tailwind，后端使用 FastAPI + SQLAlchemy + MySQL。系统仍保留旧 dashboard 和 query job 路由作为兼容排障入口，但用户主流程已经从 `/projects/:tenantKey` 进入。
+
+核心业务链路：
+
+```text
+租户 / 项目
+  -> 品牌、竞品、问题集配置
+  -> 采集批次、采集任务、执行尝试
+  -> 原始回答与引用入库
+  -> 分析运行与事实血缘
+  -> 指标快照 read model
+  -> dashboard、问答快照、情感分析、告警、报告、数据质量
+```
 
 ## 模块地图
 
-```
+```text
 brand-dashboard/
-├── web/                          # 前端（React 18 + Vite）
+├── web/                          # 前端 React 18 + Vite
 │   ├── src/
-│   │   ├── api/                  # 前端 API Adapter（dashboard, queryJobs, auth）
+│   │   ├── api/                  # API Adapter：projects, dashboard, queryJobs, analysisRuns, platform, auth
+│   │   ├── auth/                 # 登录态、租户选择、平台角色判断
 │   │   ├── components/           # 功能组件
-│   │   │   └── ui/               # shadcn/ui 可复用 UI 原语（button, card, table, dialog 等）
-│   │   ├── config/               # 前端路由等静态配置（routes.js）
-│   │   ├── lib/                  # 共享工具（cn.js）
-│   │   ├── utils/                # 业务工具（domainCitationQuery, sourceAnalysis, trendChartConfig）
-│   │   ├── hooks/                # 路由与页面级 hooks（useDashboardParams, useTimeframeManager）
-│   │   ├── styles/               # 组件级 CSS
-│   │   ├── App.jsx               # 路由定义与主题入口
-│   │   ├── config.js             # 环境变量配置
-│   │   └── main.jsx              # 挂载入口
+│   │   │   ├── projects/         # 项目列表、详情、数据质量
+│   │   │   ├── platform/         # 平台运营后台
+│   │   │   └── ui/               # shadcn/ui 可复用 UI 原语
+│   │   ├── config/               # 路由、菜单、legacy 入口配置
+│   │   ├── hooks/                # URL 参数、时间窗口、主题等 hooks
+│   │   ├── lib/                  # 共享工具 cn.js
+│   │   ├── utils/                # 路由、指标、筛选和展示工具
+│   │   ├── App.jsx               # React Router 路由定义
+│   │   └── config.js             # 前端环境变量入口
 │   └── package.json
-├── api/                          # 后端（FastAPI）
+├── api/                          # 后端 FastAPI
 │   ├── v1/
-│   │   ├── routes/               # 路由层：dashboard, auth, analysis, brand_strategy, config, query_jobs, executors, conversation
-│   │   ├── models/schemas.py     # Pydantic 模型
-│   │   ├── repositories/         # 数据访问层：database.py, auth.py, query_jobs.py, executors.py, conversation.py, tenants.py
-│   │   ├── services/             # 业务逻辑层：llm_client.py
-│   │   └── utils/                # 工具层：security, llm_adapters, llm_operator, url_domain_resolver
-│   ├── database/                 # SQL Schema（schema.sql, schema_auth.sql, schema_business.sql）
-│   ├── main.py                   # FastAPI 应用入口
-│   └── pyproject.toml
-├── docs/                         # 项目文档
-└── scripts/                      # 工具脚本
+│   │   ├── routes/               # projects, dashboard, analysis-runs, collection, query-jobs, auth, platform, executors
+│   │   ├── models/schemas.py     # Pydantic 请求/响应契约
+│   │   ├── repositories/         # 数据访问层，所有业务查询强制 tenant_key
+│   │   ├── services/             # 项目、分析、指标快照、告警、报告、数据质量等业务逻辑
+│   │   └── utils/                # 安全、LLM adapter、日期和 URL 工具
+│   ├── database/                 # MySQL/SQLite schema 与迁移脚本
+│   ├── tests/                    # 后端回归测试
+│   └── main.py                   # FastAPI 应用入口
+├── analysis/                     # 可复用分析插件和离线分析兼容入口
+├── docs/                         # 项目文档、执行计划、变更记录
+└── scripts/                      # 文档验证等工具脚本
 ```
 
 ## 关键文件
 
 | 文件 | 职责 |
 |------|------|
-| `web/src/App.jsx` | 前端主题入口与 React Router 路由定义 |
-| `web/src/config/routes.js` | 前端路由、菜单、任务入口的单一配置源 |
-| `web/src/api/index.js` | 前端 API Adapter 出口，统一封装 dashboard/query-jobs/auth/platform 请求 |
-| `web/src/components/DashboardLayout.jsx` | 仪表板壳层，负责 Header、Sidebar、时间筛选控件和子路由 Outlet |
-| `web/src/hooks/useDashboardParams.js` | 统一读取路径参数与查询参数，提供 URL 查询参数更新入口 |
-| `web/src/hooks/useTimeframeManager.js` | 仪表板时间范围、可用日期、日期参数同步逻辑 |
-| `web/src/config.js` | 环境变量入口，API 地址和默认业务参数 |
-| `api/main.py` | FastAPI 应用入口，CORS 配置，路由注册 |
-| `api/v1/routes/dashboard.py` | 仪表板核心 API（品牌提及率、引用统计、平台指标） |
-| `api/v1/routes/auth.py` | 多租户认证（租户创建、用户注册、邀请码验证） |
-| `docs/ARCHITECTURE_MULTITENANT.md` | 多租户认证、租户上下文、平台/执行器权限与数据隔离补充架构 |
-| `api/v1/repositories/database.py` | 数据访问层，所有 SQL 查询的入口 |
-| `api/v1/repositories/query_jobs.py` | 查询任务数据访问（状态同步、任务拉取、上报计数、批量加载） |
-| `api/v1/repositories/executors.py` | 执行器数据访问（创建、注册校验、列表、禁用） |
-| `api/v1/repositories/conversation.py` | 对话与引用数据入库访问 |
-| `api/v1/repositories/tenants.py` | 租户存在性校验等共享租户查询 |
-| `api/v1/models/schemas.py` | Pydantic 模型定义，API 请求/响应的数据契约 |
-| `api/database/schema.sql` | 完整数据库 Schema（租户 + 用户 + 业务表） |
+| `web/src/config/routes.js` | 路由、主菜单、legacy 路由和 App route 生成的单一配置源 |
+| `web/src/App.jsx` | 前端路由定义；租户用户默认进入项目列表，平台管理员进入平台后台 |
+| `web/src/components/Sidebar.jsx` | 租户工作台侧边栏；当前主入口为“监测项目”和“账户管理” |
+| `web/src/components/projects/` | 项目列表、项目详情、项目数据质量页面和展示归一化逻辑 |
+| `web/src/api/index.js` | 前端 API Adapter 出口，避免组件中手写 URL |
+| `api/main.py` | FastAPI 应用入口、CORS、路由注册和健康检查 |
+| `api/v1/routes/projects.py` | 项目列表、详情、告警、报告和数据质量 API |
+| `api/v1/routes/collection_tasks.py` | 执行器采集任务领取 API |
+| `api/v1/routes/collection_attempts.py` | 采集 attempt start/complete API |
+| `api/v1/routes/analysis_runs.py` | 分析运行查询与 retry API |
+| `api/v1/routes/dashboard.py` | legacy dashboard 读面，含问答快照和情感分析真实数据接口 |
+| `api/v1/services/metric_snapshots.py` | 品牌指标快照生成，固定 `brand_metrics_v1` 首版口径 |
+| `api/v1/services/analysis_runner.py` | 系统级分析运行编排，调用 `analysis/` 插件并写入事实血缘 |
+| `api/v1/services/reports.py` | 项目报告生成和报告列表 read model |
+| `api/v1/services/data_quality.py` | 项目级失败采集、过期分析和指标覆盖率聚合 |
+| `docs/references/20260606-brand-monitoring-domain-data-reference.md` | 本次重构的领域模型、API 和数据生命周期参考 |
 
 ## 架构不变量
 
-- 前后端分离：前端只通过 REST API 获取数据，不直接访问数据库
-- 多租户隔离：所有业务查询必须带 `tenant_key`，数据层强制租户过滤
-- Dashboard 展示粒度：Dashboard 以 `tenant_key + job_id` 为最小查询和展示单元；`job_id` 标识一次完整的 LLM 数据采集任务批次，同一租户可有多个 Job（不同品类/品牌/时间段），业务数据表（`qa_brand_state`、`qa_reference`、`llm_conversations`）按 `(tenant_key, job_id)` 联合索引和过滤，前端路由 `/dashboard/:tenantKey/:jobId` 同时携带两者
-- 多租户授权：前端 URL 中的 `tenantKey` 只是当前租户选择信号；后端必须通过认证依赖校验用户、租户状态、成员关系和角色后，才能把 `tenant_key` 传入 Repository
-- 平台运营后台：`/platform/*` 是独立平台权限域，不依赖 `tenantKey`，平台 API 使用 `platform_admin` 鉴权且不发送 `X-Tenant-Key`
-- 平台管理员看板入口：`/api/v1/platform/tenants` 返回租户元数据和 job 摘要（`jobCount`、`activeJobCount`、`latestJob`），前端必须用该租户真实 `latestJob.jobId` 构造 `/dashboard/:tenantKey/:jobId`，并用 `latestJob.brand` 写入 `brand` 查询参数，避免 dashboard 自动选择竞品作为目标品牌
-- 身份分区：用户接口使用 `Authorization: Bearer <access_token>`；执行器接口使用 `executor_id` + `X-Executor-Key`，两类身份不能混用
-- 分层依赖方向：Routes → Services → Repositories → Models，禁止反向依赖
-- API 版本化：所有路由挂载在 `/api/v1/` 前缀下
-- 组件懒加载：前端功能组件使用 `React.lazy()` 按需加载
-- 前端页面路由：使用 `react-router-dom`；分析类页面路径携带 `tenantKey + jobId`（Dashboard 展示粒度为 `tenant_key + job_id`，二者缺一不可），租户级页面路径只携带 `tenantKey`，平台运营页面使用 `/platform/*`
+- 前后端分离：`web/` 只通过 REST API 获取数据，不直接访问数据库。
+- 项目优先：租户用户默认进入 `/projects/:tenantKey`；项目承载品牌、竞品、问题集、采集、分析、指标、告警、报告和数据质量。
+- Legacy 兼容：`/dashboard/:tenantKey/:jobId`、`/tasks/:tenantKey/status` 等旧 job/task 路由继续可直接访问，但不再暴露为主导航入口。
+- 多租户隔离：所有业务查询必须显式携带服务端校验后的 `tenant_key`，Repository 层强制租户过滤。
+- 数据生命周期分层：配置层、采集层、原始层、分析层、指标快照层、洞察交付层各自有明确边界。
+- 指标 read model：dashboard、报告、告警和数据质量优先读取 `metric_snapshots`；兼容期缺失快照时，部分旧 dashboard 读面仍允许从历史明细兜底。
+- 分析血缘：分析结果必须绑定 `analysis_run_id`，并能追溯到 `project_id`、`collection_job_id` 和指标口径版本。
+- 身份分区：用户接口使用 `Authorization: Bearer <access_token>`；执行器接口使用 `executor_id + X-Executor-Key`；两类身份不能混用。
+- 平台运营后台：`/platform/*` 不属于租户工作台，不发送 `X-Tenant-Key`，平台 API 使用 `platform_admin` 鉴权。
+- 分层依赖方向：Routes -> Services -> Repositories -> Models，禁止反向依赖和跨层直接访问。
+- API 版本化：所有业务 API 挂载在 `/api/v1/` 前缀下。
+
+## 领域模型主线
+
+| 层级 | 代表数据 | 当前落地状态 |
+|------|----------|--------------|
+| 项目配置 | `monitoring_projects`、`project_brands`、`prompt_sets`、`prompt_items` | 项目列表、详情、品牌和问题集配置 API 已落地 |
+| 采集生命周期 | `collection_jobs`、`collection_tasks`、`collection_attempts` | 采集任务领取、attempt start/complete 和平台健康度已落地 |
+| 原始数据 | `llm_conversations`、`llm_conversation_references` | 兼容期继续使用旧表，通过 `collection_jobs.source_job_id` 桥接 |
+| 分析运行 | `analysis_runs`、`qa_brand_state.analysis_run_id`、`qa_reference.analysis_run_id` | 分析运行状态机、retry 和插件接入已落地 |
+| 指标快照 | `metric_snapshots` | `brand_metrics_v1` 生成和 dashboard 快照优先读取已落地 |
+| 洞察交付 | `alert_rules`、`alert_events`、`generated_reports`、项目数据质量 API | 告警、报告、数据质量 MVP 已落地 |
+
+## 前端路由策略
+
+| 路由类别 | 路径 | 状态 |
+|----------|------|------|
+| 项目主流程 | `/projects/:tenantKey`、`/projects/:tenantKey/:projectId`、`/projects/:tenantKey/:projectId/quality` | 主入口 |
+| 租户账户 | `/accounts/:tenantKey` | 主入口 |
+| 平台后台 | `/platform/tenants`、`/platform/executors` | 平台管理员入口 |
+| legacy dashboard | `/dashboard/:tenantKey/:jobId`、`/trend/:tenantKey/:jobId`、`/platforms/:tenantKey/:jobId`、`/sources/:tenantKey/:jobId`、`/sentiment/:tenantKey/:jobId`、`/snapshots/:tenantKey/:jobId` | 直接访问可用，不在主导航中展示 |
+| legacy task | `/tasks/:tenantKey/new`、`/tasks/:tenantKey/status` | 直接访问可用，不在主导航中展示 |
 
 ## 架构边界
 
-- 前端 `web/` 和后端 `api/` 是独立部署单元，通过 HTTP 通信
-- 前端开发服务器（Vite）代理 API 请求到后端
-- 数据库只被 `api/v1/repositories/` 访问，路由层不直接写 SQL
-- LLM 服务通过 `api/v1/services/llm_client.py` 统一封装
+- 前端开发服务器通过 Vite 代理 `/api` 到后端，生产环境由 Nginx 承载静态资源。
+- 数据库只允许 `api/v1/repositories/` 访问；路由层不直接写 SQL。
+- `analysis/` 插件作为系统分析服务的可调用库接入，后续可独立 worker 化，但当前仍属于模块化单体边界。
+- 平台后台只处理平台元数据、租户运营和执行器健康，不直接拥有租户写权限。
