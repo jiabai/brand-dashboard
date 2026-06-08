@@ -26,6 +26,7 @@ const AnswerSnapshotsPage = React.lazy(() => import('./components/AnswerSnapshot
 const PlatformExecutorsPage = React.lazy(() => import('./components/platform/PlatformExecutorsPage.jsx'));
 const PlatformTenantsPage = React.lazy(() => import('./components/platform/PlatformTenantsPage.jsx'));
 const ProjectDetailPage = React.lazy(() => import('./components/projects/ProjectDetailPage.jsx'));
+const ProjectDataQualityPage = React.lazy(() => import('./components/projects/ProjectDataQualityPage.jsx'));
 const ProjectListPage = React.lazy(() => import('./components/projects/ProjectListPage.jsx'));
 const TrendAnalysis = React.lazy(() => import('./components/TrendAnalysis.jsx'));
 const SourceAnalysis = React.lazy(() => import('./components/SourceAnalysis.jsx'));
@@ -50,6 +51,7 @@ const DashboardLoadingRoute = ({ children }) => {
 const ROUTE_ELEMENT_FACTORIES = {
   projects: () => <ProjectListPage />,
   'project-detail': () => <ProjectDetailPage />,
+  'project-quality': () => <ProjectDataQualityPage />,
   home: () => <HomeView />,
   trend: () => (
     <DashboardLoadingRoute>

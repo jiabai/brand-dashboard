@@ -2,8 +2,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import {
+  buildProjectDataQualityPath,
   buildProjectDetailPath,
   getProjectStatusMeta,
+  normalizeProjectDataQualityResponse,
   normalizeProjectDetailResponse,
   normalizeProjectListResponse,
 } from '../projectPresentation.js';
@@ -62,4 +64,46 @@ test('buildProjectDetailPath encodes tenant and project segments', () => {
     '/projects/tn%20space/proj%20space',
   );
   assert.equal(buildProjectDetailPath({ tenantKey: '', projectId: 'proj_1' }), '');
+});
+
+test('buildProjectDataQualityPath appends quality segment', () => {
+  assert.equal(
+    buildProjectDataQualityPath({ tenantKey: 'tn space', projectId: 'proj space' }),
+    '/projects/tn%20space/proj%20space/quality',
+  );
+});
+
+test('normalizes project data quality with stable defaults', () => {
+  const result = normalizeProjectDataQualityResponse({
+    summary: {
+      failed_collection_task_count: 2,
+      retryable_failed_collection_task_count: 1,
+      stale_analysis_run_count: 1,
+      recomputable_analysis_run_count: 1,
+      metric_snapshot_count: 2,
+      metric_dimension_count: 1,
+      metric_coverage_rate: 0.75,
+    },
+    metric_coverage: {
+      data_source: 'metric_snapshot',
+      metric_coverage_rate: 0.75,
+      metric_expected_task_count: 4,
+      metric_succeeded_task_count: 3,
+      metric_failed_task_count: 1,
+    },
+    failed_collection_tasks: [{ collection_task_id: 'task_failed', can_retry: true }],
+    stale_analysis_runs: [{ analysis_run_id: 'analysis_stale', can_recompute: true }],
+    recompute_actions: [{ analysis_run_id: 'analysis_stale', enabled: true }],
+  });
+
+  assert.equal(result.summary.failedCollectionTaskCount, 2);
+  assert.equal(result.summary.metricCoverageLabel, '75.0%');
+  assert.equal(result.metricCoverage.expectedTaskCount, 4);
+  assert.equal(result.failedCollectionTasks[0].collectionTaskId, 'task_failed');
+  assert.equal(result.staleAnalysisRuns[0].analysisRunId, 'analysis_stale');
+  assert.equal(result.recomputeActions[0].analysisRunId, 'analysis_stale');
+
+  const empty = normalizeProjectDataQualityResponse({});
+  assert.equal(empty.summary.metricCoverageLabel, '覆盖率待生成');
+  assert.deepEqual(empty.failedCollectionTasks, []);
 });

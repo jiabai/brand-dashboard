@@ -16,6 +16,7 @@ from api.v1.models.schemas import (
     ProjectAlertsResponse,
     ProjectBrandConfigRequest,
     ProjectBrandResponse,
+    ProjectDataQualityResponse,
     ProjectReportListResponse,
     PromptItemResponse,
     PromptSetConfigRequest,
@@ -23,6 +24,7 @@ from api.v1.models.schemas import (
 )
 from api.v1.repositories import alerts as alert_repo
 from api.v1.repositories import projects as project_repo
+from api.v1.services import data_quality as data_quality_service
 from api.v1.services import reports as report_service
 
 
@@ -248,6 +250,21 @@ def get_project_alerts(
         event_count=len(events),
         rules=rules,
         events=events,
+    )
+
+
+def get_project_data_quality(
+    db: Session,
+    *,
+    tenant_key: str,
+    project_id: str,
+) -> ProjectDataQualityResponse | None:
+    if project_repo.get_project(db, tenant_key=tenant_key, project_id=project_id) is None:
+        return None
+    return data_quality_service.get_project_data_quality(
+        db,
+        tenant_key=tenant_key,
+        project_id=project_id,
     )
 
 

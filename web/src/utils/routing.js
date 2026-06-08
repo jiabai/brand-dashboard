@@ -37,7 +37,8 @@ export const buildViewPath = (viewKey, {
   }
 
   if (route.requiresProjectId) {
-    return `/${route.routeSegment}/${encodePathSegment(nextTenantKey)}/${encodePathSegment(nextProjectId)}`;
+    const basePath = `/${route.routeSegment}/${encodePathSegment(nextTenantKey)}/${encodePathSegment(nextProjectId)}`;
+    return route.projectSubpath ? `${basePath}/${route.projectSubpath}` : basePath;
   }
 
   if (route.requiresJobId) {

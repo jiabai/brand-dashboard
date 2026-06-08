@@ -564,6 +564,40 @@ GET  /api/v1/projects/{project_id}/reports
 | 时间窗口 | 响应和持久化 JSON 中包含 `start_date`、`end_date` 和 `timeframe`。 |
 | 租户隔离 | GET 列表只返回当前租户、当前项目下的报告结果，不泄漏其他租户同名项目。 |
 
+### 2.5.12 Phase 7.5 数据质量页
+
+Phase 7.5 新增项目级数据质量读面和前端页面，用于把失败采集、过期分析、指标覆盖率和可重算入口集中到项目上下文中。该页面不再以旧 `job_id` 为入口，而是从 `/projects/:tenantKey/:projectId/quality` 进入。
+
+后端入口：
+
+```text
+GET /api/v1/projects/{project_id}/data-quality
+```
+
+数据来源：
+
+| 数据 | 来源 | 说明 |
+|------|------|------|
+| 失败采集 | `collection_tasks` | 查询当前 `tenant_key + project_id` 下 `status='failed'` 的采集任务，并根据 `attempt_count < max_attempts` 标记是否可重新领取。 |
+| 过期分析 | `analysis_runs` | 查询当前项目下 `status='stale'` 的 analysis run，并返回可重算动作元数据。 |
+| 指标覆盖率 | `metric_snapshots` | 聚合项目级快照覆盖率、预期/成功/失败任务数、快照数、维度数和分析回答数。 |
+| 可重算入口 | `analysis_runs` retry API | 页面按钮调用既有 `POST /api/v1/analysis-runs/{analysis_run_id}/retry`，不新增独立重算状态机。 |
+
+前端入口：
+
+```text
+/projects/:tenantKey/:projectId/quality
+```
+
+验收口径：
+
+| 项 | 说明 |
+|----|------|
+| 失败采集 | 页面展示失败 task、错误编码、错误信息、尝试次数和是否仍可重试。 |
+| 过期分析 | 页面展示 stale analysis run、过期时间、原因和“重新分析”按钮。 |
+| 指标覆盖率 | 页面展示覆盖率、任务计数、分析回答数、快照数和口径版本。 |
+| 租户隔离 | API 只读取当前租户、当前项目的数据；其他租户同名项目不泄漏。 |
+
 ## 3. 状态机参考
 
 ### 3.1 项目状态
@@ -625,6 +659,7 @@ GET  /api/v1/projects/{project_id}/metrics/overview
 GET  /api/v1/projects/{project_id}/metrics/trends
 GET  /api/v1/projects/{project_id}/answers
 GET  /api/v1/projects/{project_id}/alerts
+GET  /api/v1/projects/{project_id}/data-quality
 GET  /api/v1/projects/{project_id}/reports
 POST /api/v1/projects/{project_id}/reports
 ```

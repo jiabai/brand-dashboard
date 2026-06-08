@@ -325,6 +325,77 @@ class ProjectAlertsResponse(BaseModel):
     events: List[AlertEventItem] = Field(default_factory=list)
 
 
+class ProjectDataQualitySummary(BaseModel):
+    failed_collection_task_count: int
+    retryable_failed_collection_task_count: int
+    stale_analysis_run_count: int
+    recomputable_analysis_run_count: int
+    metric_snapshot_count: int
+    metric_dimension_count: int
+    metric_coverage_rate: Optional[float] = None
+
+
+class ProjectFailedCollectionTaskItem(BaseModel):
+    collection_task_id: str
+    collection_job_id: str
+    platform: str
+    keyword: Optional[str] = None
+    query_content: str
+    status: str
+    attempt_count: int
+    max_attempts: int
+    can_retry: bool
+    last_error_code: Optional[str] = None
+    last_error_message: Optional[str] = None
+    lease_owner: Optional[str] = None
+    updated_at: datetime
+
+
+class ProjectStaleAnalysisRunItem(BaseModel):
+    analysis_run_id: str
+    collection_job_id: str
+    status: str
+    stale_at: Optional[datetime] = None
+    error_code: Optional[str] = None
+    error_message: Optional[str] = None
+    can_recompute: bool
+    recompute_endpoint: str
+
+
+class ProjectMetricCoverageData(BaseModel):
+    data_source: str
+    snapshot_status: str
+    metric_definition_version: str
+    analysis_run_id: Optional[str] = None
+    metric_generated_at: Optional[datetime] = None
+    metric_coverage_rate: Optional[float] = None
+    metric_expected_task_count: Optional[int] = None
+    metric_succeeded_task_count: Optional[int] = None
+    metric_failed_task_count: Optional[int] = None
+    metric_analyzed_answer_count: Optional[int] = None
+    metric_snapshot_count: int
+    metric_dimension_count: int
+
+
+class ProjectRecomputeAction(BaseModel):
+    action_type: str
+    analysis_run_id: str
+    label: str
+    method: str
+    endpoint: str
+    enabled: bool
+
+
+class ProjectDataQualityResponse(BaseModel):
+    success: bool
+    project_id: str
+    summary: ProjectDataQualitySummary
+    failed_collection_tasks: List[ProjectFailedCollectionTaskItem] = Field(default_factory=list)
+    stale_analysis_runs: List[ProjectStaleAnalysisRunItem] = Field(default_factory=list)
+    metric_coverage: ProjectMetricCoverageData
+    recompute_actions: List[ProjectRecomputeAction] = Field(default_factory=list)
+
+
 class GenerateProjectReportRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 

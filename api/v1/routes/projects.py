@@ -15,6 +15,7 @@ from api.v1.models.schemas import (
     ProjectAlertsResponse,
     ProjectBrandConfigRequest,
     ProjectBrandConfigResponse,
+    ProjectDataQualityResponse,
     ProjectListResponse,
     ProjectReportListResponse,
     ProjectReportResponse,
@@ -82,6 +83,22 @@ async def get_project(
     if project is None:
         raise HTTPException(status_code=404, detail="Project not found")
     return ProjectResponse(success=True, project=project)
+
+
+@router.get("/{project_id}/data-quality", response_model=ProjectDataQualityResponse)
+async def get_project_data_quality(
+    project_id: str,
+    tenant: CurrentTenantContext = Depends(get_current_tenant),
+    db: Session = Depends(get_db),
+):
+    quality = project_service.get_project_data_quality(
+        db,
+        tenant_key=tenant.tenant_key,
+        project_id=project_id,
+    )
+    if quality is None:
+        raise HTTPException(status_code=404, detail="Project not found")
+    return quality
 
 
 @router.get("/{project_id}/reports", response_model=ProjectReportListResponse)

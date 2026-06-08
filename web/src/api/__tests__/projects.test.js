@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import { clearAuthSession, writeAuthSession } from '../../auth/storage.js';
-import { fetchProjectDetail, fetchProjects } from '../projects.js';
+import { fetchProjectDataQuality, fetchProjectDetail, fetchProjects } from '../projects.js';
 
 class MemoryStorage {
   constructor() {
@@ -69,4 +69,18 @@ test('fetchProjectDetail encodes project id path segment', async () => {
   await fetchProjectDetail({ tenantKey: 'tn_acme', projectId: 'proj space' });
 
   assert.equal(requestedUrl, '/api/v1/projects/proj%20space');
+});
+
+test('fetchProjectDataQuality uses project quality endpoint', async () => {
+  let request;
+  globalThis.fetch = async (url, options) => {
+    request = { url, options };
+    return jsonResponse({ success: true, project_id: 'proj space' });
+  };
+
+  await fetchProjectDataQuality({ tenantKey: 'tn_acme', projectId: 'proj space' });
+
+  assert.equal(request.url, '/api/v1/projects/proj%20space/data-quality');
+  assert.equal(request.options.method, 'GET');
+  assert.equal(request.options.headers['X-Tenant-Key'], 'tn_acme');
 });

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, Boxes, FileQuestion, FolderKanban, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Boxes, FileQuestion, FolderKanban, Gauge, RefreshCw } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 
 import { fetchProjectDetail } from '@/api';
@@ -18,6 +18,7 @@ import {
 import { Separator } from '../ui/separator.jsx';
 import {
   buildProjectListPath,
+  buildProjectDataQualityPath,
   countProjectBrandsByRole,
   getProjectStatusMeta,
   normalizeProjectDetailResponse,
@@ -62,6 +63,11 @@ const ProjectDetailPage = () => {
     if (path) navigate(path);
   };
 
+  const openDataQuality = () => {
+    const path = buildProjectDataQualityPath({ tenantKey, projectId });
+    if (path) navigate(path);
+  };
+
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
       <div className="flex flex-wrap items-start justify-between gap-4 border-b border-border pb-4">
@@ -84,6 +90,10 @@ const ProjectDetailPage = () => {
           <Button type="button" variant="outline" onClick={goBack}>
             <ArrowLeft data-icon="inline-start" />
             返回列表
+          </Button>
+          <Button type="button" variant="outline" onClick={openDataQuality}>
+            <Gauge data-icon="inline-start" />
+            数据质量
           </Button>
           <Button type="button" variant="outline" onClick={loadProject} disabled={isLoading}>
             <RefreshCw data-icon="inline-start" className={isLoading ? 'animate-spin' : ''} />

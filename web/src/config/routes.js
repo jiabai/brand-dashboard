@@ -18,6 +18,17 @@ export const ROUTES = {
     requiresJobId: false,
     requiresProjectId: true,
   },
+  'project-quality': {
+    viewKey: 'project-quality',
+    path: '/projects/:tenantKey/:projectId/quality',
+    routeSegment: 'projects',
+    projectSubpath: 'quality',
+    menuLabel: '数据质量',
+    menuIcon: 'GaugeOutlined',
+    menuSection: 'hidden',
+    requiresJobId: false,
+    requiresProjectId: true,
+  },
   home: {
     viewKey: 'home',
     path: '/dashboard/:tenantKey/:jobId',

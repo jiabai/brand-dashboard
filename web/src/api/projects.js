@@ -13,3 +13,9 @@ export const fetchProjectDetail = ({ tenantKey, projectId } = {}, options = {}) 
     ...options,
     tenantKey,
   });
+
+export const fetchProjectDataQuality = ({ tenantKey, projectId } = {}, options = {}) =>
+  fetch(`/api/v1/projects/${encodePathSegment(projectId)}/data-quality`, {
+    ...options,
+    tenantKey,
+  });
