@@ -10,7 +10,8 @@
 |---|---|---|---|
 | `/platform` | `<Navigate to="/platform/tenants" replace />` | `platform_admin` | 重定向 `/platform/tenants` |
 | `/platform/tenants` | `PlatformTenantsPage` | `platform_admin` | 租户列表、筛选、创建租户 |
-| `/platform/executors` | `后续增强` | `platform_admin` | 后续增强，MVP 菜单项已禁用 |
+| `/platform/tenants/:tenantKey` | `PlatformTenantDetailPage` | `platform_admin` | 租户运营详情、项目摘要、项目工作台主入口和排障入口 |
+| `/platform/executors` | `PlatformExecutorsPage` | `platform_admin` | 执行器健康、队列和失败任务 |
 
 前端权限规则：
 
@@ -154,7 +155,98 @@ curl "http://localhost:8000/api/v1/platform/tenants?q=alibaba&status=active&page
 | 400 | 租户状态无效 | status 参数不是 active/inactive/suspended |
 | 400 | 订阅计划无效 | planType 参数不是 trial/basic/pro/enterprise |
 
-## 4. 创建租户
+## 4. 租户详情
+
+### `GET /api/v1/platform/tenants/{tenant_key}`
+
+平台运营后台租户详情。
+
+鉴权：`require_platform_admin`。
+
+请求示例：
+
+```bash
+curl "http://localhost:8000/api/v1/platform/tenants/tn_alibaba" \
+  -H "Authorization: Bearer <platform_access_token>"
+```
+
+成功响应：
+
+```json
+{
+  "status": "success",
+  "code": 200,
+  "message": "获取租户详情成功",
+  "data": {
+    "tenantKey": "tn_alibaba",
+    "tenantName": "阿里巴巴集团",
+    "companyLegalName": "阿里巴巴（中国）网络技术有限公司",
+    "industry": "互联网",
+    "status": "active",
+    "planType": "enterprise",
+    "maxUsers": 200,
+    "billingCycle": "yearly",
+    "contractStartDate": "2026-05-20",
+    "contractEndDate": "2027-05-19",
+    "adminEmail": "admin@alibaba.com",
+    "adminStatus": "active",
+    "memberCount": 1,
+    "createdAt": "2026-05-20T10:15:30Z",
+    "jobCount": 5,
+    "activeJobCount": 2,
+    "latestJob": {
+      "jobId": "job_latest",
+      "brand": "通义",
+      "category": "AI 服务",
+      "queryStatus": 1,
+      "effectiveFrom": "2026-05-20T00:00:00Z",
+      "effectiveTo": "2026-06-20T00:00:00Z",
+      "createdAt": "2026-05-21T08:00:00Z"
+    },
+    "projects": [
+      {
+        "tenant_key": "tn_alibaba",
+        "project_id": "proj_tongyi",
+        "name": "通义品牌监测",
+        "industry": "互联网",
+        "category": "AI 服务",
+        "status": "active",
+        "created_by": 1,
+        "created_at": "2026-06-07T10:00:00Z",
+        "updated_at": "2026-06-08T10:00:00Z"
+      }
+    ]
+  }
+}
+```
+
+安全约束：
+
+- 不返回 password hash、activation token、邀请码明文列表或执行器 API Key。
+- `projects` 只返回摘要，不返回品牌配置、问题集明细或写操作入口。
+- 该接口属于平台 API，不接受 `X-Tenant-Key` 作为授权依据。
+
+前端跳转契约：
+
+| 操作 | 目标 |
+|---|---|
+| 进入项目工作台 | `/projects/<tenantKey>` |
+| 从项目概览打开项目 | `/projects/<tenantKey>/<projectId>?from=platform-tenant-detail` |
+| 从项目概览打开数据质量 | `/projects/<tenantKey>/<projectId>/quality?from=platform-tenant-detail` |
+| 最新任务看板 | `/dashboard/<tenantKey>/<latestJob.jobId>?brand=<latestJob.brand>` |
+| 任务状态 | `/tasks/<tenantKey>/status` |
+
+“进入项目工作台”是租户详情页主入口；租户详情页内的项目列表标题使用“项目概览”，只表达只读摘要。进入 `/projects/<tenantKey>` 后才进入“项目工作台”。从“项目概览”直达项目详情或数据质量时必须携带 `from=platform-tenant-detail`，项目详情页据此把返回目标设为 `/platform/tenants/<tenantKey>#project-overview`；未携带该来源时，项目详情默认返回 `/projects/<tenantKey>`。数据质量页返回项目详情时需要保留该来源参数。“最新任务看板”和“任务状态”只放在“排障入口”区。
+
+错误：
+
+| HTTP | message | 场景 |
+|---:|---|---|
+| 401 | 未提供有效的认证令牌 | 缺少或无效 token |
+| 403 | 需要平台管理员权限 | 非平台管理员 |
+| 404 | 租户不存在 | `tenant_key` 不存在 |
+
+## 5. 创建租户
 
 ### `POST /api/v1/platform/tenants`
 
@@ -171,13 +263,14 @@ curl "http://localhost:8000/api/v1/platform/tenants?q=alibaba&status=active&page
 5. 成功响应的 `emailDelivery` 必须展示为激活邮件状态；`not_configured` 或 `failed` 时提示复制激活链接人工发送。
 6. 创建成功后重新请求 `GET /api/v1/platform/tenants`。
 
-## 5. API Adapter 契约
+## 6. API Adapter 契约
 
 已新增 `web/src/api/platform.js`：
 
 | 函数 | 输入 | 输出 |
 |---|---|---|
 | `fetchPlatformTenants(params, options)` | `{ q, status, planType, page, pageSize }` | `GET /api/v1/platform/tenants` 响应 |
+| `fetchPlatformTenantDetail(tenantKey, options)` | `tenantKey` | `GET /api/v1/platform/tenants/{tenant_key}` 响应 |
 | `createPlatformTenant(payload, options)` | 租户创建 payload | `POST /api/v1/platform/tenants` 响应 |
 
 `createPlatformTenant` 已从 public auth API 分类中移出，由 `platform.js` 承载。
@@ -188,7 +281,7 @@ curl "http://localhost:8000/api/v1/platform/tenants?q=alibaba&status=active&page
 - 显式不注入 `X-Tenant-Key`。
 - 保留 `AbortController.signal` 支持。
 
-## 6. 前端状态契约
+## 7. 前端状态契约
 
 `PlatformTenantsPage` 建议状态：
 
@@ -206,7 +299,7 @@ curl "http://localhost:8000/api/v1/platform/tenants?q=alibaba&status=active&page
 
 URL query 应保存 `q`、`status`、`planType`、`page`，便于刷新和分享运营筛选状态。
 
-## 7. 测试契约
+## 8. 测试契约
 
 后端测试：
 
@@ -223,6 +316,7 @@ URL query 应保存 `q`、`status`、`planType`、`page`，便于刷新和分享
   - 平台 API 注入 `Authorization`。
   - 平台 API 不注入 `X-Tenant-Key`。
   - 查询参数序列化正确。
+  - 租户详情路径正确编码。
 - `web/src/auth/__tests__/platformAccess.test.js`
   - 非平台角色访问 `/platform/tenants` 的访问状态为 `forbidden`。
   - 未登录访问 `/platform/tenants` 的访问状态为 `login`。
@@ -231,7 +325,9 @@ URL query 应保存 `q`、`status`、`planType`、`page`，便于刷新和分享
   - 有原始受保护页面来源时优先返回来源页。
   - 普通租户用户直登继续跳转默认 dashboard。
 - `web/src/components/platform/__tests__/tenantPresentation.test.js`
-  - 列表响应、筛选参数、状态标签和创建 payload 规范化。
+  - 列表响应、详情响应、筛选参数、状态标签、路径和创建 payload 规范化。
+- `web/src/components/projects/__tests__/projectPresentation.test.js`
+  - 项目工作台路径、项目详情路径、数据质量路径正确编码。
 
 构建验证：
 

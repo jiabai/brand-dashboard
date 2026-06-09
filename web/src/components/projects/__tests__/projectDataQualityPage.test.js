@@ -24,4 +24,15 @@ describe('ProjectDataQualityPage contract', () => {
     assert.match(source, /指标覆盖率/);
     assert.match(source, /重新分析/);
   });
+
+  it('guards recompute actions for platform readonly tenant access', () => {
+    assert.match(source, /isPlatformReadonlyTenantAccess/);
+    assert.match(source, /isReadOnlyTenantAccess/);
+  });
+
+  it('preserves tenant overview navigation source when returning to project detail', () => {
+    assert.match(source, /readProjectNavigationSource/);
+    assert.match(source, /PROJECT_NAV_SOURCE_PLATFORM_TENANT_DETAIL/);
+    assert.match(source, /shouldPreserveTenantOverviewSource/);
+  });
 });

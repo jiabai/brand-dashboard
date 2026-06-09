@@ -92,6 +92,25 @@ def platform_db_engine():
                 """
             )
         )
+        conn.execute(
+            text(
+                """
+                CREATE TABLE monitoring_projects (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    tenant_key VARCHAR(255) NOT NULL,
+                    project_id VARCHAR(128) NOT NULL,
+                    name VARCHAR(255) NOT NULL,
+                    industry VARCHAR(100),
+                    category VARCHAR(100),
+                    status VARCHAR(20) NOT NULL DEFAULT 'draft',
+                    created_by INTEGER,
+                    created_at TIMESTAMP NOT NULL,
+                    updated_at TIMESTAMP NOT NULL,
+                    UNIQUE (tenant_key, project_id)
+                )
+                """
+            )
+        )
     return engine
 
 
@@ -266,6 +285,52 @@ def _insert_query_job(
             "effective_to": datetime(2026, 6, 20, tzinfo=UTC),
             "created_at": created_at,
             "is_deleted": is_deleted,
+        },
+    )
+    db_session.flush()
+
+
+def _insert_project(
+    db_session,
+    *,
+    tenant_key,
+    project_id,
+    name="品牌监测项目",
+    status="active",
+):
+    now = datetime.now(UTC)
+    db_session.execute(
+        text(
+            """
+            INSERT INTO monitoring_projects (
+                tenant_key,
+                project_id,
+                name,
+                industry,
+                category,
+                status,
+                created_by,
+                created_at,
+                updated_at
+            ) VALUES (
+                :tenant_key,
+                :project_id,
+                :name,
+                '互联网',
+                'AI 服务',
+                :status,
+                1,
+                :now,
+                :now
+            )
+            """
+        ),
+        {
+            "tenant_key": tenant_key,
+            "project_id": project_id,
+            "name": name,
+            "status": status,
+            "now": now,
         },
     )
     db_session.flush()
@@ -457,3 +522,99 @@ def test_platform_tenant_list_omits_sensitive_fields(client, db_session, monkeyp
     assert "activationtoken" not in payload_text
     assert "activation_token" not in payload_text
     assert "api_key" not in payload_text
+
+
+def test_platform_admin_can_view_tenant_detail_with_project_summaries(
+    client,
+    db_session,
+    monkeypatch,
+):
+    monkeypatch.setenv("PLATFORM_ADMIN_EMAILS", "ops@example.com")
+    platform_user_id = _insert_user(db_session, user_id=1, email="ops@example.com")
+    _insert_tenant(
+        db_session,
+        tenant_key="tn_alibaba",
+        tenant_name="阿里巴巴集团",
+        admin_email="admin@alibaba.com",
+    )
+    _insert_query_job(
+        db_session,
+        tenant_key="tn_alibaba",
+        job_id="job_latest",
+        brand="通义",
+        category="AI 服务",
+        query_status=1,
+        created_at=datetime(2026, 5, 21, 8, 0, tzinfo=UTC),
+    )
+    _insert_project(
+        db_session,
+        tenant_key="tn_alibaba",
+        project_id="proj_tongyi",
+        name="通义品牌监测",
+    )
+
+    response = client.get(
+        "/api/v1/platform/tenants/tn_alibaba",
+        headers={"Authorization": f"Bearer {_token(platform_user_id)}"},
+    )
+
+    assert response.status_code == 200
+    data = response.json()["data"]
+    assert data["tenantKey"] == "tn_alibaba"
+    assert data["tenantName"] == "阿里巴巴集团"
+    assert data["latestJob"]["jobId"] == "job_latest"
+    assert data["projects"] == [
+        {
+            "tenant_key": "tn_alibaba",
+            "project_id": "proj_tongyi",
+            "name": "通义品牌监测",
+            "industry": "互联网",
+            "category": "AI 服务",
+            "status": "active",
+            "created_by": 1,
+            "created_at": data["projects"][0]["created_at"],
+            "updated_at": data["projects"][0]["updated_at"],
+        }
+    ]
+    payload_text = response.text.lower()
+    assert "password_hash" not in payload_text
+    assert "activation_token" not in payload_text
+    assert "api_key" not in payload_text
+
+
+def test_platform_tenant_detail_rejects_non_platform_admin(
+    client,
+    db_session,
+    monkeypatch,
+):
+    monkeypatch.setenv("PLATFORM_ADMIN_EMAILS", "ops@example.com")
+    user_id = _insert_user(db_session, user_id=1, email="member@example.com")
+    _insert_tenant(
+        db_session,
+        tenant_key="tn_alibaba",
+        tenant_name="阿里巴巴集团",
+        admin_email="admin@alibaba.com",
+    )
+
+    response = client.get(
+        "/api/v1/platform/tenants/tn_alibaba",
+        headers={"Authorization": f"Bearer {_token(user_id)}"},
+    )
+
+    assert response.status_code == 403
+
+
+def test_platform_tenant_detail_returns_404_for_missing_tenant(
+    client,
+    db_session,
+    monkeypatch,
+):
+    monkeypatch.setenv("PLATFORM_ADMIN_EMAILS", "ops@example.com")
+    platform_user_id = _insert_user(db_session, user_id=1, email="ops@example.com")
+
+    response = client.get(
+        "/api/v1/platform/tenants/tn_missing",
+        headers={"Authorization": f"Bearer {_token(platform_user_id)}"},
+    )
+
+    assert response.status_code == 404

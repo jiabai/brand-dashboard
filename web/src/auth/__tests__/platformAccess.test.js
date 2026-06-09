@@ -1,7 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { getPlatformAccessState, hasPlatformAdminRole } from '../platformAccess.js';
+import {
+  getPlatformAccessState,
+  hasPlatformAdminRole,
+  hasTenantMembership,
+  isPlatformReadonlyTenantAccess,
+} from '../platformAccess.js';
 
 test('hasPlatformAdminRole only accepts platform_admin role', () => {
   assert.equal(hasPlatformAdminRole({ platformRoles: ['platform_admin'] }), true);
@@ -25,5 +30,40 @@ test('getPlatformAccessState maps auth state to route decisions', () => {
       user: { platformRoles: ['platform_admin'] },
     }),
     'allowed',
+  );
+});
+
+test('hasTenantMembership checks real tenant membership only', () => {
+  const user = {
+    platformRoles: ['platform_admin'],
+    tenants: [{ tenantKey: 'tn_member' }],
+  };
+
+  assert.equal(hasTenantMembership(user, 'tn_member'), true);
+  assert.equal(hasTenantMembership(user, 'tn_other'), false);
+  assert.equal(hasTenantMembership(user, ''), false);
+});
+
+test('isPlatformReadonlyTenantAccess detects platform admin URL tenant without membership', () => {
+  assert.equal(
+    isPlatformReadonlyTenantAccess({
+      user: { platformRoles: ['platform_admin'], tenants: [{ tenantKey: 'tn_member' }] },
+      tenantKey: 'tn_other',
+    }),
+    true,
+  );
+  assert.equal(
+    isPlatformReadonlyTenantAccess({
+      user: { platformRoles: ['platform_admin'], tenants: [{ tenantKey: 'tn_member' }] },
+      tenantKey: 'tn_member',
+    }),
+    false,
+  );
+  assert.equal(
+    isPlatformReadonlyTenantAccess({
+      user: { platformRoles: [], tenants: [] },
+      tenantKey: 'tn_other',
+    }),
+    false,
   );
 });

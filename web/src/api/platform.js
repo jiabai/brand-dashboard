@@ -15,6 +15,15 @@ export const fetchPlatformTenants = (
   return fetch(`/api/v1/platform/tenants${suffix}`, platformOptions(options));
 };
 
+const encodePathSegment = (value) => encodeURIComponent(String(value || '').trim());
+
+export const fetchPlatformTenantDetail = (tenantKey, options) => {
+  return fetch(
+    `/api/v1/platform/tenants/${encodePathSegment(tenantKey)}`,
+    platformOptions(options),
+  );
+};
+
 export const createPlatformTenant = (payload, options) => {
   return post('/api/v1/platform/tenants', payload, platformOptions(options));
 };

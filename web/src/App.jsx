@@ -24,6 +24,7 @@ const QueryJobStatus = React.lazy(() => import('./components/QueryJobStatus.jsx'
 const AccountManagement = React.lazy(() => import('./components/AccountManagement.jsx'));
 const AnswerSnapshotsPage = React.lazy(() => import('./components/AnswerSnapshotsPage.jsx'));
 const PlatformExecutorsPage = React.lazy(() => import('./components/platform/PlatformExecutorsPage.jsx'));
+const PlatformTenantDetailPage = React.lazy(() => import('./components/platform/PlatformTenantDetailPage.jsx'));
 const PlatformTenantsPage = React.lazy(() => import('./components/platform/PlatformTenantsPage.jsx'));
 const ProjectDetailPage = React.lazy(() => import('./components/projects/ProjectDetailPage.jsx'));
 const ProjectDataQualityPage = React.lazy(() => import('./components/projects/ProjectDataQualityPage.jsx'));
@@ -84,6 +85,7 @@ const AppRoutes = () => {
       <Route path="/platform" element={<PlatformRoute><PlatformLayout /></PlatformRoute>}>
         <Route index element={<Navigate to="/platform/tenants" replace />} />
         <Route path="tenants" element={<RouteShell><PlatformTenantsPage /></RouteShell>} />
+        <Route path="tenants/:tenantKey" element={<RouteShell><PlatformTenantDetailPage /></RouteShell>} />
         <Route path="executors" element={<RouteShell><PlatformExecutorsPage /></RouteShell>} />
       </Route>
       <Route element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>

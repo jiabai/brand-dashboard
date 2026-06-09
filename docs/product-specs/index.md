@@ -19,7 +19,7 @@ Product specs describe user-visible intent and boundaries before or alongside im
 | [20260520-010000-platform-operations-console.md](20260520-010000-platform-operations-console.md) | 平台运营后台：独立 `/platform` 权限域、租户列表、创建租户和运营入口 |
 | [20260520-020000-platform-admin-bootstrap.md](20260520-020000-platform-admin-bootstrap.md) | 首个平台管理员账号 bootstrap：本地 CLI 初始化用户和平台管理员白名单 |
 | [20260520-030000-tenant-access-grant.md](20260520-030000-tenant-access-grant.md) | 租户访问授权：为已有用户显式授予已有租户的 viewer/member/admin 成员关系 |
-| [20260520-040000-platform-admin-tenant-read-access.md](20260520-040000-platform-admin-tenant-read-access.md) | 平台管理员全租户只读看板：平台运营可查看所有 active 租户 dashboard，但不获得写权限 |
-| [20260521-185332-platform-admin-job-aware-dashboard-entry.md](20260521-185332-platform-admin-job-aware-dashboard-entry.md) | 平台管理员 Job 感知看板入口：平台租户列表展示 job 摘要并使用真实 tenant/job/brand 进入 dashboard |
+| [20260520-040000-platform-admin-tenant-read-access.md](20260520-040000-platform-admin-tenant-read-access.md) | 平台管理员全租户项目与看板只读：平台运营可查看 active 租户项目 GET 和 dashboard，但不获得写权限 |
+| [20260521-185332-platform-admin-job-aware-dashboard-entry.md](20260521-185332-platform-admin-job-aware-dashboard-entry.md) | 平台管理员 Job 感知排障入口：平台租户详情使用真实 tenant/job/brand 进入 legacy dashboard |
 | [20260603-000000-admin-activation-email.md](20260603-000000-admin-activation-email.md) | 管理员激活邮件发送：创建租户后通过 SMTP 自动发送激活链接，并保留人工兜底 |
 | [20260606-brand-monitoring-system-refactor.md](20260606-brand-monitoring-system-refactor.md) | 品牌监测业务系统重构：以监测项目为主线，补齐采集、分析、指标、告警和报告闭环 |

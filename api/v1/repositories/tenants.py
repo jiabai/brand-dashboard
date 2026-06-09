@@ -79,6 +79,7 @@ def list_user_tenant_summaries(db: Session, user_id: int):
 def list_platform_tenant_summaries(
     db: Session,
     *,
+    tenant_key: str | None = None,
     q: str | None = None,
     status: str | None = None,
     plan_type: str | None = None,
@@ -87,6 +88,11 @@ def list_platform_tenant_summaries(
 ):
     where_clauses = []
     params = {}
+
+    normalized_tenant_key = (tenant_key or "").strip()
+    if normalized_tenant_key:
+        where_clauses.append("t.tenant_key = :tenant_key")
+        params["tenant_key"] = normalized_tenant_key
 
     normalized_q = (q or "").strip().lower()
     if normalized_q:
@@ -246,3 +252,13 @@ def list_platform_tenant_summaries(
         "items": rows,
         "total": int(total or 0),
     }
+
+
+def get_platform_tenant_summary(db: Session, *, tenant_key: str):
+    result = list_platform_tenant_summaries(
+        db,
+        tenant_key=tenant_key,
+        page=1,
+        page_size=1,
+    )
+    return result["items"][0] if result["items"] else None

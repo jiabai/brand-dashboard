@@ -1,0 +1,23 @@
+import assert from 'node:assert/strict';
+import { describe, it } from 'node:test';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { dirname, resolve } from 'node:path';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const sourcePath = resolve(__dirname, '../PlatformTenantDetailPage.jsx');
+const source = readFileSync(sourcePath, 'utf8');
+
+describe('PlatformTenantDetailPage contract', () => {
+  it('keeps tenant detail project content as an overview, not the workspace title', () => {
+    assert.match(source, /label: '项目数'/);
+    assert.match(source, /项目概览/);
+    assert.match(source, /id="project-overview"/);
+    assert.doesNotMatch(source, /label: '监测项目'/);
+  });
+
+  it('marks project overview actions with the tenant detail navigation source', () => {
+    assert.match(source, /PROJECT_NAV_SOURCE_PLATFORM_TENANT_DETAIL/);
+    assert.match(source, /scrollIntoView/);
+  });
+});

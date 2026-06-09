@@ -1,8 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ArrowRight, FolderKanban, RefreshCw } from 'lucide-react';
+import { ArrowLeft, ArrowRight, FolderKanban, RefreshCw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 import { fetchProjects } from '@/api';
+import { useAuth } from '@/auth/AuthContext.jsx';
+import { hasPlatformAdminRole } from '@/auth/platformAccess.js';
 import { useDashboardParams } from '@/hooks/useDashboardParams';
 import EmptyState from '../EmptyState.jsx';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert.jsx';
@@ -16,6 +18,7 @@ import {
   CardHeader,
   CardTitle,
 } from '../ui/card.jsx';
+import { buildPlatformTenantDetailPath } from '../platform/tenantPresentation.js';
 import {
   buildProjectDetailPath,
   getProjectStatusMeta,
@@ -37,6 +40,7 @@ const formatDateTime = (value) => {
 
 const ProjectListPage = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { tenantKey } = useDashboardParams();
   const [projects, setProjects] = useState([]);
   const [feedback, setFeedback] = useState('');
@@ -66,6 +70,8 @@ const ProjectListPage = () => {
     const draft = projects.filter((project) => project.status === 'draft').length;
     return { total: projects.length, active, draft };
   }, [projects]);
+  const isPlatformAdmin = hasPlatformAdminRole(user);
+  const platformTenantDetailPath = buildPlatformTenantDetailPath(tenantKey);
 
   const openProject = (projectId) => {
     const path = buildProjectDetailPath({ tenantKey, projectId });
@@ -78,17 +84,29 @@ const ProjectListPage = () => {
         <div className="min-w-0">
           <div className="mb-2 flex items-center gap-2 text-xs font-medium text-muted-foreground">
             <FolderKanban className="size-3.5" aria-hidden="true" />
-            <span>工作台 / 监测项目</span>
+            <span>工作台 / 项目工作台</span>
           </div>
-          <h1 className="text-2xl font-medium tracking-normal text-foreground">监测项目</h1>
+          <h1 className="text-2xl font-medium tracking-normal text-foreground">项目工作台</h1>
           <p className="mt-1 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-            以项目为单位查看目标品牌、竞品和消费者问题集配置。
+            查看这个租户的监测项目、目标品牌、竞品和消费者问题集配置。
           </p>
         </div>
-        <Button variant="outline" onClick={loadProjects} disabled={isLoading}>
-          <RefreshCw data-icon="inline-start" className={isLoading ? 'animate-spin' : ''} />
-          刷新
-        </Button>
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          {isPlatformAdmin && platformTenantDetailPath ? (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => navigate(platformTenantDetailPath)}
+            >
+              <ArrowLeft data-icon="inline-start" />
+              返回租户详情
+            </Button>
+          ) : null}
+          <Button variant="outline" onClick={loadProjects} disabled={isLoading}>
+            <RefreshCw data-icon="inline-start" className={isLoading ? 'animate-spin' : ''} />
+            刷新
+          </Button>
+        </div>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-3">

@@ -7,9 +7,11 @@ import {
   RefreshCw,
   RotateCcw,
 } from 'lucide-react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 
 import { fetchProjectDataQuality, retryAnalysisRun } from '@/api';
+import { useAuth } from '@/auth/AuthContext.jsx';
+import { hasPlatformAdminRole, isPlatformReadonlyTenantAccess } from '@/auth/platformAccess.js';
 import { useDashboardParams } from '@/hooks/useDashboardParams';
 import EmptyState from '../EmptyState.jsx';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert.jsx';
@@ -24,8 +26,10 @@ import {
 } from '../ui/card.jsx';
 import { Progress } from '../ui/progress.jsx';
 import {
+  PROJECT_NAV_SOURCE_PLATFORM_TENANT_DETAIL,
   buildProjectDetailPath,
   normalizeProjectDataQualityResponse,
+  readProjectNavigationSource,
 } from './projectPresentation.js';
 
 const formatDateTime = (value) => {
@@ -54,6 +58,8 @@ const QualityStat = ({ label, value, helper }) => (
 const ProjectDataQualityPage = () => {
   const navigate = useNavigate();
   const routeParams = useParams();
+  const [searchParams] = useSearchParams();
+  const { user } = useAuth();
   const { tenantKey } = useDashboardParams();
   const projectId = routeParams.projectId || '';
   const [quality, setQuality] = useState(() => normalizeProjectDataQualityResponse({}));
@@ -81,13 +87,22 @@ const ProjectDataQualityPage = () => {
   }, [loadQuality]);
 
   const metricCoverage = quality.metricCoverage;
+  const isReadOnlyTenantAccess = isPlatformReadonlyTenantAccess({ user, tenantKey });
+  const navigationSource = readProjectNavigationSource(searchParams);
+  const shouldPreserveTenantOverviewSource =
+    hasPlatformAdminRole(user)
+    && navigationSource === PROJECT_NAV_SOURCE_PLATFORM_TENANT_DETAIL;
   const coverageValue = useMemo(() => {
     if (metricCoverage.coverageRate === null) return 0;
     return Math.max(0, Math.min(100, metricCoverage.coverageRate * 100));
   }, [metricCoverage.coverageRate]);
 
   const goBack = () => {
-    const path = buildProjectDetailPath({ tenantKey, projectId });
+    const path = buildProjectDetailPath({
+      tenantKey,
+      projectId,
+      source: shouldPreserveTenantOverviewSource ? navigationSource : '',
+    });
     if (path) navigate(path);
   };
 
@@ -263,19 +278,21 @@ const ProjectDataQualityPage = () => {
                           {run.collectionJobId} / {formatDateTime(run.staleAt)}
                         </div>
                       </div>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        disabled={!run.canRecompute || Boolean(retryingRunId)}
-                        onClick={() => handleRetry(run.analysisRunId)}
-                      >
-                        <RotateCcw
-                          data-icon="inline-start"
-                          className={retryingRunId === run.analysisRunId ? 'animate-spin' : ''}
-                        />
-                        重新分析
-                      </Button>
+                      {!isReadOnlyTenantAccess ? (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          disabled={!run.canRecompute || Boolean(retryingRunId)}
+                          onClick={() => handleRetry(run.analysisRunId)}
+                        >
+                          <RotateCcw
+                            data-icon="inline-start"
+                            className={retryingRunId === run.analysisRunId ? 'animate-spin' : ''}
+                          />
+                          重新分析
+                        </Button>
+                      ) : null}
                     </div>
                     <p className="mt-2 text-sm text-muted-foreground">
                       {run.errorCode || 'stale'}: {run.errorMessage || '上游数据或配置已变化'}

@@ -75,6 +75,18 @@ export const normalizeTenantListResponse = (response) => ({
   },
 });
 
+export const normalizeTenantDetailResponse = (response) => {
+  const data = response?.data;
+  if (!data || typeof data !== 'object') {
+    return { tenant: null, projects: [] };
+  }
+  const { projects, ...tenant } = data;
+  return {
+    tenant,
+    projects: Array.isArray(projects) ? projects : [],
+  };
+};
+
 export const getTenantStatusMeta = (status) =>
   tenantStatusMap[status] || { label: status || '未知', variant: 'outline' };
 
@@ -103,6 +115,17 @@ export const prepareTenantCreatePayload = (values = {}) =>
 
 export const buildTenantTaskStatusPath = (tenantKey) =>
   buildViewPath('task-status', { tenantKey });
+
+export const buildPlatformTenantDetailPath = (tenantKey) => {
+  const nextTenantKey = String(tenantKey || '').trim();
+  if (!nextTenantKey) return '';
+  return `/platform/tenants/${encodeURIComponent(nextTenantKey)}`;
+};
+
+export const buildPlatformTenantProjectOverviewPath = (tenantKey) => {
+  const detailPath = buildPlatformTenantDetailPath(tenantKey);
+  return detailPath ? `${detailPath}#project-overview` : '';
+};
 
 export const buildTenantDashboardPath = (tenant) => {
   const tenantKey = tenant?.tenantKey || '';

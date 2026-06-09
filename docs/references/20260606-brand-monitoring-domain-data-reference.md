@@ -509,6 +509,8 @@ Phase 7.5 新增项目级数据质量读面和前端页面，用于把失败采�
 GET /api/v1/projects/{project_id}/data-quality
 ```
 
+权限：当前租户成员可读；`platform_admin` 无 membership 时仅可只读访问 active 租户。页面中的重新分析动作仍调用 `POST /api/v1/analysis-runs/{analysis_run_id}/retry`，不随平台只读权限放开；平台只读访问时前端不展示“重新分析”按钮。
+
 数据来源：
 
 | 数据 | 来源 | 说明 |
@@ -644,9 +646,9 @@ POST /api/v1/analysis-runs/{analysis_run_id}/retry
 
 | API | 权限 | 说明 |
 |-----|------|------|
-| `GET /api/v1/projects` | 当前租户成员 | 返回当前租户下的项目列表。 |
+| `GET /api/v1/projects` | 当前租户成员；或 `platform_admin` 只读 active 租户 | 返回当前租户下的项目列表。 |
 | `POST /api/v1/projects` | 当前租户 admin | 创建项目；请求体禁止携带 `tenant_key`，由 `X-Tenant-Key` 和认证令牌解析。 |
-| `GET /api/v1/projects/{project_id}` | 当前租户成员 | 返回项目详情，并聚合品牌配置和问题集配置。 |
+| `GET /api/v1/projects/{project_id}` | 当前租户成员；或 `platform_admin` 只读 active 租户 | 返回项目详情，并聚合品牌配置和问题集配置。 |
 | `POST /api/v1/projects/{project_id}/brands` | 当前租户 admin | 按 `(tenant_key, project_id, brand_id, role)` 幂等新增或更新品牌配置。 |
 | `POST /api/v1/projects/{project_id}/prompt-sets` | 当前租户 admin | 按 `prompt_set_id` 和 `prompt_item_id` 幂等新增或更新问题集及问题项。 |
 
@@ -654,7 +656,7 @@ POST /api/v1/analysis-runs/{analysis_run_id}/retry
 
 - 项目 API 不接受客户端传入的 `tenant_key` 字段，租户上下文只能来自服务端鉴权依赖。
 - Repository 查询和写入都必须显式携带 `tenant_key`。
-- 读接口允许租户成员使用；配置写接口要求租户 admin。
+- 读接口允许租户成员使用；平台管理员无 membership 时仅可读取 active 租户；配置写接口要求租户 admin。
 - 本阶段只建立项目配置 API，不把旧 `llm_query_jobs` 立即迁移到项目模型；任务关联将在 Phase 3.4 处理。
 
 ### 5.2 Phase 3.3 前端项目入口落地说明

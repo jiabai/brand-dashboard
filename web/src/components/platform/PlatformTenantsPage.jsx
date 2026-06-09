@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { BarChart3, ListChecks, RefreshCw, Search } from 'lucide-react';
+import { ArrowRight, RefreshCw, Search } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 import { fetchPlatformTenants } from '../../api/platform.js';
@@ -26,8 +26,7 @@ import {
 import CreateTenantPanel from './CreateTenantPanel.jsx';
 import {
   formatDate,
-  buildTenantDashboardPath,
-  buildTenantTaskStatusPath,
+  buildPlatformTenantDetailPath,
   getAdminStatusLabel,
   getBillingCycleLabel,
   getPlanTypeLabel,
@@ -128,18 +127,9 @@ const PlatformTenantsPage = () => {
     setRefreshToken((current) => current + 1);
   };
 
-  const handleOpenTenantTasks = useCallback(
+  const handleOpenTenantDetail = useCallback(
     (tenant) => {
-      if (!tenant?.tenantKey || tenant.status !== 'active') return;
-      navigate(buildTenantTaskStatusPath(tenant.tenantKey));
-    },
-    [navigate],
-  );
-
-  const handleOpenTenantDashboard = useCallback(
-    (tenant) => {
-      if (tenant?.status !== 'active') return;
-      const path = buildTenantDashboardPath(tenant);
+      const path = buildPlatformTenantDetailPath(tenant?.tenantKey);
       if (!path) return;
       navigate(path);
     },
@@ -244,7 +234,6 @@ const PlatformTenantsPage = () => {
                 const status = getTenantStatusMeta(tenant.status);
                 const latestJob = tenant.latestJob;
                 const jobStatus = getQueryJobStatusMeta(latestJob?.queryStatus);
-                const dashboardPath = buildTenantDashboardPath(tenant);
                 return (
                   <TableRow key={tenant.tenantKey}>
                     <TableCell>
@@ -298,26 +287,15 @@ const PlatformTenantsPage = () => {
                     <TableCell>{formatDate(tenant.contractEndDate)}</TableCell>
                     <TableCell>{formatDate(tenant.createdAt)}</TableCell>
                     <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
+                      <div className="flex justify-end">
                         <Button
                           type="button"
-                          variant="outline"
                           size="sm"
-                          disabled={tenant.status !== 'active' || !dashboardPath}
-                          onClick={() => handleOpenTenantDashboard(tenant)}
+                          disabled={!tenant.tenantKey}
+                          onClick={() => handleOpenTenantDetail(tenant)}
                         >
-                          <BarChart3 className="size-4" />
-                          看板
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          disabled={tenant.status !== 'active'}
-                          onClick={() => handleOpenTenantTasks(tenant)}
-                        >
-                          <ListChecks className="size-4" />
-                          任务状态
+                          <ArrowRight className="size-4" />
+                          详情
                         </Button>
                       </div>
                     </TableCell>

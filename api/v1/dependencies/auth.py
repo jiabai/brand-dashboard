@@ -141,7 +141,7 @@ def get_current_tenant(
     )
 
 
-def get_current_tenant_for_dashboard_read(
+def get_current_tenant_for_read(
     x_tenant_key: Annotated[str | None, Header(alias="X-Tenant-Key")] = None,
     query_tenant_key: Annotated[str | None, Query(alias="tenant_key")] = None,
     current_user: CurrentUser = Depends(get_current_user),
@@ -192,6 +192,20 @@ def get_current_tenant_for_dashboard_read(
         role="platform_admin_readonly",
         product_role="platform_admin",
         access_scope="platform_readonly",
+    )
+
+
+def get_current_tenant_for_dashboard_read(
+    x_tenant_key: Annotated[str | None, Header(alias="X-Tenant-Key")] = None,
+    query_tenant_key: Annotated[str | None, Query(alias="tenant_key")] = None,
+    current_user: CurrentUser = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> CurrentTenantContext:
+    return get_current_tenant_for_read(
+        x_tenant_key=x_tenant_key,
+        query_tenant_key=query_tenant_key,
+        current_user=current_user,
+        db=db,
     )
 
 

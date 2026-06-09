@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import {
   createPlatformTenant,
   fetchPlatformCollectionHealth,
+  fetchPlatformTenantDetail,
   fetchPlatformTenants,
 } from '../platform.js';
 import { clearAuthSession, writeAuthSession } from '../../auth/storage.js';
@@ -86,6 +87,28 @@ test('platform list API keeps authorization but skips tenant header', async () =
 
   assert.equal(headers.Authorization, 'Bearer platform-token');
   assert.equal(headers['X-Tenant-Key'], undefined);
+});
+
+test('platform tenant detail API skips tenant header', async () => {
+  writeAuthSession({
+    accessToken: 'platform-token',
+    currentTenantKey: 'tn_customer',
+    user: {
+      platformRoles: ['platform_admin'],
+      tenants: [{ tenantKey: 'tn_customer', status: 'active' }],
+    },
+  });
+  let request;
+  globalThis.fetch = async (url, options) => {
+    request = { url, options };
+    return jsonResponse({ data: { tenantKey: 'tn space', projects: [] } });
+  };
+
+  await fetchPlatformTenantDetail('tn space');
+
+  assert.equal(request.url, '/api/v1/platform/tenants/tn%20space');
+  assert.equal(request.options.headers.Authorization, 'Bearer platform-token');
+  assert.equal(request.options.headers['X-Tenant-Key'], undefined);
 });
 
 test('platform create API posts json without tenant header', async () => {

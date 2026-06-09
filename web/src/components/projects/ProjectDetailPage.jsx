@@ -1,8 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, Boxes, FileQuestion, FolderKanban, Gauge, RefreshCw } from 'lucide-react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 
 import { fetchProjectDetail } from '@/api';
+import { useAuth } from '@/auth/AuthContext.jsx';
+import { hasPlatformAdminRole } from '@/auth/platformAccess.js';
 import { useDashboardParams } from '@/hooks/useDashboardParams';
 import EmptyState from '../EmptyState.jsx';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert.jsx';
@@ -16,17 +18,22 @@ import {
   CardTitle,
 } from '../ui/card.jsx';
 import { Separator } from '../ui/separator.jsx';
+import { buildPlatformTenantProjectOverviewPath } from '../platform/tenantPresentation.js';
 import {
+  PROJECT_NAV_SOURCE_PLATFORM_TENANT_DETAIL,
   buildProjectListPath,
   buildProjectDataQualityPath,
   countProjectBrandsByRole,
   getProjectStatusMeta,
   normalizeProjectDetailResponse,
+  readProjectNavigationSource,
 } from './projectPresentation.js';
 
 const ProjectDetailPage = () => {
   const navigate = useNavigate();
   const routeParams = useParams();
+  const [searchParams] = useSearchParams();
+  const { user } = useAuth();
   const { tenantKey } = useDashboardParams();
   const projectId = routeParams.projectId || '';
   const [project, setProject] = useState(null);
@@ -57,14 +64,24 @@ const ProjectDetailPage = () => {
     () => countProjectBrandsByRole(project?.brands),
     [project?.brands],
   );
+  const navigationSource = readProjectNavigationSource(searchParams);
+  const isFromTenantProjectOverview =
+    hasPlatformAdminRole(user)
+    && navigationSource === PROJECT_NAV_SOURCE_PLATFORM_TENANT_DETAIL;
 
   const goBack = () => {
-    const path = buildProjectListPath({ tenantKey });
+    const path = isFromTenantProjectOverview
+      ? buildPlatformTenantProjectOverviewPath(tenantKey)
+      : buildProjectListPath({ tenantKey });
     if (path) navigate(path);
   };
 
   const openDataQuality = () => {
-    const path = buildProjectDataQualityPath({ tenantKey, projectId });
+    const path = buildProjectDataQualityPath({
+      tenantKey,
+      projectId,
+      source: isFromTenantProjectOverview ? navigationSource : '',
+    });
     if (path) navigate(path);
   };
 
@@ -89,7 +106,7 @@ const ProjectDetailPage = () => {
         <div className="flex flex-wrap items-center gap-2">
           <Button type="button" variant="outline" onClick={goBack}>
             <ArrowLeft data-icon="inline-start" />
-            返回列表
+            {isFromTenantProjectOverview ? '返回项目概览' : '返回项目工作台'}
           </Button>
           <Button type="button" variant="outline" onClick={openDataQuality}>
             <Gauge data-icon="inline-start" />

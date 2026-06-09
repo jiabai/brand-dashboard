@@ -2,9 +2,12 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import {
+  PROJECT_NAV_SOURCE_PLATFORM_TENANT_DETAIL,
   buildProjectDataQualityPath,
   buildProjectDetailPath,
+  buildProjectListPath,
   getProjectStatusMeta,
+  normalizeProjectNavigationSource,
   normalizeProjectDataQualityResponse,
   normalizeProjectDetailResponse,
   normalizeProjectListResponse,
@@ -58,10 +61,26 @@ test('maps project status for badges', () => {
   assert.deepEqual(getProjectStatusMeta('unknown'), { label: 'unknown', variant: 'secondary' });
 });
 
+test('buildProjectListPath encodes tenant workspace path', () => {
+  assert.equal(
+    buildProjectListPath({ tenantKey: 'tn space' }),
+    '/projects/tn%20space',
+  );
+  assert.equal(buildProjectListPath({ tenantKey: '' }), '');
+});
+
 test('buildProjectDetailPath encodes tenant and project segments', () => {
   assert.equal(
     buildProjectDetailPath({ tenantKey: 'tn space', projectId: 'proj space' }),
     '/projects/tn%20space/proj%20space',
+  );
+  assert.equal(
+    buildProjectDetailPath({
+      tenantKey: 'tn space',
+      projectId: 'proj space',
+      source: PROJECT_NAV_SOURCE_PLATFORM_TENANT_DETAIL,
+    }),
+    '/projects/tn%20space/proj%20space?from=platform-tenant-detail',
   );
   assert.equal(buildProjectDetailPath({ tenantKey: '', projectId: 'proj_1' }), '');
 });
@@ -71,6 +90,22 @@ test('buildProjectDataQualityPath appends quality segment', () => {
     buildProjectDataQualityPath({ tenantKey: 'tn space', projectId: 'proj space' }),
     '/projects/tn%20space/proj%20space/quality',
   );
+  assert.equal(
+    buildProjectDataQualityPath({
+      tenantKey: 'tn space',
+      projectId: 'proj space',
+      source: PROJECT_NAV_SOURCE_PLATFORM_TENANT_DETAIL,
+    }),
+    '/projects/tn%20space/proj%20space/quality?from=platform-tenant-detail',
+  );
+});
+
+test('normalizes project navigation source to known values only', () => {
+  assert.equal(
+    normalizeProjectNavigationSource('platform-tenant-detail'),
+    PROJECT_NAV_SOURCE_PLATFORM_TENANT_DETAIL,
+  );
+  assert.equal(normalizeProjectNavigationSource('external'), '');
 });
 
 test('normalizes project data quality with stable defaults', () => {

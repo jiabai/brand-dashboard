@@ -1,4 +1,26 @@
 const encodePathSegment = (value) => encodeURIComponent(String(value || '').trim());
+export const PROJECT_NAV_SOURCE_PLATFORM_TENANT_DETAIL = 'platform-tenant-detail';
+
+const projectNavigationSources = new Set([
+  PROJECT_NAV_SOURCE_PLATFORM_TENANT_DETAIL,
+]);
+
+export const normalizeProjectNavigationSource = (source) => {
+  const normalized = String(source || '').trim();
+  return projectNavigationSources.has(normalized) ? normalized : '';
+};
+
+export const readProjectNavigationSource = (searchParams) => {
+  if (!searchParams?.get) return '';
+  return normalizeProjectNavigationSource(searchParams.get('from'));
+};
+
+const appendProjectNavigationSource = (path, source) => {
+  const normalizedSource = normalizeProjectNavigationSource(source);
+  if (!path || !normalizedSource) return path;
+  const params = new URLSearchParams({ from: normalizedSource });
+  return `${path}?${params.toString()}`;
+};
 
 const toCount = (value) => {
   const number = Number(value);
@@ -59,16 +81,20 @@ export const buildProjectListPath = ({ tenantKey } = {}) => {
   return `/projects/${encodePathSegment(nextTenantKey)}`;
 };
 
-export const buildProjectDetailPath = ({ tenantKey, projectId } = {}) => {
+export const buildProjectDetailPath = ({ tenantKey, projectId, source } = {}) => {
   const nextTenantKey = String(tenantKey || '').trim();
   const nextProjectId = String(projectId || '').trim();
   if (!nextTenantKey || !nextProjectId) return '';
-  return `/projects/${encodePathSegment(nextTenantKey)}/${encodePathSegment(nextProjectId)}`;
+  const path = `/projects/${encodePathSegment(nextTenantKey)}/${encodePathSegment(nextProjectId)}`;
+  return appendProjectNavigationSource(path, source);
 };
 
-export const buildProjectDataQualityPath = ({ tenantKey, projectId } = {}) => {
-  const detailPath = buildProjectDetailPath({ tenantKey, projectId });
-  return detailPath ? `${detailPath}/quality` : '';
+export const buildProjectDataQualityPath = ({ tenantKey, projectId, source } = {}) => {
+  const nextTenantKey = String(tenantKey || '').trim();
+  const nextProjectId = String(projectId || '').trim();
+  if (!nextTenantKey || !nextProjectId) return '';
+  const path = `/projects/${encodePathSegment(nextTenantKey)}/${encodePathSegment(nextProjectId)}/quality`;
+  return appendProjectNavigationSource(path, source);
 };
 
 export const countProjectBrandsByRole = (brands = []) => {

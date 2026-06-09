@@ -172,21 +172,53 @@ def _token(user_id=101):
     return create_access_token(user_id, TEST_SECRET)
 
 
+def _insert_user(
+    db_session,
+    *,
+    user_id,
+    email,
+    status="active",
+):
+    now = datetime.now(UTC)
+    db_session.execute(
+        text(
+            """
+            INSERT INTO users (
+                id, user_key, email, password_hash, is_verified, status, created_at, updated_at
+            ) VALUES (
+                :user_id, :user_key, :email, :password_hash, 1, :status, :now, :now
+            )
+            """
+        ),
+        {
+            "user_id": user_id,
+            "user_key": f"user_{user_id}",
+            "email": email,
+            "password_hash": hash_password("User12345"),
+            "status": status,
+            "now": now,
+        },
+    )
+    db_session.flush()
+    return user_id
+
+
 def _insert_tenant(
     db_session,
     *,
     tenant_key,
     tenant_name,
+    status="active",
 ):
     now = datetime.now(UTC)
     result = db_session.execute(
         text(
             """
             INSERT INTO tenants (tenant_key, tenant_name, industry, status, created_at, updated_at)
-            VALUES (:tenant_key, :tenant_name, 'technology', 'active', :now, :now)
+            VALUES (:tenant_key, :tenant_name, 'technology', :status, :now, :now)
             """
         ),
-        {"tenant_key": tenant_key, "tenant_name": tenant_name, "now": now},
+        {"tenant_key": tenant_key, "tenant_name": tenant_name, "status": status, "now": now},
     )
     db_session.flush()
     return result.lastrowid
@@ -203,25 +235,8 @@ def _insert_user_tenant(db_session, *, role="member", user_id=101):
         tenant_key="tn_other",
         tenant_name="Other Tenant",
     )
+    _insert_user(db_session, user_id=user_id, email="member@example.com")
     now = datetime.now(UTC)
-    db_session.execute(
-        text(
-            """
-            INSERT INTO users (
-                id, user_key, email, password_hash, is_verified, status, created_at, updated_at
-            ) VALUES (
-                :user_id, :user_key, :email, :password_hash, 1, 'active', :now, :now
-            )
-            """
-        ),
-        {
-            "user_id": user_id,
-            "user_key": f"user_{user_id}",
-            "email": "member@example.com",
-            "password_hash": hash_password("User12345"),
-            "now": now,
-        },
-    )
     db_session.execute(
         text(
             """
@@ -233,6 +248,21 @@ def _insert_user_tenant(db_session, *, role="member", user_id=101):
     )
     db_session.flush()
     return user_id
+
+
+def _insert_platform_admin_without_membership(db_session, *, user_id=901):
+    return _insert_user(
+        db_session,
+        user_id=user_id,
+        email="lantianye@163.com",
+    )
+
+
+def _platform_admin_headers(user_id=901, tenant_key="tn_allowed"):
+    return {
+        "Authorization": f"Bearer {_token(user_id)}",
+        "X-Tenant-Key": tenant_key,
+    }
 
 
 def _insert_project(db_session, *, tenant_key="tn_allowed", project_id="proj_1"):
@@ -293,6 +323,166 @@ def test_project_list_returns_only_current_tenant_projects(project_db_session, m
     assert body["projects"][0]["tenant_key"] == "tn_allowed"
 
 
+def test_platform_admin_without_membership_can_list_active_tenant_projects(
+    project_db_session,
+    monkeypatch,
+):
+    monkeypatch.setenv("AUTH_SECRET", TEST_SECRET)
+    monkeypatch.setenv("PLATFORM_ADMIN_EMAILS", "lantianye@163.com")
+    user_id = _insert_platform_admin_without_membership(project_db_session)
+    _insert_tenant(
+        project_db_session,
+        tenant_key="tn_allowed",
+        tenant_name="Allowed Tenant",
+    )
+    _insert_project(project_db_session, tenant_key="tn_allowed", project_id="proj_platform")
+    client = _client(project_db_session)
+
+    response = client.get(
+        "/api/v1/projects",
+        headers=_platform_admin_headers(user_id),
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["success"] is True
+    assert body["count"] == 1
+    assert body["projects"][0]["project_id"] == "proj_platform"
+    assert body["projects"][0]["tenant_key"] == "tn_allowed"
+
+
+def test_platform_admin_without_membership_can_read_project_detail(
+    project_db_session,
+    monkeypatch,
+):
+    monkeypatch.setenv("AUTH_SECRET", TEST_SECRET)
+    monkeypatch.setenv("PLATFORM_ADMIN_EMAILS", "lantianye@163.com")
+    user_id = _insert_platform_admin_without_membership(project_db_session)
+    _insert_tenant(
+        project_db_session,
+        tenant_key="tn_allowed",
+        tenant_name="Allowed Tenant",
+    )
+    _insert_project(project_db_session, tenant_key="tn_allowed", project_id="proj_platform")
+    client = _client(project_db_session)
+
+    response = client.get(
+        "/api/v1/projects/proj_platform",
+        headers=_platform_admin_headers(user_id),
+    )
+
+    assert response.status_code == 200
+    project = response.json()["project"]
+    assert project["project_id"] == "proj_platform"
+    assert project["tenant_key"] == "tn_allowed"
+
+
+def test_platform_admin_without_membership_can_read_project_data_quality(
+    project_db_session,
+    monkeypatch,
+):
+    monkeypatch.setenv("AUTH_SECRET", TEST_SECRET)
+    monkeypatch.setenv("PLATFORM_ADMIN_EMAILS", "lantianye@163.com")
+    user_id = _insert_platform_admin_without_membership(project_db_session)
+    _insert_tenant(
+        project_db_session,
+        tenant_key="tn_allowed",
+        tenant_name="Allowed Tenant",
+    )
+    _insert_project(project_db_session, tenant_key="tn_allowed", project_id="proj_quality")
+
+    def fake_get_project_data_quality(db, *, tenant_key, project_id):
+        assert tenant_key == "tn_allowed"
+        assert project_id == "proj_quality"
+        return {
+            "success": True,
+            "project_id": project_id,
+            "summary": {
+                "failed_collection_task_count": 0,
+                "retryable_failed_collection_task_count": 0,
+                "stale_analysis_run_count": 0,
+                "recomputable_analysis_run_count": 0,
+                "analysis_fact_count": 0,
+                "analysis_dimension_count": 0,
+                "analysis_coverage_rate": None,
+            },
+            "failed_collection_tasks": [],
+            "stale_analysis_runs": [],
+            "metric_coverage": {
+                "data_source": "empty",
+                "coverage_status": "missing",
+                "metric_definition_version": "brand_metrics_v1",
+                "analysis_fact_count": 0,
+                "analysis_dimension_count": 0,
+            },
+            "recompute_actions": [],
+        }
+
+    monkeypatch.setattr(
+        projects.project_service,
+        "get_project_data_quality",
+        fake_get_project_data_quality,
+    )
+    client = _client(project_db_session)
+
+    response = client.get(
+        "/api/v1/projects/proj_quality/data-quality",
+        headers=_platform_admin_headers(user_id),
+    )
+
+    assert response.status_code == 200
+    assert response.json()["project_id"] == "proj_quality"
+
+
+def test_plain_user_without_membership_still_cannot_list_projects(
+    project_db_session,
+    monkeypatch,
+):
+    monkeypatch.setenv("AUTH_SECRET", TEST_SECRET)
+    user_id = _insert_user(project_db_session, user_id=201, email="outsider@example.com")
+    _insert_tenant(
+        project_db_session,
+        tenant_key="tn_allowed",
+        tenant_name="Allowed Tenant",
+    )
+    _insert_project(project_db_session, tenant_key="tn_allowed", project_id="proj_platform")
+    client = _client(project_db_session)
+
+    response = client.get(
+        "/api/v1/projects",
+        headers={
+            "Authorization": f"Bearer {_token(user_id)}",
+            "X-Tenant-Key": "tn_allowed",
+        },
+    )
+
+    assert response.status_code == 403
+
+
+def test_platform_admin_without_membership_cannot_read_inactive_tenant_projects(
+    project_db_session,
+    monkeypatch,
+):
+    monkeypatch.setenv("AUTH_SECRET", TEST_SECRET)
+    monkeypatch.setenv("PLATFORM_ADMIN_EMAILS", "lantianye@163.com")
+    user_id = _insert_platform_admin_without_membership(project_db_session)
+    _insert_tenant(
+        project_db_session,
+        tenant_key="tn_inactive",
+        tenant_name="Inactive Tenant",
+        status="inactive",
+    )
+    _insert_project(project_db_session, tenant_key="tn_inactive", project_id="proj_inactive")
+    client = _client(project_db_session)
+
+    response = client.get(
+        "/api/v1/projects",
+        headers=_platform_admin_headers(user_id, tenant_key="tn_inactive"),
+    )
+
+    assert response.status_code == 403
+
+
 def test_create_project_requires_tenant_admin(project_db_session, monkeypatch):
     monkeypatch.setenv("AUTH_SECRET", TEST_SECRET)
     user_id = _insert_user_tenant(project_db_session, role="member")
@@ -305,6 +495,85 @@ def test_create_project_requires_tenant_admin(project_db_session, monkeypatch):
             "Authorization": f"Bearer {_token(user_id)}",
             "X-Tenant-Key": "tn_allowed",
         },
+    )
+
+    assert response.status_code == 403
+
+
+def test_platform_admin_without_membership_cannot_create_project(
+    project_db_session,
+    monkeypatch,
+):
+    monkeypatch.setenv("AUTH_SECRET", TEST_SECRET)
+    monkeypatch.setenv("PLATFORM_ADMIN_EMAILS", "lantianye@163.com")
+    user_id = _insert_platform_admin_without_membership(project_db_session)
+    _insert_tenant(
+        project_db_session,
+        tenant_key="tn_allowed",
+        tenant_name="Allowed Tenant",
+    )
+    client = _client(project_db_session)
+
+    response = client.post(
+        "/api/v1/projects",
+        json={"project_id": "proj_new", "name": "New Project", "category": "ev"},
+        headers=_platform_admin_headers(user_id),
+    )
+
+    assert response.status_code == 403
+
+
+@pytest.mark.parametrize(
+    ("path", "payload"),
+    [
+        (
+            "/api/v1/projects/proj_platform/brands",
+            {
+                "brand_id": "brand_target",
+                "brand_name": "Target Brand",
+                "role": "target",
+                "aliases": ["TB"],
+            },
+        ),
+        (
+            "/api/v1/projects/proj_platform/prompt-sets",
+            {
+                "prompt_set_id": "ps_1",
+                "version": 1,
+                "name": "Launch Questions",
+                "status": "active",
+                "items": [
+                    {
+                        "prompt_item_id": "pi_1",
+                        "keyword": "battery",
+                        "query_content": "Which EV brand has the best battery?",
+                    }
+                ],
+            },
+        ),
+    ],
+)
+def test_platform_admin_without_membership_cannot_configure_project(
+    project_db_session,
+    monkeypatch,
+    path,
+    payload,
+):
+    monkeypatch.setenv("AUTH_SECRET", TEST_SECRET)
+    monkeypatch.setenv("PLATFORM_ADMIN_EMAILS", "lantianye@163.com")
+    user_id = _insert_platform_admin_without_membership(project_db_session)
+    _insert_tenant(
+        project_db_session,
+        tenant_key="tn_allowed",
+        tenant_name="Allowed Tenant",
+    )
+    _insert_project(project_db_session, tenant_key="tn_allowed", project_id="proj_platform")
+    client = _client(project_db_session)
+
+    response = client.post(
+        path,
+        json=payload,
+        headers=_platform_admin_headers(user_id),
     )
 
     assert response.status_code == 403

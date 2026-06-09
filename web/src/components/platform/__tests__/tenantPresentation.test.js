@@ -2,12 +2,15 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import {
+  buildPlatformTenantDetailPath,
+  buildPlatformTenantProjectOverviewPath,
   buildTenantDashboardPath,
   buildTenantTaskStatusPath,
   getAdminStatusLabel,
   getEmailDeliveryMeta,
   getPlanTypeLabel,
   getTenantStatusMeta,
+  normalizeTenantDetailResponse,
   normalizeTenantListResponse,
   prepareTenantCreatePayload,
   readTenantFiltersFromSearch,
@@ -28,6 +31,26 @@ test('normalizes tenant list response with stable defaults', () => {
   assert.deepEqual(normalizeTenantListResponse({}), {
     items: [],
     pagination: { page: 1, pageSize: 20, total: 0, totalPages: 0 },
+  });
+});
+
+test('normalizes tenant detail response into tenant and projects', () => {
+  assert.deepEqual(
+    normalizeTenantDetailResponse({
+      data: {
+        tenantKey: 'tn_acme',
+        tenantName: 'Acme',
+        projects: [{ project_id: 'proj_1' }],
+      },
+    }),
+    {
+      tenant: { tenantKey: 'tn_acme', tenantName: 'Acme' },
+      projects: [{ project_id: 'proj_1' }],
+    },
+  );
+  assert.deepEqual(normalizeTenantDetailResponse({}), {
+    tenant: null,
+    projects: [],
   });
 });
 
@@ -105,6 +128,26 @@ test('buildTenantTaskStatusPath links platform tenants without requiring a defau
     buildTenantTaskStatusPath('tn space'),
     '/tasks/tn%20space/status',
   );
+});
+
+test('buildPlatformTenantDetailPath links platform tenant detail', () => {
+  assert.equal(
+    buildPlatformTenantDetailPath('tn_acme'),
+    '/platform/tenants/tn_acme',
+  );
+  assert.equal(
+    buildPlatformTenantDetailPath('tn space'),
+    '/platform/tenants/tn%20space',
+  );
+  assert.equal(buildPlatformTenantDetailPath(''), '');
+});
+
+test('buildPlatformTenantProjectOverviewPath links the tenant detail project overview anchor', () => {
+  assert.equal(
+    buildPlatformTenantProjectOverviewPath('tn space'),
+    '/platform/tenants/tn%20space#project-overview',
+  );
+  assert.equal(buildPlatformTenantProjectOverviewPath(''), '');
 });
 
 test('buildTenantDashboardPath links platform tenants with a real latest job and target brand', () => {

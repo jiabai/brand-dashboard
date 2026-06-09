@@ -6,6 +6,7 @@ from api.v1.dependencies.auth import (
     CurrentTenantContext,
     CurrentUser,
     get_current_tenant,
+    get_current_tenant_for_read,
     get_current_user,
     require_current_tenant,
 )
@@ -31,7 +32,7 @@ router = APIRouter()
 
 @router.get("", response_model=ProjectListResponse)
 async def list_projects(
-    tenant: CurrentTenantContext = Depends(get_current_tenant),
+    tenant: CurrentTenantContext = Depends(get_current_tenant_for_read),
     db: Session = Depends(get_db),
 ):
     projects = project_service.list_project_summaries(
@@ -72,7 +73,7 @@ async def create_project(
 @router.get("/{project_id}", response_model=ProjectResponse)
 async def get_project(
     project_id: str,
-    tenant: CurrentTenantContext = Depends(get_current_tenant),
+    tenant: CurrentTenantContext = Depends(get_current_tenant_for_read),
     db: Session = Depends(get_db),
 ):
     project = project_service.get_project_detail(
@@ -88,7 +89,7 @@ async def get_project(
 @router.get("/{project_id}/data-quality", response_model=ProjectDataQualityResponse)
 async def get_project_data_quality(
     project_id: str,
-    tenant: CurrentTenantContext = Depends(get_current_tenant),
+    tenant: CurrentTenantContext = Depends(get_current_tenant_for_read),
     db: Session = Depends(get_db),
 ):
     quality = project_service.get_project_data_quality(
@@ -105,7 +106,7 @@ async def get_project_data_quality(
 async def list_project_reports(
     project_id: str,
     limit: int = Query(50, ge=1, le=200),
-    tenant: CurrentTenantContext = Depends(get_current_tenant),
+    tenant: CurrentTenantContext = Depends(get_current_tenant_for_read),
     db: Session = Depends(get_db),
 ):
     reports = project_service.list_project_reports(
@@ -161,7 +162,7 @@ async def generate_project_report(
 async def get_project_alerts(
     project_id: str,
     event_limit: int = Query(100, ge=1, le=500),
-    tenant: CurrentTenantContext = Depends(get_current_tenant),
+    tenant: CurrentTenantContext = Depends(get_current_tenant_for_read),
     db: Session = Depends(get_db),
 ):
     alerts = project_service.get_project_alerts(

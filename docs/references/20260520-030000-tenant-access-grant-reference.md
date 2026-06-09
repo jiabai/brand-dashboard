@@ -10,8 +10,8 @@
 
 典型表现：
 
-- 登录成功，且当前用户不是走平台管理员 dashboard 只读旁路。
-- 访问 `/dashboard/<tenantKey>/<jobId>` 后页面无数据或 API 返回 403。
+- 登录成功，且当前用户不是走平台管理员项目与 dashboard 只读旁路。
+- 访问 `/projects/<tenantKey>`、`/projects/<tenantKey>/<projectId>` 或 `/dashboard/<tenantKey>/<jobId>` 后页面无数据或 API 返回 403。
 - 数据库业务表中确认有该 `tenant_key` 和 `job_id` 的数据。
 - `user_tenants` 中没有该用户与目标租户的记录。
 
@@ -69,6 +69,6 @@ role=viewer
 ## 5. 安全注意事项
 
 - 该能力只提供本地/部署 CLI，不提供公开 HTTP API。
-- 平台管理员 dashboard 只读访问不需要写入 `user_tenants`；本 CLI 用于非平台用户或需要真实租户成员关系的场景。
+- 平台管理员项目与 dashboard 只读访问不需要写入 `user_tenants`；本 CLI 用于非平台用户或需要真实租户成员关系的场景。
 - 排障和只读查看优先授予 `viewer`，需要代操作时才授予 `admin`。
 - CLI 不读取或输出用户密码、access token、executor key。

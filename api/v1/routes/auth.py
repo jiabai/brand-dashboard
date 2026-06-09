@@ -1,7 +1,7 @@
 from datetime import UTC, datetime
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 from sqlalchemy import Engine
@@ -25,9 +25,11 @@ from api.v1.repositories.platform_health import (
     get_platform_collection_health as load_platform_collection_health,
 )
 from api.v1.repositories.tenants import (
+    get_platform_tenant_summary,
     list_platform_tenant_summaries,
     list_user_tenant_summaries,
 )
+from api.v1.services import projects as project_service
 from api.v1.services.email_sender import (
     EMAIL_FAILED_MESSAGE,
     send_admin_activation_email,
@@ -288,6 +290,34 @@ def list_platform_tenants(
                 "total": total,
                 "totalPages": total_pages,
             },
+        },
+    }
+
+
+@router.get("/platform/tenants/{tenant_key}")
+def get_platform_tenant_detail(
+    tenant_key: str,
+    db: Session = Depends(get_db),
+    _platform_admin: CurrentUser = Depends(require_platform_admin),
+):
+    row = get_platform_tenant_summary(db, tenant_key=tenant_key)
+    if row is None:
+        raise HTTPException(status_code=404, detail="租户不存在")
+
+    tenant = _platform_tenant_item(row)
+    projects = project_service.list_project_summaries(
+        db,
+        tenant_key=tenant["tenantKey"],
+    )
+    return {
+        "status": "success",
+        "code": 200,
+        "message": "获取租户详情成功",
+        "data": {
+            **tenant,
+            "projects": [
+                project.model_dump(mode="json") for project in projects
+            ],
         },
     }
 

@@ -134,7 +134,7 @@ python scripts/validate_agents_docs.py --level WARN
 - 平台管理员可以查看所有 active 租户 dashboard 数据。
 - 普通用户不能查看未加入 membership 的租户 dashboard。
 - 平台管理员不能因此获得租户内写权限。
-- 平台租户列表提供看板入口。
+- 平台租户详情页提供看板入口。
 - 所有文档和测试门禁通过。
 
 ## Outcomes & Retrospective

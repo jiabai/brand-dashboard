@@ -1,6 +1,6 @@
 # 多租户认证与数据隔离架构补充
 
-> 状态：多租户认证、租户隔离与平台运营后台 MVP 已落地，2026-05-20 修订
+> 状态：多租户认证、租户隔离与平台运营后台 MVP 已落地，2026-06-09 修订
 >
 > 本文档补充 `docs/ARCHITECTURE.md`，聚焦多租户认证、租户上下文、授权边界、机器身份和数据隔离执行机制。产品流程见 `docs/product-specs/20260519-000000-multi-tenant-registration-flow.md`，API 契约见 `docs/references/20260519-000000-tenant-account-api-reference.md`。
 
@@ -24,7 +24,7 @@
 | 平台管理员鉴权 | `require_platform_admin` | 已实现，MVP 使用 `PLATFORM_ADMIN_EMAILS` |
 | 首个平台管理员 bootstrap | `api/scripts/bootstrap_platform_admin.py` | 已实现，本地/部署 CLI，不暴露 HTTP API |
 | 租户访问授权 | `api/scripts/grant_tenant_access.py` | 已实现，本地/部署 CLI，为已有用户显式写入 `user_tenants` |
-| 平台管理员全租户只读看板 | `get_current_tenant_for_dashboard_read` | 已实现，仅用于 dashboard 读接口 |
+| 平台管理员全租户项目与看板只读 | `get_current_tenant_for_read` / `get_current_tenant_for_dashboard_read` | 已实现，仅用于明确的 GET 读接口 |
 | 前端登录态 | `web/src/auth/*`、`web/src/components/LoginView.jsx` | 已实现 |
 
 ### 1.2 已修复的安全缺口
@@ -156,10 +156,10 @@ Platform repository
 
 - Platform Console 是平台元数据后台，不是租户工作台的一个子页面。
 - 平台请求不带 `tenant_key`，避免把平台权限和租户成员权限混在一起。
-- 平台后台可以管理租户生命周期，并通过 dashboard 只读旁路查看 active 租户业务看板。
-- 平台后台进入租户工作台时先跳转 `/tasks/<tenantKey>/status`，不使用前端环境变量拼接默认 dashboard job。
+- 平台后台可以管理租户生命周期，并通过项目与 dashboard 只读旁路查看 active 租户业务数据。
+- 平台后台进入租户工作台时先到 `/platform/tenants/<tenantKey>`，再以 `/projects/<tenantKey>` 作为主入口；旧 dashboard 和任务状态只作为排障入口。
 - Dashboard 展示粒度为 `tenant_key + job_id`，平台管理员查看租户看板时必须使用该租户实际拥有的 `job_id`，不能使用全局默认 `job_id`（不同租户的 `job_id` 不互通，使用错误 `job_id` 会导致查询结果为空）。
-- 平台租户列表必须展示 job 摘要；`/api/v1/platform/tenants` 的 `latestJob` 只来自同一 `tenant_key` 下未删除的 `llm_query_jobs`，前端 dashboard 入口必须使用 `tenantKey + latestJob.jobId + latestJob.brand`，不能让 dashboard 从品牌指标排名中自动选择目标品牌。
+- 平台租户列表必须展示 job 摘要；`/api/v1/platform/tenants` 的 `latestJob` 只来自同一 `tenant_key` 下未删除的 `llm_query_jobs`，前端“最新任务看板”排障入口必须使用 `tenantKey + latestJob.jobId + latestJob.brand`，不能让 dashboard 从品牌指标排名中自动选择目标品牌。
 - 平台管理员查看 dashboard 不写入 `user_tenants`；平台域身份和客户租户成员身份保持分离。
 - 平台管理员只读旁路不能满足租户内写接口的 `tenant_admin` 要求。
 
@@ -182,8 +182,9 @@ Platform repository
 |---|---|---|
 | `get_current_user` | 解析并校验 access token | 所有登录后接口 |
 | `require_platform_admin` | 用户 email 在平台管理员白名单或平台管理员表中 | 创建租户、管理执行器 |
-| `get_current_tenant(required_role=None)` | 校验用户属于目标租户 | Dashboard、任务状态 |
-| `get_current_tenant_for_dashboard_read` | 用户属于目标租户，或平台管理员只读访问 active 租户 | Dashboard 只读接口 |
+| `get_current_tenant(required_role=None)` | 校验用户属于目标租户 | 租户成员读接口 |
+| `get_current_tenant_for_read` | 用户属于目标租户，或平台管理员只读访问 active 租户 | 明确列入的 GET 读接口 |
+| `get_current_tenant_for_dashboard_read` | `get_current_tenant_for_read` 的 dashboard 兼容包装 | Dashboard 只读接口 |
 | `get_current_tenant(required_role="admin")` | 校验用户为租户管理员 | 加载查询任务、成员管理 |
 | `verify_executor` | 校验执行器 API Key | 任务拉取/上报 |
 | `verify_executor_job_scope` | 校验执行器、租户、job 的绑定 | 对话写入、结果写入 |
@@ -196,15 +197,15 @@ Platform repository
 uv run --project api python api/scripts/grant_tenant_access.py --email <user@example.com> --tenant-key <tn_xxx> --role viewer
 ```
 
-该 CLI 只写入 `user_tenants`，不创建用户、不修改平台管理员白名单。平台管理员读取 dashboard 则走专用只读依赖，不需要 CLI membership。
+该 CLI 只写入 `user_tenants`，不创建用户、不修改平台管理员白名单。平台管理员读取项目工作台或 dashboard 则走专用只读依赖，不需要 CLI membership。
 
-### 3.4 平台管理员 dashboard 只读访问
+### 3.4 平台管理员项目与 dashboard 只读访问
 
-平台管理员属于平台域身份。为支持运营和交付排障，dashboard 读接口允许 `platform_admin` 查看任意 active 租户业务数据，但该能力不进入 `user_tenants`，也不能满足租户写接口的 admin 要求。
+平台管理员属于平台域身份。为支持运营和交付排障，项目 GET 和 dashboard 读接口允许 `platform_admin` 查看任意 active 租户业务数据，但该能力不进入 `user_tenants`，也不能满足租户写接口的 admin 要求。
 
 设计约束：
 
-- 只适用于 `GET /api/v1/dashboard/*`。
+- 只适用于明确列入的 GET：`/api/v1/dashboard/*`、`GET /api/v1/projects`、`GET /api/v1/projects/{project_id}`、`GET /api/v1/projects/{project_id}/data-quality`、`GET /api/v1/projects/{project_id}/reports`、`GET /api/v1/projects/{project_id}/alerts`。
 - 目标租户必须 active。
 - Repository 层继续按目标 `tenant_key` 查询，不允许跨租户聚合泄露。
 - Dashboard 查询粒度为 `tenant_key + job_id`：平台管理员传入的 `job_id` 必须属于目标租户，否则查询结果为空；平台管理员应通过任务状态接口先获取该租户的有效 `job_id`，再构建 dashboard 访问路径。
@@ -373,7 +374,8 @@ uv run --project api python api/scripts/grant_tenant_access.py --email <user@exa
 | `/api/v1/platform/tenants` `POST` | `require_platform_admin` | 平台管理员表和审计 |
 | `/api/v1/platform/tenants` `GET` | `require_platform_admin`，不使用租户上下文，返回租户元数据和 job 摘要 | 平台管理员表和审计 |
 | `/api/v1/executors/*` | 创建/列表/禁用需要 `require_platform_admin`；register 保留 IP 白名单 | 平台管理员表和审计 |
-| `/api/v1/dashboard/*` | `get_current_tenant`，query `tenant_key` 过渡兼容 | 改为 dashboard 只读依赖，允许平台管理员查看 active 租户 |
+| `/api/v1/dashboard/*` | `get_current_tenant_for_dashboard_read`，query `tenant_key` 过渡兼容 | 继续只读，允许平台管理员查看 active 租户 |
+| `/api/v1/projects` GET、`/api/v1/projects/{project_id}` GET、项目质量/报告/告警 GET | `get_current_tenant_for_read` | 平台管理员可只读 active 租户；写接口仍要求租户 admin |
 | `/api/v1/query-jobs/status` | `get_current_tenant` | 兼容期后可减少 query 依赖 |
 | `/api/v1/query-jobs/load` | `get_current_tenant(required_role="admin")`，body tenant_key 必须一致 | 增加更细粒度任务权限 |
 | `/api/v1/query-jobs/fetch` | 执行器认证 | 保持执行器认证，并继续按 executor_id 限制任务 |

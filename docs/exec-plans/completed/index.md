@@ -2,6 +2,7 @@
 
 | File | Scope | Completed |
 |------|-------|-----------|
+| [20260609-platform-tenant-operations-workflow.md](20260609-platform-tenant-operations-workflow.md) | 平台租户运营中转页：补齐 `/platform/tenants/:tenantKey` | 2026-06-09 |
 | [20260609-remove-metric-snapshots.md](20260609-remove-metric-snapshots.md) | 移除指标快照：改为基于分析事实表聚合 | 2026-06-09 |
 | [2026-02-08-align-dashboard-json.md](2026-02-08-align-dashboard-json.md) | 对齐 dashboard.json 规格 | 2026-02-08 |
 | [20260116-103000-fix-dashboard-api-sql.md](20260116-103000-fix-dashboard-api-sql.md) | 修复仪表板 API SQL 查询 | 2026-01-16 |
