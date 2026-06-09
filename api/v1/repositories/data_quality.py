@@ -87,7 +87,7 @@ def list_stale_analysis_runs(
     ).mappings().all()
 
 
-def list_metric_snapshot_quality_rows(
+def list_analysis_fact_quality_rows(
     db: Session,
     *,
     tenant_key: str,
@@ -97,20 +97,39 @@ def list_metric_snapshot_quality_rows(
         text(
             """
             SELECT
-              analysis_run_id,
-              metric_date,
-              metric_definition_version,
-              generated_at,
-              coverage_rate,
-              expected_task_count,
-              succeeded_task_count,
-              failed_task_count,
-              analyzed_answer_count,
-              dimension_hash
-            FROM metric_snapshots
-            WHERE tenant_key = :tenant_key
-              AND project_id = :project_id
-            ORDER BY generated_at DESC, id DESC
+              ar.analysis_run_id,
+              ar.collection_job_id,
+              ar.finished_at,
+              cj.expected_task_count,
+              cj.succeeded_task_count,
+              cj.failed_task_count,
+              bs.date AS fact_date,
+              bs.brand,
+              bs.platform,
+              bs.keyword,
+              COUNT(DISTINCT bs.conversation_id) AS analyzed_answer_count
+            FROM analysis_runs ar
+            JOIN collection_jobs cj
+              ON cj.tenant_key = ar.tenant_key
+             AND cj.collection_job_id = ar.collection_job_id
+            LEFT JOIN qa_brand_state bs
+              ON bs.tenant_key = ar.tenant_key
+             AND bs.analysis_run_id = ar.analysis_run_id
+            WHERE ar.tenant_key = :tenant_key
+              AND ar.project_id = :project_id
+              AND ar.status = 'succeeded'
+            GROUP BY
+              ar.analysis_run_id,
+              ar.collection_job_id,
+              ar.finished_at,
+              cj.expected_task_count,
+              cj.succeeded_task_count,
+              cj.failed_task_count,
+              bs.date,
+              bs.brand,
+              bs.platform,
+              bs.keyword
+            ORDER BY ar.finished_at DESC, ar.id DESC
             """
         ),
         {

@@ -14,3 +14,4 @@ Reference docs capture configuration guides, environment setup, API references, 
 | [20260520-030000-tenant-access-grant-reference.md](20260520-030000-tenant-access-grant-reference.md) | 租户访问授权 CLI 命令、角色、错误和本地修复步骤 |
 | [20260520-040000-platform-admin-tenant-read-access-reference.md](20260520-040000-platform-admin-tenant-read-access-reference.md) | 平台管理员全租户只读看板 API 与前端契约 |
 | [20260606-brand-monitoring-domain-data-reference.md](20260606-brand-monitoring-domain-data-reference.md) | 品牌监测领域模型、状态机、旧表映射、API 草案、幂等唯一键和数据质量字段参考 |
+| [20260609-database-dictionary.md](20260609-database-dictionary.md) | 面向人阅读的数据库表结构与字段字典，覆盖当前 MySQL 主 schema 的全部表 |

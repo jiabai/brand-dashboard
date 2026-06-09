@@ -22,15 +22,14 @@ test('normalizeSentimentAnalysis maps backend sentiment rows for presentation', 
       ],
     },
     metadata: {
-      data_source: 'metric_snapshot',
+      data_source: 'analysis_fact',
       sample_count: 15,
-      metric_generated_at: '2026-06-07T11:30:00+08:00',
     },
   });
 
   assert.equal(result.hasData, true);
   assert.equal(result.summary.sampleCount, 15);
-  assert.equal(result.summary.sourceLabel, '指标快照');
+  assert.equal(result.summary.sourceLabel, '分析事实');
   assert.equal(result.distribution[0].sentimentStatus, 'positive');
   assert.equal(result.distribution[0].label, '正向');
   assert.equal(result.distribution[0].percentLabel, '46.67%');

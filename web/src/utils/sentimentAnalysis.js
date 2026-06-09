@@ -1,5 +1,3 @@
-import { formatMetricGeneratedAt } from './metricSnapshotMetadata.js';
-
 export const SENTIMENT_STATUS_ORDER = ['positive', 'negative', 'neutral', 'unknown'];
 
 export const SENTIMENT_STATUS_META = {
@@ -30,8 +28,7 @@ export const SENTIMENT_STATUS_META = {
 };
 
 const SOURCE_LABELS = {
-  metric_snapshot: '指标快照',
-  legacy_fact: '分析明细',
+  analysis_fact: '分析事实',
   empty: '暂无真实数据',
 };
 
@@ -62,7 +59,7 @@ export const normalizeSentimentAnalysis = (payload = {}) => {
   const distributionRows = Array.isArray(data?.distribution) ? data.distribution : [];
   const keywordRows = Array.isArray(data?.keywords) ? data.keywords : [];
   const sampleCount = toCount(metadata?.sample_count);
-  const source = metadata?.data_source || (sampleCount > 0 ? 'legacy_fact' : 'empty');
+  const source = metadata?.data_source || (sampleCount > 0 ? 'analysis_fact' : 'empty');
 
   const distribution = sortBySentimentOrder(
     distributionRows
@@ -112,8 +109,7 @@ export const normalizeSentimentAnalysis = (payload = {}) => {
       sampleCount,
       sampleCountLabel: sampleCount.toLocaleString(),
       source,
-      sourceLabel: SOURCE_LABELS[source] || '分析明细',
-      generatedAtLabel: formatMetricGeneratedAt(metadata?.metric_generated_at),
+      sourceLabel: SOURCE_LABELS[source] || '分析事实',
       positivePercentLabel: positive?.percentLabel || '0.00%',
       negativePercentLabel: negative?.percentLabel || '0.00%',
       rowCount: toCount(metadata?.row_count),

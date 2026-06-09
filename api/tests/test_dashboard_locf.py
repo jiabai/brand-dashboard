@@ -329,7 +329,7 @@ class TestBrandMetricsApi(unittest.TestCase):
             platform=None,
         )
 
-    def test_brand_metrics_includes_snapshot_quality_metadata(self):
+    def test_brand_metrics_metadata_marks_analysis_fact_source(self):
         rows = [
             {
                 "brand": "学而思",
@@ -340,43 +340,28 @@ class TestBrandMetricsApi(unittest.TestCase):
                 "keyword_coverage": 3,
             }
         ]
-        snapshot_metadata = {
-            "data_source": "metric_snapshot",
-            "snapshot_status": "available",
-            "metric_generated_at": "2026-06-07 11:00:00",
-            "metric_coverage_rate": 1.0,
-            "metric_expected_task_count": 20,
-            "metric_succeeded_task_count": 20,
-            "metric_failed_task_count": 0,
-            "metric_analyzed_answer_count": 20,
-        }
 
         with patch(
             "api.v1.services.dashboard_service.query_brand_metrics",
             return_value=rows,
         ):
-            with patch(
-                "api.v1.services.dashboard_service.query_snapshot_quality_metadata",
-                return_value=snapshot_metadata,
-            ):
-                response = self.client.get(
-                    "/api/v1/dashboard/brand-metrics",
-                    params={
-                        "tenant_key": "tn_1b02b3ef4fbd",
-                        "job_id": "job_20260127_223236_989cc4db",
-                        "timeframe": "specific_day",
-                        "start_date": "20260607",
-                        "end_date": "20260607",
-                    },
-                )
+            response = self.client.get(
+                "/api/v1/dashboard/brand-metrics",
+                params={
+                    "tenant_key": "tn_1b02b3ef4fbd",
+                    "job_id": "job_20260127_223236_989cc4db",
+                    "timeframe": "specific_day",
+                    "start_date": "20260607",
+                    "end_date": "20260607",
+                },
+            )
 
         self.assertEqual(response.status_code, 200)
         metadata = response.json()["metadata"]
-        self.assertEqual(metadata["data_source"], "metric_snapshot")
-        self.assertEqual(metadata["snapshot_status"], "available")
-        self.assertEqual(metadata["metric_generated_at"], "2026-06-07 11:00:00")
-        self.assertEqual(metadata["metric_coverage_rate"], 1.0)
-        self.assertEqual(metadata["metric_analyzed_answer_count"], 20)
+        self.assertEqual(metadata["data_source"], "analysis_fact")
+        self.assertEqual(metadata["metric_definition_version"], "brand_metrics_v1")
+        self.assertNotIn("snapshot_status", metadata)
+        self.assertNotIn("metric_snapshot_count", metadata)
 
 
 class TestDomainCitationRateApi(unittest.TestCase):

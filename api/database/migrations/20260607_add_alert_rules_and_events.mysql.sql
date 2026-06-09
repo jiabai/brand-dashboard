@@ -1,5 +1,5 @@
 -- Phase 7.3: alert rules and alert events for brand monitoring.
--- Rules watch metric_snapshots; events record triggered metric changes.
+-- Rules watch fact-derived metrics; events record triggered metric changes.
 
 CREATE TABLE IF NOT EXISTS `alert_rules` (
   `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT 'Primary key',

@@ -151,7 +151,7 @@ def evaluate_alert_rules_for_analysis_run(
     if not metric_rows:
         return AlertEvaluationResult(
             status_code=422,
-            message="analysis run 没有可评估的指标快照",
+            message="analysis run 没有可评估的事实指标",
             analysis_run_id=analysis_run_id,
         )
 

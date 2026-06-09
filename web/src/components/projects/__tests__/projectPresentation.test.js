@@ -80,16 +80,16 @@ test('normalizes project data quality with stable defaults', () => {
       retryable_failed_collection_task_count: 1,
       stale_analysis_run_count: 1,
       recomputable_analysis_run_count: 1,
-      metric_snapshot_count: 2,
-      metric_dimension_count: 1,
-      metric_coverage_rate: 0.75,
+      analysis_fact_count: 3,
+      analysis_dimension_count: 1,
+      analysis_coverage_rate: 0.75,
     },
     metric_coverage: {
-      data_source: 'metric_snapshot',
-      metric_coverage_rate: 0.75,
-      metric_expected_task_count: 4,
-      metric_succeeded_task_count: 3,
-      metric_failed_task_count: 1,
+      data_source: 'analysis_fact',
+      analysis_coverage_rate: 0.75,
+      expected_task_count: 4,
+      succeeded_task_count: 3,
+      failed_task_count: 1,
     },
     failed_collection_tasks: [{ collection_task_id: 'task_failed', can_retry: true }],
     stale_analysis_runs: [{ analysis_run_id: 'analysis_stale', can_recompute: true }],
@@ -97,13 +97,14 @@ test('normalizes project data quality with stable defaults', () => {
   });
 
   assert.equal(result.summary.failedCollectionTaskCount, 2);
-  assert.equal(result.summary.metricCoverageLabel, '75.0%');
+  assert.equal(result.summary.analysisCoverageLabel, '75.0%');
+  assert.equal(result.summary.analysisFactCount, 3);
   assert.equal(result.metricCoverage.expectedTaskCount, 4);
   assert.equal(result.failedCollectionTasks[0].collectionTaskId, 'task_failed');
   assert.equal(result.staleAnalysisRuns[0].analysisRunId, 'analysis_stale');
   assert.equal(result.recomputeActions[0].analysisRunId, 'analysis_stale');
 
   const empty = normalizeProjectDataQualityResponse({});
-  assert.equal(empty.summary.metricCoverageLabel, '覆盖率待生成');
+  assert.equal(empty.summary.analysisCoverageLabel, '覆盖率待计算');
   assert.deepEqual(empty.failedCollectionTasks, []);
 });

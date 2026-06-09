@@ -158,107 +158,6 @@ def _seed_project_run(session: Session) -> None:
     session.commit()
 
 
-def _insert_metric_snapshot(
-    session: Session,
-    *,
-    snapshot_id: str,
-    keyword: str,
-    metric_name: str,
-    metric_value: float,
-    analyzed_answer_count: int,
-    dimension_hash: str,
-) -> None:
-    session.execute(
-        text(
-            """
-            INSERT INTO metric_snapshots
-              (
-                tenant_key,
-                snapshot_id,
-                project_id,
-                analysis_run_id,
-                metric_date,
-                brand_id,
-                brand_name,
-                platform,
-                keyword,
-                metric_name,
-                metric_value,
-                metric_unit,
-                metric_definition_version,
-                expected_task_count,
-                succeeded_task_count,
-                failed_task_count,
-                analyzed_answer_count,
-                coverage_rate,
-                source_watermark,
-                dimension_hash,
-                generated_at
-              )
-            VALUES
-              (
-                'tenant_a',
-                :snapshot_id,
-                'project_a',
-                'analysis_run_a',
-                '2026-06-07',
-                'brand_a',
-                'Brand A',
-                'deepseek',
-                :keyword,
-                :metric_name,
-                :metric_value,
-                'ratio',
-                'brand_metrics_v1',
-                20,
-                20,
-                0,
-                :analyzed_answer_count,
-                1.000000,
-                'legacy_job_a:2026-06-07T10:00:00+00:00',
-                :dimension_hash,
-                '2026-06-07 11:00:00'
-              )
-            """
-        ),
-        {
-            "snapshot_id": snapshot_id,
-            "keyword": keyword,
-            "metric_name": metric_name,
-            "metric_value": metric_value,
-            "analyzed_answer_count": analyzed_answer_count,
-            "dimension_hash": dimension_hash,
-        },
-    )
-
-
-def _seed_sentiment_snapshots(session: Session) -> None:
-    rows = [
-        ("math", "sentiment_positive_ratio", 0.6, 10, "dim_math"),
-        ("math", "sentiment_negative_ratio", 0.2, 10, "dim_math"),
-        ("math", "sentiment_neutral_ratio", 0.2, 10, "dim_math"),
-        ("math", "sentiment_unknown_ratio", 0.0, 10, "dim_math"),
-        ("science", "sentiment_positive_ratio", 0.2, 5, "dim_science"),
-        ("science", "sentiment_negative_ratio", 0.6, 5, "dim_science"),
-        ("science", "sentiment_neutral_ratio", 0.0, 5, "dim_science"),
-        ("science", "sentiment_unknown_ratio", 0.2, 5, "dim_science"),
-    ]
-    for index, (keyword, metric_name, metric_value, analyzed_count, dimension_hash) in enumerate(
-        rows,
-        start=1,
-    ):
-        _insert_metric_snapshot(
-            session,
-            snapshot_id=f"sentiment_snapshot_{index}",
-            keyword=keyword,
-            metric_name=metric_name,
-            metric_value=metric_value,
-            analyzed_answer_count=analyzed_count,
-            dimension_hash=dimension_hash,
-        )
-    session.commit()
-
-
 def _insert_brand_state(
     session: Session,
     *,
@@ -329,12 +228,43 @@ def _insert_brand_state(
     )
 
 
-def test_sentiment_analysis_prefers_metric_snapshots_over_legacy_facts():
+def test_sentiment_analysis_uses_analysis_facts():
     engine = _build_engine()
     with Session(engine) as session:
         _seed_project_run(session)
-        _seed_sentiment_snapshots(session)
-        _insert_brand_state(session, conversation_id="legacy_negative", sentiment_status="negative")
+        for index in range(1, 7):
+            _insert_brand_state(
+                session,
+                conversation_id=f"math_positive_{index}",
+                sentiment_status="positive",
+                keyword="math",
+            )
+        for index in range(1, 3):
+            _insert_brand_state(
+                session,
+                conversation_id=f"math_negative_{index}",
+                sentiment_status="negative",
+                keyword="math",
+            )
+        for index in range(1, 3):
+            _insert_brand_state(
+                session,
+                conversation_id=f"math_neutral_{index}",
+                sentiment_status="neutral",
+                keyword="math",
+            )
+        _insert_brand_state(
+            session,
+            conversation_id="science_negative_1",
+            sentiment_status="negative",
+            keyword="science",
+        )
+        _insert_brand_state(
+            session,
+            conversation_id="science_unknown_1",
+            sentiment_status="unknown",
+            keyword="science",
+        )
         session.commit()
 
     client = _build_client(engine)
@@ -352,15 +282,15 @@ def test_sentiment_analysis_prefers_metric_snapshots_over_legacy_facts():
 
     assert response.status_code == 200
     payload = response.json()
-    assert payload["metadata"]["data_source"] == "metric_snapshot"
-    assert payload["metadata"]["sample_count"] == 15
+    assert payload["metadata"]["data_source"] == "analysis_fact"
+    assert payload["metadata"]["sample_count"] == 12
 
     distribution = {item["sentiment_status"]: item for item in payload["data"]["distribution"]}
-    assert distribution["positive"]["answer_count"] == 7
-    assert distribution["negative"]["answer_count"] == 5
+    assert distribution["positive"]["answer_count"] == 6
+    assert distribution["negative"]["answer_count"] == 3
     assert distribution["neutral"]["answer_count"] == 2
     assert distribution["unknown"]["answer_count"] == 1
-    assert distribution["positive"]["ratio"] == 0.4667
+    assert distribution["positive"]["ratio"] == 0.5
 
     keyword_rows = payload["data"]["keywords"]
     assert keyword_rows[0]["keyword"] == "math"
@@ -368,7 +298,7 @@ def test_sentiment_analysis_prefers_metric_snapshots_over_legacy_facts():
     assert keyword_rows[0]["answer_count"] == 6
 
 
-def test_sentiment_analysis_falls_back_to_legacy_brand_facts():
+def test_sentiment_analysis_uses_legacy_job_facts_without_analysis_run():
     engine = _build_engine()
     with Session(engine) as session:
         _seed_tenant(session)
@@ -407,7 +337,7 @@ def test_sentiment_analysis_falls_back_to_legacy_brand_facts():
 
     assert response.status_code == 200
     payload = response.json()
-    assert payload["metadata"]["data_source"] == "legacy_fact"
+    assert payload["metadata"]["data_source"] == "analysis_fact"
     assert payload["metadata"]["sample_count"] == 3
     assert {item["sentiment_status"] for item in payload["data"]["distribution"]} == {
         "negative",

@@ -274,7 +274,7 @@ async def get_brand_metrics(
             brand=brand,
             platform=platform,
         )
-        snapshot_metadata = service.get_metric_snapshot_metadata(
+        fact_metadata = service.get_metric_fact_metadata(
             tenant_key=tenant_key,
             job_id=job_id,
             query_start_date=query_start_date,
@@ -291,7 +291,7 @@ async def get_brand_metrics(
                 end_date=query_end_date.strftime("%Y%m%d"),
                 calculation_method="mention_count_ratio",
                 row_count=len(metrics),
-                **snapshot_metadata,
+                **fact_metadata,
             ),
         )
     except ValueError as e:

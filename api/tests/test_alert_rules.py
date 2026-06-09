@@ -91,6 +91,35 @@ def _seed_project_lifecycle(session: Session, *, tenant_key: str = "tenant_a"):
     session.execute(
         text(
             """
+            INSERT INTO project_brands
+              (
+                tenant_key,
+                project_id,
+                brand_id,
+                brand_name,
+                role,
+                status,
+                created_at,
+                updated_at
+              )
+            VALUES
+              (
+                :tenant_key,
+                'project_a',
+                'brand_a',
+                'Brand A',
+                'target',
+                'active',
+                :now,
+                :now
+              )
+            """
+        ),
+        {"tenant_key": tenant_key, "now": now},
+    )
+    session.execute(
+        text(
+            """
             INSERT INTO prompt_sets
               (tenant_key, project_id, prompt_set_id, version, name, status, created_at, updated_at)
             VALUES
@@ -189,76 +218,68 @@ def _seed_project_lifecycle(session: Session, *, tenant_key: str = "tenant_a"):
     session.flush()
 
 
-def _insert_metric_snapshot(
+def _insert_brand_state(
     session: Session,
     *,
     tenant_key: str = "tenant_a",
     analysis_run_id: str,
     metric_date: str,
-    metric_name: str,
-    metric_value: float,
-    snapshot_suffix: str,
+    job_id: str,
+    conversation_id: str,
+    is_mentioned: bool,
+    sentiment_status: str,
 ):
     session.execute(
         text(
             """
-            INSERT INTO metric_snapshots
+            INSERT INTO qa_brand_state
               (
                 tenant_key,
-                snapshot_id,
-                project_id,
+                job_id,
                 analysis_run_id,
-                metric_date,
-                brand_id,
-                brand_name,
+                date,
+                conversation_id,
+                brand,
+                category,
                 platform,
                 keyword,
-                metric_name,
-                metric_value,
-                metric_unit,
-                metric_definition_version,
-                expected_task_count,
-                succeeded_task_count,
-                failed_task_count,
-                analyzed_answer_count,
-                coverage_rate,
-                source_watermark,
-                dimension_hash,
-                generated_at
+                is_mentioned,
+                is_first_mentioned,
+                is_top3_mentioned,
+                sentiment_status,
+                brands_found,
+                created_at,
+                updated_at
               )
             VALUES
               (
                 :tenant_key,
-                :snapshot_id,
-                'project_a',
+                :job_id,
                 :analysis_run_id,
                 :metric_date,
-                'brand_a',
+                :conversation_id,
                 'Brand A',
+                'education',
                 'deepseek',
                 'math',
-                :metric_name,
-                :metric_value,
-                'ratio',
-                'brand_metrics_v1',
-                10,
-                10,
+                :is_mentioned,
                 0,
-                10,
-                1.000000,
-                :analysis_run_id,
-                'dim_brand_a_deepseek_math',
+                :is_mentioned,
+                :sentiment_status,
+                '["Brand A"]',
+                '2026-06-07 12:00:00',
                 '2026-06-07 12:00:00'
               )
             """
         ),
         {
             "tenant_key": tenant_key,
-            "snapshot_id": f"snapshot_{snapshot_suffix}",
+            "job_id": job_id,
             "analysis_run_id": analysis_run_id,
             "metric_date": metric_date,
-            "metric_name": metric_name,
-            "metric_value": metric_value,
+            "conversation_id": conversation_id,
+            "is_mentioned": 1 if is_mentioned else 0,
+            "sentiment_status": sentiment_status,
         },
     )
 
@@ -330,40 +351,27 @@ def _seed_alert_rules(session: Session):
     )
 
 
-def _seed_snapshot_changes(session: Session):
+def _seed_fact_metric_changes(session: Session):
     _seed_project_lifecycle(session)
-    _insert_metric_snapshot(
-        session,
-        analysis_run_id="analysis_previous",
-        metric_date="2026-06-06",
-        metric_name="mention_rate",
-        metric_value=0.800000,
-        snapshot_suffix="prev_mention",
-    )
-    _insert_metric_snapshot(
-        session,
-        analysis_run_id="analysis_current",
-        metric_date="2026-06-07",
-        metric_name="mention_rate",
-        metric_value=0.500000,
-        snapshot_suffix="curr_mention",
-    )
-    _insert_metric_snapshot(
-        session,
-        analysis_run_id="analysis_previous",
-        metric_date="2026-06-06",
-        metric_name="sentiment_negative_ratio",
-        metric_value=0.100000,
-        snapshot_suffix="prev_negative",
-    )
-    _insert_metric_snapshot(
-        session,
-        analysis_run_id="analysis_current",
-        metric_date="2026-06-07",
-        metric_name="sentiment_negative_ratio",
-        metric_value=0.400000,
-        snapshot_suffix="curr_negative",
-    )
+    for index in range(1, 11):
+        _insert_brand_state(
+            session,
+            analysis_run_id="analysis_previous",
+            metric_date="2026-06-06",
+            job_id="legacy_collection_previous",
+            conversation_id=f"previous_{index}",
+            is_mentioned=index <= 8,
+            sentiment_status="negative" if index == 1 else "positive",
+        )
+        _insert_brand_state(
+            session,
+            analysis_run_id="analysis_current",
+            metric_date="2026-06-07",
+            job_id="legacy_collection_current",
+            conversation_id=f"current_{index}",
+            is_mentioned=index <= 5,
+            sentiment_status="negative" if index <= 4 else "positive",
+        )
     _seed_alert_rules(session)
     session.commit()
 
@@ -603,7 +611,7 @@ def test_sqlite_alert_events_bind_to_project_rule_and_analysis_run():
 def test_alert_rule_evaluation_records_metric_drop_and_rise_events(alert_session):
     from api.v1.services import alerts
 
-    _seed_snapshot_changes(alert_session)
+    _seed_fact_metric_changes(alert_session)
 
     result = alerts.evaluate_alert_rules_for_analysis_run(
         alert_session,
@@ -662,7 +670,7 @@ def test_project_alerts_api_lists_current_tenant_rules_and_events(
     monkeypatch,
 ):
     monkeypatch.setenv("AUTH_SECRET", TEST_SECRET)
-    _seed_snapshot_changes(alert_session)
+    _seed_fact_metric_changes(alert_session)
     _seed_project_lifecycle(alert_session, tenant_key="tenant_other")
     _seed_user_tenant(alert_session)
     from api.v1.services import alerts

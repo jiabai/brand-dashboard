@@ -12,7 +12,7 @@ const toRate = (value) => {
 
 const formatRate = (value) => {
   const rate = toRate(value);
-  if (rate === null) return '覆盖率待生成';
+  if (rate === null) return '覆盖率待计算';
   return `${(rate * 100).toFixed(1)}%`;
 };
 
@@ -107,25 +107,25 @@ export const normalizeProjectDataQualityResponse = (response = {}) => {
       ),
       staleAnalysisRunCount: toCount(summary.stale_analysis_run_count),
       recomputableAnalysisRunCount: toCount(summary.recomputable_analysis_run_count),
-      metricSnapshotCount: toCount(summary.metric_snapshot_count),
-      metricDimensionCount: toCount(summary.metric_dimension_count),
-      metricCoverageRate: toRate(summary.metric_coverage_rate),
-      metricCoverageLabel: formatRate(summary.metric_coverage_rate),
+      analysisFactCount: toCount(summary.analysis_fact_count),
+      analysisDimensionCount: toCount(summary.analysis_dimension_count),
+      analysisCoverageRate: toRate(summary.analysis_coverage_rate),
+      analysisCoverageLabel: formatRate(summary.analysis_coverage_rate),
     },
     metricCoverage: {
       dataSource: metricCoverage.data_source || 'empty',
-      snapshotStatus: metricCoverage.snapshot_status || 'missing',
+      coverageStatus: metricCoverage.coverage_status || 'missing',
       metricDefinitionVersion: metricCoverage.metric_definition_version || 'brand_metrics_v1',
       analysisRunId: metricCoverage.analysis_run_id || '',
-      generatedAt: metricCoverage.metric_generated_at || '',
-      coverageRate: toRate(metricCoverage.metric_coverage_rate),
-      coverageLabel: formatRate(metricCoverage.metric_coverage_rate),
-      expectedTaskCount: toCount(metricCoverage.metric_expected_task_count),
-      succeededTaskCount: toCount(metricCoverage.metric_succeeded_task_count),
-      failedTaskCount: toCount(metricCoverage.metric_failed_task_count),
-      analyzedAnswerCount: toCount(metricCoverage.metric_analyzed_answer_count),
-      snapshotCount: toCount(metricCoverage.metric_snapshot_count),
-      dimensionCount: toCount(metricCoverage.metric_dimension_count),
+      analysisFinishedAt: metricCoverage.analysis_finished_at || '',
+      coverageRate: toRate(metricCoverage.analysis_coverage_rate),
+      coverageLabel: formatRate(metricCoverage.analysis_coverage_rate),
+      expectedTaskCount: toCount(metricCoverage.expected_task_count),
+      succeededTaskCount: toCount(metricCoverage.succeeded_task_count),
+      failedTaskCount: toCount(metricCoverage.failed_task_count),
+      analyzedAnswerCount: toCount(metricCoverage.analyzed_answer_count),
+      analysisFactCount: toCount(metricCoverage.analysis_fact_count),
+      dimensionCount: toCount(metricCoverage.analysis_dimension_count),
     },
     failedCollectionTasks: failedCollectionTasks.map((item) => ({
       collectionTaskId: item.collection_task_id || '',

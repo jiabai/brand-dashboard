@@ -43,7 +43,6 @@ from api.v1.repositories.filter_metadata import (
     query_filter_metadata,
     query_keyword_platform_brand_rates,
 )
-from api.v1.repositories.metric_snapshots import query_snapshot_quality_metadata
 from api.v1.repositories.sentiment_analysis import query_sentiment_analysis
 from api.v1.utils.date_range import get_date_range
 from api.v1.utils.url_domain_resolver import resolve_url_domain
@@ -277,36 +276,17 @@ class DashboardService:
             for item in metrics
         ]
 
-    def get_metric_snapshot_metadata(
+    def get_metric_fact_metadata(
         self,
         tenant_key: str,
         job_id: str,
         query_start_date: date,
         query_end_date: date,
     ) -> dict[str, Any]:
-        try:
-            return query_snapshot_quality_metadata(
-                self._engine,
-                tenant_key=tenant_key,
-                job_id=job_id,
-                start_date=query_start_date,
-                end_date=query_end_date,
-            )
-        except Exception:
-            return {
-                "data_source": "legacy_aggregation",
-                "snapshot_status": "missing",
-                "metric_definition_version": "brand_metrics_v1",
-                "analysis_run_id": None,
-                "metric_generated_at": None,
-                "metric_coverage_rate": None,
-                "metric_expected_task_count": None,
-                "metric_succeeded_task_count": None,
-                "metric_failed_task_count": None,
-                "metric_analyzed_answer_count": None,
-                "metric_snapshot_count": 0,
-                "metric_dimension_count": 0,
-            }
+        return {
+            "data_source": "analysis_fact",
+            "metric_definition_version": "brand_metrics_v1",
+        }
 
     def get_answer_snapshots(
         self,

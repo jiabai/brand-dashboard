@@ -115,7 +115,7 @@ const ProjectDataQualityPage = () => {
           </div>
           <h1 className="text-2xl font-medium tracking-normal text-foreground">数据质量</h1>
           <p className="mt-1 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-            {projectId} 的采集失败、过期分析和指标覆盖状态。
+            {projectId} 的采集失败、过期分析和分析事实覆盖状态。
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -156,12 +156,12 @@ const ProjectDataQualityPage = () => {
             />
             <QualityStat
               label="指标覆盖率"
-              value={quality.summary.metricCoverageLabel}
-              helper={`${quality.summary.metricSnapshotCount} 条快照`}
+              value={quality.summary.analysisCoverageLabel}
+              helper={`${quality.summary.analysisFactCount} 条事实`}
             />
             <QualityStat
               label="指标维度"
-              value={quality.summary.metricDimensionCount}
+              value={quality.summary.analysisDimensionCount}
               helper={metricCoverage.metricDefinitionVersion}
             />
           </div>
@@ -173,7 +173,7 @@ const ProjectDataQualityPage = () => {
                 指标覆盖率
               </CardTitle>
               <CardDescription>
-                当前项目指标快照覆盖了 {metricCoverage.succeededTaskCount} / {metricCoverage.expectedTaskCount} 个采集任务。
+                当前项目分析事实覆盖了 {metricCoverage.succeededTaskCount} / {metricCoverage.expectedTaskCount} 个采集任务。
               </CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col gap-4">
@@ -192,8 +192,8 @@ const ProjectDataQualityPage = () => {
                   <div className="font-medium text-foreground">{metricCoverage.analyzedAnswerCount}</div>
                 </div>
                 <div>
-                  <div className="text-xs text-muted-foreground">生成时间</div>
-                  <div className="font-medium text-foreground">{formatDateTime(metricCoverage.generatedAt)}</div>
+                  <div className="text-xs text-muted-foreground">分析完成</div>
+                  <div className="font-medium text-foreground">{formatDateTime(metricCoverage.analysisFinishedAt)}</div>
                 </div>
               </div>
             </CardContent>

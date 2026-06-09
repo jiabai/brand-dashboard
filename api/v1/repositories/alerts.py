@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+from datetime import date
 from typing import Any
 
 from sqlalchemy import text
 from sqlalchemy.orm import Session
+
+from api.v1.repositories.fact_metrics import list_project_fact_metric_rows
 
 
 def get_analysis_run_context(
@@ -38,34 +41,38 @@ def list_current_metric_rows(
     tenant_key: str,
     analysis_run_id: str,
 ) -> list[Mapping[str, Any]]:
-    return db.execute(
+    run = get_analysis_run_context(
+        db,
+        tenant_key=tenant_key,
+        analysis_run_id=analysis_run_id,
+    )
+    if run is None:
+        return []
+
+    date_range = db.execute(
         text(
             """
             SELECT
-              ms.tenant_key,
-              ms.project_id,
-              ms.analysis_run_id,
-              ar.collection_job_id,
-              ms.metric_date,
-              ms.metric_name,
-              ms.metric_definition_version,
-              ms.metric_value,
-              ms.brand_id,
-              ms.brand_name,
-              ms.platform,
-              ms.keyword,
-              ms.dimension_hash
-            FROM metric_snapshots ms
-            JOIN analysis_runs ar
-              ON ar.tenant_key = ms.tenant_key
-             AND ar.analysis_run_id = ms.analysis_run_id
-            WHERE ms.tenant_key = :tenant_key
-              AND ms.analysis_run_id = :analysis_run_id
-            ORDER BY ms.metric_date ASC, ms.metric_name ASC, ms.id ASC
+              MIN(date) AS start_date,
+              MAX(date) AS end_date
+            FROM qa_brand_state
+            WHERE tenant_key = :tenant_key
+              AND analysis_run_id = :analysis_run_id
             """
         ),
         {"tenant_key": tenant_key, "analysis_run_id": analysis_run_id},
-    ).mappings().all()
+    ).mappings().one()
+    if date_range["start_date"] is None or date_range["end_date"] is None:
+        return []
+
+    return list_project_fact_metric_rows(
+        db,
+        tenant_key=tenant_key,
+        project_id=run["project_id"],
+        start_date=date_range["start_date"],
+        end_date=date_range["end_date"],
+        analysis_run_id=analysis_run_id,
+    )
 
 
 def list_active_rules_for_project(
@@ -116,35 +123,29 @@ def get_previous_metric_row(
     metric_date: Any,
     analysis_run_id: str,
 ):
-    return db.execute(
-        text(
-            """
-            SELECT
-              ms.metric_date,
-              ms.metric_value,
-              ms.analysis_run_id
-            FROM metric_snapshots ms
-            WHERE ms.tenant_key = :tenant_key
-              AND ms.project_id = :project_id
-              AND ms.metric_name = :metric_name
-              AND ms.metric_definition_version = :metric_definition_version
-              AND ms.dimension_hash = :dimension_hash
-              AND ms.analysis_run_id != :analysis_run_id
-              AND ms.metric_date < :metric_date
-            ORDER BY ms.metric_date DESC, ms.generated_at DESC, ms.id DESC
-            LIMIT 1
-            """
-        ),
-        {
-            "tenant_key": tenant_key,
-            "project_id": project_id,
-            "metric_name": metric_name,
-            "metric_definition_version": metric_definition_version,
-            "dimension_hash": dimension_hash,
-            "metric_date": metric_date,
-            "analysis_run_id": analysis_run_id,
-        },
-    ).mappings().first()
+    rows = list_project_fact_metric_rows(
+        db,
+        tenant_key=tenant_key,
+        project_id=project_id,
+        start_date=date(1900, 1, 1),
+        end_date=metric_date,
+    )
+    candidates = [
+        row
+        for row in rows
+        if row["metric_name"] == metric_name
+        and row["metric_definition_version"] == metric_definition_version
+        and row["dimension_hash"] == dimension_hash
+        and row["analysis_run_id"] != analysis_run_id
+        and str(row["metric_date"]) < str(metric_date)
+    ]
+    if not candidates:
+        return None
+    return sorted(
+        candidates,
+        key=lambda row: (str(row["metric_date"]), str(row["analysis_run_id"])),
+        reverse=True,
+    )[0]
 
 
 def alert_event_exists(

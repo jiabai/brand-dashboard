@@ -268,14 +268,6 @@ export default function SentimentAnalysis() {
                 <strong className="font-medium text-foreground">{item.value}</strong>
               </span>
             ))}
-            {sentimentData.summary.source === 'metric_snapshot' ? (
-              <span className="text-muted-foreground">
-                指标生成：
-                <strong className="font-medium text-foreground">
-                  {sentimentData.summary.generatedAtLabel}
-                </strong>
-              </span>
-            ) : null}
           </div>
         </CardHeader>
         <CardContent className="grid flex-1 gap-6 lg:grid-cols-[1fr_0.8fr]">

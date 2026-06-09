@@ -12,7 +12,7 @@ Brand Dashboard 当前已从单纯的 `tenant_key + job_id` 品牌分析看板�
   -> 采集批次、采集任务、执行尝试
   -> 原始回答与引用入库
   -> 分析运行与事实血缘
-  -> 指标快照 read model
+  -> 事实聚合指标
   -> dashboard、问答快照、情感分析、告警、报告、数据质量
 ```
 
@@ -40,7 +40,7 @@ brand-dashboard/
 │   │   ├── routes/               # projects, dashboard, analysis-runs, collection, query-jobs, auth, platform, executors
 │   │   ├── models/schemas.py     # Pydantic 请求/响应契约
 │   │   ├── repositories/         # 数据访问层，所有业务查询强制 tenant_key
-│   │   ├── services/             # 项目、分析、指标快照、告警、报告、数据质量等业务逻辑
+│   │   ├── services/             # 项目、分析、事实指标、告警、报告、数据质量等业务逻辑
 │   │   └── utils/                # 安全、LLM adapter、日期和 URL 工具
 │   ├── database/                 # MySQL/SQLite schema 与迁移脚本
 │   ├── tests/                    # 后端回归测试
@@ -65,7 +65,7 @@ brand-dashboard/
 | `api/v1/routes/collection_attempts.py` | 采集 attempt start/complete API |
 | `api/v1/routes/analysis_runs.py` | 分析运行查询与 retry API |
 | `api/v1/routes/dashboard.py` | legacy dashboard 读面，含问答快照和情感分析真实数据接口 |
-| `api/v1/services/metric_snapshots.py` | 品牌指标快照生成，固定 `brand_metrics_v1` 首版口径 |
+| `api/v1/repositories/fact_metrics.py` | 基于 `qa_brand_state` / `qa_reference` 聚合 `brand_metrics_v1` 指标口径 |
 | `api/v1/services/analysis_runner.py` | 系统级分析运行编排，调用 `analysis/` 插件并写入事实血缘 |
 | `api/v1/services/reports.py` | 项目报告生成和报告列表 read model |
 | `api/v1/services/data_quality.py` | 项目级失败采集、过期分析和指标覆盖率聚合 |
@@ -77,8 +77,8 @@ brand-dashboard/
 - 项目优先：租户用户默认进入 `/projects/:tenantKey`；项目承载品牌、竞品、问题集、采集、分析、指标、告警、报告和数据质量。
 - Legacy 兼容边界：系统只兼容历史资产，包括历史链接、历史数据、排障读面和兼容期桥接字段；不兼容历史产品形态。`/dashboard/:tenantKey/:jobId`、`/tasks/:tenantKey/status` 等旧 job/task 路由继续可直接访问，但不再暴露为主导航入口；新主流程、新页面和新 API 不再把 `job_id` 作为产品入口。
 - 多租户隔离：所有业务查询必须显式携带服务端校验后的 `tenant_key`，Repository 层强制租户过滤。
-- 数据生命周期分层：配置层、采集层、原始层、分析层、指标快照层、洞察交付层各自有明确边界。
-- 指标 read model：dashboard、报告、告警和数据质量优先读取 `metric_snapshots`；兼容期缺失快照时，部分旧 dashboard 读面仍允许从历史明细兜底。
+- 数据生命周期分层：配置层、采集层、原始层、分析事实层、事实聚合指标、洞察交付层各自有明确边界。
+- 指标口径：dashboard、报告、告警和数据质量基于 `qa_brand_state` / `qa_reference` 按 `brand_metrics_v1` 实时聚合；报告和告警事件继续持久化生成时结果。
 - 分析血缘：分析结果必须绑定 `analysis_run_id`，并能追溯到 `project_id`、`collection_job_id` 和指标口径版本。
 - 身份分区：用户接口使用 `Authorization: Bearer <access_token>`；执行器接口使用 `executor_id + X-Executor-Key`；两类身份不能混用。
 - 平台运营后台：`/platform/*` 不属于租户工作台，不发送 `X-Tenant-Key`，平台 API 使用 `platform_admin` 鉴权。
@@ -93,7 +93,7 @@ brand-dashboard/
 | 采集生命周期 | `collection_jobs`、`collection_tasks`、`collection_attempts` | 采集任务领取、attempt start/complete 和平台健康度已落地 |
 | 原始数据 | `llm_conversations`、`llm_conversation_references` | 兼容期继续使用旧表，通过 `collection_jobs.source_job_id` 桥接 |
 | 分析运行 | `analysis_runs`、`qa_brand_state.analysis_run_id`、`qa_reference.analysis_run_id` | 分析运行状态机、retry 和插件接入已落地 |
-| 指标快照 | `metric_snapshots` | `brand_metrics_v1` 生成和 dashboard 快照优先读取已落地 |
+| 事实聚合指标 | `qa_brand_state`、`qa_reference`、`api/v1/repositories/fact_metrics.py` | `brand_metrics_v1` 基于成功分析事实聚合 |
 | 洞察交付 | `alert_rules`、`alert_events`、`generated_reports`、项目数据质量 API | 告警、报告、数据质量 MVP 已落地 |
 
 ## 前端路由策略

@@ -341,72 +341,58 @@ def _insert_analysis_run(
     )
 
 
-def _insert_metric_snapshot(
+def _insert_brand_state(
     session: Session,
     *,
     tenant_key: str = "tenant_a",
-    snapshot_id: str,
-    metric_name: str,
-    metric_value: float,
+    conversation_id: str,
 ):
     session.execute(
         text(
             """
-            INSERT INTO metric_snapshots
+            INSERT INTO qa_brand_state
               (
                 tenant_key,
-                snapshot_id,
-                project_id,
+                job_id,
                 analysis_run_id,
-                metric_date,
-                brand_id,
-                brand_name,
+                date,
+                conversation_id,
+                brand,
+                category,
                 platform,
                 keyword,
-                metric_name,
-                metric_value,
-                metric_unit,
-                metric_definition_version,
-                expected_task_count,
-                succeeded_task_count,
-                failed_task_count,
-                analyzed_answer_count,
-                coverage_rate,
-                source_watermark,
-                dimension_hash,
-                generated_at
+                is_mentioned,
+                is_first_mentioned,
+                is_top3_mentioned,
+                sentiment_status,
+                brands_found,
+                created_at,
+                updated_at
               )
             VALUES
               (
                 :tenant_key,
-                :snapshot_id,
-                'project_a',
+                'legacy_collection_current',
                 'analysis_current',
                 '2026-06-08',
-                'brand_a',
+                :conversation_id,
                 'Brand A',
+                'education',
                 'deepseek',
                 'math',
-                :metric_name,
-                :metric_value,
-                'ratio',
-                'brand_metrics_v1',
-                4,
-                3,
                 1,
-                3,
-                0.750000,
-                'collection_current',
-                'dim_brand_a_deepseek_math',
+                0,
+                1,
+                'positive',
+                '["Brand A"]',
+                '2026-06-08 13:00:00',
                 '2026-06-08 13:00:00'
               )
             """
         ),
         {
             "tenant_key": tenant_key,
-            "snapshot_id": snapshot_id,
-            "metric_name": metric_name,
-            "metric_value": metric_value,
+            "conversation_id": conversation_id,
         },
     )
 
@@ -460,18 +446,8 @@ def _seed_quality_data(session: Session):
         analysis_run_id="analysis_other_stale",
         status="stale",
     )
-    _insert_metric_snapshot(
-        session,
-        snapshot_id="snapshot_mention",
-        metric_name="mention_rate",
-        metric_value=0.5,
-    )
-    _insert_metric_snapshot(
-        session,
-        snapshot_id="snapshot_first",
-        metric_name="first_mention_rate",
-        metric_value=0.25,
-    )
+    for index in range(1, 4):
+        _insert_brand_state(session, conversation_id=f"conv_{index}")
     session.commit()
 
 
@@ -494,9 +470,9 @@ def test_project_data_quality_api_returns_failed_stale_coverage_and_actions(
         "retryable_failed_collection_task_count": 1,
         "stale_analysis_run_count": 1,
         "recomputable_analysis_run_count": 1,
-        "metric_snapshot_count": 2,
-        "metric_dimension_count": 1,
-        "metric_coverage_rate": 0.75,
+        "analysis_fact_count": 3,
+        "analysis_dimension_count": 1,
+        "analysis_coverage_rate": 0.75,
     }
 
     failed_ids = {item["collection_task_id"] for item in body["failed_collection_tasks"]}
@@ -517,12 +493,14 @@ def test_project_data_quality_api_returns_failed_stale_coverage_and_actions(
     )
     assert terminal["can_retry"] is False
 
-    assert body["metric_coverage"]["data_source"] == "metric_snapshot"
+    assert body["metric_coverage"]["data_source"] == "analysis_fact"
+    assert body["metric_coverage"]["coverage_status"] == "available"
     assert body["metric_coverage"]["analysis_run_id"] == "analysis_current"
-    assert body["metric_coverage"]["metric_expected_task_count"] == 4
-    assert body["metric_coverage"]["metric_succeeded_task_count"] == 3
-    assert body["metric_coverage"]["metric_failed_task_count"] == 1
-    assert body["metric_coverage"]["metric_analyzed_answer_count"] == 3
+    assert body["metric_coverage"]["expected_task_count"] == 4
+    assert body["metric_coverage"]["succeeded_task_count"] == 3
+    assert body["metric_coverage"]["failed_task_count"] == 1
+    assert body["metric_coverage"]["analyzed_answer_count"] == 3
+    assert body["metric_coverage"]["analysis_fact_count"] == 3
 
     stale_runs = body["stale_analysis_runs"]
     assert [item["analysis_run_id"] for item in stale_runs] == ["analysis_stale"]

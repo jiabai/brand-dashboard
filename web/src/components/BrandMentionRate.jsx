@@ -14,7 +14,7 @@
  */
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Activity, Clock, Database, Gauge, Link, MessageCircle, Tags, Trophy } from 'lucide-react';
+import { Link, MessageCircle, Tags, Trophy } from 'lucide-react';
 
 // Utilities
 import { fetchBrandMetrics, fetchPostCitationRate } from '@/api';
@@ -22,7 +22,6 @@ import { useDashboardRequestParams } from '@/hooks/useDashboardParams';
 import {
   clampPercent,
   formatPercentage,
-  normalizeMetricSnapshotMetadata,
   roundTwoDecimals,
   toPercent,
 } from '@/utils';
@@ -73,43 +72,6 @@ const StatTile = ({ icon: Icon, label, value }) => (
   </div>
 );
 
-const SnapshotMetadataTile = ({ icon: Icon, label, value }) => (
-  <div className="min-w-0 rounded-md bg-muted/45 px-3 py-2.5">
-    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-      <Icon className="size-4 shrink-0" />
-      <span className="truncate">{label}</span>
-    </div>
-    <div className="mt-1 break-words text-sm font-medium leading-snug text-foreground">{value}</div>
-  </div>
-);
-
-const SnapshotQualityPanel = ({ metadata }) => {
-  if (!metadata) return null;
-
-  const generatedAtLabel = metadata.generatedAtLabel || '快照未生成';
-
-  return (
-    <section className="space-y-3 rounded-md border border-border bg-background/80 p-3">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-        <div className="flex min-w-0 items-center gap-2">
-          <Database className="size-4 shrink-0 text-muted-foreground" />
-          <span className="truncate text-sm font-medium text-foreground">数据来源: {metadata.sourceLabel}</span>
-        </div>
-        <Badge variant={metadata.hasSnapshot ? 'default' : 'secondary'} className="w-fit rounded-md">
-          {metadata.snapshotStatus === 'available' ? '快照可用' : '快照未生成'}
-        </Badge>
-      </div>
-      <p className="text-xs leading-relaxed text-muted-foreground">{metadata.description}</p>
-      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-        <SnapshotMetadataTile icon={Clock} label="指标生成" value={generatedAtLabel} />
-        <SnapshotMetadataTile icon={Gauge} label="采集覆盖" value={metadata.coverageLabel} />
-        <SnapshotMetadataTile icon={Activity} label="分析完整性" value={metadata.analysisCompletenessLabel} />
-        <SnapshotMetadataTile icon={MessageCircle} label="分析回答" value={metadata.analyzedAnswerLabel} />
-      </div>
-    </section>
-  );
-};
-
 const RateCell = ({ value, tone = 'primary' }) => (
   <div className="w-[7.5rem] space-y-1">
     <Progress
@@ -132,7 +94,6 @@ const BrandMentionRate = () => {
   const [error, setError] = useState(null);
   const [targetBrandData, setTargetBrandData] = useState(null);
   const [brandList, setBrandList] = useState([]);
-  const [metricSnapshotMetadata, setMetricSnapshotMetadata] = useState(null);
   const [reloadKey, setReloadKey] = useState(0);
 
   const targetBrandName = targetBrandData?.name ?? brand;
@@ -229,8 +190,6 @@ const BrandMentionRate = () => {
           throw new Error('接口返回错误状态');
         }
 
-        setMetricSnapshotMetadata(normalizeMetricSnapshotMetadata(brandMetrics?.metadata));
-
         const brandMetricsList = Array.isArray(brandMetrics?.data)
           ? brandMetrics.data
           : Array.isArray(brandMetrics)
@@ -285,7 +244,6 @@ const BrandMentionRate = () => {
       } catch (err) {
         if (controller.signal.aborted) return;
         if (err?.name === 'AbortError') return;
-        setMetricSnapshotMetadata(null);
         setError(err?.message || '数据加载失败');
         setIsLoading(false);
       }
@@ -347,7 +305,7 @@ const BrandMentionRate = () => {
         <CardContent>
           <EmptyState
             title="暂无数据"
-            description="当前筛选下没有可展示的品牌指标；若刚完成采集，请等待分析和指标快照生成。"
+            description="当前筛选下没有可展示的品牌指标；若刚完成采集，请等待分析运行生成事实数据。"
             actionText="重试"
             onAction={() => setReloadKey((prev) => prev + 1)}
           />
@@ -383,8 +341,6 @@ const BrandMentionRate = () => {
                 </Badge>
             </div>
           </section>
-
-          <SnapshotQualityPanel metadata={metricSnapshotMetadata} />
 
           <section className="grid grid-cols-2 gap-3 xl:grid-cols-4">
             <MetricCircle label="总提及率" value={targetBrandData.mentionRate} />

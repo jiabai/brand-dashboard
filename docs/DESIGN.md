@@ -43,7 +43,7 @@
 - 兼容 job：旧 `llm_query_jobs.job_id` 仍作为 legacy dashboard/task 查询键；通过 `collection_jobs.source_job_id` 与新采集批次桥接。
 - 原始数据：兼容期继续使用 `llm_conversations` 和 `llm_conversation_references` 保存回答与引用。
 - 分析血缘：`analysis_runs` 记录状态、错误、插件版本和项目/采集批次；事实表中的 `analysis_run_id` 可追溯重算来源。
-- 指标快照：`metric_snapshots` 是 dashboard、报告、告警和质量页优先读取的稳定 read model，必须记录指标口径版本、覆盖率和生成时间。
+- 指标口径：dashboard、报告、告警和质量页基于 `qa_brand_state` / `qa_reference` 聚合 `brand_metrics_v1`，报告和告警事件负责保存生成时结果。
 - 洞察交付：`alert_rules` / `alert_events` 记录可去重的异常事件，`generated_reports` 保存报告 JSON 快照。
 - 时间字段：`created_at` 使用 `DEFAULT CURRENT_TIMESTAMP`，`updated_at` 使用 `ON UPDATE CURRENT_TIMESTAMP` 或应用侧等效更新。
 

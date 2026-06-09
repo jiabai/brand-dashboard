@@ -109,6 +109,35 @@ def _seed_project_lifecycle(session: Session, *, tenant_key: str = "tenant_a"):
     session.execute(
         text(
             """
+            INSERT INTO project_brands
+              (
+                tenant_key,
+                project_id,
+                brand_id,
+                brand_name,
+                role,
+                status,
+                created_at,
+                updated_at
+              )
+            VALUES
+              (
+                :tenant_key,
+                'project_a',
+                'brand_a',
+                'Brand A',
+                'target',
+                'active',
+                :now,
+                :now
+              )
+            """
+        ),
+        {"tenant_key": tenant_key, "now": now},
+    )
+    session.execute(
+        text(
+            """
             INSERT INTO prompt_sets
               (tenant_key, project_id, prompt_set_id, version, name, status, created_at, updated_at)
             VALUES
@@ -242,92 +271,134 @@ def _seed_user_tenant(session: Session):
     session.flush()
 
 
-def _insert_metric_snapshot(
+def _insert_brand_state(
     session: Session,
     *,
     tenant_key: str = "tenant_a",
     analysis_run_id: str = "analysis_current",
-    metric_name: str,
-    metric_value: float,
-    suffix: str,
+    conversation_id: str,
+    is_mentioned: bool,
+    is_first_mentioned: bool,
+    is_top3_mentioned: bool,
+    sentiment_status: str,
 ):
+    now = datetime(2026, 6, 8, 12, 0, 0, tzinfo=UTC)
     session.execute(
         text(
             """
-            INSERT INTO metric_snapshots
+            INSERT INTO qa_brand_state
               (
                 tenant_key,
-                snapshot_id,
-                project_id,
+                job_id,
                 analysis_run_id,
-                metric_date,
-                brand_id,
-                brand_name,
+                date,
+                conversation_id,
+                brand,
+                category,
                 platform,
                 keyword,
-                metric_name,
-                metric_value,
-                metric_unit,
-                metric_definition_version,
-                expected_task_count,
-                succeeded_task_count,
-                failed_task_count,
-                analyzed_answer_count,
-                coverage_rate,
-                source_watermark,
-                dimension_hash,
-                generated_at
+                is_mentioned,
+                is_first_mentioned,
+                is_top3_mentioned,
+                sentiment_status,
+                brands_found,
+                created_at,
+                updated_at
               )
             VALUES
               (
                 :tenant_key,
-                :snapshot_id,
-                'project_a',
+                'legacy_collection_current',
                 :analysis_run_id,
                 '2026-06-08',
-                'brand_a',
+                :conversation_id,
                 'Brand A',
+                'education',
                 'deepseek',
                 'math',
-                :metric_name,
-                :metric_value,
-                'ratio',
-                'brand_metrics_v1',
-                10,
-                10,
-                0,
-                10,
-                1.000000,
-                :analysis_run_id,
-                'dim_brand_a_deepseek_math',
-                '2026-06-08 12:00:00'
+                :is_mentioned,
+                :is_first_mentioned,
+                :is_top3_mentioned,
+                :sentiment_status,
+                '["Brand A"]',
+                :now,
+                :now
               )
             """
         ),
         {
             "tenant_key": tenant_key,
-            "snapshot_id": f"snapshot_{suffix}",
             "analysis_run_id": analysis_run_id,
-            "metric_name": metric_name,
-            "metric_value": metric_value,
+            "conversation_id": conversation_id,
+            "is_mentioned": 1 if is_mentioned else 0,
+            "is_first_mentioned": 1 if is_first_mentioned else 0,
+            "is_top3_mentioned": 1 if is_top3_mentioned else 0,
+            "sentiment_status": sentiment_status,
+            "now": now,
         },
     )
 
 
-def _seed_metric_snapshots(session: Session):
-    for metric_name, metric_value in (
-        ("mention_rate", 0.600000),
-        ("first_mention_rate", 0.300000),
-        ("top3_mention_rate", 0.700000),
-        ("sentiment_negative_ratio", 0.200000),
-        ("reference_rate", 0.400000),
-    ):
-        _insert_metric_snapshot(
+def _insert_reference(session: Session, *, conversation_id: str) -> None:
+    session.execute(
+        text(
+            """
+            INSERT INTO qa_reference
+              (
+                tenant_key,
+                job_id,
+                analysis_run_id,
+                date,
+                conversation_id,
+                platform,
+                brand,
+                category,
+                keyword,
+                query_content,
+                url,
+                is_published_link,
+                domain,
+                content_type
+              )
+            VALUES
+              (
+                'tenant_a',
+                'legacy_collection_current',
+                'analysis_current',
+                '2026-06-08',
+                :conversation_id,
+                'deepseek',
+                'Brand A',
+                'education',
+                'math',
+                'Which tutoring brand is mentioned?',
+                :url,
+                0,
+                'example.com',
+                'news'
+              )
+            """
+        ),
+        {
+            "conversation_id": conversation_id,
+            "url": f"https://example.com/{conversation_id}",
+        },
+    )
+
+
+def _seed_analysis_facts(session: Session):
+    for index in range(1, 11):
+        conversation_id = f"conv_{index}"
+        _insert_brand_state(
             session,
-            metric_name=metric_name,
-            metric_value=metric_value,
-            suffix=metric_name,
+            conversation_id=conversation_id,
+            is_mentioned=index <= 6,
+            is_first_mentioned=index <= 3,
+            is_top3_mentioned=index <= 7,
+            sentiment_status="negative" if index <= 2 else "positive",
         )
+        if index <= 4:
+            _insert_reference(session, conversation_id=conversation_id)
 
 
 def _seed_alert_event(session: Session):
@@ -438,7 +509,7 @@ def _seed_report_ready_project(session: Session):
     _seed_project_lifecycle(session)
     _seed_project_lifecycle(session, tenant_key="tenant_other")
     _seed_user_tenant(session)
-    _seed_metric_snapshots(session)
+    _seed_analysis_facts(session)
     _seed_alert_event(session)
     session.commit()
 

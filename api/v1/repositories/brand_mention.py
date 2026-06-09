@@ -4,11 +4,6 @@ from typing import Any, Dict, List, Optional
 from sqlalchemy import text
 
 from api.v1.repositories.dialect import get_columns
-from api.v1.repositories.metric_snapshots import (
-    query_snapshot_brand_metrics,
-    query_snapshot_daily_mention_rates,
-    query_snapshot_platform_metrics_by_brand,
-)
 from api.v1.utils import get_logger
 from api.v1.utils.date_range import get_date_range
 
@@ -164,19 +159,6 @@ def query_brand_platform_keyword_daily_mention_rates(
     start_date: datetime.date,
     end_date: datetime.date,
 ) -> List[Dict[str, Any]]:
-    snapshot_rows = query_snapshot_daily_mention_rates(
-        engine,
-        tenant_key=tenant_key,
-        job_id=job_id,
-        brand=brand,
-        platform=platform,
-        keyword=keyword,
-        start_date=start_date,
-        end_date=end_date,
-    )
-    if snapshot_rows:
-        return snapshot_rows
-
     try:
         with engine.connect() as conn:
             columns = get_columns(conn, "qa_brand_state")
@@ -248,18 +230,6 @@ def query_brand_metrics(
     brand: Optional[str] = None,
     platform: Optional[str] = None,
 ) -> List[Dict[str, Any]]:
-    snapshot_metrics = query_snapshot_brand_metrics(
-        engine,
-        tenant_key=tenant_key,
-        job_id=job_id,
-        start_date=start_date,
-        end_date=end_date,
-        brand=brand,
-        platform=platform,
-    )
-    if snapshot_metrics:
-        return snapshot_metrics
-
     try:
         with engine.connect() as conn:
             columns = get_columns(conn, "qa_brand_state")
@@ -380,17 +350,6 @@ def query_platform_metrics_by_brand(
     start_date: datetime.date,
     end_date: datetime.date,
 ) -> List[Dict[str, Any]]:
-    snapshot_metrics = query_snapshot_platform_metrics_by_brand(
-        engine,
-        tenant_key=tenant_key,
-        job_id=job_id,
-        brand=brand,
-        start_date=start_date,
-        end_date=end_date,
-    )
-    if snapshot_metrics:
-        return snapshot_metrics
-
     try:
         with engine.connect() as conn:
             columns = get_columns(conn, "qa_brand_state")

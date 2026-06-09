@@ -36,41 +36,52 @@ def _build_metric_coverage(
     if not rows:
         return ProjectMetricCoverageData(
             data_source="empty",
-            snapshot_status="missing",
+            coverage_status="missing",
             metric_definition_version="brand_metrics_v1",
-            metric_snapshot_count=0,
-            metric_dimension_count=0,
+            analysis_fact_count=0,
+            analysis_dimension_count=0,
         )
 
     latest = rows[0]
-    dimensions: dict[tuple[Any, Any], int] = {}
-    coverage_values = [
-        float(row["coverage_rate"])
-        for row in rows
-        if row.get("coverage_rate") is not None
+    latest_rows = [
+        row for row in rows if row.get("analysis_run_id") == latest.get("analysis_run_id")
     ]
-    for row in rows:
-        dimension_key = (row.get("metric_date"), row.get("dimension_hash"))
-        dimensions[dimension_key] = max(
-            dimensions.get(dimension_key, 0),
-            _int_value(row.get("analyzed_answer_count")),
+    dimensions: dict[tuple[Any, Any, Any, Any], int] = {}
+    for row in latest_rows:
+        analyzed_count = _int_value(row.get("analyzed_answer_count"))
+        if analyzed_count <= 0:
+            continue
+        dimension_key = (
+            row.get("fact_date"),
+            row.get("brand") or "",
+            row.get("platform") or "",
+            row.get("keyword") or "",
         )
+        dimensions[dimension_key] = max(dimensions.get(dimension_key, 0), analyzed_count)
+
+    analyzed_answer_count = sum(dimensions.values())
+    expected_task_count = max(_int_value(row.get("expected_task_count")) for row in latest_rows)
+    coverage_rate = (
+        round(analyzed_answer_count / expected_task_count, 6)
+        if expected_task_count > 0
+        else None
+    )
 
     return ProjectMetricCoverageData(
-        data_source="metric_snapshot",
-        snapshot_status="available",
-        metric_definition_version=latest.get("metric_definition_version") or "brand_metrics_v1",
+        data_source="analysis_fact",
+        coverage_status="available" if analyzed_answer_count > 0 else "missing",
+        metric_definition_version="brand_metrics_v1",
         analysis_run_id=latest.get("analysis_run_id"),
-        metric_generated_at=latest.get("generated_at"),
-        metric_coverage_rate=round(min(coverage_values), 6) if coverage_values else None,
-        metric_expected_task_count=max(_int_value(row.get("expected_task_count")) for row in rows),
-        metric_succeeded_task_count=max(
-            _int_value(row.get("succeeded_task_count")) for row in rows
+        analysis_finished_at=latest.get("finished_at"),
+        analysis_coverage_rate=coverage_rate,
+        expected_task_count=expected_task_count,
+        succeeded_task_count=max(
+            _int_value(row.get("succeeded_task_count")) for row in latest_rows
         ),
-        metric_failed_task_count=max(_int_value(row.get("failed_task_count")) for row in rows),
-        metric_analyzed_answer_count=sum(dimensions.values()),
-        metric_snapshot_count=len(rows),
-        metric_dimension_count=len(dimensions),
+        failed_task_count=max(_int_value(row.get("failed_task_count")) for row in latest_rows),
+        analyzed_answer_count=analyzed_answer_count,
+        analysis_fact_count=analyzed_answer_count,
+        analysis_dimension_count=len(dimensions),
     )
 
 
@@ -94,7 +105,7 @@ def get_project_data_quality(
         project_id=project_id,
         limit=stale_run_limit,
     )
-    metric_rows = data_quality_repo.list_metric_snapshot_quality_rows(
+    metric_rows = data_quality_repo.list_analysis_fact_quality_rows(
         db,
         tenant_key=tenant_key,
         project_id=project_id,
@@ -148,9 +159,9 @@ def get_project_data_quality(
         retryable_failed_collection_task_count=sum(1 for item in failed_tasks if item.can_retry),
         stale_analysis_run_count=len(stale_runs),
         recomputable_analysis_run_count=sum(1 for item in stale_runs if item.can_recompute),
-        metric_snapshot_count=metric_coverage.metric_snapshot_count,
-        metric_dimension_count=metric_coverage.metric_dimension_count,
-        metric_coverage_rate=metric_coverage.metric_coverage_rate,
+        analysis_fact_count=metric_coverage.analysis_fact_count,
+        analysis_dimension_count=metric_coverage.analysis_dimension_count,
+        analysis_coverage_rate=metric_coverage.analysis_coverage_rate,
     )
 
     return ProjectDataQualityResponse(

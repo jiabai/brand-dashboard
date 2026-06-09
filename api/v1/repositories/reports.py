@@ -7,13 +7,9 @@ from typing import Any
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-CORE_REPORT_METRICS = (
-    "mention_rate",
-    "first_mention_rate",
-    "top3_mention_rate",
-    "sentiment_negative_ratio",
-    "reference_rate",
-)
+from api.v1.repositories.fact_metrics import CORE_FACT_METRICS, list_project_fact_metric_rows
+
+CORE_REPORT_METRICS = CORE_FACT_METRICS
 
 
 def list_core_metric_rows(
@@ -25,50 +21,14 @@ def list_core_metric_rows(
     end_date: date,
     metric_definition_version: str = "brand_metrics_v1",
 ) -> list[Mapping[str, Any]]:
-    return db.execute(
-        text(
-            """
-            SELECT
-              metric_date,
-              brand_id,
-              brand_name,
-              platform,
-              keyword,
-              metric_name,
-              metric_value,
-              metric_definition_version,
-              analyzed_answer_count
-            FROM metric_snapshots
-            WHERE tenant_key = :tenant_key
-              AND project_id = :project_id
-              AND metric_definition_version = :metric_definition_version
-              AND metric_date BETWEEN :start_date AND :end_date
-              AND metric_name IN (
-                'mention_rate',
-                'first_mention_rate',
-                'top3_mention_rate',
-                'sentiment_negative_ratio',
-                'reference_rate'
-              )
-            ORDER BY
-              brand_name ASC,
-              brand_id ASC,
-              metric_definition_version ASC,
-              metric_date ASC,
-              platform ASC,
-              keyword ASC,
-              metric_name ASC,
-              id ASC
-            """
-        ),
-        {
-            "tenant_key": tenant_key,
-            "project_id": project_id,
-            "start_date": start_date,
-            "end_date": end_date,
-            "metric_definition_version": metric_definition_version,
-        },
-    ).mappings().all()
+    return list_project_fact_metric_rows(
+        db,
+        tenant_key=tenant_key,
+        project_id=project_id,
+        start_date=start_date,
+        end_date=end_date,
+        metric_definition_version=metric_definition_version,
+    )
 
 
 def list_alert_events_for_window(

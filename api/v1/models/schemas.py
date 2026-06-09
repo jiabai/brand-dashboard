@@ -330,9 +330,9 @@ class ProjectDataQualitySummary(BaseModel):
     retryable_failed_collection_task_count: int
     stale_analysis_run_count: int
     recomputable_analysis_run_count: int
-    metric_snapshot_count: int
-    metric_dimension_count: int
-    metric_coverage_rate: Optional[float] = None
+    analysis_fact_count: int
+    analysis_dimension_count: int
+    analysis_coverage_rate: Optional[float] = None
 
 
 class ProjectFailedCollectionTaskItem(BaseModel):
@@ -364,17 +364,17 @@ class ProjectStaleAnalysisRunItem(BaseModel):
 
 class ProjectMetricCoverageData(BaseModel):
     data_source: str
-    snapshot_status: str
+    coverage_status: str
     metric_definition_version: str
     analysis_run_id: Optional[str] = None
-    metric_generated_at: Optional[datetime] = None
-    metric_coverage_rate: Optional[float] = None
-    metric_expected_task_count: Optional[int] = None
-    metric_succeeded_task_count: Optional[int] = None
-    metric_failed_task_count: Optional[int] = None
-    metric_analyzed_answer_count: Optional[int] = None
-    metric_snapshot_count: int
-    metric_dimension_count: int
+    analysis_finished_at: Optional[datetime] = None
+    analysis_coverage_rate: Optional[float] = None
+    expected_task_count: Optional[int] = None
+    succeeded_task_count: Optional[int] = None
+    failed_task_count: Optional[int] = None
+    analyzed_answer_count: Optional[int] = None
+    analysis_fact_count: int
+    analysis_dimension_count: int
 
 
 class ProjectRecomputeAction(BaseModel):
