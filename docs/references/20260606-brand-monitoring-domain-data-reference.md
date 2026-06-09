@@ -23,7 +23,7 @@
 | Analysis Run | 对一批原始数据执行分析的运行记录。 |
 | Brand Mention Fact | 某回答中某品牌的提及、首位、Top3 和情绪事实。 |
 | Reference Classification | 某引用链接的内容类型、是否发稿链接和来源质量事实。 |
-| Metric Snapshot | 面向 dashboard 和报告的聚合指标快照。 |
+| Fact Metric Aggregation | 面向 dashboard、报告、告警和数据质量的事实聚合指标。 |
 
 ## 2. 目标实体参考
 
@@ -103,7 +103,7 @@ mysql -u root -p geo < api/database/migrations/20260607_add_collection_lifecycle
 | 采集批次 | `collection_jobs` 使用 `(tenant_key, collection_job_id)` 作为稳定业务键，并通过 `(tenant_key, project_id)` 绑定监测项目。`source_job_id` 仅用于兼容期追溯旧 `llm_query_jobs.job_id`。 |
 | 任务领取 | `collection_tasks` 保留 `status`、`lease_owner`、`lease_until`、`reserved_at`、`started_at`、`finished_at`，并用 `idx_collection_tasks_fetch (tenant_key, status, lease_until, id)` 支持 Phase 4.2 的领取查询。 |
 | 重试与失败 | `collection_tasks` 记录 `attempt_count`、`max_attempts`、`last_error_code`、`last_error_message`；`collection_attempts` 记录每次执行的 `executor_id`、`status`、`started_at`、`finished_at`、`error_code`、`error_message`。 |
-| 生命周期 | 删除采集批次时级联删除任务和 attempt；删除项目不会级联删除采集批次，历史采集链路需要保留给分析、指标快照和审计追溯。 |
+| 生命周期 | 删除采集批次时级联删除任务和 attempt；删除项目不会级联删除采集批次，历史采集链路需要保留给分析、事实聚合和审计追溯。 |
 | 执行器关系 | `lease_owner` 和 `collection_attempts.executor_id` 均可在执行器删除时置空，避免历史 attempt 丢失。 |
 
 本阶段只落 schema，不改旧 `/api/v1/query-jobs/fetch` 和 `/api/v1/query-jobs/report` 协议；Phase 4.2/4.3 再将领取和 attempt 上报映射到新模型。
@@ -218,7 +218,7 @@ GET /api/v1/platform/collection-health?failedTaskLimit=20
 | 实体 | 关键字段 | 说明 |
 |------|----------|------|
 | `analysis_runs` | `analysis_run_id`、`project_id`、`collection_job_id`、`status`、`plugin_versions`、`model_config_hash` | 分析运行记录。 |
-| `metric_snapshots` | `snapshot_id`、`project_id`、`metric_date`、`brand_id`、`platform`、`keyword`、`metric_name`、`metric_value`、`metric_definition_version`、`analysis_run_id`、`coverage_rate` | dashboard 读模型。 |
+| `fact_metrics` Repository 聚合 | `project_id`、`metric_date`、`brand_name`、`platform`、`keyword`、`metric_name`、`metric_value`、`metric_definition_version`、`analysis_run_id`、`dimension_hash` | 基于 `qa_brand_state` / `qa_reference` 的 dashboard、报告和告警读面。 |
 
 ### 2.5.1 Phase 5.1 analysis_runs 落地说明
 
@@ -262,7 +262,7 @@ mysql -u root -p geo < api/database/migrations/20260607_add_analysis_run_model.m
 |----------|----------------|
 | 分析插件服务入口 | 以 `analysis_run_id` 作为运行上下文，读取同租户同采集批次的原始问答与引用。 |
 | 事实表写入 | 所有分析事实必须带 `analysis_run_id`，并保留租户过滤。 |
-| 指标快照生成 | Phase 6 从成功的 analysis run 生成 `metric_snapshots`。 |
+| 事实指标聚合 | Phase 6 从成功分析事实实时聚合 `brand_metrics_v1` 指标，不落独立快照表。 |
 | 重试与失败可观测 | Phase 5.3 基于 `failed` run 的错误字段和输入水位实现 retry。 |
 
 ### 2.5.2 Phase 5.2 系统分析服务与事实血缘
@@ -278,7 +278,7 @@ Phase 5.2 将 `analysis/` 下已有的 `mention_status` 与 `reference_status` �
 | `qa_brand_state` | `analysis_run_id`，可为空，外键引用 `(tenant_key, analysis_run_id)` | 继续按 `(tenant_key, job_id, conversation_id, brand)` upsert；重跑会更新同一事实行的 `analysis_run_id`。 |
 | `qa_reference` | `analysis_run_id`，可为空，外键引用 `(tenant_key, analysis_run_id)` | 兼容期继续按 `(tenant_key, conversation_id, url)` upsert；重跑会更新同一引用事实的 `analysis_run_id`。 |
 
-`analysis_run_id` 采用 nullable 字段，是为了保留历史事实行和旧 dashboard 查询的兼容性。它不进入旧唯一键，避免同一回答因为不同 analysis run 重复出现在兼容 dashboard 聚合里；后续 Phase 6 的指标快照会使用成功的 `analysis_runs` 生成稳定 read model，而不是直接把多个重跑事实暴露给用户。
+`analysis_run_id` 采用 nullable 字段，是为了保留历史事实行和旧 dashboard 查询的兼容性。它不进入旧唯一键，避免同一回答因为不同 analysis run 重复出现在兼容 dashboard 聚合里；当前读取面通过成功分析事实实时聚合指标，而不是把多个重跑事实直接暴露给用户。
 
 MySQL 迁移脚本：
 
@@ -301,116 +301,52 @@ retry 不复用原始 `analysis_run_id`。服务会读取原 run 的 `collection
 
 事实表仍沿用兼容期 upsert 语义。若失败 run 曾留下部分 `qa_brand_state` 或 `qa_reference` 事实，成功 retry 会把同一事实键的 `analysis_run_id` 更新为新的 succeeded run，从而减少失败运行对后续读取面的影响。
 
-Phase 6 生成指标快照时必须只选择 `status='succeeded'` 的 analysis run。本阶段已在 Repository 层提供 `get_latest_successful_analysis_run_for_collection` 作为候选查询入口；它不会返回 failed/stale/pending/running run。这样即使失败运行曾写入过部分事实，也不会成为快照生成的合法输入。
+事实指标聚合必须只选择 `status='succeeded'` 的 analysis run。本阶段已在 Repository 层提供 `get_latest_successful_analysis_run_for_collection` 作为候选查询入口；它不会返回 failed/stale/pending/running run。这样即使失败运行曾写入过部分事实，也不会成为指标读取面的合法输入。
 
 本阶段的 retry 仍是同步 API 调用。后续如果分析耗时明显增加，应把 API 改为创建 pending retry run，由后台 worker 异步执行。
 
-### 2.5.4 Phase 6.1 指标快照模型
+### 2.5.4 Phase 6 当前指标读取策略：事实聚合
 
-Phase 6.1 新增 `metric_snapshots` 表，作为 dashboard、报告和后续告警的稳定 read model。本阶段只落 schema 和迁移，不生成指标、不改 dashboard 查询；Phase 6.2 再实现指标口径和快照生成，Phase 6.3 再迁移 dashboard 读取。
+2026-06-09 的设计修正已移除独立指标快照机制。当前分支不再包含 `metric_snapshots` 表、生成服务或快照优先读取路径；dashboard、报告、告警和数据质量统一通过 Repository 层从分析事实实时聚合。
 
-核心字段：
+首版口径版本仍为 `brand_metrics_v1`，但它表示“事实聚合口径版本”，不再表示快照表版本。核心入口是 `api/v1/repositories/fact_metrics.py`：
 
-| 字段 | 说明 |
-|------|------|
-| `snapshot_id` | 稳定快照 ID，用于 API 或排障引用。 |
-| `project_id` | 监测项目 ID；必须与当前租户下的 `monitoring_projects` 绑定。 |
-| `analysis_run_id` | 生成该快照的分析运行；必须引用同租户的 `analysis_runs`。 |
-| `metric_date` | 指标业务日期。 |
-| `brand_id` / `brand_name` | 品牌维度。`brand_id` 为空字符串时表示全品牌聚合，`brand_name` 保存生成时展示名。 |
-| `platform` | 平台维度。空字符串表示全平台聚合。 |
-| `keyword` | 关键词维度。空字符串表示全关键词聚合。 |
-| `metric_name` | 指标名，例如 `mention_rate`、`first_mention_rate`、`top3_mention_rate`、`reference_rate`。 |
-| `metric_value` / `metric_unit` | 指标值和单位，单位可为 `ratio`、`count` 等。 |
-| `metric_definition_version` | 指标口径版本，Phase 6.2 会为各指标定义稳定版本。 |
-| `expected_task_count` / `succeeded_task_count` / `failed_task_count` | 采集覆盖数据。 |
-| `analyzed_answer_count` | 本指标实际纳入分析的回答数。 |
-| `coverage_rate` | 覆盖率，用于 dashboard 展示数据完整性。 |
-| `source_watermark` | 输入数据水位，可记录 `analysis_runs.input_watermark` 或后续快照输入版本。 |
-| `dimension_hash` | 品牌、平台、关键词等维度组合的 hash，用于幂等唯一键。 |
-| `generated_at` | 快照生成时间，用于新鲜度展示。 |
+| 读取面 | 当前来源 | 说明 |
+|------|----------|------|
+| `brand-metrics` | `qa_brand_state` | 按品牌聚合 `mention_rate`、`first_mention_rate`、`top3_mention_rate`，metadata 标记 `data_source=analysis_fact`。 |
+| `brand-mention-trend` | `qa_brand_state` | 按日期、品牌、平台、关键词实时聚合。 |
+| `platform-metrics-by-brand` | `qa_brand_state` | 按品牌和平台实时聚合。 |
+| `keyword-platform-brand-rates` | `qa_brand_state` | 按关键词、平台、品牌实时聚合。 |
+| 真实情感分析 | `qa_brand_state.sentiment_status` | 按真实分析事实聚合，不再读取情绪比例快照。 |
+| 报告核心指标 | `fact_metrics` 聚合结果 | 报告生成时把事实聚合结果固化进 `generated_reports.metrics_json`。 |
+| 告警评估 | `fact_metrics` 聚合结果 | 同一维度当前事实指标与前一业务日期事实指标比较。 |
+| 数据质量 | `collection_jobs`、`collection_tasks`、`analysis_runs`、`qa_brand_state` | 展示采集、分析和事实覆盖，不再展示快照覆盖率。 |
 
-幂等键为 `(tenant_key, project_id, metric_date, metric_name, metric_definition_version, analysis_run_id, dimension_hash)`。没有直接把 `brand_id + platform + keyword` 全量放进唯一键，是因为这些维度字段和 `tenant_key` 都是 `utf8mb4 varchar`，MySQL 复合唯一索引容易超过 3072-byte 上限；`dimension_hash` 能在保留原始维度字段的同时稳定支持重算 upsert。
-
-MySQL 迁移脚本：
-
-```powershell
-mysql -u root -p geo < api/database/migrations/20260607_add_metric_snapshots.mysql.sql
-```
-
-生成器必须只使用 `status='succeeded'` 的 analysis run，且写入时必须携带同租户 `tenant_key`，不能跨项目或跨租户聚合。
-
-### 2.5.5 Phase 6.2 指标快照生成口径
-
-Phase 6.2 新增内部服务 `api/v1/services/metric_snapshots.py` 和仓储 `api/v1/repositories/metric_snapshots.py`，从成功的 `analysis_runs` 生成 `metric_snapshots`。本阶段仍不改 dashboard 查询；Phase 6.3 再让 dashboard 优先读取快照。
-
-服务入口为 `generate_metric_snapshots_for_analysis_run(db, tenant_key, analysis_run_id)`。入口约束：
-
-- `analysis_runs.status` 必须为 `succeeded`，否则返回 409，不写入快照。
-- 所有读取都带 `tenant_key`，并通过 `analysis_run_id` 限定同一次分析输出。
-- 当前生成粒度为 `(metric_date, brand, platform, keyword)`，`brand_id` 优先从同项目 active `project_brands.brand_name` 精确匹配；无匹配时暂以事实中的 `brand` 作为兼容回退。
-- `coverage_rate = collection_jobs.succeeded_task_count / collection_jobs.expected_task_count`；当 expected 为 0 时保存为空，避免制造虚假的完整性。
-- 快照写入使用 `metric_snapshots` 的幂等唯一键 upsert；重复生成同一个 analysis run 不会插入重复行。
-
-首版口径版本为 `brand_metrics_v1`，所有值均以 `ratio` 写入，并保留 6 位小数：
+`brand_metrics_v1` 首版事实聚合口径：
 
 | `metric_name` | 口径 |
 |------|------|
-| `mention_rate` | 同一品牌/日期/平台/关键词下，`is_mentioned = 1` 的去重回答数 / 纳入分析的去重回答数。 |
-| `first_mention_rate` | `is_first_mentioned = 1` 的去重回答数 / 纳入分析的去重回答数。 |
-| `top3_mention_rate` | `is_top3_mentioned = 1` 的去重回答数 / 纳入分析的去重回答数。 |
-| `sentiment_positive_ratio` | `sentiment_status = positive` 的去重回答数 / 纳入分析的去重回答数。 |
-| `sentiment_negative_ratio` | `sentiment_status = negative` 的去重回答数 / 纳入分析的去重回答数。 |
-| `sentiment_neutral_ratio` | `sentiment_status = neutral` 的去重回答数 / 纳入分析的去重回答数。 |
-| `sentiment_unknown_ratio` | 情绪值不属于 positive/negative/neutral 的去重回答数 / 纳入分析的去重回答数。 |
-| `reference_rate` | 同一 analysis run、品牌、日期、平台和关键词下，在 `qa_reference` 中存在至少一条引用的去重回答数 / 纳入分析的去重回答数。 |
+| `mention_rate` | 同一租户、项目、日期、品牌、平台和关键词下，`is_mentioned=1` 的去重回答数 / 纳入分析的去重回答数。 |
+| `first_mention_rate` | 同上，`is_first_mentioned=1` 的去重回答数 / 纳入分析的去重回答数。 |
+| `top3_mention_rate` | 同上，`is_top3_mentioned=1` 的去重回答数 / 纳入分析的去重回答数。 |
+| `sentiment_negative_ratio` | 同一维度下，品牌被提及且情绪为 negative 的去重回答数 / 品牌被提及的去重回答数。 |
+| `reference_rate` | 同一维度下，在 `qa_reference` 中存在至少一条引用的去重回答数 / 纳入分析的去重回答数。 |
 
-`reference_rate` 表达“回答是否带任意信源引用”，不等同于旧指标文档中的发稿链接覆盖率；后者依赖 `is_published_link`，应在后续作为独立指标或新口径版本扩展。
+兼容期 dashboard 仍以 `tenant_key + job_id` 作为 URL 和部分 API 查询输入；项目级读取面优先以 `tenant_key + project_id` 查询。旧 `job_id` 通过 `llm_query_jobs.project_id`、`collection_jobs.source_job_id` 和 `analysis_runs.collection_job_id` 桥接到项目生命周期。
 
-### 2.5.6 Phase 6.3 Dashboard 快照优先读取
-
-Phase 6.3 将品牌提及类 dashboard 读取面迁移为快照优先。实现位置仍在 Repository 层，`DashboardService` 对外方法和 API 响应结构保持不变：
-
-| Dashboard 读取面 | 快照来源 | 无快照时兜底 |
-|------|------|------|
-| `brand-metrics` | `metric_snapshots` 中的 `mention_rate`、`first_mention_rate`、`top3_mention_rate`，按品牌加权汇总。 | 旧 `qa_brand_state` 聚合。 |
-| `brand-mention-trend` | 指定品牌、平台、关键词、日期的 `mention_rate` 快照。 | 旧 `qa_brand_state` 日聚合。 |
-| `platform-metrics-by-brand` | 指定品牌下按平台加权汇总 `mention_rate`。 | 旧 `qa_brand_state` 平台聚合。 |
-| `keyword-platform-brand-rates` | 按关键词、平台、品牌读取 `mention_rate`、`first_mention_rate`、`top3_mention_rate` 快照。 | 旧 `qa_brand_state` 聚合。 |
-
-兼容期 dashboard 仍以 `tenant_key + job_id` 作为 URL 和 API 查询输入。快照查询会通过 `analysis_runs.collection_job_id = job_id` 或 `collection_jobs.source_job_id = job_id` 找到最新 succeeded analysis run，因此新采集批次 ID 和旧 legacy job ID 都可以进入同一读取路径。
-
-本阶段暂不迁移以下读取面：
-
-- `platform-mention-rates`：现有接口需要 `category` 维度，Phase 6.2 的 `metric_snapshots` 暂未保存 category。
-- 引用域名、引用类型、URL 引用、发稿链接覆盖率相关接口：这些口径依赖 `qa_reference` 的 domain、content_type、url、`is_published_link` 等明细维度，不能由首版 `brand_metrics_v1` 直接替代。
-
-当匹配不到可用快照时，Repository 返回空列表并继续执行旧明细聚合。这样旧 dashboard、历史 job 和尚未生成快照的采集批次仍能工作；Phase 6.4 再在前端展示快照新鲜度和覆盖率，帮助用户理解数据来源。
-
-### 2.5.7 Phase 6.4 Dashboard 数据新鲜度与覆盖率
-
-Phase 6.4 在 `brand-metrics` 响应的 `metadata` 中增加快照质量字段，不改变 `data` 数组中的品牌指标结构。前端首页继续通过同一个接口加载目标品牌和竞品列表，并使用 metadata 展示数据来源、指标生成时间、采集覆盖和分析完整性。
-
-新增 metadata 字段：
+`brand-metrics.metadata` 当前只保留事实聚合语义：
 
 | 字段 | 说明 |
 |------|------|
-| `data_source` | `metric_snapshot` 表示当前窗口匹配到指标快照；`legacy_aggregation` 表示回退到旧明细聚合。 |
-| `snapshot_status` | `available` 表示快照可用；`missing` 表示快照未生成或当前窗口无可用快照。 |
-| `metric_definition_version` | 当前质量信息对应的指标口径版本，首版为 `brand_metrics_v1`。 |
-| `analysis_run_id` | 生成快照的分析运行 ID；旧明细聚合或快照缺失时为空。 |
-| `metric_generated_at` | 快照生成时间，用于 dashboard 新鲜度展示。 |
-| `metric_coverage_rate` | 采集覆盖率，值为 0-1 的比例；缺失时前端展示“覆盖率待生成”。 |
-| `metric_expected_task_count` / `metric_succeeded_task_count` / `metric_failed_task_count` | 采集任务完整性计数，用于前端展示“成功 / 预期 / 失败”。 |
-| `metric_analyzed_answer_count` | 当前指标窗口实际纳入分析的回答数，按日期和维度去重后汇总。 |
-| `metric_snapshot_count` / `metric_dimension_count` | 当前窗口命中的快照行数和业务维度数，用于排障与后续数据质量页。 |
+| `data_source` | `analysis_fact` 或 `empty`。 |
+| `metric_definition_version` | 当前指标口径版本，首版为 `brand_metrics_v1`。 |
+| `row_count` / `total_count` 等 | 当前窗口聚合返回的数据规模。 |
 
 前端展示策略：
 
-- 当 `data_source = metric_snapshot` 且 `snapshot_status = available` 时，展示“指标快照”、生成时间、覆盖率、分析完整性和纳入分析回答数。
-- 当快照缺失或质量查询失败时，展示“明细聚合”和“快照未生成”，并明确提示当前数据来自历史明细聚合，避免用户把旧聚合误解为已生成快照。
-- 空状态文案不再描述为“接口未返回可展示的数据”，而是提示当前筛选下没有品牌指标，若刚完成采集需等待分析和指标快照生成。
-
+- 当 `data_source=analysis_fact` 时，展示真实分析事实聚合结果。
+- 当 `data_source=empty` 或聚合结果为空时，展示当前筛选下没有品牌指标。
+- 不展示“快照生成时间”“快照覆盖率”“快照缺失”等文案。
 ### 2.5.8 Phase 7.1 问答快照页
 
 Phase 7.1 新增问答快照读面，用于从 dashboard 直接查看原始回答，并按品牌、平台、关键词、情绪和是否引用筛选。兼容期仍使用 `tenant_key + job_id` 作为入口；后续 Phase 8 再把旧 job 路由收敛到项目运行页。
@@ -462,7 +398,7 @@ GET /api/v1/dashboard/sentiment-analysis
 |------|------|
 | `tenant_key` / `job_id` | 当前 dashboard 查询边界，所有 SQL 必须带租户过滤。 |
 | `timeframe` / `start_date` / `end_date` | 复用 dashboard 时间窗口；`specific_day` 必须传起止日期。 |
-| `brand` | 可选品牌筛选。快照读 `metric_snapshots.brand_name`，兜底读 `qa_brand_state.brand`。 |
+| `brand` | 可选品牌筛选，读取 `qa_brand_state.brand`。 |
 | `platform` / `keyword` | 可选维度筛选。用于情绪分布和关键词情绪明细。 |
 
 响应 `data`：
@@ -476,16 +412,15 @@ GET /api/v1/dashboard/sentiment-analysis
 
 | 字段 | 说明 |
 |------|------|
-| `data_source` | `metric_snapshot`、`legacy_fact` 或 `empty`。 |
+| `data_source` | `analysis_fact` 或 `empty`。 |
 | `sample_count` | 当前筛选窗口纳入情感统计的回答数。 |
-| `snapshot_status` / `metric_definition_version` | 指标快照状态和口径版本。 |
-| `metric_generated_at` / `metric_coverage_rate` | 当数据来自快照时展示生成时间和覆盖率。 |
+| `metric_definition_version` | 情感统计所属的指标口径版本，当前为 `brand_metrics_v1`。 |
 
-Repository 先按最新成功 analysis run 读取 `metric_snapshots` 中的 `sentiment_positive_ratio`、`sentiment_negative_ratio`、`sentiment_neutral_ratio`、`sentiment_unknown_ratio`，并用 `analyzed_answer_count` 加权汇总。若快照缺失，则从 `qa_brand_state.sentiment_status` 按真实分析事实兜底聚合；若两者都没有，返回空数组和 `data_source=empty`，前端展示“暂无真实情感数据”，不再用 mock 统计填充正式页面。
+Repository 从 `qa_brand_state.sentiment_status` 按真实分析事实聚合。若没有可用事实，返回空数组和 `data_source=empty`，前端展示“暂无真实情感数据”，不再用 mock 统计填充正式页面。
 
 ### 2.5.10 Phase 7.3 告警规则与告警事件
 
-Phase 7.3 新增 `alert_rules` 和 `alert_events`，把指标快照中的异常变化沉淀为可查询、可去重、可追溯的项目级告警事件。本阶段先落后端 MVP，不新增独立前端页面；后续报告和项目页可以直接消费项目告警读面。
+Phase 7.3 新增 `alert_rules` 和 `alert_events`，把事实聚合指标中的异常变化沉淀为可查询、可去重、可追溯的项目级告警事件。本阶段先落后端 MVP，不新增独立前端页面；后续报告和项目页可以直接消费项目告警读面。
 
 核心表：
 
@@ -498,9 +433,9 @@ Phase 7.3 新增 `alert_rules` 和 `alert_events`，把指标快照中的异常�
 
 | `rule_type` | 触发口径 |
 |------|------|
-| `metric_drop` | 同一维度当前值相比上一条指标快照下降幅度大于等于 `threshold_value`。用于提及率下降等场景。 |
-| `metric_rise` | 同一维度当前值相比上一条指标快照上升幅度大于等于 `threshold_value`。用于负面情绪上升等场景。 |
-| `metric_change` | 同一维度当前值相比上一条指标快照的绝对变化大于等于 `threshold_value`。用于信源引用率变化等场景。 |
+| `metric_drop` | 同一维度当前事实指标相比上一业务日期下降幅度大于等于 `threshold_value`。用于提及率下降等场景。 |
+| `metric_rise` | 同一维度当前事实指标相比上一业务日期上升幅度大于等于 `threshold_value`。用于负面情绪上升等场景。 |
+| `metric_change` | 同一维度当前事实指标相比上一业务日期的绝对变化大于等于 `threshold_value`。用于信源引用率变化等场景。 |
 
 事件去重键为 `(tenant_key, alert_rule_id, analysis_run_id, metric_date, dimension_hash)`。同一个 analysis run 被重复评估时不会生成重复事件；事件仍保留 `alert_event_id` 作为外部稳定 ID，便于后续确认、解决和报告引用。
 
@@ -510,7 +445,7 @@ Phase 7.3 新增 `alert_rules` 和 `alert_events`，把指标快照中的异常�
 evaluate_alert_rules_for_analysis_run(db, tenant_key, analysis_run_id)
 ```
 
-服务只评估 `succeeded` analysis run，读取当前 run 的 `metric_snapshots`，再按同一 `project_id + metric_name + metric_definition_version + dimension_hash` 找到更早的最近一条快照作为比较基线。所有查询和写入都必须显式携带 `tenant_key`。
+服务只评估 `succeeded` analysis run，通过 `fact_metrics` 聚合当前 run 的指标，再按同一 `project_id + metric_name + metric_definition_version + dimension_hash` 找到更早业务日期的最近事实指标作为比较基线。所有查询和写入都必须显式携带 `tenant_key`。
 
 项目告警读取 API：
 
@@ -529,7 +464,7 @@ GET /api/v1/projects/{project_id}/alerts
 
 ### 2.5.11 Phase 7.4 报告生成与报告结果
 
-Phase 7.4 新增 `generated_reports`，把一次项目报告生成动作沉淀为可查询的报告结果。报告结果不是临时响应，而是包含时间窗口、核心指标快照、告警摘要和生成元数据的 read model；后续 PDF、CSV 或前端报告页都应优先消费该表。
+Phase 7.4 新增 `generated_reports`，把一次项目报告生成动作沉淀为可查询的报告结果。报告结果不是临时响应，而是包含时间窗口、核心事实指标、告警摘要和生成元数据的 read model；后续 PDF、CSV 或前端报告页都应优先消费该表。
 
 核心表：
 
@@ -550,7 +485,7 @@ GET  /api/v1/projects/{project_id}/reports
 
 | 数据 | 来源 | 说明 |
 |------|------|------|
-| 核心指标 | `metric_snapshots` | 读取 `mention_rate`、`first_mention_rate`、`top3_mention_rate`、`sentiment_negative_ratio`、`reference_rate`，按品牌和指标口径版本聚合。 |
+| 核心指标 | `fact_metrics` 聚合结果 | 读取 `mention_rate`、`first_mention_rate`、`top3_mention_rate`、`sentiment_negative_ratio`、`reference_rate`，按品牌和指标口径版本聚合。 |
 | 时间窗口 | 请求参数 `start_date` / `end_date` | 同时写入报告行字段和 `summary_json.data_window`。 |
 | 告警摘要 | `alert_events` | 按同一项目和指标日期窗口读取，写入事件数量、打开事件数量、严重级别统计和事件摘要。 |
 | 生成元数据 | 当前用户与生成时间 | `generated_by` 记录用户 ID，`generated_at` 记录生成时间。 |
@@ -580,7 +515,7 @@ GET /api/v1/projects/{project_id}/data-quality
 |------|------|------|
 | 失败采集 | `collection_tasks` | 查询当前 `tenant_key + project_id` 下 `status='failed'` 的采集任务，并根据 `attempt_count < max_attempts` 标记是否可重新领取。 |
 | 过期分析 | `analysis_runs` | 查询当前项目下 `status='stale'` 的 analysis run，并返回可重算动作元数据。 |
-| 指标覆盖率 | `metric_snapshots` | 聚合项目级快照覆盖率、预期/成功/失败任务数、快照数、维度数和分析回答数。 |
+| 指标覆盖率 | `qa_brand_state` + `analysis_runs` + `collection_jobs` | 聚合项目级分析事实覆盖率、预期/成功/失败任务数、事实数、维度数和分析回答数。 |
 | 可重算入口 | `analysis_runs` retry API | 页面按钮调用既有 `POST /api/v1/analysis-runs/{analysis_run_id}/retry`，不新增独立重算状态机。 |
 
 前端入口：
@@ -649,7 +584,7 @@ Phase 8.1 将租户工作台的主入口从旧 `tenant_key + job_id` dashboard �
 |------|------|
 | `pending` | 等待分析。 |
 | `running` | 分析中。 |
-| `succeeded` | 分析事实和指标快照写入完成。 |
+| `succeeded` | 分析事实写入完成，可被指标读取面聚合。 |
 | `failed` | 分析失败，记录错误。 |
 | `stale` | 上游数据或分析配置变化，需要重算。 |
 
@@ -662,7 +597,7 @@ Phase 8.1 将租户工作台的主入口从旧 `tenant_key + job_id` dashboard �
 | `llm_conversation_references` | `answer_references` | 引入 `url_hash` 和引用规范化。 |
 | `qa_brand_state` | `brand_mention_facts` | 增加唯一键和 `analysis_run_id`。 |
 | `qa_reference` | `reference_classifications` | 增加 `analysis_run_id`、`answer_reference_id`。 |
-| `qa_brand_summary` | `metric_snapshots` | 逐步迁移为通用指标快照。 |
+| `qa_brand_summary` | 可废弃兼容汇总 | 当前指标读取以 `qa_brand_state` / `qa_reference` 事实聚合为准。 |
 
 ## 5. API 契约草案
 
@@ -770,7 +705,7 @@ POST /api/v1/analysis-runs/{analysis_run_id}/retry
 | 引用链接 | `(tenant_key, answer_snapshot_id, url_hash)` |
 | 品牌提及事实 | `(tenant_key, analysis_run_id, answer_snapshot_id, brand_id)` |
 | 引用分类事实 | `(tenant_key, analysis_run_id, answer_reference_id, brand_id)` |
-| 指标快照 | `(tenant_key, project_id, metric_date, metric_name, brand_id, platform, keyword, snapshot_version)` |
+| 事实指标聚合 | `(tenant_key, project_id, metric_date, metric_name, brand_name, platform, keyword, metric_definition_version, dimension_hash)` |
 
 兼容阶段至少修复 `qa_brand_state` 对 `(tenant_key, job_id, conversation_id, brand)` 的唯一约束，否则分析重跑会产生重复事实。
 
@@ -861,15 +796,17 @@ llm_query_jobs.id + executor_id
 
 ## 7. 数据质量字段建议
 
-指标快照应包含：
+数据质量读面应从采集、分析和事实聚合中返回：
 
 - `expected_task_count`
 - `succeeded_task_count`
 - `failed_task_count`
 - `analyzed_answer_count`
-- `coverage_rate`
-- `source_watermark`
-- `generated_at`
+- `analysis_fact_count`
+- `analysis_dimension_count`
+- `analysis_coverage_rate`
+- `analysis_run_id`
+- `analysis_finished_at`
 - `metric_definition_version`
 
-dashboard 展示时应能说明当前指标是否完整、是否过期、是否来自失败后部分数据。
+dashboard 和项目数据质量页展示时应能说明当前指标是否完整、是否过期、是否来自成功分析事实聚合。

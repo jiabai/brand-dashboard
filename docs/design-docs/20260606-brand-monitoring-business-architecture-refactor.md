@@ -3,7 +3,7 @@
 > 评估日期：2026-06-06  
 > 评估对象：`brand-dashboard` 当前工作区  
 > 评估视角：产品业务流程、领域模型、数据生命周期  
-> 结论摘要：当前项目已经具备 AI 品牌监测仪表板 MVP 的骨架，但更像“围绕批次数据表构建的看板系统”，还不是一个完整的品牌监测业务系统。后续重构应以“监测项目”为业务主线，补齐采集编排、分析流水线、指标快照、告警报告和数据治理。
+> 结论摘要：当前项目已经具备 AI 品牌监测仪表板 MVP 的骨架，但更像“围绕批次数据表构建的看板系统”，还不是一个完整的品牌监测业务系统。后续重构应以“监测项目”为业务主线，补齐采集编排、分析流水线、事实聚合指标、告警报告和数据治理。
 
 ## 1. 一句话结论
 
@@ -42,7 +42,7 @@
 
 ### 3.4 指标查询已形成服务层
 
-`DashboardService` 把 API 层和 Repository 查询隔开，品牌提及、趋势、信源、筛选元数据等能力已经有稳定入口。后续迁移到新的指标快照模型时，可以保留这层作为兼容外壳。
+`DashboardService` 把 API 层和 Repository 查询隔开，品牌提及、趋势、信源、筛选元数据等能力已经有稳定入口。当前指标读取已收敛到 Repository 层事实聚合，可以保留这层作为兼容外壳。
 
 ### 3.5 分析能力有插件化雏形
 
@@ -82,7 +82,7 @@
 
 这个模型可以支撑 MVP，但不利于稳定调度。后续如果要支持多平台、多执行器、失败重试、任务锁定、暂停恢复、按项目重跑、按问题禁用，就需要把“任务定义”和“执行尝试”拆开。
 
-### 4.3 原始数据、分析结果、指标快照边界不够清楚
+### 4.3 原始数据、分析结果、事实聚合指标边界不够清楚
 
 当前有两组相似数据：
 
@@ -93,10 +93,10 @@
 
 - `qa_reference` 与 `llm_conversation_references` 字段大量重复，像“分析后的引用表”，但没有明确的 `analysis_run_id` 或版本。
 - `qa_brand_state` 记录品牌提及状态，但没有标记它由哪个分析任务、哪版模型、哪版提示词生成。
-- dashboard 直接从分析明细表聚合，缺少面向看板的稳定指标快照层。
+- dashboard 直接从分析明细表聚合，缺少统一的事实聚合口径和数据质量解释。
 - 重跑分析时缺少清晰的幂等规则和数据血缘，容易产生重复或覆盖不明。
 
-一个完整系统应该把数据分成四层：原始采集层、规范化事实层、分析结果层、指标快照层。
+一个完整系统应该把数据分成四层：原始采集层、规范化事实层、分析结果层、事实聚合指标层。
 
 ### 4.4 数据生命周期缺少状态机
 
@@ -109,7 +109,7 @@
 - 单次执行 attempt 的开始时间、结束时间、错误原因、原始响应大小、引用数量。
 - 原始数据入库成功但分析未完成的状态。
 - 分析结果已过期、待重算、重算失败。
-- 指标快照是否新鲜、是否完整覆盖目标平台和问题集。
+- 事实指标是否来自成功分析、是否完整覆盖目标平台和问题集。
 
 这些状态对业务很重要。没有它们，用户看到 dashboard 空数据时，系统无法清楚告诉他是“还没采集”、“采集失败”、“采集成功但未分析”，还是“分析完成但当前筛选无数据”。
 
@@ -164,7 +164,7 @@ flowchart TD
   G --> H["原始对话与引用入库"]
   H --> I["规范化、去重、质量校验"]
   I --> J["分析流水线识别品牌、情绪、信源类型"]
-  J --> K["生成指标快照"]
+  J --> K["聚合事实指标"]
   K --> L["看板、问答快照、信源分析"]
   K --> M["异常检测与告警"]
   K --> N["周期报告与导出"]
@@ -224,7 +224,7 @@ flowchart TD
 | `AnalysisRun` | 一次分析运行，记录插件、模型、提示词版本、输入范围和状态。 |
 | `BrandMentionFact` | 某回答中某品牌是否提及、是否首位、是否 Top3、情绪等。 |
 | `ReferenceClassification` | 某引用链接的内容类型、是否发稿链接、来源质量等。 |
-| `MetricSnapshot` | 面向 dashboard 的稳定指标快照，按项目、品牌、平台、关键词、日期聚合。 |
+| `FactMetricAggregation` | 面向 dashboard 的事实聚合指标，按项目、品牌、平台、关键词、日期聚合。 |
 | `Insight` | 自动发现的洞察，例如某平台声量下降、某信源贡献异常升高。 |
 | `AlertRule` / `AlertEvent` | 告警规则和触发事件。 |
 | `Report` | 周报、月报、客户导出报告。 |
@@ -242,7 +242,7 @@ api/v1/
   collection/          # 采集任务、执行器领取、attempt、心跳、重试
   ingestion/           # 原始对话和引用入库、去重、规范化
   analysis_pipeline/   # 分析运行、插件调度、模型配置、结果入库
-  metrics/             # 指标口径、快照生成、dashboard read models
+  metrics/             # 指标口径、事实聚合、dashboard read models
   insights/            # 异常检测、告警、报告
   platform_ops/        # 平台后台租户、执行器、运行状态总览
 ```
@@ -300,17 +300,17 @@ api/v1/
 | `llm_conversation_references` | 原始引用链接 `answer_references` |
 | `qa_brand_state` | 分析事实 `brand_mention_facts` |
 | `qa_reference` | 引用分析事实 `reference_classifications` |
-| `qa_brand_summary` | 可废弃或迁移为指标快照的一种物化结果 |
+| `qa_brand_summary` | 可废弃的 legacy 汇总；当前以事实聚合为准 |
 
-### 8.3 增加分析运行与指标快照
+### 8.3 增加分析运行与事实聚合指标
 
 新增：
 
 - `analysis_runs`：记录分析状态、插件版本、模型、输入范围、开始/结束时间、错误信息。
-- `metric_snapshots`：按 `project_id + date + brand_id + platform + keyword` 聚合后的指标。
-- `metric_snapshot_versions`：如果需要重算，可记录快照版本和生效状态。
+- `fact_metrics` Repository 聚合：按 `project_id + date + brand + platform + keyword` 实时聚合后的指标。
+- `metric_definition_version`：记录事实聚合口径版本，当前为 `brand_metrics_v1`。
 
-dashboard 优先读 `metric_snapshots`，而不是每次从明细表实时聚合。这样能提升性能，也能保证用户看到的是“已完成、可解释”的指标版本。
+dashboard 优先通过 Repository 层读取 `brand_metrics_v1` 事实聚合结果，而不是各页面各自拼 SQL。这样能保证用户看到的是“已完成、可解释”的指标版本；若未来重新引入物化 read model，必须先补齐生成、失效、重算和保留策略。
 
 ### 8.4 修复幂等唯一键
 
@@ -347,13 +347,13 @@ dashboard 优先读 `metric_snapshots`，而不是每次从明细表实时聚合
 - `failed`：分析失败。
 - `stale`：上游原始数据或分析配置变化，需要重算。
 
-### 9.3 指标快照状态
+### 9.3 事实聚合指标状态
 
-指标快照应有：
+事实聚合指标应能说明：
 
 - 数据窗口：`metric_date` 或 `start_date/end_date`。
 - 覆盖范围：项目、品牌、平台、关键词。
-- 版本：由哪次 `analysis_run` 生成。
+- 版本：采用哪个 `metric_definition_version`。
 - 新鲜度：`generated_at`、`source_watermark`。
 - 完整性：期望采集数、成功采集数、分析成功数。
 
@@ -423,11 +423,11 @@ GET  /api/v1/projects/{project_id}/reports
 - 分析结果写入带 `analysis_run_id` 的事实表。
 - dashboard 可以显示“采集完成，分析中”或“分析失败”的状态。
 
-### 阶段 4：建设指标快照与洞察
+### 阶段 4：建设事实聚合指标与洞察
 
 目标：让 dashboard 成为稳定 read model。
 
-- 新增 `metric_snapshots`，dashboard 优先读取快照。
+- 建立 `fact_metrics` 聚合入口，dashboard、告警和报告统一读取。
 - 明确每个指标口径：分母、过滤范围、是否按问题去重、是否按品牌角色区分。
 - 支持同环比、Top N 变化、平台差异、信源变化。
 - 增加 `insights` 和 `alert_events`，将异常变化转化为业务动作。
@@ -452,7 +452,7 @@ GET  /api/v1/projects/{project_id}/reports
 
 中等优先级：
 
-1. 建立指标快照层。
+1. 建立事实聚合指标层。
 2. 完善问答快照和真实情感分析。
 3. 建立 SourceDomain 信源字典。
 4. 平台后台增加执行器健康和任务运行总览。
@@ -472,8 +472,7 @@ GET  /api/v1/projects/{project_id}/reports
 - 一个多租户品牌监测 SaaS。
 - 一个以 Monitoring Project 为中心的业务系统。
 - 一个可追踪的采集与分析流水线。
-- 一个有指标快照、数据血缘和新鲜度的 BI read model。
+- 一个有事实聚合指标、数据血缘和新鲜度解释的 BI read model。
 - 一个能把指标变化转成告警、洞察和报告的客户交付系统。
 
 这套架构可以继续沿用当前 React + FastAPI + SQLAlchemy + MySQL 的技术栈。真正需要重构的不是技术栈，而是领域模型和数据生命周期。
-

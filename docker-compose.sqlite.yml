@@ -1,10 +1,10 @@
-# SQLite 版本的开发环境配置
-# 使用方式：docker compose -f docker-compose.sqlite.yml up
+# SQLite development environment.
+# Usage: docker compose -f docker-compose.sqlite.yml up
 #
-# 与 docker-compose.dev.yml 的区别：
-# - 不依赖外部 MySQL 服务
-# - 数据库文件持久化到 ./data/geo_csv/geo.db
-# - 适合本地开发和轻量部署场景
+# Differences from docker-compose.dev.yml:
+# - Does not depend on an external MySQL service.
+# - Persists the SQLite database at ./data/geo_csv/geo_migrated.db.
+# - Intended for local development and lightweight deployment checks.
 
 services:
   api:
@@ -20,7 +20,7 @@ services:
       - "8000:8000"
     environment:
       - DB_DIALECT=sqlite
-      - DB_SQLITE_PATH=/app/data/geo_csv/geo.db
+      - DB_SQLITE_PATH=/app/data/geo_csv/geo_migrated.db
 
   web:
     build:

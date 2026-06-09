@@ -14,7 +14,7 @@
 - 租户可以创建和管理长期监测项目。
 - 项目可以管理目标品牌、竞品、关键词、问题集、平台和采集策略。
 - 采集任务需要可领取、可重试、可追踪、可解释失败。
-- 原始数据、分析事实和指标快照需要有明确边界。
+- 原始数据、分析事实和事实聚合指标需要有明确边界。
 - dashboard、问答快照、告警、报告都应基于同一套项目和数据生命周期。
 
 非功能性要求：
@@ -43,7 +43,7 @@
 
 ### 2.3 采用写模型与读模型分离
 
-采集、分析、指标生成属于写模型；dashboard、报告、告警读取指标快照和查询模型。短期可以用 MySQL 物化表实现，不需要引入独立 OLAP。
+采集、分析属于写模型；dashboard、报告、告警读取 Repository 层的事实聚合指标和查询模型。短期不引入独立指标快照表或 OLAP。
 
 ## 3. 目标模块
 
@@ -112,7 +112,7 @@ flowchart TD
 | 编排层 | collection_job、collection_task、collection_attempt | 表达系统怎样采集。 |
 | 原始层 | answer_snapshot、answer_reference | 保存外部 AI 平台返回事实。 |
 | 分析层 | analysis_run、brand_mention_fact、reference_classification | 保存模型和规则分析结果。 |
-| 指标层 | metric_snapshot | 面向 dashboard 和报告的稳定读模型。 |
+| 指标层 | fact_metric_aggregation | 面向 dashboard、报告和告警的事实聚合读模型。 |
 | 洞察层 | insight、alert_event、report | 把指标变化转成业务动作。 |
 
 ## 6. 兼容策略
@@ -157,13 +157,13 @@ flowchart TD
 
 **后果**：执行器协议需要分阶段升级，并保留旧 fetch/report 兼容窗口。
 
-### ADR-004：dashboard 读取指标快照
+### ADR-004：dashboard 读取事实聚合指标
 
-**决策**：目标状态下 dashboard 不再直接从分析明细表实时聚合，而是读取 `metric_snapshots`。
+**决策**：当前目标状态下 dashboard 不引入独立指标快照表，而是在 Repository 层基于 `qa_brand_state`、`qa_reference` 和 `analysis_runs` 聚合 `brand_metrics_v1` 指标。
 
-**理由**：指标快照可以保存口径版本、数据完整性、新鲜度和来源分析运行，提升性能和可解释性。
+**理由**：本分支尚未生产发布，独立快照表缺少生成、失效、重算和保留策略。事实聚合能先保持口径一致、血缘清晰和数据解释简单。
 
-**后果**：需要建设指标生成任务，并明确旧 dashboard API 到新 read model 的映射。
+**后果**：需要把性能和数据质量观察点放在 Repository 聚合、查询索引和项目数据质量页；后续若重新引入物化 read model，必须先补齐生命周期策略。
 
 ### ADR-005：分析运行必须可追踪
 
@@ -178,7 +178,7 @@ flowchart TD
 | 风险 | 影响 | 缓解 |
 |------|------|------|
 | 一次性迁移过大 | dashboard 或执行器中断 | 分阶段兼容旧表和旧 API。 |
-| 指标口径变化 | 客户前后数据不一致 | 指标快照记录口径版本和生成时间。 |
+| 指标口径变化 | 客户前后数据不一致 | `brand_metrics_v1` 记录事实聚合口径，报告生成时固化当时的指标 JSON。 |
 | 重复数据污染 | 提及率和引用率失真 | 先修复唯一键和幂等写入。 |
 | 分析成本上升 | LLM 调用费用增加 | 分析运行去重、缓存、失败重试和按需重算。 |
 | 前端路由复杂 | 用户迷失在 job/project 两套入口 | 新页面以 project 为主，旧入口逐步跳转或隐藏。 |
