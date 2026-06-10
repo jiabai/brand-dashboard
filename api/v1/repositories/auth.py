@@ -359,6 +359,63 @@ def activate_admin_account(engine: Engine, token: str, password: str) -> Dict[st
     }
 
 
+def regenerate_admin_activation(engine: Engine, tenant_key: str) -> Dict[str, Any]:
+    now = datetime.now(UTC)
+    with engine.connect() as conn:
+        tenant_row = conn.execute(
+            text(
+                "SELECT id, tenant_name, subdomain FROM tenants"
+                " WHERE tenant_key = :tenant_key"
+            ),
+            {"tenant_key": tenant_key},
+        ).fetchone()
+        if not tenant_row:
+            raise LookupError("租户不存在")
+        tenant_id, tenant_name, subdomain = tenant_row
+
+        admin_row = conn.execute(
+            text(
+                """
+                SELECT u.id, u.email, u.status
+                FROM user_tenants ut
+                JOIN users u ON u.id = ut.user_id
+                WHERE ut.tenant_id = :tenant_id
+                  AND ut.role = 'admin'
+                ORDER BY ut.created_at ASC
+                LIMIT 1
+                """
+            ),
+            {"tenant_id": tenant_id},
+        ).fetchone()
+        if not admin_row:
+            raise ValueError("该租户未设置管理员")
+        user_id, admin_email, user_status = admin_row
+        if user_status == "active":
+            raise ValueError("账号已激活")
+        if user_status != "pending_activation":
+            raise ValueError("账号状态异常")
+
+    activation_token = sign_token(
+        {
+            "user_id": user_id,
+            "tenant_key": tenant_key,
+            "email": admin_email,
+            "type": "activation",
+            "exp": int((now + timedelta(days=7)).timestamp()),
+        },
+        _get_auth_secret(),
+    )
+    tenant_base_url = _build_tenant_base_url(subdomain)
+    return {
+        "tenantKey": tenant_key,
+        "tenantName": tenant_name,
+        "adminEmail": admin_email,
+        "activationToken": activation_token,
+        "activationUrl": f"{tenant_base_url}/activate?token={activation_token}",
+        "loginUrl": f"{tenant_base_url}/login",
+    }
+
+
 def verify_invite_code(engine: Engine, code: str) -> Dict[str, Any]:
     now = datetime.now(UTC)
     with engine.connect() as conn:
