@@ -31,7 +31,7 @@
 - Create: `api/tests/test_resend_activation.py`
 - Modify: `api/v1/repositories/auth.py`（在 `activate_admin_account` 之后新增函数）
 
-- [ ] **Step 1: 写失败的仓储测试**
+- [x] **Step 1: 写失败的仓储测试**
 
 创建 `api/tests/test_resend_activation.py`：
 
@@ -244,12 +244,12 @@ def test_regenerate_rejects_abnormal_admin(memory_engine):
         auth_repository.regenerate_admin_activation(memory_engine, "tn_demo")
 ```
 
-- [ ] **Step 2: 运行测试确认失败**
+- [x] **Step 2: 运行测试确认失败**
 
 Run: `$env:PYTHONPATH='.'; uv run --project api --extra dev pytest api/tests/test_resend_activation.py -q`
 Expected: FAIL，报 `AttributeError: ... has no attribute 'regenerate_admin_activation'`
 
-- [ ] **Step 3: 实现仓储函数**
+- [x] **Step 3: 实现仓储函数**
 
 在 `api/v1/repositories/auth.py` 的 `activate_admin_account` 函数之后（约 360 行附近）新增：
 
@@ -313,12 +313,12 @@ def regenerate_admin_activation(engine: Engine, tenant_key: str) -> Dict[str, An
 
 说明：`Engine`、`Dict`、`Any`、`datetime`、`UTC`、`timedelta`、`text`、`sign_token` 在该文件均已导入，无需新增 import。
 
-- [ ] **Step 4: 运行测试确认通过**
+- [x] **Step 4: 运行测试确认通过**
 
 Run: `$env:PYTHONPATH='.'; uv run --project api --extra dev pytest api/tests/test_resend_activation.py -q`
 Expected: 6 passed
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```powershell
 git add api/tests/test_resend_activation.py api/v1/repositories/auth.py
@@ -337,7 +337,7 @@ Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>
 - Modify: `api/tests/test_resend_activation.py`（追加路由测试）
 - Modify: `api/v1/routes/auth.py`（导入 + 新路由）
 
-- [ ] **Step 1: 追加失败的路由测试**
+- [x] **Step 1: 追加失败的路由测试**
 
 在 `api/tests/test_resend_activation.py` 顶部 import 区追加：
 
@@ -467,12 +467,12 @@ def test_resend_route_requires_platform_admin():
     assert response.status_code == 401
 ```
 
-- [ ] **Step 2: 运行测试确认失败**
+- [x] **Step 2: 运行测试确认失败**
 
 Run: `$env:PYTHONPATH='.'; uv run --project api --extra dev pytest api/tests/test_resend_activation.py -q`
 Expected: 新增 5 个路由测试 FAIL（404 Not Found：路由不存在 / patch 目标缺失报 `AttributeError`），原 6 个仓储测试 PASS
 
-- [ ] **Step 3: 实现路由**
+- [x] **Step 3: 实现路由**
 
 `api/v1/routes/auth.py` 修改一：`from api.v1.repositories.auth import (...)` 导入块（第 16-22 行）按字母序加入 `regenerate_admin_activation`：
 
@@ -527,12 +527,12 @@ def resend_tenant_activation(
 
 说明：`Engine`、`Depends`、`JSONResponse`、`get_engine`、`require_platform_admin`、`send_admin_activation_email`、`EMAIL_FAILED_MESSAGE` 该文件均已导入。
 
-- [ ] **Step 4: 运行测试确认通过**
+- [x] **Step 4: 运行测试确认通过**
 
 Run: `$env:PYTHONPATH='.'; uv run --project api --extra dev pytest api/tests/test_resend_activation.py -q`
 Expected: 11 passed
 
-- [ ] **Step 5: 后端回归与 lint**
+- [x] **Step 5: 后端回归与 lint**
 
 Run: `$env:PYTHONPATH='.'; uv run --project api --extra dev pytest api/tests/ -q`
 Expected: 全部通过（数量以当前主干为准，不得新增失败）
@@ -540,7 +540,7 @@ Expected: 全部通过（数量以当前主干为准，不得新增失败）
 Run: `uv run --project api ruff check api`
 Expected: All checks passed!
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```powershell
 git add api/tests/test_resend_activation.py api/v1/routes/auth.py
@@ -559,7 +559,7 @@ Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>
 - Modify: `web/src/api/__tests__/platform.test.js`
 - Modify: `web/src/api/platform.js`
 
-- [ ] **Step 1: 写失败的适配器测试**
+- [x] **Step 1: 写失败的适配器测试**
 
 `web/src/api/__tests__/platform.test.js` 的 import 块中（`fetchPlatformTenants,` 之后、`updatePlatformTenantMember,` 之前，保持字母序）加入 `resendPlatformTenantActivation`：
 
@@ -605,12 +605,12 @@ test('resendPlatformTenantActivation posts to the resend endpoint', async () => 
 });
 ```
 
-- [ ] **Step 2: 运行测试确认失败**
+- [x] **Step 2: 运行测试确认失败**
 
 Run: `npm --prefix web test`
 Expected: FAIL，报 `resendPlatformTenantActivation` 未从 `../platform.js` 导出（SyntaxError）
 
-- [ ] **Step 3: 实现适配器**
+- [x] **Step 3: 实现适配器**
 
 `web/src/api/platform.js` 在 `createPlatformTenant` 之后新增：
 
@@ -624,12 +624,12 @@ export const resendPlatformTenantActivation = (tenantKey, options) => {
 };
 ```
 
-- [ ] **Step 4: 运行测试确认通过**
+- [x] **Step 4: 运行测试确认通过**
 
 Run: `npm --prefix web test`
 Expected: 全部通过
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```powershell
 git add web/src/api/__tests__/platform.test.js web/src/api/platform.js
@@ -648,7 +648,7 @@ Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>
 - Modify: `web/src/components/platform/__tests__/platformTenantDetailPage.test.js`
 - Modify: `web/src/components/platform/PlatformTenantDetailPage.jsx`
 
-- [ ] **Step 1: 写失败的源码契约测试**
+- [x] **Step 1: 写失败的源码契约测试**
 
 `platformTenantDetailPage.test.js` 文件末尾追加：
 
@@ -670,12 +670,12 @@ describe('PlatformTenantDetailPage resend activation contract', () => {
 });
 ```
 
-- [ ] **Step 2: 运行测试确认失败**
+- [x] **Step 2: 运行测试确认失败**
 
 Run: `npm --prefix web test`
 Expected: 新增 2 个用例 FAIL（regex 不匹配）
 
-- [ ] **Step 3: 实现页面改动**
+- [x] **Step 3: 实现页面改动**
 
 `web/src/components/platform/PlatformTenantDetailPage.jsx` 共 5 处修改：
 
@@ -850,7 +850,7 @@ import {
 
 说明：`Alert/AlertTitle/AlertDescription`、`Button` 已在该文件导入；`canOpenTenantTools`、`adminActionLabel`、`handleOpenMemberSheet` 为既有标识符，原样保留。
 
-- [ ] **Step 4: 运行测试与构建确认通过**
+- [x] **Step 4: 运行测试与构建确认通过**
 
 Run: `npm --prefix web test`
 Expected: 全部通过
@@ -858,7 +858,7 @@ Expected: 全部通过
 Run: `npm --prefix web run build`
 Expected: 构建成功，无报错
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```powershell
 git add web/src/components/platform/__tests__/platformTenantDetailPage.test.js web/src/components/platform/PlatformTenantDetailPage.jsx
@@ -877,7 +877,7 @@ Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>
 - Create: `docs/changelog/20260610-050000-platform-resend-admin-activation.md`
 - Move: `docs/exec-plans/active/20260610-platform-resend-admin-activation.md` → `docs/exec-plans/completed/`
 
-- [ ] **Step 1: 运行全部门禁**
+- [x] **Step 1: 运行全部门禁**
 
 ```powershell
 uv run --project api ruff check api
@@ -889,7 +889,7 @@ python scripts/validate_agents_docs.py --level ERROR
 
 Expected: 全部通过。任何失败都必须先修复再继续，不得跳过。
 
-- [ ] **Step 2: 写 changelog 记录**
+- [x] **Step 2: 写 changelog 记录**
 
 创建 `docs/changelog/20260610-050000-platform-resend-admin-activation.md`：
 
@@ -920,7 +920,7 @@ Expected: 全部通过。任何失败都必须先修复再继续，不得跳过�
 
 注意：若实际执行的验证命令或结果与上述有出入，按真实情况修改后再提交。
 
-- [ ] **Step 3: 归档 ExecPlan**
+- [x] **Step 3: 归档 ExecPlan**
 
 ```powershell
 git mv docs/exec-plans/active/20260610-platform-resend-admin-activation.md docs/exec-plans/completed/20260610-platform-resend-admin-activation.md
@@ -930,7 +930,7 @@ git mv docs/exec-plans/active/20260610-platform-resend-admin-activation.md docs/
 
 不更新 `docs/exec-plans/active/index.md` 与 `docs/exec-plans/completed/index.md` 中他人未提交的行；只把本计划自己的行从 active 索引移到 completed 索引（若 active 索引中本计划的行尚未提交，则连同该行的增删一并留在工作区，由仓库维护者随批次提交，本次提交不包含两个 index 文件）。
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```powershell
 git add docs/changelog/20260610-050000-platform-resend-admin-activation.md docs/exec-plans/active/20260610-platform-resend-admin-activation.md docs/exec-plans/completed/20260610-platform-resend-admin-activation.md

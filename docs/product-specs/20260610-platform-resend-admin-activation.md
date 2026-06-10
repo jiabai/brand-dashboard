@@ -69,6 +69,7 @@
     "tenantKey": "tn_1a2b3c4d5e6f",
     "tenantName": "示例企业",
     "adminEmail": "admin@example.com",
+    "activationToken": "<signed-activation-token>",
     "activationUrl": "https://example.com/activate?token=...",
     "loginUrl": "https://example.com/login",
     "emailDelivery": {
