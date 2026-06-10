@@ -4,16 +4,22 @@ import {
   ArrowRight,
   BarChart3,
   Building2,
+  Check,
+  Copy,
   FolderKanban,
   Gauge,
   ListChecks,
+  MailPlus,
   RefreshCw,
   ShieldCheck,
   Users,
 } from 'lucide-react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 
-import { fetchPlatformTenantDetail } from '../../api/platform.js';
+import {
+  fetchPlatformTenantDetail,
+  resendPlatformTenantActivation,
+} from '../../api/platform.js';
 import EmptyState from '../EmptyState.jsx';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert.jsx';
 import { Badge } from '../ui/badge.jsx';
@@ -47,6 +53,7 @@ import {
   formatDate,
   getAdminStatusLabel,
   getBillingCycleLabel,
+  getEmailDeliveryMeta,
   getPlanTypeLabel,
   getQueryJobStatusMeta,
   getTenantStatusMeta,
@@ -72,6 +79,10 @@ const PlatformTenantDetailPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [refreshToken, setRefreshToken] = useState(0);
+  const [isResendingActivation, setIsResendingActivation] = useState(false);
+  const [resendError, setResendError] = useState('');
+  const [resendResult, setResendResult] = useState(null);
+  const [copiedActivation, setCopiedActivation] = useState(false);
 
   const loadTenant = useCallback(
     async (signal) => {
@@ -151,6 +162,31 @@ const PlatformTenantDetailPage = () => {
       icon: ListChecks,
     },
   ];
+
+  const resendDeliveryMeta = resendResult
+    ? getEmailDeliveryMeta(resendResult.emailDelivery)
+    : null;
+
+  const handleResendActivation = async () => {
+    setIsResendingActivation(true);
+    setResendError('');
+    try {
+      const response = await resendPlatformTenantActivation(tenantKey);
+      setResendResult(response?.data || response || null);
+    } catch (submitError) {
+      setResendResult(null);
+      setResendError(submitError.message || '激活邮件重发失败');
+    } finally {
+      setIsResendingActivation(false);
+    }
+  };
+
+  const handleCopyActivationUrl = async () => {
+    if (!navigator?.clipboard || !resendResult?.activationUrl) return;
+    await navigator.clipboard.writeText(resendResult.activationUrl);
+    setCopiedActivation(true);
+    window.setTimeout(() => setCopiedActivation(false), 1600);
+  };
 
   return (
     <div className="grid gap-5">
@@ -302,12 +338,26 @@ const PlatformTenantDetailPage = () => {
             </Card>
 
             <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Building2 className="size-4" aria-hidden="true" />
-                  客户资料
-                </CardTitle>
-                <CardDescription>{getPlanTypeLabel(tenant.planType)} / {getBillingCycleLabel(tenant.billingCycle)}</CardDescription>
+              <CardHeader className="gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div className="grid gap-1">
+                  <CardTitle className="flex items-center gap-2">
+                    <Building2 className="size-4" aria-hidden="true" />
+                    客户资料
+                  </CardTitle>
+                  <CardDescription>{getPlanTypeLabel(tenant.planType)} / {getBillingCycleLabel(tenant.billingCycle)}</CardDescription>
+                </div>
+                {tenant.adminStatus === 'pending_activation' ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    disabled={isResendingActivation}
+                    onClick={handleResendActivation}
+                  >
+                    <MailPlus className="size-3.5" />
+                    {isResendingActivation ? '重发中...' : '重发激活邮件'}
+                  </Button>
+                ) : null}
               </CardHeader>
               <CardContent className="grid gap-4 sm:grid-cols-2">
                 <DetailField label="管理员" value={tenant.adminEmail} />
@@ -316,6 +366,41 @@ const PlatformTenantDetailPage = () => {
                 <DetailField label="合同开始" value={formatDate(tenant.contractStartDate)} />
                 <DetailField label="合同到期" value={formatDate(tenant.contractEndDate)} />
                 <DetailField label="创建时间" value={formatDateTime(tenant.createdAt)} />
+                {resendError ? (
+                  <Alert variant="destructive" className="sm:col-span-2">
+                    <AlertTitle>激活邮件重发失败</AlertTitle>
+                    <AlertDescription>{resendError}</AlertDescription>
+                  </Alert>
+                ) : null}
+                {resendResult ? (
+                  <div className="grid gap-3 sm:col-span-2">
+                    {resendDeliveryMeta ? (
+                      <Alert variant={resendDeliveryMeta.variant}>
+                        <AlertTitle>{resendDeliveryMeta.title}</AlertTitle>
+                        <AlertDescription>{resendDeliveryMeta.description}</AlertDescription>
+                      </Alert>
+                    ) : null}
+                    <div className="grid gap-1">
+                      <span className="text-xs font-medium text-muted-foreground">新激活链接</span>
+                      <div className="flex min-w-0 items-center gap-2">
+                        <code className="min-w-0 flex-1 truncate text-xs text-foreground">
+                          {resendResult.activationUrl || '未返回'}
+                        </code>
+                        {resendResult.activationUrl ? (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon-sm"
+                            onClick={handleCopyActivationUrl}
+                            title="复制激活链接"
+                          >
+                            {copiedActivation ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
+                          </Button>
+                        ) : null}
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
               </CardContent>
             </Card>
           </section>

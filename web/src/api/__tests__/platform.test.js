@@ -165,6 +165,15 @@ test('platform collection health API skips tenant header', async () => {
 });
 
 test('resendPlatformTenantActivation posts to the resend endpoint', async () => {
+  writeAuthSession({
+    accessToken: 'platform-token',
+    currentTenantKey: 'tn_customer',
+    user: {
+      platformRoles: ['platform_admin'],
+      tenants: [{ tenantKey: 'tn_customer', status: 'active' }],
+    },
+  });
+
   let requestedUrl;
   let requestedOptions;
   globalThis.fetch = async (url, options) => {
@@ -187,5 +196,8 @@ test('resendPlatformTenantActivation posts to the resend endpoint', async () => 
     '/api/v1/platform/tenants/tn_demo/resend-activation',
   );
   assert.equal(requestedOptions.method, 'POST');
+  assert.equal(requestedOptions.body, undefined);
+  assert.equal(requestedOptions.headers.Authorization, 'Bearer platform-token');
+  assert.equal(requestedOptions.headers['X-Tenant-Key'], undefined);
   assert.equal(result.data.emailDelivery.status, 'sent');
 });

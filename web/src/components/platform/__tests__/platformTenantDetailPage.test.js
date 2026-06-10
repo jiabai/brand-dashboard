@@ -21,3 +21,19 @@ describe('PlatformTenantDetailPage contract', () => {
     assert.match(source, /scrollIntoView/);
   });
 });
+
+describe('PlatformTenantDetailPage resend activation contract', () => {
+  it('exposes a resend activation entry for pending admins', () => {
+    assert.match(source, /resendPlatformTenantActivation/);
+    assert.match(source, /adminStatus === 'pending_activation'/);
+    assert.match(source, /重发激活邮件/);
+    assert.match(source, /getEmailDeliveryMeta/);
+    assert.match(source, /新激活链接/);
+    assert.match(source, /复制激活链接/);
+  });
+
+  it('keeps resend result presentation consistent with create tenant panel', () => {
+    assert.match(source, /resendResult\.activationUrl/);
+    assert.match(source, /AlertTitle>\{resendDeliveryMeta\.title\}/);
+  });
+});
