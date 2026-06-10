@@ -196,6 +196,26 @@ def test_regenerate_builds_subdomain_activation_url(memory_engine):
     assert result["loginUrl"] == "https://acme.example.com/login"
 
 
+def test_regenerated_token_activates_account(memory_engine):
+    tenant_id = _seed_tenant(memory_engine)
+    user_id = _seed_admin(memory_engine, tenant_id, email="admin@demo.test")
+
+    result = auth_repository.regenerate_admin_activation(memory_engine, "tn_demo")
+    activation = auth_repository.activate_admin_account(
+        memory_engine, result["activationToken"], "NewPass12345"
+    )
+
+    assert activation["userId"] == user_id
+    assert activation["tenantKey"] == "tn_demo"
+    with memory_engine.connect() as conn:
+        row = conn.execute(
+            text("SELECT status, is_verified FROM users WHERE id = :user_id"),
+            {"user_id": user_id},
+        ).fetchone()
+    assert row[0] == "active"
+    assert bool(row[1]) is True
+
+
 def test_regenerate_rejects_unknown_tenant(memory_engine):
     with pytest.raises(LookupError, match="租户不存在"):
         auth_repository.regenerate_admin_activation(memory_engine, "tn_missing")
