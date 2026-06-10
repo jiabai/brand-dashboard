@@ -1,8 +1,13 @@
 from datetime import UTC, datetime, timedelta
+from unittest.mock import patch
 
 import pytest
+from api.v1.dependencies.auth import CurrentUser, require_platform_admin
 from api.v1.repositories import auth as auth_repository
+from api.v1.routes import auth as auth_routes
 from api.v1.utils.security import verify_token
+from fastapi import FastAPI
+from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, text
 from sqlalchemy.pool import StaticPool
 
@@ -179,6 +184,18 @@ def test_regenerate_targets_earliest_admin(memory_engine):
     assert result["adminEmail"] == "first-admin@demo.test"
 
 
+def test_regenerate_builds_subdomain_activation_url(memory_engine):
+    tenant_id = _seed_tenant(memory_engine, tenant_key="tn_acme", subdomain="acme")
+    _seed_admin(memory_engine, tenant_id, email="admin@acme.test")
+
+    result = auth_repository.regenerate_admin_activation(memory_engine, "tn_acme")
+
+    assert result["activationUrl"].startswith(
+        "https://acme.example.com/activate?token="
+    )
+    assert result["loginUrl"] == "https://acme.example.com/login"
+
+
 def test_regenerate_rejects_unknown_tenant(memory_engine):
     with pytest.raises(LookupError, match="租户不存在"):
         auth_repository.regenerate_admin_activation(memory_engine, "tn_missing")
@@ -197,10 +214,125 @@ def test_regenerate_rejects_active_admin(memory_engine):
         auth_repository.regenerate_admin_activation(memory_engine, "tn_demo")
 
 
-def test_regenerate_rejects_abnormal_admin(memory_engine):
+@pytest.mark.parametrize("abnormal_status", ["inactive", "suspended"])
+def test_regenerate_rejects_abnormal_admin(memory_engine, abnormal_status):
     tenant_id = _seed_tenant(memory_engine)
     _seed_admin(
-        memory_engine, tenant_id, email="admin@demo.test", user_status="suspended"
+        memory_engine, tenant_id, email="admin@demo.test", user_status=abnormal_status
     )
     with pytest.raises(ValueError, match="账号状态异常"):
         auth_repository.regenerate_admin_activation(memory_engine, "tn_demo")
+
+
+@pytest.fixture()
+def platform_client():
+    app = FastAPI()
+    app.include_router(auth_routes.router, prefix="/api/v1")
+    app.dependency_overrides[require_platform_admin] = lambda: CurrentUser(
+        user_id=1,
+        email="platform@example.com",
+        status="active",
+    )
+    return TestClient(app)
+
+
+_REPO_RESULT = {
+    "tenantKey": "tn_demo",
+    "tenantName": "示例企业",
+    "adminEmail": "admin@demo.test",
+    "activationToken": "new-token",
+    "activationUrl": "https://example.com/activate?token=new-token",
+    "loginUrl": "https://example.com/login",
+}
+
+
+def test_resend_route_returns_payload_with_email_delivery(platform_client):
+    with patch(
+        "api.v1.routes.auth.regenerate_admin_activation",
+        return_value=dict(_REPO_RESULT),
+    ) as regenerate, patch(
+        "api.v1.routes.auth.send_admin_activation_email",
+        return_value={
+            "status": "sent",
+            "to": "admin@demo.test",
+            "message": "激活邮件已发送",
+        },
+    ) as send_email:
+        response = platform_client.post(
+            "/api/v1/platform/tenants/tn_demo/resend-activation"
+        )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "success"
+    assert body["message"] == "激活令牌已重新签发"
+    assert body["data"]["adminEmail"] == "admin@demo.test"
+    assert body["data"]["activationUrl"].startswith("https://example.com/activate")
+    assert body["data"]["emailDelivery"]["status"] == "sent"
+    regenerate.assert_called_once()
+    assert regenerate.call_args.args[1] == "tn_demo"
+    send_email.assert_called_once_with(dict(_REPO_RESULT))
+
+
+def test_resend_route_maps_lookup_error_to_404(platform_client):
+    with patch(
+        "api.v1.routes.auth.regenerate_admin_activation",
+        side_effect=LookupError("租户不存在"),
+    ):
+        response = platform_client.post(
+            "/api/v1/platform/tenants/tn_missing/resend-activation"
+        )
+
+    assert response.status_code == 404
+    body = response.json()
+    assert body["status"] == "error"
+    assert body["message"] == "租户不存在"
+    assert body["code"] == 404
+
+
+def test_resend_route_maps_value_error_to_400(platform_client):
+    with patch(
+        "api.v1.routes.auth.regenerate_admin_activation",
+        side_effect=ValueError("账号已激活"),
+    ):
+        response = platform_client.post(
+            "/api/v1/platform/tenants/tn_demo/resend-activation"
+        )
+
+    assert response.status_code == 400
+    body = response.json()
+    assert body["status"] == "error"
+    assert body["message"] == "账号已激活"
+    assert body["code"] == 400
+
+
+def test_resend_route_keeps_success_when_email_raises(platform_client):
+    with patch(
+        "api.v1.routes.auth.regenerate_admin_activation",
+        return_value=dict(_REPO_RESULT),
+    ), patch(
+        "api.v1.routes.auth.send_admin_activation_email",
+        side_effect=RuntimeError("smtp-secret leaked in raw exception"),
+    ):
+        response = platform_client.post(
+            "/api/v1/platform/tenants/tn_demo/resend-activation"
+        )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["data"]["emailDelivery"]["status"] == "failed"
+    assert (
+        body["data"]["emailDelivery"]["message"]
+        == "激活邮件发送失败，请复制激活链接人工发送"
+    )
+    assert "smtp-secret" not in response.text
+
+
+def test_resend_route_requires_platform_admin():
+    app = FastAPI()
+    app.include_router(auth_routes.router, prefix="/api/v1")
+    client = TestClient(app)
+
+    response = client.post("/api/v1/platform/tenants/tn_demo/resend-activation")
+
+    assert response.status_code == 401

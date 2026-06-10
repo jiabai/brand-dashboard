@@ -360,6 +360,11 @@ def activate_admin_account(engine: Engine, token: str, password: str) -> Dict[st
 
 
 def regenerate_admin_activation(engine: Engine, tenant_key: str) -> Dict[str, Any]:
+    """重签首个租户管理员的激活令牌（只读，不写库）。
+
+    错误契约：租户不存在抛 LookupError（路由映射 404），业务拒绝抛 ValueError（映射 400）。
+    管理员定位与平台详情页一致：role='admin' 按 user_tenants.created_at ASC 取第一条。
+    """
     now = datetime.now(UTC)
     with engine.connect() as conn:
         tenant_row = conn.execute(

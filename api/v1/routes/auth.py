@@ -17,6 +17,7 @@ from api.v1.repositories.auth import (
     activate_admin_account,
     authenticate_user,
     create_tenant_with_admin,
+    regenerate_admin_activation,
     register_employee,
     verify_invite_code,
 )
@@ -319,6 +320,41 @@ def get_platform_tenant_detail(
                 project.model_dump(mode="json") for project in projects
             ],
         },
+    }
+
+
+@router.post("/platform/tenants/{tenant_key}/resend-activation")
+def resend_tenant_activation(
+    tenant_key: str,
+    engine: Engine = Depends(get_engine),
+    _platform_admin: CurrentUser = Depends(require_platform_admin),
+):
+    try:
+        result = regenerate_admin_activation(engine, tenant_key)
+    except LookupError as exc:
+        return JSONResponse(
+            status_code=404,
+            content={"status": "error", "message": str(exc), "code": 404},
+        )
+    except ValueError as exc:
+        return JSONResponse(
+            status_code=400,
+            content={"status": "error", "message": str(exc), "code": 400},
+        )
+    try:
+        email_delivery = send_admin_activation_email(result)
+    except Exception:
+        email_delivery = {
+            "status": "failed",
+            "to": result.get("adminEmail"),
+            "message": EMAIL_FAILED_MESSAGE,
+        }
+    result = {**result, "emailDelivery": email_delivery}
+    return {
+        "status": "success",
+        "data": result,
+        "message": "激活令牌已重新签发",
+        "code": 200,
     }
 
 
