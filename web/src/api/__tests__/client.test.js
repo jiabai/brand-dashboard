@@ -110,6 +110,23 @@ test('fetchJson surfaces envelope message from error responses', async () => {
   );
 });
 
+test('fetchJson surfaces unified envelope message for auth 401 responses', async () => {
+  globalThis.fetch = async () => ({
+    ok: false,
+    status: 401,
+    json: async () => ({}),
+    text: async () => JSON.stringify({ status: 'error', message: '未提供有效的认证令牌', code: 401 }),
+  });
+
+  await assert.rejects(
+    () => fetchJson('/api/v1/auth/me'),
+    (error) => {
+      assert.equal(error.message, '请求失败(401): 未提供有效的认证令牌');
+      return true;
+    },
+  );
+});
+
 test('fetchJson falls back to detail field from error responses', async () => {
   globalThis.fetch = async () => ({
     ok: false,

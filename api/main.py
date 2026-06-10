@@ -5,9 +5,11 @@ from contextlib import asynccontextmanager
 from typing import Dict
 
 from asgi_correlation_id import CorrelationIdMiddleware
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
+from fastapi.utils import is_body_allowed_for_status_code
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 # from fastapi_structlog import LogSettings, setup_logger
 # from fastapi_structlog.middleware import AccessLogMiddleware, StructlogMiddleware
@@ -113,15 +115,20 @@ async def health_check():
         version="0.1.0"
     )
 
-@app.exception_handler(HTTPException)
+@app.exception_handler(StarletteHTTPException)
 async def http_exception_handler(request, exc):
-    """全局异常处理."""
+    """全局异常处理：统一输出业务错误信封，HTTP 状态与业务 code 保持一致."""
+    headers = getattr(exc, "headers", None)
+    if not is_body_allowed_for_status_code(exc.status_code):
+        return Response(status_code=exc.status_code, headers=headers)
     return JSONResponse(
         status_code=exc.status_code,
         content={
-            "error": exc.detail,
-            "status_code": exc.status_code
-        }
+            "status": "error",
+            "message": exc.detail,
+            "code": exc.status_code,
+        },
+        headers=headers,
     )
 
 if __name__ == "__main__":

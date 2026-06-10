@@ -17,3 +17,4 @@ Design docs capture architectural decisions, refactoring rationale, and cross-cu
 | [20260608-legacy-compatibility-boundary.md](20260608-legacy-compatibility-boundary.md) | Legacy 兼容边界：兼容历史资产，不兼容历史产品形态 |
 | [20260609-remove-metric-snapshots.md](20260609-remove-metric-snapshots.md) | 移除指标快照：以分析事实表聚合替代快照 read model |
 | [20260609-platform-tenant-operations-workflow.md](20260609-platform-tenant-operations-workflow.md) | 平台租户项目工作台中转页：租户详情承接项目主入口和排障路径 |
+| [20260610-unified-error-envelope.md](20260610-unified-error-envelope.md) | 统一错误响应信封：全局 HTTPException handler 收口为业务信封，前端解析与测试边界评估 |
