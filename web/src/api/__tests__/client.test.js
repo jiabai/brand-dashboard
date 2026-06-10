@@ -92,3 +92,20 @@ test('postJson can derive tenant header from json body', async () => {
   assert.equal(request.options.headers['X-Tenant-Key'], 'tn_body');
   assert.equal(request.options.headers['Content-Type'], 'application/json');
 });
+
+test('fetchJson surfaces envelope message from error responses', async () => {
+  globalThis.fetch = async () => ({
+    ok: false,
+    status: 400,
+    json: async () => ({}),
+    text: async () => JSON.stringify({ status: 'error', message: '账号已激活', code: 400 }),
+  });
+
+  await assert.rejects(
+    () => fetchJson('/api/v1/platform/tenants/tn_demo/resend-activation'),
+    (error) => {
+      assert.equal(error.message, '请求失败(400): 账号已激活');
+      return true;
+    },
+  );
+});

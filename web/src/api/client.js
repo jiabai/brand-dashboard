@@ -59,7 +59,8 @@ export const fetchJson = async (
       if (text) {
         try {
           const parsed = JSON.parse(text);
-          detail = parsed?.detail ? `: ${parsed.detail}` : `: ${text}`;
+          const message = parsed?.message || parsed?.detail;
+          detail = message ? `: ${message}` : `: ${text}`;
         } catch {
           detail = `: ${text}`;
         }
