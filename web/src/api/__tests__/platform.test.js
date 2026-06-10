@@ -6,6 +6,7 @@ import {
   fetchPlatformCollectionHealth,
   fetchPlatformTenantDetail,
   fetchPlatformTenants,
+  resendPlatformTenantActivation,
 } from '../platform.js';
 import { clearAuthSession, writeAuthSession } from '../../auth/storage.js';
 
@@ -161,4 +162,30 @@ test('platform collection health API skips tenant header', async () => {
   assert.equal(parsed.searchParams.get('failedTaskLimit'), '5');
   assert.equal(request.options.headers.Authorization, 'Bearer platform-token');
   assert.equal(request.options.headers['X-Tenant-Key'], undefined);
+});
+
+test('resendPlatformTenantActivation posts to the resend endpoint', async () => {
+  let requestedUrl;
+  let requestedOptions;
+  globalThis.fetch = async (url, options) => {
+    requestedUrl = url;
+    requestedOptions = options;
+    return jsonResponse({
+      data: {
+        tenantKey: 'tn_demo',
+        activationUrl: 'https://example.com/activate?token=new',
+        emailDelivery: { status: 'sent' },
+      },
+    });
+  };
+
+  const result = await resendPlatformTenantActivation('tn_demo');
+
+  const parsed = new URL(requestedUrl, 'http://localhost');
+  assert.equal(
+    parsed.pathname,
+    '/api/v1/platform/tenants/tn_demo/resend-activation',
+  );
+  assert.equal(requestedOptions.method, 'POST');
+  assert.equal(result.data.emailDelivery.status, 'sent');
 });

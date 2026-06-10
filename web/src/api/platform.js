@@ -28,6 +28,14 @@ export const createPlatformTenant = (payload, options) => {
   return post('/api/v1/platform/tenants', payload, platformOptions(options));
 };
 
+export const resendPlatformTenantActivation = (tenantKey, options) => {
+  return post(
+    `/api/v1/platform/tenants/${encodePathSegment(tenantKey)}/resend-activation`,
+    undefined,
+    platformOptions(options),
+  );
+};
+
 export const fetchPlatformCollectionHealth = ({ failedTaskLimit = 20 } = {}, options) => {
   const params = buildQueryString({ failedTaskLimit });
   const suffix = params ? `?${params}` : '';
