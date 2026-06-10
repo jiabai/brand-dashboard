@@ -109,3 +109,20 @@ test('fetchJson surfaces envelope message from error responses', async () => {
     },
   );
 });
+
+test('fetchJson falls back to detail field from error responses', async () => {
+  globalThis.fetch = async () => ({
+    ok: false,
+    status: 404,
+    json: async () => ({}),
+    text: async () => JSON.stringify({ detail: '租户不存在' }),
+  });
+
+  await assert.rejects(
+    () => fetchJson('/api/v1/platform/tenants/tn_missing'),
+    (error) => {
+      assert.equal(error.message, '请求失败(404): 租户不存在');
+      return true;
+    },
+  );
+});
