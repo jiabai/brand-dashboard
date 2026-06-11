@@ -217,6 +217,7 @@ async def report_query_job(
 async def list_query_jobs_status(
     tenant_key: str = Query(..., description="租户Key"),
     job_id: Optional[str] = Query(None, description="可选：仅查询指定 job_id 的任务"),
+    project_id: Optional[str] = Query(None, description="可选：仅查询指定项目的任务"),
     include_deleted: bool = Query(False, description="是否包含已删除任务"),
     tenant: CurrentTenantContext = Depends(get_current_tenant),
     db: Session = Depends(get_db),
@@ -232,10 +233,15 @@ async def list_query_jobs_status(
     if not normalized_job_id:
         normalized_job_id = None
 
+    normalized_project_id = project_id.strip() if project_id else None
+    if not normalized_project_id:
+        normalized_project_id = None
+
     rows = list_query_jobs_status_records(
         db,
         tenant_key=tenant_key,
         job_id=normalized_job_id,
+        project_id=normalized_project_id,
         include_deleted=include_deleted,
     )
 

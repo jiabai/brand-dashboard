@@ -188,6 +188,7 @@ def list_query_jobs_status(
     *,
     tenant_key: str,
     job_id: Optional[str] = None,
+    project_id: Optional[str] = None,
     include_deleted: bool = False,
 ):
     params: Dict[str, Any] = {"tenant_key": tenant_key}
@@ -196,6 +197,10 @@ def list_query_jobs_status(
     if job_id is not None:
         where_clauses.append("job_id = :job_id")
         params["job_id"] = job_id
+
+    if project_id is not None:
+        where_clauses.append("project_id = :project_id")
+        params["project_id"] = project_id
 
     if not include_deleted:
         where_clauses.append("is_deleted = 0")

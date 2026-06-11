@@ -299,3 +299,85 @@ def test_status_query_still_reads_project_linked_jobs_by_job_id(
     body = status_response.json()
     assert body["count"] == 2
     assert {item["job_id"] for item in body["jobs"]} == {"job_dashboard_compat"}
+
+
+def _insert_job(session, *, project_id, job_id, brand):
+    now = datetime.now(UTC)
+    session.execute(
+        text(
+            """
+            INSERT INTO llm_query_jobs (
+                tenant_key, job_id, project_id, category, brand, keyword,
+                query_content, query_status, effective_from, created_at, is_deleted
+            ) VALUES (
+                'tn_allowed', :job_id, :project_id, 'cat', :brand, 'kw',
+                'q', 1, :now, :now, 0
+            )
+            """
+        ),
+        {"job_id": job_id, "project_id": project_id, "brand": brand, "now": now},
+    )
+
+
+def test_status_filters_jobs_by_project_id(query_job_project_session, monkeypatch):
+    monkeypatch.setenv("AUTH_SECRET", TEST_SECRET)
+    _seed_admin_and_project(query_job_project_session, project_id="proj_active")
+    now = datetime.now(UTC)
+    query_job_project_session.execute(
+        text(
+            """
+            INSERT INTO monitoring_projects (
+              tenant_key, project_id, name, industry, category, status,
+              created_by, created_at, updated_at
+            )
+            VALUES ('tn_allowed', 'proj_other', 'Other', 'auto', 'ev', 'active', 101, :now, :now)
+            """
+        ),
+        {"now": now},
+    )
+    _insert_job(query_job_project_session, project_id="proj_active", job_id="job_a", brand="BrandA")
+    _insert_job(query_job_project_session, project_id="proj_other", job_id="job_b", brand="BrandB")
+    query_job_project_session.commit()
+
+    client = _client(query_job_project_session)
+    resp = client.get(
+        "/api/v1/query-jobs/status",
+        params={"tenant_key": "tn_allowed", "project_id": "proj_active"},
+        headers={"Authorization": f"Bearer {_token()}"},
+    )
+
+    assert resp.status_code == 200
+    jobs = resp.json()["jobs"]
+    assert {j["job_id"] for j in jobs} == {"job_a"}
+    assert all(j["project_id"] == "proj_active" for j in jobs)
+
+
+def test_status_without_project_id_returns_all_tenant_jobs(query_job_project_session, monkeypatch):
+    monkeypatch.setenv("AUTH_SECRET", TEST_SECRET)
+    _seed_admin_and_project(query_job_project_session, project_id="proj_active")
+    now = datetime.now(UTC)
+    query_job_project_session.execute(
+        text(
+            """
+            INSERT INTO monitoring_projects (
+              tenant_key, project_id, name, industry, category, status,
+              created_by, created_at, updated_at
+            )
+            VALUES ('tn_allowed', 'proj_other', 'Other', 'auto', 'ev', 'active', 101, :now, :now)
+            """
+        ),
+        {"now": now},
+    )
+    _insert_job(query_job_project_session, project_id="proj_active", job_id="job_a", brand="BrandA")
+    _insert_job(query_job_project_session, project_id="proj_other", job_id="job_b", brand="BrandB")
+    query_job_project_session.commit()
+
+    client = _client(query_job_project_session)
+    resp = client.get(
+        "/api/v1/query-jobs/status",
+        params={"tenant_key": "tn_allowed"},
+        headers={"Authorization": f"Bearer {_token()}"},
+    )
+
+    assert resp.status_code == 200
+    assert {j["job_id"] for j in resp.json()["jobs"]} == {"job_a", "job_b"}
