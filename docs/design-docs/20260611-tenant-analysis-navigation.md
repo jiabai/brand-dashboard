@@ -54,14 +54,11 @@
 
 ## 组件与接线（4 处，全前端）
 
-1. **`web/src/config/routes.js`**：抽出单一谓词并新增选择器，与现有 `isAnalysisView` 收口为同一来源，消除重复：
-   - `export const isAnalysisRoute = (route) => Boolean(route?.requiresJobId && route?.path && !route?.disabled);`
-   - `export const getAnalysisNavRoutes = () => ROUTE_DEFINITIONS.filter(isAnalysisRoute);` → 按 ROUTES 声明序返回 `[home, trend, platforms, sources, sentiment, snapshots]`（即标签顺序）。
-   - `settings`（disabled、无 path）与 `task-load/task-status`（无 jobId）天然被排除。
-2. **`web/src/utils/routing.js`**：`isAnalysisView` 改为复用 `isAnalysisRoute`：`isAnalysisView = (viewKey) => isAnalysisRoute(getRouteByViewKey(viewKey));`（行为不变，DashboardLayout 的 brand 解析等既有调用不受影响）。
-3. **新增 `web/src/components/AnalysisNav.jsx`**：从 `getAnalysisNavRoutes()` 渲染标签；active 态用 `getViewKeyFromPath(location.pathname)`；每个标签目标地址用 `buildViewPath(viewKey, { tenantKey, jobId })` + `buildRouteSearch({ search, nextViewKey })`——与 `Sidebar` 的 `handleMenuSelect` 完全一致（`buildRouteSearch` 会按目标页清理无关参数，必须逐标签计算）。`tenantKey/jobId` 取自 `useDashboardParams()`。
-4. **新增 `web/src/components/AnalysisLayout.jsx`**：极薄布局 `<><AnalysisNav /><Outlet /></>`。
-5. **`web/src/App.jsx`**：把 `getRoutableRoutes()` 按 `isAnalysisRoute` 一分为二；6 个分析路由包进一个 pathless 的 `<Route element={<AnalysisLayout/>}>`，其余路由（项目族、加入团队、任务页）保持原样直接挂在 `DashboardLayout` 下。每个分析路由元素仍各自包 `RouteShell`（ErrorBoundary + Suspense）。
+1. **`web/src/utils/routing.js`**：新增选择器 `export const getAnalysisNavRoutes = () => ROUTE_DEFINITIONS.filter((route) => isAnalysisView(route.viewKey));`（把 `ROUTE_DEFINITIONS` 并入从 `routes.js` 的导入）。按 ROUTES 声明序返回 `[home, trend, platforms, sources, sentiment, snapshots]`（即标签顺序）；直接复用既有 `isAnalysisView` 谓词（`requiresJobId && path && !disabled`），`settings`（disabled、无 path）与 `task-load/task-status`（无 jobId）天然被排除。
+   - 放在 `routing.js`（而非与其他 `getXxxRoutes` 选择器同处的 `routes.js`）有两点考量：`isAnalysisView` 已在此、直接复用最 DRY，无需另抽 `isAnalysisRoute`；且 `routes.js` 当前有他人在途改动，规划阶段刻意不并发改同一文件，全程 clean 暂存、免 blob 构造。
+2. **新增 `web/src/components/AnalysisNav.jsx`**：从 `getAnalysisNavRoutes()` 渲染标签；active 态用 `getViewKeyFromPath(location.pathname)`；每个标签目标地址用 `buildViewPath(viewKey, { tenantKey, jobId })` + `buildRouteSearch({ search, nextViewKey })`——与 `Sidebar` 的 `handleMenuSelect` 完全一致（`buildRouteSearch` 会按目标页清理无关参数，必须逐标签计算）。`tenantKey/jobId` 取自 `useDashboardParams()`，链接用 `NavLink`。
+3. **新增 `web/src/components/AnalysisLayout.jsx`**：极薄布局 `<AnalysisNav /> + <Outlet />`。
+4. **`web/src/App.jsx`**：把 `getRoutableRoutes()` 按 `isAnalysisView(route.viewKey)` 一分为二；6 个分析路由包进一个 pathless 的 `<Route element={<AnalysisLayout/>}>`，其余路由（项目族、加入团队、任务页）保持原样直接挂在 `DashboardLayout` 下。每个分析路由元素仍各自包 `RouteShell`（ErrorBoundary + Suspense）。
 
 ## 数据流
 
@@ -73,10 +70,9 @@
 
 ## 测试边界
 
-- `web/src/config/__tests__/routes.test.js`：
-  - 断言 `getAnalysisNavRoutes()` 精确返回 `[home, trend, platforms, sources, sentiment, snapshots]`、顺序正确、全部 `requiresJobId`。
-  - **复测主侧边栏不变量**：`getSidebarMenuRoutes()` 仍只返回 `[projects, accounts]`——锁住「二级导航未泄漏进主侧边栏」。
-- 新增 `AnalysisNav` 组件测试：给定 location → 渲染 6 个标签、标对 active、目标地址带对 `tenantKey/jobId` 且保留参数。沿用仓库现有 `node:test` 风格。
+- `web/src/utils/__tests__/routing.test.js`：断言 `getAnalysisNavRoutes()` 精确返回 `[home, trend, platforms, sources, sentiment, snapshots]`、顺序正确、全部 `requiresJobId` 且 `menuSection==='legacy'`（从分析侧再钉一遍「未泄漏进主侧栏」）。
+- **主侧边栏不变量沿用既有测试**：`web/src/config/__tests__/routes.test.js` 已有「route config keeps the main sidebar project-first」断言 `getSidebarMenuRoutes()` 只返回 `[projects, accounts]`；本设计不触碰该文件即保留此锁。
+- 新增 `AnalysisNav` 组件测试（`web/src/components/__tests__/analysisNav.test.js`）：沿用仓库源码契约风格（读 `.jsx` 文本 `assert.match`，见 `Sidebar.test.js`），断言组件确实接入 `getAnalysisNavRoutes / useDashboardParams / buildViewPath / buildRouteSearch / getViewKeyFromPath / NavLink`。
 
 ## 文档一致性
 
