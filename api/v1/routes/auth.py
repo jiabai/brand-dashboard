@@ -16,9 +16,12 @@ from api.v1.dependencies.auth import (
 from api.v1.repositories.auth import (
     activate_admin_account,
     authenticate_user,
+    change_password,
     create_tenant_with_admin,
     regenerate_admin_activation,
     register_employee,
+    request_password_reset,
+    reset_password_with_token,
     verify_invite_code,
 )
 from api.v1.repositories.connection import get_db, get_engine
@@ -34,6 +37,7 @@ from api.v1.services import projects as project_service
 from api.v1.services.email_sender import (
     EMAIL_FAILED_MESSAGE,
     send_admin_activation_email,
+    send_password_reset_email,
 )
 from api.v1.utils.platform_roles import get_platform_roles_for_email
 
@@ -66,6 +70,22 @@ class ActivationRequest(BaseModel):
 
 class VerifyInviteCodeRequest(BaseModel):
     code: str = Field(..., min_length=1)
+
+
+class ForgotPasswordRequest(BaseModel):
+    email: str = Field(..., min_length=1)
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str = Field(..., min_length=1)
+    password: str = Field(..., min_length=8)
+    confirmPassword: str = Field(..., min_length=8)
+
+
+class ChangePasswordRequest(BaseModel):
+    currentPassword: str = Field(..., min_length=1)
+    newPassword: str = Field(..., min_length=8)
+    confirmPassword: str = Field(..., min_length=8)
 
 
 class RegisterEmployeeRequest(BaseModel):
@@ -448,6 +468,69 @@ def login_handler(request: LoginRequest, engine: Engine = Depends(get_engine)):
             content={"status": "error", "message": str(exc), "code": 400},
         )
     return {"status": "success", "data": result, "message": "登录成功", "code": 200}
+
+
+FORGOT_PASSWORD_MESSAGE = "如果该邮箱已注册并激活，重置邮件已发送"
+
+
+@router.post("/public/auth/forgot-password")
+def forgot_password_handler(
+    request: ForgotPasswordRequest, engine: Engine = Depends(get_engine)
+):
+    reset_payload = request_password_reset(engine, request.email)
+    if reset_payload is not None:
+        try:
+            send_password_reset_email(reset_payload)
+        except Exception:
+            pass
+    return {
+        "status": "success",
+        "data": None,
+        "message": FORGOT_PASSWORD_MESSAGE,
+        "code": 200,
+    }
+
+
+@router.post("/public/auth/reset-password")
+def reset_password_handler(
+    request: ResetPasswordRequest, engine: Engine = Depends(get_engine)
+):
+    if request.password != request.confirmPassword:
+        return JSONResponse(
+            status_code=400,
+            content={"status": "error", "message": "两次密码不一致", "code": 400},
+        )
+    try:
+        reset_password_with_token(engine, request.token, request.password)
+    except ValueError as exc:
+        return JSONResponse(
+            status_code=400,
+            content={"status": "error", "message": str(exc), "code": 400},
+        )
+    return {"status": "success", "data": None, "message": "密码已重置", "code": 200}
+
+
+@router.post("/auth/change-password")
+def change_password_handler(
+    request: ChangePasswordRequest,
+    engine: Engine = Depends(get_engine),
+    current_user: CurrentUser = Depends(get_current_user),
+):
+    if request.newPassword != request.confirmPassword:
+        return JSONResponse(
+            status_code=400,
+            content={"status": "error", "message": "两次密码不一致", "code": 400},
+        )
+    try:
+        change_password(
+            engine, current_user.user_id, request.currentPassword, request.newPassword
+        )
+    except ValueError as exc:
+        return JSONResponse(
+            status_code=400,
+            content={"status": "error", "message": str(exc), "code": 400},
+        )
+    return {"status": "success", "data": None, "message": "密码已修改", "code": 200}
 
 
 @router.get("/auth/me")

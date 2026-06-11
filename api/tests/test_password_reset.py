@@ -1,8 +1,14 @@
 from datetime import UTC, datetime, timedelta
+from unittest.mock import patch
 
 import pytest
+from api.v1.dependencies.auth import CurrentUser, get_current_user
 from api.v1.repositories import auth as auth_repository
+from api.v1.repositories.connection import get_engine
+from api.v1.routes import auth as auth_routes
 from api.v1.utils.security import hash_password, sign_token, verify_password
+from fastapi import FastAPI
+from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, text
 from sqlalchemy.pool import StaticPool
 
@@ -30,6 +36,30 @@ def memory_engine(monkeypatch):
                     status VARCHAR(20) NOT NULL DEFAULT 'active',
                     created_at TIMESTAMP,
                     updated_at TIMESTAMP
+                )
+                """
+            )
+        )
+        conn.execute(
+            text(
+                """
+                CREATE TABLE tenants (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    tenant_key VARCHAR(64) NOT NULL UNIQUE,
+                    tenant_name VARCHAR(255) NOT NULL
+                )
+                """
+            )
+        )
+        conn.execute(
+            text(
+                """
+                CREATE TABLE user_tenants (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id INTEGER NOT NULL,
+                    tenant_id INTEGER NOT NULL,
+                    role VARCHAR(20) NOT NULL,
+                    status VARCHAR(20) NOT NULL DEFAULT 'active'
                 )
                 """
             )
@@ -233,3 +263,163 @@ def test_reset_rejects_token_after_account_suspended(memory_engine):
         auth_repository.reset_password_with_token(
             memory_engine, result["resetToken"], "NewPass12345"
         )
+
+
+def _public_client(memory_engine):
+    app = FastAPI()
+    app.include_router(auth_routes.router, prefix="/api/v1")
+    app.dependency_overrides[get_engine] = lambda: memory_engine
+    return TestClient(app)
+
+
+def _authed_client(memory_engine, user_id):
+    app = FastAPI()
+    app.include_router(auth_routes.router, prefix="/api/v1")
+    app.dependency_overrides[get_engine] = lambda: memory_engine
+    app.dependency_overrides[get_current_user] = lambda: CurrentUser(
+        user_id=user_id,
+        email="user@demo.test",
+        status="active",
+    )
+    return TestClient(app)
+
+
+def test_forgot_password_responses_are_byte_identical(memory_engine):
+    _seed_user(memory_engine)
+    _seed_user(memory_engine, email="pending@demo.test", status="pending_activation")
+    client = _public_client(memory_engine)
+
+    responses = []
+    with patch(
+        "api.v1.routes.auth.send_password_reset_email",
+        return_value={"status": "sent", "to": None, "message": ""},
+    ):
+        for email in [
+            "user@demo.test",
+            "missing@demo.test",
+            "pending@demo.test",
+            "user@demo.test",
+        ]:
+            responses.append(client.post(
+                "/api/v1/public/auth/forgot-password", json={"email": email}
+            ))
+
+    assert {r.status_code for r in responses} == {200}
+    assert len({r.text for r in responses}) == 1
+    body = responses[0].json()
+    assert body["message"] == "如果该邮箱已注册并激活，重置邮件已发送"
+    assert body["data"] is None
+
+
+def test_forgot_password_sends_email_only_for_active_user(memory_engine):
+    _seed_user(memory_engine)
+    client = _public_client(memory_engine)
+
+    with patch(
+        "api.v1.routes.auth.send_password_reset_email",
+        return_value={"status": "sent", "to": None, "message": ""},
+    ) as send_email:
+        client.post("/api/v1/public/auth/forgot-password", json={"email": "user@demo.test"})
+        client.post("/api/v1/public/auth/forgot-password", json={"email": "missing@demo.test"})
+
+    send_email.assert_called_once()
+    sent_payload = send_email.call_args.args[0]
+    assert sent_payload["email"] == "user@demo.test"
+    assert sent_payload["resetUrl"].startswith("https://example.com/reset-password?token=")
+
+
+def test_forgot_password_swallows_email_exceptions(memory_engine):
+    _seed_user(memory_engine)
+    client = _public_client(memory_engine)
+
+    with patch(
+        "api.v1.routes.auth.send_password_reset_email",
+        side_effect=RuntimeError("smtp-secret leaked"),
+    ):
+        response = client.post(
+            "/api/v1/public/auth/forgot-password", json={"email": "user@demo.test"}
+        )
+
+    assert response.status_code == 200
+    assert "smtp-secret" not in response.text
+
+
+def test_reset_password_route_roundtrip(memory_engine):
+    _seed_user(memory_engine)
+    client = _public_client(memory_engine)
+
+    with patch(
+        "api.v1.routes.auth.send_password_reset_email",
+        return_value={"status": "sent", "to": None, "message": ""},
+    ) as send_email:
+        client.post("/api/v1/public/auth/forgot-password", json={"email": "user@demo.test"})
+    token = send_email.call_args.args[0]["resetToken"]
+
+    response = client.post(
+        "/api/v1/public/auth/reset-password",
+        json={"token": token, "password": "NewPass12345", "confirmPassword": "NewPass12345"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["message"] == "密码已重置"
+
+    login = client.post(
+        "/api/v1/public/auth/login",
+        json={"email": "user@demo.test", "password": "NewPass12345"},
+    )
+    assert login.status_code == 200
+
+
+def test_reset_password_route_rejects_mismatch_and_bad_token(memory_engine):
+    client = _public_client(memory_engine)
+
+    mismatch = client.post(
+        "/api/v1/public/auth/reset-password",
+        json={"token": "x.y", "password": "NewPass12345", "confirmPassword": "Different123"},
+    )
+    assert mismatch.status_code == 400
+    assert mismatch.json()["message"] == "两次密码不一致"
+
+    bad_token = client.post(
+        "/api/v1/public/auth/reset-password",
+        json={"token": "x.y", "password": "NewPass12345", "confirmPassword": "NewPass12345"},
+    )
+    assert bad_token.status_code == 400
+    assert bad_token.json()["message"] == "重置链接无效或已失效"
+
+
+def test_change_password_route_requires_auth_and_current_password(memory_engine):
+    user_id = _seed_user(memory_engine)
+
+    unauthed = _public_client(memory_engine).post(
+        "/api/v1/auth/change-password",
+        json={
+            "currentPassword": "OldPass12345",
+            "newPassword": "NewPass12345",
+            "confirmPassword": "NewPass12345",
+        },
+    )
+    assert unauthed.status_code == 401
+
+    client = _authed_client(memory_engine, user_id)
+    wrong = client.post(
+        "/api/v1/auth/change-password",
+        json={
+            "currentPassword": "WrongPass123",
+            "newPassword": "NewPass12345",
+            "confirmPassword": "NewPass12345",
+        },
+    )
+    assert wrong.status_code == 400
+    assert wrong.json()["message"] == "当前密码错误"
+
+    ok = client.post(
+        "/api/v1/auth/change-password",
+        json={
+            "currentPassword": "OldPass12345",
+            "newPassword": "NewPass12345",
+            "confirmPassword": "NewPass12345",
+        },
+    )
+    assert ok.status_code == 200
+    assert ok.json()["message"] == "密码已修改"
