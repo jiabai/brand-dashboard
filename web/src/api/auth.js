@@ -16,6 +16,18 @@ export const login = (payload, options) => {
   return post('/api/v1/public/auth/login', payload, options);
 };
 
+export const forgotPassword = (payload, options) => {
+  return post('/api/v1/public/auth/forgot-password', payload, options);
+};
+
+export const resetPassword = (payload, options) => {
+  return post('/api/v1/public/auth/reset-password', payload, options);
+};
+
+export const changePassword = (payload, options) => {
+  return post('/api/v1/auth/change-password', payload, options);
+};
+
 export const getMe = (options) => {
   return fetch('/api/v1/auth/me', options);
 };
