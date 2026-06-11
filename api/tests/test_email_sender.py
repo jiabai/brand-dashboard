@@ -139,6 +139,7 @@ class TestPasswordResetEmailSender(unittest.TestCase):
             result = send_password_reset_email(reset_result)
 
         self.assertEqual(result["status"], "sent")
+        smtp_instance.send_message.assert_called_once()
         message = smtp_instance.send_message.call_args.args[0]
         self.assertEqual(message["To"], "user@acme.test")
         self.assertIn("密码重置", message["Subject"])
