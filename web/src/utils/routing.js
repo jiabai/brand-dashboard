@@ -1,5 +1,6 @@
 import {
   DEFAULT_VIEW_KEY,
+  ROUTE_DEFINITIONS,
   getRouteByPathSegment,
   getRouteByTaskAction,
   getRouteByViewKey,
@@ -11,6 +12,9 @@ export const isAnalysisView = (viewKey) => {
   const route = getRouteByViewKey(viewKey);
   return Boolean(route?.requiresJobId && route?.path && !route?.disabled);
 };
+
+export const getAnalysisNavRoutes = () =>
+  ROUTE_DEFINITIONS.filter((route) => isAnalysisView(route.viewKey));
 
 export const normalizeViewKey = (viewKey) => {
   const route = getRouteByViewKey(viewKey);

@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {
   buildRouteSearch,
   buildViewPath,
+  getAnalysisNavRoutes,
   getViewKeyFromPath,
 } from '../routing.js';
 
@@ -53,4 +54,21 @@ test('buildRouteSearch removes trend-only filters outside the trend page', () =>
   });
 
   assert.equal(result, '?brand=QuickCEP&job_id=job_filter&include_deleted=true');
+});
+
+test('getAnalysisNavRoutes returns the six job-scoped analysis routes in order', () => {
+  assert.deepEqual(
+    getAnalysisNavRoutes().map((route) => route.viewKey),
+    ['home', 'trend', 'platforms', 'sources', 'sentiment', 'snapshots'],
+  );
+});
+
+test('getAnalysisNavRoutes entries are all legacy job-scoped routes', () => {
+  const routes = getAnalysisNavRoutes();
+  assert.equal(routes.length, 6);
+  for (const route of routes) {
+    assert.equal(route.requiresJobId, true);
+    assert.equal(route.menuSection, 'legacy');
+    assert.ok(route.path);
+  }
 });
