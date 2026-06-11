@@ -16,6 +16,7 @@ from api.v1.models.schemas import (
     ProjectAlertsResponse,
     ProjectBrandConfigRequest,
     ProjectBrandConfigResponse,
+    ProjectCollectionJobsResponse,
     ProjectDataQualityResponse,
     ProjectListResponse,
     ProjectReportListResponse,
@@ -100,6 +101,24 @@ async def get_project_data_quality(
     if quality is None:
         raise HTTPException(status_code=404, detail="Project not found")
     return quality
+
+
+@router.get("/{project_id}/collection-jobs", response_model=ProjectCollectionJobsResponse)
+async def list_project_collection_jobs(
+    project_id: str,
+    tenant: CurrentTenantContext = Depends(get_current_tenant_for_read),
+    db: Session = Depends(get_db),
+):
+    result = project_service.list_project_collection_job_entries(
+        db,
+        tenant_key=tenant.tenant_key,
+        project_id=project_id,
+    )
+    return ProjectCollectionJobsResponse(
+        success=True,
+        target_brand=result["target_brand"],
+        collection_jobs=result["collection_jobs"],
+    )
 
 
 @router.get("/{project_id}/reports", response_model=ProjectReportListResponse)

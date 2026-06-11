@@ -263,6 +263,23 @@ class ProjectListResponse(BaseModel):
     projects: List[MonitoringProjectSummary] = Field(default_factory=list)
 
 
+class ProjectCollectionJobItem(BaseModel):
+    collection_job_id: str
+    source_job_id: str
+    status: str
+    window_start: str | None = None
+    window_end: str | None = None
+    expected_task_count: int = 0
+    succeeded_task_count: int = 0
+    failed_task_count: int = 0
+
+
+class ProjectCollectionJobsResponse(BaseModel):
+    success: bool
+    target_brand: str | None = None
+    collection_jobs: List[ProjectCollectionJobItem] = Field(default_factory=list)
+
+
 class ProjectResponse(BaseModel):
     success: bool
     project: MonitoringProjectDetail

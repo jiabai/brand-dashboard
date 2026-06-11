@@ -519,5 +519,48 @@ def list_prompt_items(db: Session, *, tenant_key: str, prompt_set_id: str):
     ).mappings().all()
 
 
+def list_project_collection_jobs(db: Session, *, tenant_key: str, project_id: str):
+    return db.execute(
+        text(
+            """
+            SELECT
+              collection_job_id,
+              source_job_id,
+              status,
+              window_start,
+              window_end,
+              expected_task_count,
+              succeeded_task_count,
+              failed_task_count
+            FROM collection_jobs
+            WHERE tenant_key = :tenant_key
+              AND project_id = :project_id
+              AND source_job_id IS NOT NULL
+            ORDER BY window_start DESC, id DESC
+            """
+        ),
+        {"tenant_key": tenant_key, "project_id": project_id},
+    ).mappings().all()
+
+
+def get_project_target_brand(db: Session, *, tenant_key: str, project_id: str):
+    row = db.execute(
+        text(
+            """
+            SELECT brand_name
+            FROM project_brands
+            WHERE tenant_key = :tenant_key
+              AND project_id = :project_id
+              AND role = 'target'
+              AND status = 'active'
+            ORDER BY id ASC
+            LIMIT 1
+            """
+        ),
+        {"tenant_key": tenant_key, "project_id": project_id},
+    ).fetchone()
+    return row[0] if row else None
+
+
 def mapping_to_dict(row: Any) -> dict[str, Any]:
     return dict(row)

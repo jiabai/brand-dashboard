@@ -308,3 +308,26 @@ def list_project_reports(
         count=len(reports),
         reports=reports,
     )
+
+
+def list_project_collection_job_entries(db, *, tenant_key, project_id):
+    rows = project_repo.list_project_collection_jobs(
+        db, tenant_key=tenant_key, project_id=project_id
+    )
+    target_brand = project_repo.get_project_target_brand(
+        db, tenant_key=tenant_key, project_id=project_id
+    )
+    collection_jobs = [
+        {
+            "collection_job_id": row["collection_job_id"],
+            "source_job_id": row["source_job_id"],
+            "status": row["status"],
+            "window_start": str(row["window_start"]) if row["window_start"] is not None else None,
+            "window_end": str(row["window_end"]) if row["window_end"] is not None else None,
+            "expected_task_count": row["expected_task_count"] or 0,
+            "succeeded_task_count": row["succeeded_task_count"] or 0,
+            "failed_task_count": row["failed_task_count"] or 0,
+        }
+        for row in rows
+    ]
+    return {"target_brand": target_brand, "collection_jobs": collection_jobs}
