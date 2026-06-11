@@ -453,3 +453,13 @@ def test_change_password_route_requires_auth_and_current_password(memory_engine)
     )
     assert ok.status_code == 200
     assert ok.json()["message"] == "密码已修改"
+
+
+def test_activation_endpoint_rejects_password_reset_token(memory_engine):
+    _seed_user(memory_engine)
+    result = auth_repository.request_password_reset(memory_engine, "user@demo.test")
+
+    with pytest.raises(ValueError, match="无效的激活令牌"):
+        auth_repository.activate_admin_account(
+            memory_engine, result["resetToken"], "NewPass12345"
+        )
