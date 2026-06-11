@@ -7,7 +7,9 @@ import {
   buildProjectDataQualityPath,
   buildProjectDetailPath,
   buildProjectListPath,
+  getCollectionJobStatusMeta,
   getProjectStatusMeta,
+  normalizeProjectCollectionJobs,
   normalizeProjectNavigationSource,
   normalizeProjectDataQualityResponse,
   normalizeProjectDetailResponse,
@@ -181,4 +183,38 @@ test('buildProjectDashboardPath omits brand when empty and returns empty when mi
   assert.equal(buildProjectDashboardPath({ tenantKey: 'tn_demo', jobId: 'job_a' }), '/dashboard/tn_demo/job_a');
   assert.equal(buildProjectDashboardPath({ tenantKey: '', jobId: 'job_a' }), '');
   assert.equal(buildProjectDashboardPath({ tenantKey: 'tn_demo', jobId: '' }), '');
+});
+
+test('getCollectionJobStatusMeta maps collection job statuses', () => {
+  assert.equal(getCollectionJobStatusMeta('succeeded').label, '已完成');
+  assert.equal(getCollectionJobStatusMeta('running').label, '采集中');
+  assert.equal(getCollectionJobStatusMeta('failed').variant, 'destructive');
+  assert.equal(getCollectionJobStatusMeta('weird').label, 'weird');
+});
+
+test('normalizeProjectCollectionJobs maps response to camelCase with targetBrand', () => {
+  const result = normalizeProjectCollectionJobs({
+    target_brand: 'QuickCEP',
+    collection_jobs: [
+      {
+        collection_job_id: 'col_1',
+        source_job_id: 'job_legacy_1',
+        status: 'succeeded',
+        window_start: '2026-02-09 00:00:00',
+        window_end: null,
+        expected_task_count: 12,
+        succeeded_task_count: 12,
+        failed_task_count: 0,
+      },
+    ],
+  });
+  assert.equal(result.targetBrand, 'QuickCEP');
+  assert.equal(result.collectionJobs.length, 1);
+  assert.equal(result.collectionJobs[0].collectionJobId, 'col_1');
+  assert.equal(result.collectionJobs[0].sourceJobId, 'job_legacy_1');
+  assert.equal(result.collectionJobs[0].windowEnd, '');
+});
+
+test('normalizeProjectCollectionJobs handles missing payload', () => {
+  assert.deepEqual(normalizeProjectCollectionJobs(null), { targetBrand: '', collectionJobs: [] });
 });

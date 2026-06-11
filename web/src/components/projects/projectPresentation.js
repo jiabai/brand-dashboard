@@ -211,3 +211,33 @@ export const buildProjectDashboardPath = ({ tenantKey, jobId, brand } = {}) => {
   const params = new URLSearchParams({ brand: normalizedBrand });
   return `${path}?${params.toString()}`;
 };
+
+export const getCollectionJobStatusMeta = (status) => {
+  const normalized = String(status || '').trim();
+  const map = {
+    pending: { label: '待采集', variant: 'secondary' },
+    running: { label: '采集中', variant: 'default' },
+    succeeded: { label: '已完成', variant: 'default' },
+    failed: { label: '失败', variant: 'destructive' },
+    expired: { label: '已过期', variant: 'outline' },
+    cancelled: { label: '已取消', variant: 'outline' },
+  };
+  return map[normalized] || { label: normalized || '未知', variant: 'secondary' };
+};
+
+export const normalizeProjectCollectionJobs = (response) => {
+  const jobs = Array.isArray(response?.collection_jobs) ? response.collection_jobs : [];
+  return {
+    targetBrand: response?.target_brand || '',
+    collectionJobs: jobs.map((job) => ({
+      collectionJobId: job.collection_job_id || '',
+      sourceJobId: job.source_job_id || '',
+      status: job.status || '',
+      windowStart: job.window_start || '',
+      windowEnd: job.window_end || '',
+      expectedTaskCount: job.expected_task_count || 0,
+      succeededTaskCount: job.succeeded_task_count || 0,
+      failedTaskCount: job.failed_task_count || 0,
+    })),
+  };
+};

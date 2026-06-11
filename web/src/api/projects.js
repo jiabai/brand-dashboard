@@ -19,3 +19,9 @@ export const fetchProjectDataQuality = ({ tenantKey, projectId } = {}, options =
     ...options,
     tenantKey,
   });
+
+export const fetchProjectCollectionJobs = ({ tenantKey, projectId } = {}, options = {}) =>
+  fetch(`/api/v1/projects/${encodePathSegment(projectId)}/collection-jobs`, {
+    ...options,
+    tenantKey,
+  });

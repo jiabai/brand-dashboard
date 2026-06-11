@@ -2,7 +2,12 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import { clearAuthSession, writeAuthSession } from '../../auth/storage.js';
-import { fetchProjectDataQuality, fetchProjectDetail, fetchProjects } from '../projects.js';
+import {
+  fetchProjectCollectionJobs,
+  fetchProjectDataQuality,
+  fetchProjectDetail,
+  fetchProjects,
+} from '../projects.js';
 
 class MemoryStorage {
   constructor() {
@@ -83,4 +88,17 @@ test('fetchProjectDataQuality uses project quality endpoint', async () => {
   assert.equal(request.url, '/api/v1/projects/proj%20space/data-quality');
   assert.equal(request.options.method, 'GET');
   assert.equal(request.options.headers['X-Tenant-Key'], 'tn_acme');
+});
+
+test('fetchProjectCollectionJobs hits the project collection-jobs endpoint', async () => {
+  let requestedUrl;
+  globalThis.fetch = async (url) => {
+    requestedUrl = url;
+    return jsonResponse({ success: true, target_brand: 'QuickCEP', collection_jobs: [] });
+  };
+
+  await fetchProjectCollectionJobs({ tenantKey: 'tn_a', projectId: 'prj 1' });
+
+  const parsed = new URL(requestedUrl, 'http://localhost');
+  assert.equal(parsed.pathname, '/api/v1/projects/prj%201/collection-jobs');
 });
