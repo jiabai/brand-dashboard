@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import {
   Building2,
   Key,
+  KeyRound,
   Lock,
   ShieldCheck,
   User,
@@ -10,6 +11,7 @@ import {
 import { Link } from 'react-router-dom';
 
 import {
+  changePassword,
   login as loginApi,
   registerUser,
   verifyInviteCode,
@@ -35,6 +37,11 @@ const initialForms = {
     email: '',
     phoneNumber: '',
     password: '',
+  },
+  password: {
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: '',
   },
   login: {
     email: '',
@@ -76,6 +83,7 @@ const AccountManagement = () => {
   const [loadingMap, setLoadingMap] = useState({
     verify: false,
     register: false,
+    password: false,
     login: false,
   });
   const [latestResponse, setLatestResponse] = useState({
@@ -121,6 +129,28 @@ const AccountManagement = () => {
       pushResponse(title, 'error', { message: error.message });
     } finally {
       setLoading(key, false);
+    }
+  };
+
+  const handleChangePassword = async (event) => {
+    event.preventDefault();
+    if (forms.password.newPassword !== forms.password.confirmPassword) {
+      setFeedback({ type: 'error', title: '修改密码', message: '两次输入的新密码不一致' });
+      return;
+    }
+    setLoading('password', true);
+    setFeedback(null);
+    try {
+      const result = await changePassword(stripEmpty(forms.password));
+      pushResponse('修改密码', 'success', result);
+      setForms((current) => ({
+        ...current,
+        password: { currentPassword: '', newPassword: '', confirmPassword: '' },
+      }));
+    } catch (error) {
+      pushResponse('修改密码', 'error', { message: error.message });
+    } finally {
+      setLoading('password', false);
     }
   };
 
@@ -256,6 +286,30 @@ const AccountManagement = () => {
                 </form>
               </TabsContent>
             </Tabs>
+
+            <form className="account-form space-y-4" onSubmit={handleChangePassword}>
+              <div>
+                <div className="account-section-title">修改密码</div>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  验证当前密码后设置新密码；修改成功后下次登录使用新密码。
+                </p>
+              </div>
+              <div className="grid gap-4 md:grid-cols-2">
+                <FormField label="当前密码" required>
+                  <Input required type="password" autoComplete="current-password" value={forms.password.currentPassword} onChange={(event) => updateForm('password', 'currentPassword', event.target.value)} placeholder="输入当前密码" />
+                </FormField>
+                <FormField label="新密码" required>
+                  <Input required type="password" minLength="8" autoComplete="new-password" value={forms.password.newPassword} onChange={(event) => updateForm('password', 'newPassword', event.target.value)} placeholder="至少 8 位" />
+                </FormField>
+                <FormField label="确认新密码" required>
+                  <Input required type="password" minLength="8" autoComplete="new-password" value={forms.password.confirmPassword} onChange={(event) => updateForm('password', 'confirmPassword', event.target.value)} placeholder="再次输入新密码" />
+                </FormField>
+              </div>
+              <Button type="submit" disabled={loadingMap.password}>
+                <KeyRound className="size-4" />
+                {loadingMap.password ? '提交中...' : '修改密码'}
+              </Button>
+            </form>
           </CardContent>
         </Card>
 
