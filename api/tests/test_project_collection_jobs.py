@@ -211,3 +211,37 @@ def test_requires_authenticated_tenant_member(session):
         headers={"X-Tenant-Key": "tn_a"},
     )
     assert resp.status_code == 401
+
+
+def test_does_not_leak_other_tenants_jobs(session, monkeypatch):
+    monkeypatch.setenv("AUTH_SECRET", TEST_SECRET)
+    _seed(session)
+    _insert_cj(
+        session, cj_id="col_1", project_id="prj_1",
+        source_job_id="job_a1", window_start="2026-02-09")
+    # second tenant with a same-named project_id and its own job
+    now = datetime.now(UTC)
+    session.execute(text(
+        "INSERT INTO tenants (tenant_key, tenant_name, status, created_at, updated_at)"
+        " VALUES ('tn_b', 'B', 'active', :now, :now)"), {"now": now})
+    session.execute(text(
+        "INSERT INTO monitoring_projects (tenant_key, project_id, name,"
+        " status, created_at, updated_at)"
+        " VALUES ('tn_b', 'prj_1', 'P', 'active', :now, :now)"), {"now": now})
+    session.execute(text(
+        "INSERT INTO collection_jobs (tenant_key, collection_job_id, project_id, source_job_id,"
+        " status, window_start, window_end, expected_task_count, succeeded_task_count,"
+        " failed_task_count, created_at, updated_at)"
+        " VALUES ('tn_b', 'col_b', 'prj_1', 'job_b1', 'succeeded', '2026-02-09', NULL,"
+        " 1, 1, 0, :now, :now)"),
+        {"now": now})
+    session.commit()
+
+    client = _client(session)
+    resp = client.get(
+        "/api/v1/projects/prj_1/collection-jobs",
+        headers={"Authorization": f"Bearer {_token()}", "X-Tenant-Key": "tn_a"},
+    )
+
+    assert resp.status_code == 200
+    assert {j["collection_job_id"] for j in resp.json()["collection_jobs"]} == {"col_1"}

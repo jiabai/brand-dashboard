@@ -310,7 +310,9 @@ def list_project_reports(
     )
 
 
-def list_project_collection_job_entries(db, *, tenant_key, project_id):
+def list_project_collection_job_entries(
+    db: Session, *, tenant_key: str, project_id: str
+) -> dict[str, Any]:
     rows = project_repo.list_project_collection_jobs(
         db, tenant_key=tenant_key, project_id=project_id
     )
