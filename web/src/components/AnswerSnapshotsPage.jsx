@@ -349,11 +349,6 @@ const AnswerSnapshotsPage = () => {
   return (
     <div className="flex min-w-0 flex-col gap-5">
       <div className="flex flex-col gap-2 border-b border-border pb-4">
-        <nav aria-label="面包屑导航" className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          <span>仪表板</span>
-          <span>/</span>
-          <span className="font-medium text-foreground">问答快照</span>
-        </nav>
         <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
           <div className="space-y-2">
             <h1 className="text-2xl font-medium text-foreground">问答快照</h1>
