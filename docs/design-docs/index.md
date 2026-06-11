@@ -18,3 +18,4 @@ Design docs capture architectural decisions, refactoring rationale, and cross-cu
 | [20260609-remove-metric-snapshots.md](20260609-remove-metric-snapshots.md) | 移除指标快照：以分析事实表聚合替代快照 read model |
 | [20260609-platform-tenant-operations-workflow.md](20260609-platform-tenant-operations-workflow.md) | 平台租户项目工作台中转页：租户详情承接项目主入口和排障路径 |
 | [20260610-unified-error-envelope.md](20260610-unified-error-envelope.md) | 统一错误响应信封：全局 HTTPException handler 收口为业务信封，前端解析与测试边界评估 |
+| [20260611-tenant-analysis-navigation.md](20260611-tenant-analysis-navigation.md) | 租户分析看板上下文二级导航：legacy 分析页随采集上下文出现的标签栏，守住主侧栏项目优先边界 |
