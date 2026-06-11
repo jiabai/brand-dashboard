@@ -50,9 +50,11 @@
 
 - 权限：`get_current_tenant_for_read`（与项目列表/详情读接口一致；active 成员或平台只读旁路）。数据按 `tenant_key` 隔离。
 - 行为：`SELECT ... FROM collection_jobs WHERE tenant_key = :tenant_key AND project_id = :project_id AND source_job_id IS NOT NULL ORDER BY window_start DESC, id DESC`。
-- 响应 `data`：
-  - `targetBrand`：项目目标品牌名（`project_brands` 中 `role='target'`、`status='active'` 的第一条 `brand_name`）；无则为 `null`。
-  - `collectionJobs[]`：每项含 `collectionJobId`、`sourceJobId`、`status`、`windowStart`、`windowEnd`、`expectedTaskCount`、`succeededTaskCount`、`failedTaskCount`。
+- 响应（扁平结构、snake_case，无 `data` 包裹）：
+  - `success`：`true`。
+  - `target_brand`：项目目标品牌名（`project_brands` 中 `role='target'`、`status='active'` 的第一条 `brand_name`）；无则为 `null`。
+  - `collection_jobs[]`：每项含 `collection_job_id`、`source_job_id`、`status`、`window_start`、`window_end`、`expected_task_count`、`succeeded_task_count`、`failed_task_count`。
+  - 前端 `normalizeProjectCollectionJobs` 将其归一化为 camelCase（`targetBrand` / `collectionJobs[].collectionJobId` 等）。
 - 不返回 legacy 查询定义细节；不暴露 `source_job_id` 为空的采集任务。
 
 ### 5.2 看板数据接口
