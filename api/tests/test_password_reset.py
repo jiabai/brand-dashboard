@@ -170,3 +170,41 @@ def test_change_password_requires_correct_current_password(memory_engine):
 
     auth_repository.change_password(memory_engine, user_id, "OldPass12345", "NewPass12345")
     assert verify_password("NewPass12345", _password_hash_of(memory_engine, user_id))
+
+
+def test_request_reset_cooldown_ignores_email_case_variants(memory_engine):
+    _seed_user(memory_engine)
+
+    first = auth_repository.request_password_reset(memory_engine, "user@demo.test")
+    case_variant = auth_repository.request_password_reset(memory_engine, "User@demo.test")
+
+    assert first is not None
+    assert case_variant is None
+
+
+def test_request_reset_cooldown_releases_after_window(memory_engine, monkeypatch):
+    _seed_user(memory_engine)
+
+    first = auth_repository.request_password_reset(memory_engine, "user@demo.test")
+    real_now = auth_repository.time.time()
+    monkeypatch.setattr(auth_repository.time, "time", lambda: real_now + 61)
+    second = auth_repository.request_password_reset(memory_engine, "user@demo.test")
+
+    assert first is not None
+    assert second is not None
+
+
+def test_reset_rejects_token_after_account_suspended(memory_engine):
+    user_id = _seed_user(memory_engine)
+    result = auth_repository.request_password_reset(memory_engine, "user@demo.test")
+
+    with memory_engine.begin() as conn:
+        conn.execute(
+            text("UPDATE users SET status = 'suspended' WHERE id = :user_id"),
+            {"user_id": user_id},
+        )
+
+    with pytest.raises(ValueError, match="重置链接无效或已失效"):
+        auth_repository.reset_password_with_token(
+            memory_engine, result["resetToken"], "NewPass12345"
+        )

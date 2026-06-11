@@ -439,7 +439,8 @@ def request_password_reset(engine: Engine, email: str) -> Dict[str, Any] | None:
     调用方不得让响应体现任何差异。冷却为进程内存级，按邮箱 60 秒。
     """
     now = time.time()
-    last_sent = _reset_email_last_sent.get(email)
+    cooldown_key = email.strip().lower()
+    last_sent = _reset_email_last_sent.get(cooldown_key)
     if last_sent is not None and now - last_sent < _RESET_EMAIL_COOLDOWN_SECONDS:
         return None
 
@@ -465,7 +466,7 @@ def request_password_reset(engine: Engine, email: str) -> Dict[str, Any] | None:
         },
         _get_auth_secret(),
     )
-    _reset_email_last_sent[email] = now
+    _reset_email_last_sent[cooldown_key] = now
     base_url = _build_tenant_base_url(None)
     return {
         "email": user_email,
@@ -503,21 +504,25 @@ def reset_password_with_token(engine: Engine, token: str, password: str) -> Dict
             or _password_fingerprint(user_row[2]) != payload.get("pwd_fp")
         ):
             raise ValueError("重置链接无效或已失效")
-        conn.execute(
+        update_result = conn.execute(
             text(
                 """
                 UPDATE users SET
                     password_hash = :password_hash,
                     updated_at = :updated_at
                 WHERE id = :user_id
+                  AND password_hash = :current_hash
                 """
             ),
             {
                 "password_hash": hash_password(password),
                 "updated_at": now,
                 "user_id": user_id,
+                "current_hash": user_row[2],
             },
         )
+        if update_result.rowcount == 0:
+            raise ValueError("重置链接无效或已失效")
     return {"userId": user_id, "email": user_row[1]}
 
 
