@@ -9,6 +9,10 @@ EMAIL_SENT_MESSAGE = "激活邮件已发送"
 EMAIL_NOT_CONFIGURED_MESSAGE = "SMTP 未配置，未发送激活邮件"
 EMAIL_FAILED_MESSAGE = "激活邮件发送失败，请复制激活链接人工发送"
 
+RESET_EMAIL_SENT_MESSAGE = "重置邮件已发送"
+RESET_EMAIL_NOT_CONFIGURED_MESSAGE = "SMTP 未配置，未发送重置邮件"
+RESET_EMAIL_FAILED_MESSAGE = "重置邮件发送失败"
+
 
 @dataclass(frozen=True)
 class SmtpConfig:
@@ -113,4 +117,59 @@ def send_admin_activation_email(tenant_result: Dict[str, Any]) -> Dict[str, str 
             "status": "failed",
             "to": admin_email,
             "message": EMAIL_FAILED_MESSAGE,
+        }
+
+
+def _build_password_reset_message(
+    config: SmtpConfig, reset_result: Dict[str, Any]
+) -> EmailMessage:
+    email = reset_result.get("email") or ""
+    reset_url = reset_result.get("resetUrl") or ""
+
+    message = EmailMessage()
+    message["From"] = config.sender
+    message["To"] = email
+    message["Subject"] = "Brand Dashboard 密码重置"
+    message.set_content(
+        "\n".join(
+            [
+                "您好，我们收到了此邮箱的密码重置申请。",
+                "",
+                "请在 1 小时内打开以下链接设置新密码：",
+                reset_url,
+                "",
+                "如果不是您本人操作，请忽略此邮件，密码不会被修改。",
+            ]
+        )
+    )
+    return message
+
+
+def send_password_reset_email(reset_result: Dict[str, Any]) -> Dict[str, str | None]:
+    """发送密码重置邮件。返回值仅用于服务端观测与测试；
+
+    防枚举要求公开接口的响应不得包含本函数的任何返回内容。
+    """
+    email = reset_result.get("email")
+    try:
+        config = _load_smtp_config()
+        if not config:
+            return {
+                "status": "not_configured",
+                "to": email,
+                "message": RESET_EMAIL_NOT_CONFIGURED_MESSAGE,
+            }
+
+        message = _build_password_reset_message(config, reset_result)
+        _send_message(config, message)
+        return {
+            "status": "sent",
+            "to": email,
+            "message": RESET_EMAIL_SENT_MESSAGE,
+        }
+    except Exception:
+        return {
+            "status": "failed",
+            "to": email,
+            "message": RESET_EMAIL_FAILED_MESSAGE,
         }
