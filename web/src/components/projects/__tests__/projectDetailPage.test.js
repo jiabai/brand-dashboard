@@ -21,3 +21,19 @@ describe('ProjectDetailPage contract', () => {
     assert.match(source, /返回项目工作台/);
   });
 });
+
+describe('ProjectDetailPage dashboard entry contract', () => {
+  it('exposes an enter-dashboard button that opens a job picker sheet', () => {
+    assert.match(source, /进入看板/);
+    assert.match(source, /fetchQueryJobStatus/);
+    assert.match(source, /projectId/);
+    assert.match(source, /normalizeProjectJobRecords/);
+    assert.match(source, /SheetContent/);
+  });
+
+  it('navigates to the legacy dashboard for the selected job', () => {
+    assert.match(source, /buildProjectDashboardPath/);
+    assert.match(source, /getQueryJobStatusMeta/);
+    assert.match(source, /该项目还没有采集任务/);
+  });
+});

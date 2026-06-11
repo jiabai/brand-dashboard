@@ -1,8 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, Boxes, FileQuestion, FolderKanban, Gauge, RefreshCw } from 'lucide-react';
+import { ArrowLeft, BarChart3, Boxes, FileQuestion, FolderKanban, Gauge, RefreshCw } from 'lucide-react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 
-import { fetchProjectDetail } from '@/api';
+import { fetchProjectDetail, fetchQueryJobStatus } from '@/api';
 import { useAuth } from '@/auth/AuthContext.jsx';
 import { hasPlatformAdminRole } from '@/auth/platformAccess.js';
 import { useDashboardParams } from '@/hooks/useDashboardParams';
@@ -18,14 +18,26 @@ import {
   CardTitle,
 } from '../ui/card.jsx';
 import { Separator } from '../ui/separator.jsx';
-import { buildPlatformTenantProjectOverviewPath } from '../platform/tenantPresentation.js';
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from '../ui/sheet.jsx';
+import {
+  buildPlatformTenantProjectOverviewPath,
+  getQueryJobStatusMeta,
+} from '../platform/tenantPresentation.js';
 import {
   PROJECT_NAV_SOURCE_PLATFORM_TENANT_DETAIL,
+  buildProjectDashboardPath,
   buildProjectListPath,
   buildProjectDataQualityPath,
   countProjectBrandsByRole,
   getProjectStatusMeta,
   normalizeProjectDetailResponse,
+  normalizeProjectJobRecords,
   readProjectNavigationSource,
 } from './projectPresentation.js';
 
@@ -39,6 +51,10 @@ const ProjectDetailPage = () => {
   const [project, setProject] = useState(null);
   const [feedback, setFeedback] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [dashboardSheetOpen, setDashboardSheetOpen] = useState(false);
+  const [jobRecords, setJobRecords] = useState([]);
+  const [isLoadingJobs, setIsLoadingJobs] = useState(false);
+  const [jobsError, setJobsError] = useState('');
 
   const loadProject = useCallback(async () => {
     if (!tenantKey || !projectId) return;
@@ -85,6 +101,30 @@ const ProjectDetailPage = () => {
     if (path) navigate(path);
   };
 
+  const openDashboardSheet = async () => {
+    setDashboardSheetOpen(true);
+    setIsLoadingJobs(true);
+    setJobsError('');
+    try {
+      const response = await fetchQueryJobStatus({ tenantKey, projectId });
+      setJobRecords(normalizeProjectJobRecords(response));
+    } catch (loadError) {
+      setJobRecords([]);
+      setJobsError(loadError.message || '加载采集任务失败');
+    } finally {
+      setIsLoadingJobs(false);
+    }
+  };
+
+  const enterDashboard = (job) => {
+    const path = buildProjectDashboardPath({
+      tenantKey,
+      jobId: job.jobId,
+      brand: job.brand,
+    });
+    if (path) navigate(path);
+  };
+
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
       <div className="flex flex-wrap items-start justify-between gap-4 border-b border-border pb-4">
@@ -111,6 +151,10 @@ const ProjectDetailPage = () => {
           <Button type="button" variant="outline" onClick={openDataQuality}>
             <Gauge data-icon="inline-start" />
             数据质量
+          </Button>
+          <Button type="button" variant="outline" onClick={openDashboardSheet}>
+            <BarChart3 data-icon="inline-start" />
+            进入看板
           </Button>
           <Button type="button" variant="outline" onClick={loadProject} disabled={isLoading}>
             <RefreshCw data-icon="inline-start" className={isLoading ? 'animate-spin' : ''} />
@@ -265,6 +309,55 @@ const ProjectDetailPage = () => {
           </div>
         </>
       ) : null}
+
+      <Sheet open={dashboardSheetOpen} onOpenChange={setDashboardSheetOpen}>
+        <SheetContent>
+          <SheetHeader>
+            <SheetTitle>选择采集任务进入看板</SheetTitle>
+            <SheetDescription>选择该项目的一次采集，进入对应的分析看板。</SheetDescription>
+          </SheetHeader>
+          <div className="mt-4 grid gap-2">
+            {isLoadingJobs ? (
+              <div className="h-24 animate-pulse rounded-md border border-border bg-muted/45" />
+            ) : null}
+            {!isLoadingJobs && jobsError ? (
+              <Alert variant="destructive">
+                <AlertTitle>加载失败</AlertTitle>
+                <AlertDescription>{jobsError}</AlertDescription>
+              </Alert>
+            ) : null}
+            {!isLoadingJobs && !jobsError && jobRecords.length === 0 ? (
+              <EmptyState
+                icon={BarChart3}
+                title="暂无看板数据"
+                description="该项目还没有采集任务，暂无看板数据。"
+              />
+            ) : null}
+            {!isLoadingJobs && !jobsError
+              ? jobRecords.map((job) => {
+                const meta = getQueryJobStatusMeta(job.queryStatus);
+                return (
+                  <button
+                    key={`${job.jobId}-${job.brand}`}
+                    type="button"
+                    onClick={() => enterDashboard(job)}
+                    className="flex items-center justify-between gap-3 rounded-md border border-border px-3 py-2 text-left hover:bg-muted/50"
+                  >
+                    <span className="min-w-0">
+                      <span className="block truncate text-sm font-medium text-foreground">{job.brand || '未命名品牌'}</span>
+                      <span className="block truncate text-xs text-muted-foreground">
+                        {(job.effectiveFrom || '').slice(0, 10)}
+                        {job.effectiveTo ? ` ~ ${job.effectiveTo.slice(0, 10)}` : ' ~ 进行中'}
+                      </span>
+                    </span>
+                    <Badge variant={meta.variant}>{meta.label}</Badge>
+                  </button>
+                );
+              })
+              : null}
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 };
