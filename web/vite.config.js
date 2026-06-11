@@ -13,6 +13,12 @@ export default defineConfig(({ mode, command }) => {
 
   const config = {
     plugins: [react()],
+    optimizeDeps: {
+      // 情感分析路由懒加载且独占引入 @cp949/react-wordcloud；若不预打包，
+      // 首次进入该页时 vite 会临时重新优化依赖并触发重载，导致正在加载的
+      // 动态模块报 "Failed to fetch dynamically imported module"。预打包以规避。
+      include: ['@cp949/react-wordcloud'],
+    },
     resolve: {
       alias: {
         '@': fileURLToPath(new URL('./src', import.meta.url)),
