@@ -82,6 +82,7 @@ const AppRoutes = () => {
       <Route path="/login" element={<LoginView defaultTab="login" />} />
       <Route path="/activate" element={<LoginView defaultTab="activate" />} />
       <Route path="/register" element={<LoginView defaultTab="register" />} />
+      <Route path="/reset-password" element={<LoginView defaultTab="reset" />} />
       <Route path="/platform" element={<PlatformRoute><PlatformLayout /></PlatformRoute>}>
         <Route index element={<Navigate to="/platform/tenants" replace />} />
         <Route path="tenants" element={<RouteShell><PlatformTenantsPage /></RouteShell>} />

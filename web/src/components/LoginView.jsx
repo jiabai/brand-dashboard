@@ -1,8 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
-import { CheckCircle2, KeyRound, Lock, UserPlus } from 'lucide-react';
+import { CheckCircle2, KeyRound, Lock, MailQuestion, UserPlus } from 'lucide-react';
 
-import { activateAuth, registerUser, verifyInviteCode } from '../api/auth.js';
+import { activateAuth, forgotPassword, registerUser, resetPassword, verifyInviteCode } from '../api/auth.js';
 import { readActivationTokenFromSearch } from '../auth/activation.js';
 import { useAuth } from '../auth/AuthContext.jsx';
 import { getLoginRedirectTarget } from '../auth/redirect.js';
@@ -32,6 +32,14 @@ const initialForms = {
     email: '',
     phoneNumber: '',
     password: '',
+  },
+  forgot: {
+    email: '',
+  },
+  reset: {
+    token: '',
+    password: '',
+    confirmPassword: '',
   },
 };
 
@@ -64,20 +72,36 @@ const LoginView = ({ defaultTab = 'login' }) => {
   }, [defaultTab]);
 
   useEffect(() => {
-    const activationToken = readActivationTokenFromSearch(location.search);
-    if (!activationToken) return;
-    setActiveTab('activate');
-    setForms((current) => {
-      if (current.activate.token === activationToken) return current;
-      return {
-        ...current,
-        activate: {
-          ...current.activate,
-          token: activationToken,
-        },
-      };
-    });
-  }, [location.search]);
+    const token = readActivationTokenFromSearch(location.search);
+    if (!token) return;
+    if (location.pathname === '/reset-password') {
+      setActiveTab('reset');
+      setForms((current) => {
+        if (current.reset.token === token) return current;
+        return {
+          ...current,
+          reset: {
+            ...current.reset,
+            token,
+          },
+        };
+      });
+      return;
+    }
+    if (location.pathname === '/activate') {
+      setActiveTab('activate');
+      setForms((current) => {
+        if (current.activate.token === token) return current;
+        return {
+          ...current,
+          activate: {
+            ...current.activate,
+            token,
+          },
+        };
+      });
+    }
+  }, [location.pathname, location.search]);
 
   const updateForm = (formKey, field, value) => {
     setForms((current) => ({
@@ -165,6 +189,40 @@ const LoginView = ({ defaultTab = 'login' }) => {
     }
   };
 
+  const handleForgotPassword = async (event) => {
+    event.preventDefault();
+    setLoadingKey('forgot');
+    setFeedback(null);
+    try {
+      const result = await forgotPassword(stripEmpty(forms.forgot));
+      setResult('success', '重置邮件', result?.message || '如果该邮箱已注册并激活，重置邮件已发送');
+    } catch (error) {
+      setResult('error', '重置邮件', error.message);
+    } finally {
+      setLoadingKey('');
+    }
+  };
+
+  const handleResetPassword = async (event) => {
+    event.preventDefault();
+    if (forms.reset.password !== forms.reset.confirmPassword) {
+      setResult('error', '重置失败', '两次输入的密码不一致');
+      return;
+    }
+
+    setLoadingKey('reset');
+    setFeedback(null);
+    try {
+      const result = await resetPassword(stripEmpty(forms.reset));
+      setResult('success', '密码已重置', result?.message || '请使用新密码登录');
+      setActiveTab('login');
+    } catch (error) {
+      setResult('error', '重置失败', error.message);
+    } finally {
+      setLoadingKey('');
+    }
+  };
+
   const feedbackNode = useMemo(() => {
     if (!feedback) return null;
     return (
@@ -211,16 +269,17 @@ const LoginView = ({ defaultTab = 'login' }) => {
           <CardContent className="space-y-5 p-5 sm:p-6">
             <div className="space-y-1">
               <h2 className="text-xl font-medium text-foreground">账户访问</h2>
-              <p className="text-sm text-muted-foreground">登录、激活管理员账号或通过邀请码注册员工账号</p>
+              <p className="text-sm text-muted-foreground">登录、激活管理员账号、邀请码注册或重置密码</p>
             </div>
 
             {feedbackNode}
 
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="grid h-auto w-full grid-cols-3">
+              <TabsList className="grid h-auto w-full grid-cols-4">
                 <TabsTrigger value="login">登录</TabsTrigger>
                 <TabsTrigger value="activate">激活</TabsTrigger>
                 <TabsTrigger value="register">注册</TabsTrigger>
+                <TabsTrigger value="reset">重置</TabsTrigger>
               </TabsList>
 
               <TabsContent value="login" className="pt-4">
@@ -249,6 +308,15 @@ const LoginView = ({ defaultTab = 'login' }) => {
                     <Lock className="size-4" />
                     {loadingKey === 'login' ? '登录中...' : '登录'}
                   </Button>
+                  <div className="text-right">
+                    <button
+                      type="button"
+                      className="text-sm font-medium text-primary hover:underline"
+                      onClick={() => setActiveTab('reset')}
+                    >
+                      忘记密码？
+                    </button>
+                  </div>
                 </form>
               </TabsContent>
 
@@ -355,6 +423,60 @@ const LoginView = ({ defaultTab = 'login' }) => {
                   <Button type="submit" className="w-full" disabled={loadingKey === 'register'}>
                     <UserPlus className="size-4" />
                     {loadingKey === 'register' ? '注册中...' : '完成注册'}
+                  </Button>
+                </form>
+              </TabsContent>
+
+              <TabsContent value="reset" className="space-y-5 pt-4">
+                <form className="flex flex-col gap-3 sm:flex-row" onSubmit={handleForgotPassword}>
+                  <Input
+                    required
+                    type="email"
+                    autoComplete="email"
+                    value={forms.forgot.email}
+                    onChange={(event) => updateForm('forgot', 'email', event.target.value)}
+                    placeholder="注册邮箱"
+                  />
+                  <Button type="submit" variant="outline" disabled={loadingKey === 'forgot'}>
+                    <MailQuestion className="size-4" />
+                    {loadingKey === 'forgot' ? '发送中...' : '发送重置邮件'}
+                  </Button>
+                </form>
+
+                <form className="space-y-4" onSubmit={handleResetPassword}>
+                  <FormField label="重置令牌" required>
+                    <Input
+                      required
+                      value={forms.reset.token}
+                      onChange={(event) => updateForm('reset', 'token', event.target.value)}
+                      placeholder="邮件中的重置令牌"
+                    />
+                  </FormField>
+                  <FormField label="新密码" required>
+                    <Input
+                      required
+                      type="password"
+                      minLength="8"
+                      autoComplete="new-password"
+                      value={forms.reset.password}
+                      onChange={(event) => updateForm('reset', 'password', event.target.value)}
+                      placeholder="至少 8 位"
+                    />
+                  </FormField>
+                  <FormField label="确认新密码" required>
+                    <Input
+                      required
+                      type="password"
+                      minLength="8"
+                      autoComplete="new-password"
+                      value={forms.reset.confirmPassword}
+                      onChange={(event) => updateForm('reset', 'confirmPassword', event.target.value)}
+                      placeholder="再次输入新密码"
+                    />
+                  </FormField>
+                  <Button type="submit" className="w-full" disabled={loadingKey === 'reset'}>
+                    <KeyRound className="size-4" />
+                    {loadingKey === 'reset' ? '重置中...' : '重置密码'}
                   </Button>
                 </form>
               </TabsContent>
