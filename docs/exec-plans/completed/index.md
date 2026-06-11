@@ -2,6 +2,19 @@
 
 | File | Scope | Completed |
 |------|-------|-----------|
+| [20260612-answer-snapshot-markdown-dialog.md](20260612-answer-snapshot-markdown-dialog.md) | 问答快照问题/回答列点击弹出居中 Markdown 浮窗：新增 Dialog 基元与 react-markdown 渲染组件，桌面表格与移动端列表两列可点查看全文 | 2026-06-12 |
+| [20260611-tenant-analysis-navigation.md](20260611-tenant-analysis-navigation.md) | 租户分析看板上下文二级导航：legacy 分析页随采集上下文出现的标签栏，主侧栏保持项目优先 | 2026-06-11 |
+| [20260611-project-dashboard-entry-collection-jobs.md](20260611-project-dashboard-entry-collection-jobs.md) | 项目看板入口改用 collection_jobs 数据源（一次采集一行，经 source_job_id 进 legacy 看板） | 2026-06-11 |
+| [20260611-project-dashboard-entry.md](20260611-project-dashboard-entry.md) | 项目详情页进入看板入口：用户选 job 进 legacy 首页看板 | 2026-06-11 |
+| [20260610-password-reset-and-change.md](20260610-password-reset-and-change.md) | 自助密码重置与修改密码：防枚举邮件重置、指纹一次性令牌、登录页重置标签与账户页改密 | 2026-06-10 |
+| [20260610-platform-resend-admin-activation.md](20260610-platform-resend-admin-activation.md) | 平台租户详情页重发管理员激活邮件：仓储重签令牌、平台路由、前端入口与门禁收尾 | 2026-06-10 |
+| [20260610-platform-tenant-admin-emergency-entry.md](20260610-platform-tenant-admin-emergency-entry.md) | 平台租户详情页补齐租户管理员应急设置入口 | 2026-06-10 |
+| [20260610-tenant-member-governance.md](20260610-tenant-member-governance.md) | 租户成员管理 API、平台应急角色修改审计与最后 active admin 保护 | 2026-06-10 |
+| [20260609-platform-tenant-admin-info-entry.md](20260609-platform-tenant-admin-info-entry.md) | 平台租户管理增加租户管理员信息入口 | 2026-06-09 |
+| [20260609-platform-admin-membership-readonly-boundary.md](20260609-platform-admin-membership-readonly-boundary.md) | 平台管理员即使有租户 membership 也按客户只读视角隐藏租户侧入口 | 2026-06-09 |
+| [20260609-platform-readonly-workspace-identity-context.md](20260609-platform-readonly-workspace-identity-context.md) | 平台只读项目工作台身份上下文：顶部展示登录账号和客户视角 | 2026-06-09 |
+| [20260609-tenant-join-entry-boundary.md](20260609-tenant-join-entry-boundary.md) | 租户加入团队入口收敛：平台只读隐藏入口，账户页移除登录辅助 | 2026-06-09 |
+| [20260609-platform-admin-project-readonly-boundary.md](20260609-platform-admin-project-readonly-boundary.md) | 平台管理员项目只读边界：客户视角只读提示，不新增项目写操作 | 2026-06-09 |
 | [20260609-platform-tenant-operations-workflow.md](20260609-platform-tenant-operations-workflow.md) | 平台租户运营中转页：补齐 `/platform/tenants/:tenantKey` | 2026-06-09 |
 | [20260609-remove-metric-snapshots.md](20260609-remove-metric-snapshots.md) | 移除指标快照：改为基于分析事实表聚合 | 2026-06-09 |
 | [2026-02-08-align-dashboard-json.md](2026-02-08-align-dashboard-json.md) | 对齐 dashboard.json 规格 | 2026-02-08 |
