@@ -13,7 +13,6 @@ import {
   normalizeProjectNavigationSource,
   normalizeProjectDataQualityResponse,
   normalizeProjectDetailResponse,
-  normalizeProjectJobRecords,
   normalizeProjectListResponse,
 } from '../projectPresentation.js';
 
@@ -146,30 +145,6 @@ test('normalizes project data quality with stable defaults', () => {
   const empty = normalizeProjectDataQualityResponse({});
   assert.equal(empty.summary.analysisCoverageLabel, '覆盖率待计算');
   assert.deepEqual(empty.failedCollectionTasks, []);
-});
-
-test('normalizeProjectJobRecords maps backend job rows to camelCase', () => {
-  const result = normalizeProjectJobRecords({
-    jobs: [
-      {
-        job_id: 'job_a',
-        project_id: 'proj_a',
-        brand: 'BrandA',
-        query_status: 1,
-        effective_from: '2026-02-09T12:35:50Z',
-        effective_to: null,
-      },
-    ],
-  });
-  assert.equal(result.length, 1);
-  assert.equal(result[0].jobId, 'job_a');
-  assert.equal(result[0].brand, 'BrandA');
-  assert.equal(result[0].queryStatus, 1);
-});
-
-test('normalizeProjectJobRecords returns empty array for missing jobs', () => {
-  assert.deepEqual(normalizeProjectJobRecords(null), []);
-  assert.deepEqual(normalizeProjectJobRecords({}), []);
 });
 
 test('buildProjectDashboardPath builds legacy home dashboard path with brand', () => {

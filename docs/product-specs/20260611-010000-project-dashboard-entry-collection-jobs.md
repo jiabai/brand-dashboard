@@ -1,6 +1,6 @@
 # 项目看板入口改用 collection_jobs 作为采集任务来源
 
-> 状态：待实现，2026-06-11
+> 状态：已实现，2026-06-11
 >
 > 本文档修订 `docs/product-specs/20260611-project-dashboard-entry.md` 的**数据来源决策**：把项目详情页「进入看板」Sheet 的采集任务来源，从 legacy 的 `llm_query_jobs`（每条查询提示词一行）改为重构后领域模型的 `collection_jobs`（一次采集任务一行）。其余产品意图（项目详情页入口、用户选采集任务、落地 legacy 首页看板）不变。
 

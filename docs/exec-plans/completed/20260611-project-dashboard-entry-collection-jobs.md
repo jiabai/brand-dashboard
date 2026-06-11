@@ -1,6 +1,6 @@
 # 项目看板入口改源 collection_jobs 实现计划
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** 项目详情页「进入看板」Sheet 的采集任务来源从 `llm_query_jobs`（每条查询一行）改为 `collection_jobs`（一次采集一行），经 `source_job_id` + 项目目标品牌进 legacy 首页看板。
 
@@ -37,7 +37,7 @@
 - Modify: `api/v1/routes/projects.py`
 - Create: `api/tests/test_project_collection_jobs.py`
 
-- [ ] **Step 1: 写失败的测试**
+- [x] **Step 1: 写失败的测试**
 
 创建 `api/tests/test_project_collection_jobs.py`：
 
@@ -237,12 +237,12 @@ def test_requires_authenticated_tenant_member(session):
     assert resp.status_code == 401
 ```
 
-- [ ] **Step 2: 运行确认失败**
+- [x] **Step 2: 运行确认失败**
 
 Run: `$env:PYTHONPATH='.'; uv run --project api --extra dev pytest api/tests/test_project_collection_jobs.py -q`
 Expected: 404（路由不存在）或属性错误，多个 FAIL。
 
-- [ ] **Step 3: 仓储函数**
+- [x] **Step 3: 仓储函数**
 
 `api/v1/repositories/projects.py` 末尾追加（`text` 已导入；风格对照 `list_projects`/`list_project_brands`）：
 
@@ -290,7 +290,7 @@ def get_project_target_brand(db: Session, *, tenant_key: str, project_id: str):
     return row[0] if row else None
 ```
 
-- [ ] **Step 4: 服务函数**
+- [x] **Step 4: 服务函数**
 
 `api/v1/services/projects.py` 末尾追加（`project_repo` 已作为 `from api.v1.repositories import projects as project_repo` 导入——动手前 Read 确认别名）：
 
@@ -318,7 +318,7 @@ def list_project_collection_job_entries(db, *, tenant_key, project_id):
     return {"target_brand": target_brand, "collection_jobs": collection_jobs}
 ```
 
-- [ ] **Step 5: 响应 schema**
+- [x] **Step 5: 响应 schema**
 
 `api/v1/models/schemas.py` 在 `ProjectListResponse` 之后追加（`BaseModel`/`Field`/`List` 已导入）：
 
@@ -340,7 +340,7 @@ class ProjectCollectionJobsResponse(BaseModel):
     collection_jobs: List[ProjectCollectionJobItem] = Field(default_factory=list)
 ```
 
-- [ ] **Step 6: 路由**
+- [x] **Step 6: 路由**
 
 `api/v1/routes/projects.py`：schemas 导入块加入 `ProjectCollectionJobsResponse`（保持字母序/现有风格）。在 `get_project_data_quality` 路由之后追加：
 
@@ -363,16 +363,16 @@ async def list_project_collection_jobs(
     )
 ```
 
-- [ ] **Step 7: 运行确认通过**
+- [x] **Step 7: 运行确认通过**
 
 Run: `$env:PYTHONPATH='.'; uv run --project api --extra dev pytest api/tests/test_project_collection_jobs.py -q` → 4 passed。
 
-- [ ] **Step 8: 回归 + lint**
+- [x] **Step 8: 回归 + lint**
 
 Run: `$env:PYTHONPATH='.'; uv run --project api --extra dev pytest api/tests/ -q` → 约 226 passed，0 失败。
 Run: `uv run --project api ruff check api` → All checks passed!
 
-- [ ] **Step 9: Commit**（五文件 clean）
+- [x] **Step 9: Commit**（五文件 clean）
 
 ```powershell
 git add api/v1/repositories/projects.py api/v1/services/projects.py api/v1/models/schemas.py api/v1/routes/projects.py api/tests/test_project_collection_jobs.py
@@ -395,7 +395,7 @@ Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>
 - Modify: `web/src/components/projects/projectPresentation.js`
 - Modify: `web/src/components/projects/__tests__/projectPresentation.test.js`
 
-- [ ] **Step 1: 写失败的测试**
+- [x] **Step 1: 写失败的测试**
 
 创建 `web/src/api/__tests__/projects.test.js`：
 
@@ -468,11 +468,11 @@ test('normalizeProjectCollectionJobs handles missing payload', () => {
 });
 ```
 
-- [ ] **Step 2: 运行确认失败**
+- [x] **Step 2: 运行确认失败**
 
 Run: `npm --prefix web test` → 新用例 FAIL（导出不存在）。
 
-- [ ] **Step 3: 实现适配器**
+- [x] **Step 3: 实现适配器**
 
 `web/src/api/projects.js` 末尾追加：
 
@@ -484,7 +484,7 @@ export const fetchProjectCollectionJobs = ({ tenantKey, projectId } = {}, option
   });
 ```
 
-- [ ] **Step 4: 实现展示层纯函数**
+- [x] **Step 4: 实现展示层纯函数**
 
 `web/src/components/projects/projectPresentation.js` 末尾追加（**不删** `normalizeProjectJobRecords`，本任务只新增）：
 
@@ -520,11 +520,11 @@ export const normalizeProjectCollectionJobs = (response) => {
 };
 ```
 
-- [ ] **Step 5: 运行确认通过**
+- [x] **Step 5: 运行确认通过**
 
 Run: `npm --prefix web test` → 全绿（基线 137 + 新增 4 ≈ 141 pass）。
 
-- [ ] **Step 6: Commit**（四文件 clean）
+- [x] **Step 6: Commit**（四文件 clean）
 
 ```powershell
 git add web/src/api/projects.js web/src/api/__tests__/projects.test.js web/src/components/projects/projectPresentation.js web/src/components/projects/__tests__/projectPresentation.test.js
@@ -545,7 +545,7 @@ Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>
 
 前置：Task 1/2 已入库。HEAD 版 ProjectDetailPage.jsx 含上一阶段的看板 Sheet（用 `fetchQueryJobStatus`/`normalizeProjectJobRecords`/`getQueryJobStatusMeta`）。本任务把它改成 collection_jobs 源。
 
-- [ ] **Step 1: 改契约测试**
+- [x] **Step 1: 改契约测试**
 
 `web/src/components/projects/__tests__/projectDetailPage.test.js` 的 `dashboard entry contract` describe（上一阶段加的）：把断言改为新标识符（删掉 `fetchQueryJobStatus`/`normalizeProjectJobRecords`/`getQueryJobStatusMeta` 三条，换为下列）。该 describe 块整体替换为：
 
@@ -567,11 +567,11 @@ describe('ProjectDetailPage dashboard entry contract', () => {
 });
 ```
 
-- [ ] **Step 2: 运行确认失败**
+- [x] **Step 2: 运行确认失败**
 
 Run: `npm --prefix web test` → 这两个用例 FAIL（旧源标识符已不在断言、新标识符尚未在源码）。
 
-- [ ] **Step 3: 改 ProjectDetailPage.jsx（工作区版本）**
+- [x] **Step 3: 改 ProjectDetailPage.jsx（工作区版本）**
 
 (a) `@/api` 导入：把 `fetchQueryJobStatus` 换成 `fetchProjectCollectionJobs`：
 ```jsx
@@ -653,12 +653,12 @@ import { buildPlatformTenantProjectOverviewPath } from '../platform/tenantPresen
 
 （加载/错误/空状态块不变；空状态文案「该项目还没有采集任务，暂无看板数据。」保留。）
 
-- [ ] **Step 4: 运行测试与构建**
+- [x] **Step 4: 运行测试与构建**
 
 Run: `npm --prefix web test` → 全绿（约 141 pass）。
 Run: `npm --prefix web run build` → 成功。
 
-- [ ] **Step 5: ⚠️ blob 构造提交**
+- [x] **Step 5: ⚠️ blob 构造提交**
 
 两文件 DIRTY。每个文件：提交 blob = `git show HEAD:<file>`（含上一阶段看板 Sheet）+ 仅本任务改动，适配 HEAD 上下文（HEAD 版若与工作区在途版结构不同，以 HEAD 为基底叠加本任务改动；不得引用 HEAD 不存在且非本任务新增的标识符）。`git hash-object -w --no-filters` → `git update-index --cacheinfo`。
 
@@ -689,14 +689,14 @@ Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>
 - Move: `docs/exec-plans/active/20260611-project-dashboard-entry-collection-jobs.md` → `completed/`
 - Modify: `docs/exec-plans/active/index.md`（恢复空态，提交）
 
-- [ ] **Step 1: 删死代码**
+- [x] **Step 1: 删死代码**
 
 先确认无人再引用：`grep -rn "normalizeProjectJobRecords" web/src` 应只剩 `projectPresentation.js`（定义）与 `projectPresentation.test.js`（测试）——ProjectDetailPage 已在 Task 3 改掉。若仍有其它引用，停下排查。
 
 - 从 `web/src/components/projects/projectPresentation.js` 删除 `normalizeProjectJobRecords` 函数定义。
 - 从 `web/src/components/projects/__tests__/projectPresentation.test.js` 删除其顶部 import 中的 `normalizeProjectJobRecords`，以及两个相关测试（`normalizeProjectJobRecords maps backend job rows to camelCase`、`normalizeProjectJobRecords returns empty array for missing jobs`）。
 
-- [ ] **Step 2: 运行全部门禁**
+- [x] **Step 2: 运行全部门禁**
 
 ```powershell
 uv run --project api ruff check api
@@ -708,7 +708,7 @@ python scripts/validate_agents_docs.py --level ERROR
 
 Expected: ruff 通过；后端约 226 passed；前端约 139 pass（141 - 删的 2）；构建成功；文档 0 错误。失败先排查；本功能问题修复，他人在途问题报告 BLOCKED。
 
-- [ ] **Step 3: changelog**
+- [x] **Step 3: changelog**
 
 创建 `docs/changelog/20260611-040000-project-dashboard-entry-collection-jobs.md`：
 
@@ -738,19 +738,19 @@ Expected: ruff 通过；后端约 226 passed；前端约 139 pass（141 - 删的
 
 按 Step 2 真实结果核对验证小节。
 
-- [ ] **Step 4: 规格状态 + 归档**
+- [x] **Step 4: 规格状态 + 归档**
 
 1. `docs/product-specs/20260611-010000-project-dashboard-entry-collection-jobs.md` 第 3 行 `状态：待实现` → `状态：已实现`。
-2. 本计划所有 `- [ ]` → `- [x]`（`sed -i 's/- \[ \]/- [x]/g'`）。
+2. 本计划所有 `- [x]` → `- [x]`（`sed -i 's/- \[ \]/- [x]/g'`）。
 3. `git mv docs/exec-plans/active/20260611-project-dashboard-entry-collection-jobs.md docs/exec-plans/completed/20260611-project-dashboard-entry-collection-jobs.md`，随后 `git add` 该 completed 路径（确保勾选后内容入暂存，避免 git mv 暂存旧 blob）。核对 `git show :docs/exec-plans/completed/20260611-project-dashboard-entry-collection-jobs.md | grep -c '\- \[ \]'` 步骤列表为 0。
 4. `docs/exec-plans/active/index.md`（clean）→ 恢复 `# Active ExecPlans\n\n当前无进行中的 ExecPlan。`，一并提交。
 5. `docs/exec-plans/completed/index.md`（DIRTY 带在途行）：表头后插入 `| [20260611-project-dashboard-entry-collection-jobs.md](20260611-project-dashboard-entry-collection-jobs.md) | 项目看板入口改用 collection_jobs 数据源（一次采集一行，经 source_job_id 进 legacy 看板） | 2026-06-11 |`——**只改工作区，不提交**。
 
-- [ ] **Step 5: 复跑文档验证**
+- [x] **Step 5: 复跑文档验证**
 
 Run: `python scripts/validate_agents_docs.py --level ERROR` → 0 错误。
 
-- [ ] **Step 6: Commit**（不含 completed/index.md）
+- [x] **Step 6: Commit**（不含 completed/index.md）
 
 ```powershell
 git add web/src/components/projects/projectPresentation.js web/src/components/projects/__tests__/projectPresentation.test.js docs/changelog/20260611-040000-project-dashboard-entry-collection-jobs.md docs/product-specs/20260611-010000-project-dashboard-entry-collection-jobs.md docs/exec-plans/active/20260611-project-dashboard-entry-collection-jobs.md docs/exec-plans/completed/20260611-project-dashboard-entry-collection-jobs.md docs/exec-plans/active/index.md
