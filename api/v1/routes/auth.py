@@ -1,3 +1,4 @@
+import logging
 from datetime import UTC, datetime
 from typing import Annotated
 
@@ -42,6 +43,8 @@ from api.v1.services.email_sender import (
 from api.v1.utils.platform_roles import get_platform_roles_for_email
 
 router = APIRouter()
+
+logger = logging.getLogger(__name__)
 
 
 class TenantCreateRequest(BaseModel):
@@ -480,8 +483,15 @@ def forgot_password_handler(
     reset_payload = request_password_reset(engine, request.email)
     if reset_payload is not None:
         try:
-            send_password_reset_email(reset_payload)
+            delivery = send_password_reset_email(reset_payload)
+            if delivery.get("status") != "sent":
+                logger.warning(
+                    "密码重置邮件未发送: status=%s to=%s",
+                    delivery.get("status"),
+                    delivery.get("to"),
+                )
         except Exception:
+            # 防枚举兜底：即使发送环节异常，响应也不得改变。
             pass
     return {
         "status": "success",

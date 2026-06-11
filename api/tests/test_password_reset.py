@@ -342,6 +342,25 @@ def test_forgot_password_swallows_email_exceptions(memory_engine):
 
     assert response.status_code == 200
     assert "smtp-secret" not in response.text
+    assert response.json()["message"] == "如果该邮箱已注册并激活，重置邮件已发送"
+
+
+def test_forgot_password_logs_unsent_delivery_without_token(memory_engine, caplog):
+    _seed_user(memory_engine)
+    client = _public_client(memory_engine)
+
+    with patch(
+        "api.v1.routes.auth.send_password_reset_email",
+        return_value={"status": "failed", "to": "user@demo.test", "message": "x"},
+    ) as send_email, caplog.at_level("WARNING"):
+        response = client.post(
+            "/api/v1/public/auth/forgot-password", json={"email": "user@demo.test"}
+        )
+
+    assert response.status_code == 200
+    assert any("密码重置邮件未发送" in record.message for record in caplog.records)
+    reset_token = send_email.call_args.args[0]["resetToken"]
+    assert reset_token not in caplog.text
 
 
 def test_reset_password_route_roundtrip(memory_engine):
@@ -412,6 +431,17 @@ def test_change_password_route_requires_auth_and_current_password(memory_engine)
     )
     assert wrong.status_code == 400
     assert wrong.json()["message"] == "当前密码错误"
+
+    mismatch = client.post(
+        "/api/v1/auth/change-password",
+        json={
+            "currentPassword": "OldPass12345",
+            "newPassword": "NewPass12345",
+            "confirmPassword": "Different123",
+        },
+    )
+    assert mismatch.status_code == 400
+    assert mismatch.json()["message"] == "两次密码不一致"
 
     ok = client.post(
         "/api/v1/auth/change-password",
