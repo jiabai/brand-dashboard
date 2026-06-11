@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 
 import { fetchProjects } from '@/api';
 import { useAuth } from '@/auth/AuthContext.jsx';
-import { hasPlatformAdminRole } from '@/auth/platformAccess.js';
+import { hasPlatformAdminRole, isPlatformReadonlyTenantAccess } from '@/auth/platformAccess.js';
 import { useDashboardParams } from '@/hooks/useDashboardParams';
 import EmptyState from '../EmptyState.jsx';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert.jsx';
@@ -24,6 +24,7 @@ import {
   getProjectStatusMeta,
   normalizeProjectListResponse,
 } from './projectPresentation.js';
+import PlatformReadonlyNotice from './PlatformReadonlyNotice.jsx';
 
 const formatDateTime = (value) => {
   if (!value) return '-';
@@ -71,6 +72,7 @@ const ProjectListPage = () => {
     return { total: projects.length, active, draft };
   }, [projects]);
   const isPlatformAdmin = hasPlatformAdminRole(user);
+  const isReadOnlyTenantAccess = isPlatformReadonlyTenantAccess({ user, tenantKey });
   const platformTenantDetailPath = buildPlatformTenantDetailPath(tenantKey);
 
   const openProject = (projectId) => {
@@ -108,6 +110,8 @@ const ProjectListPage = () => {
           </Button>
         </div>
       </div>
+
+      {isReadOnlyTenantAccess ? <PlatformReadonlyNotice /> : null}
 
       <div className="grid gap-3 sm:grid-cols-3">
         <div className="rounded-lg border border-border bg-card px-4 py-3 shadow-[var(--shadow-sm)]">

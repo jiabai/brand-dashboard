@@ -29,8 +29,15 @@ from api.v1.repositories.connection import get_db, get_engine
 from api.v1.repositories.platform_health import (
     get_platform_collection_health as load_platform_collection_health,
 )
+from api.v1.repositories.tenant_members import (
+    TenantMemberGovernanceError,
+    list_tenant_members,
+    tenant_exists,
+    update_tenant_member,
+)
 from api.v1.repositories.tenants import (
     get_platform_tenant_summary,
+    get_user_tenant_membership,
     list_platform_tenant_summaries,
     list_user_tenant_summaries,
 )
@@ -104,6 +111,12 @@ class LoginRequest(BaseModel):
     password: str = Field(..., min_length=1)
 
 
+class TenantMemberUpdateRequest(BaseModel):
+    role: str | None = None
+    status: str | None = None
+    reason: str | None = None
+
+
 TENANT_STATUSES = {"active", "inactive", "suspended"}
 TENANT_PLAN_TYPES = {"trial", "basic", "pro", "enterprise"}
 
@@ -121,6 +134,14 @@ def _isoformat_or_none(value):
 
 def _int_or_zero(value):
     return int(value or 0)
+
+
+def _concat_name(first_name, last_name):
+    first = (first_name or "").strip()
+    last = (last_name or "").strip()
+    if first and last:
+        return first + last
+    return first or last
 
 
 def _platform_collection_summary(row):
@@ -213,36 +234,198 @@ def _platform_failed_collection_task_item(row):
 
 
 def _platform_tenant_item(row):
+    item = row._mapping
     latest_job = None
-    if row[16]:
+    if item["latest_job_id"]:
         latest_job = {
-            "jobId": row[16],
-            "brand": row[17],
-            "category": row[18],
-            "queryStatus": int(row[19]) if row[19] is not None else None,
-            "effectiveFrom": _isoformat_or_none(row[20]),
-            "effectiveTo": _isoformat_or_none(row[21]),
-            "createdAt": _isoformat_or_none(row[22]),
+            "jobId": item["latest_job_id"],
+            "brand": item["latest_job_brand"],
+            "category": item["latest_job_category"],
+            "queryStatus": (
+                int(item["latest_job_query_status"])
+                if item["latest_job_query_status"] is not None
+                else None
+            ),
+            "effectiveFrom": _isoformat_or_none(item["latest_job_effective_from"]),
+            "effectiveTo": _isoformat_or_none(item["latest_job_effective_to"]),
+            "createdAt": _isoformat_or_none(item["latest_job_created_at"]),
         }
 
     return {
-        "tenantKey": row[0],
-        "tenantName": row[1],
-        "companyLegalName": row[2],
-        "industry": row[3],
-        "status": row[4],
-        "planType": row[5],
-        "maxUsers": row[6],
-        "billingCycle": row[7],
-        "contractStartDate": _isoformat_or_none(row[8]),
-        "contractEndDate": _isoformat_or_none(row[9]),
-        "adminEmail": row[10],
-        "adminStatus": row[11],
-        "memberCount": int(row[12] or 0),
-        "createdAt": _isoformat_or_none(row[13]),
-        "jobCount": int(row[14] or 0),
-        "activeJobCount": int(row[15] or 0),
+        "tenantKey": item["tenant_key"],
+        "tenantName": item["tenant_name"],
+        "companyLegalName": item["company_legal_name"],
+        "industry": item["industry"],
+        "status": item["tenant_status"],
+        "planType": item["plan_type"],
+        "maxUsers": item["max_users"],
+        "billingCycle": item["billing_cycle"],
+        "contractStartDate": _isoformat_or_none(item["contract_start_date"]),
+        "contractEndDate": _isoformat_or_none(item["contract_end_date"]),
+        "adminName": _concat_name(item.get("admin_first_name"), item.get("admin_last_name")),
+        "adminEmail": item["admin_email"],
+        "adminPhone": item["admin_phone"],
+        "adminStatus": item["admin_status"],
+        "memberCount": int(item["member_count"] or 0),
+        "createdAt": _isoformat_or_none(item["created_at"]),
+        "jobCount": int(item["job_count"] or 0),
+        "activeJobCount": int(item["active_job_count"] or 0),
         "latestJob": latest_job,
+    }
+
+
+def _tenant_member_item(row):
+    item = row._mapping if hasattr(row, "_mapping") else row
+    return {
+        "userId": item["user_id"],
+        "email": item["email"],
+        "firstName": item["first_name"],
+        "lastName": item["last_name"],
+        "phoneNumber": item["phone_number"],
+        "userStatus": item["user_status"],
+        "role": item["role"],
+        "status": item["member_status"],
+        "createdAt": _isoformat_or_none(item["created_at"]),
+    }
+
+
+def _require_tenant_admin_for_path(
+    *,
+    tenant_key: str,
+    current_user: CurrentUser,
+    db: Session,
+) -> None:
+    membership = get_user_tenant_membership(
+        db,
+        user_id=current_user.user_id,
+        tenant_key=tenant_key,
+    )
+    if not membership:
+        raise HTTPException(status_code=403, detail="无权访问该租户")
+
+    _, _, tenant_status, role, member_status = membership
+    if tenant_status != "active":
+        raise HTTPException(status_code=403, detail="租户不可用")
+    if member_status != "active":
+        raise HTTPException(status_code=403, detail="租户成员关系不可用")
+    if role != "admin":
+        raise HTTPException(status_code=403, detail="需要租户管理员权限")
+
+
+def _member_governance_error(exc: TenantMemberGovernanceError):
+    return JSONResponse(
+        status_code=400,
+        content={"status": "error", "message": str(exc), "code": 400},
+    )
+
+
+@router.get("/tenants/{tenant_key}/members")
+def list_tenant_members_handler(
+    tenant_key: str,
+    current_user: CurrentUser = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    _require_tenant_admin_for_path(
+        tenant_key=tenant_key,
+        current_user=current_user,
+        db=db,
+    )
+    members = list_tenant_members(db, tenant_key=tenant_key)
+    return {
+        "status": "success",
+        "code": 200,
+        "message": "获取租户成员成功",
+        "data": {"members": [_tenant_member_item(row) for row in members]},
+    }
+
+
+@router.patch("/tenants/{tenant_key}/members/{user_id}")
+def update_tenant_member_handler(
+    tenant_key: str,
+    user_id: int,
+    request: TenantMemberUpdateRequest,
+    current_user: CurrentUser = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    _require_tenant_admin_for_path(
+        tenant_key=tenant_key,
+        current_user=current_user,
+        db=db,
+    )
+    try:
+        member = update_tenant_member(
+            db,
+            tenant_key=tenant_key,
+            target_user_id=user_id,
+            actor_user_id=current_user.user_id,
+            actor_scope="tenant",
+            role=request.role,
+            status=request.status,
+            reason=request.reason,
+        )
+        db.commit()
+    except TenantMemberGovernanceError as exc:
+        return _member_governance_error(exc)
+
+    return {
+        "status": "success",
+        "code": 200,
+        "message": "更新租户成员成功",
+        "data": {"member": _tenant_member_item(member)},
+    }
+
+
+@router.patch("/platform/tenants/{tenant_key}/members/{user_id}")
+def platform_update_tenant_member_handler(
+    tenant_key: str,
+    user_id: int,
+    request: TenantMemberUpdateRequest,
+    current_user: CurrentUser = Depends(require_platform_admin),
+    db: Session = Depends(get_db),
+):
+    if not (request.reason or "").strip():
+        return JSONResponse(
+            status_code=400,
+            content={"status": "error", "message": "平台应急修改必须填写 reason", "code": 400},
+        )
+    try:
+        member = update_tenant_member(
+            db,
+            tenant_key=tenant_key,
+            target_user_id=user_id,
+            actor_user_id=current_user.user_id,
+            actor_scope="platform",
+            role=request.role,
+            status=request.status,
+            reason=request.reason,
+        )
+        db.commit()
+    except TenantMemberGovernanceError as exc:
+        return _member_governance_error(exc)
+
+    return {
+        "status": "success",
+        "code": 200,
+        "message": "平台应急更新租户成员成功",
+        "data": {"member": _tenant_member_item(member)},
+    }
+
+
+@router.get("/platform/tenants/{tenant_key}/members")
+def list_platform_tenant_members_handler(
+    tenant_key: str,
+    db: Session = Depends(get_db),
+    _platform_admin: CurrentUser = Depends(require_platform_admin),
+):
+    if not tenant_exists(db, tenant_key=tenant_key):
+        raise HTTPException(status_code=404, detail="租户不存在")
+
+    members = list_tenant_members(db, tenant_key=tenant_key)
+    return {
+        "status": "success",
+        "code": 200,
+        "message": "获取平台租户成员成功",
+        "data": {"members": [_tenant_member_item(row) for row in members]},
     }
 
 

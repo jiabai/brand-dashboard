@@ -44,7 +44,7 @@ test('hasTenantMembership checks real tenant membership only', () => {
   assert.equal(hasTenantMembership(user, ''), false);
 });
 
-test('isPlatformReadonlyTenantAccess detects platform admin URL tenant without membership', () => {
+test('isPlatformReadonlyTenantAccess treats platform admins as readonly in tenant workspaces', () => {
   assert.equal(
     isPlatformReadonlyTenantAccess({
       user: { platformRoles: ['platform_admin'], tenants: [{ tenantKey: 'tn_member' }] },
@@ -56,6 +56,13 @@ test('isPlatformReadonlyTenantAccess detects platform admin URL tenant without m
     isPlatformReadonlyTenantAccess({
       user: { platformRoles: ['platform_admin'], tenants: [{ tenantKey: 'tn_member' }] },
       tenantKey: 'tn_member',
+    }),
+    true,
+  );
+  assert.equal(
+    isPlatformReadonlyTenantAccess({
+      user: { platformRoles: ['platform_admin'], tenants: [{ tenantKey: 'tn_member' }] },
+      tenantKey: '',
     }),
     false,
   );

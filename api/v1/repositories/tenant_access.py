@@ -3,6 +3,12 @@ from __future__ import annotations
 from datetime import UTC, datetime
 
 from sqlalchemy import Engine, text
+from sqlalchemy.orm import Session
+
+from api.v1.repositories.tenant_members import (
+    TenantMemberGovernanceError,
+    update_tenant_member,
+)
 
 VALID_TENANT_ACCESS_ROLES = frozenset({"admin", "member", "viewer"})
 
@@ -29,10 +35,14 @@ def grant_tenant_access(
     email: str,
     tenant_key: str,
     role: str = "viewer",
+    actor_email: str | None = None,
+    reason: str | None = None,
 ):
     normalized_email = _normalize_email(email)
     normalized_tenant_key = _normalize_tenant_key(tenant_key)
     normalized_role = _normalize_role(role)
+    normalized_actor_email = _normalize_email(actor_email) or normalized_email
+    normalized_reason = (reason or "").strip() or "local tenant access grant"
 
     if not normalized_email:
         raise TenantAccessGrantError("缺少用户邮箱")
@@ -76,6 +86,22 @@ def grant_tenant_access(
         if tenant_data["status"] != "active":
             raise TenantAccessGrantError("租户状态不可授权")
 
+        actor = conn.execute(
+            text(
+                """
+                SELECT id, status
+                FROM users
+                WHERE lower(email) = :email
+                """
+            ),
+            {"email": normalized_actor_email},
+        ).first()
+        if not actor:
+            raise TenantAccessGrantError("鎿嶄綔浜轰笉瀛樺湪")
+        actor_data = actor._mapping
+        if actor_data["status"] != "active":
+            raise TenantAccessGrantError("鎿嶄綔浜虹姸鎬佷笉鍙敤")
+
         membership = conn.execute(
             text(
                 """
@@ -104,43 +130,77 @@ def grant_tenant_access(
                     "now": now,
                 },
             )
+            conn.execute(
+                text(
+                    """
+                    INSERT INTO tenant_role_audit_logs (
+                        tenant_id,
+                        target_user_id,
+                        actor_user_id,
+                        actor_scope,
+                        action,
+                        old_role,
+                        new_role,
+                        old_status,
+                        new_status,
+                        reason,
+                        created_at
+                    ) VALUES (
+                        :tenant_id,
+                        :target_user_id,
+                        :actor_user_id,
+                        'platform',
+                        'membership_updated',
+                        NULL,
+                        :new_role,
+                        NULL,
+                        'active',
+                        :reason,
+                        :created_at
+                    )
+                    """
+                ),
+                {
+                    "tenant_id": tenant_data["id"],
+                    "target_user_id": user_data["id"],
+                    "actor_user_id": actor_data["id"],
+                    "new_role": normalized_role,
+                    "reason": normalized_reason,
+                    "created_at": now,
+                },
+            )
             action = "created"
         else:
             membership_data = membership._mapping
+            session = Session(bind=conn)
             if membership_data["status"] != "active":
-                conn.execute(
-                    text(
-                        """
-                        UPDATE user_tenants
-                        SET role = :role,
-                            status = 'active'
-                        WHERE user_id = :user_id
-                          AND tenant_id = :tenant_id
-                        """
-                    ),
-                    {
-                        "user_id": user_data["id"],
-                        "tenant_id": tenant_data["id"],
-                        "role": normalized_role,
-                    },
-                )
+                try:
+                    update_tenant_member(
+                        session,
+                        tenant_key=normalized_tenant_key,
+                        target_user_id=user_data["id"],
+                        actor_user_id=actor_data["id"],
+                        actor_scope="platform",
+                        role=normalized_role,
+                        status="active",
+                        reason=normalized_reason,
+                    )
+                except TenantMemberGovernanceError as exc:
+                    raise TenantAccessGrantError(str(exc)) from exc
                 action = "reactivated"
             elif membership_data["role"] != normalized_role:
-                conn.execute(
-                    text(
-                        """
-                        UPDATE user_tenants
-                        SET role = :role
-                        WHERE user_id = :user_id
-                          AND tenant_id = :tenant_id
-                        """
-                    ),
-                    {
-                        "user_id": user_data["id"],
-                        "tenant_id": tenant_data["id"],
-                        "role": normalized_role,
-                    },
-                )
+                try:
+                    update_tenant_member(
+                        session,
+                        tenant_key=normalized_tenant_key,
+                        target_user_id=user_data["id"],
+                        actor_user_id=actor_data["id"],
+                        actor_scope="platform",
+                        role=normalized_role,
+                        reason=normalized_reason,
+                    )
+                except TenantMemberGovernanceError as exc:
+                    raise TenantAccessGrantError(str(exc)) from exc
                 action = "updated"
 
     return {

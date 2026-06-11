@@ -24,6 +24,24 @@ export const fetchPlatformTenantDetail = (tenantKey, options) => {
   );
 };
 
+export const fetchPlatformTenantMembers = (tenantKey, options) => {
+  return fetch(
+    `/api/v1/platform/tenants/${encodePathSegment(tenantKey)}/members`,
+    platformOptions(options),
+  );
+};
+
+export const updatePlatformTenantMember = (tenantKey, userId, payload, options) => {
+  return fetch(
+    `/api/v1/platform/tenants/${encodePathSegment(tenantKey)}/members/${encodePathSegment(userId)}`,
+    {
+      ...platformOptions(options),
+      method: 'PATCH',
+      body: payload,
+    },
+  );
+};
+
 export const createPlatformTenant = (payload, options) => {
   return post('/api/v1/platform/tenants', payload, platformOptions(options));
 };

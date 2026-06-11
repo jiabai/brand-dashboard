@@ -4,7 +4,7 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 
 import { fetchProjectDetail, fetchProjectCollectionJobs } from '@/api';
 import { useAuth } from '@/auth/AuthContext.jsx';
-import { hasPlatformAdminRole } from '@/auth/platformAccess.js';
+import { hasPlatformAdminRole, isPlatformReadonlyTenantAccess } from '@/auth/platformAccess.js';
 import { useDashboardParams } from '@/hooks/useDashboardParams';
 import EmptyState from '../EmptyState.jsx';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert.jsx';
@@ -38,6 +38,7 @@ import {
   normalizeProjectDetailResponse,
   readProjectNavigationSource,
 } from './projectPresentation.js';
+import PlatformReadonlyNotice from './PlatformReadonlyNotice.jsx';
 
 const ProjectDetailPage = () => {
   const navigate = useNavigate();
@@ -80,6 +81,7 @@ const ProjectDetailPage = () => {
     [project?.brands],
   );
   const navigationSource = readProjectNavigationSource(searchParams);
+  const isReadOnlyTenantAccess = isPlatformReadonlyTenantAccess({ user, tenantKey });
   const isFromTenantProjectOverview =
     hasPlatformAdminRole(user)
     && navigationSource === PROJECT_NAV_SOURCE_PLATFORM_TENANT_DETAIL;
@@ -164,6 +166,8 @@ const ProjectDetailPage = () => {
           </Button>
         </div>
       </div>
+
+      {isReadOnlyTenantAccess ? <PlatformReadonlyNotice /> : null}
 
       {feedback ? (
         <Alert variant="destructive">

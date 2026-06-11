@@ -90,7 +90,9 @@ curl "http://localhost:8000/api/v1/platform/tenants?q=alibaba&status=active&page
         "billingCycle": "yearly",
         "contractStartDate": "2026-05-20",
         "contractEndDate": "2027-05-19",
+        "adminName": "张三",
         "adminEmail": "zhangsan@alibaba.com",
+        "adminPhone": "13800138000",
         "adminStatus": "pending_activation",
         "memberCount": 1,
         "createdAt": "2026-05-20T10:15:30Z",
@@ -131,7 +133,9 @@ curl "http://localhost:8000/api/v1/platform/tenants?q=alibaba&status=active&page
 | `billingCycle` | `tenants.billing_cycle` | 计费周期 |
 | `contractStartDate` | `tenants.contract_start_date` | 合同开始日期 |
 | `contractEndDate` | `tenants.contract_end_date` | 合同结束日期 |
-| `adminEmail` | `users.email` + `user_tenants.role=admin` | 首个或任一管理员邮箱，优先创建时间最早者 |
+| `adminName` | `users.first_name` + `user_tenants.role=admin` | 首个租户管理员姓名，优先创建时间最早者 |
+| `adminEmail` | `users.email` + `user_tenants.role=admin` | 首个租户管理员邮箱，优先创建时间最早者 |
+| `adminPhone` | `users.phone_number` + `user_tenants.role=admin` | 首个租户管理员手机号，优先创建时间最早者 |
 | `adminStatus` | `users.status` | 管理员账号状态 |
 | `memberCount` | `COUNT(user_tenants)` | active/inactive 成员关系数量总和 |
 | `createdAt` | `tenants.created_at` | 租户创建时间 |
@@ -188,7 +192,9 @@ curl "http://localhost:8000/api/v1/platform/tenants/tn_alibaba" \
     "billingCycle": "yearly",
     "contractStartDate": "2026-05-20",
     "contractEndDate": "2027-05-19",
+    "adminName": "张三",
     "adminEmail": "admin@alibaba.com",
+    "adminPhone": "13800138000",
     "adminStatus": "active",
     "memberCount": 1,
     "createdAt": "2026-05-20T10:15:30Z",
@@ -271,6 +277,8 @@ curl "http://localhost:8000/api/v1/platform/tenants/tn_alibaba" \
 |---|---|---|
 | `fetchPlatformTenants(params, options)` | `{ q, status, planType, page, pageSize }` | `GET /api/v1/platform/tenants` 响应 |
 | `fetchPlatformTenantDetail(tenantKey, options)` | `tenantKey` | `GET /api/v1/platform/tenants/{tenant_key}` 响应 |
+| `fetchPlatformTenantMembers(tenantKey, options)` | `tenantKey` | `GET /api/v1/platform/tenants/{tenant_key}/members` 响应 |
+| `updatePlatformTenantMember(tenantKey, userId, payload, options)` | `{ role, status, reason }` | `PATCH /api/v1/platform/tenants/{tenant_key}/members/{user_id}` 响应 |
 | `createPlatformTenant(payload, options)` | 租户创建 payload | `POST /api/v1/platform/tenants` 响应 |
 
 `createPlatformTenant` 已从 public auth API 分类中移出，由 `platform.js` 承载。

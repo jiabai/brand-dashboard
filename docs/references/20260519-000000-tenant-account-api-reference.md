@@ -83,7 +83,7 @@ API 对外返回产品角色：
 
 平台管理员为客户企业创建租户和首个管理员账号。
 
-正式 Web 入口应位于 `/platform/tenants` 平台运营后台，而不是租户工作台内的账户管理页。
+正式 Web 入口应位于 `/platform/tenants` 平台运营后台，而不是租户工作台内的 `/accounts/:tenantKey` 加入团队页。
 
 鉴权：
 

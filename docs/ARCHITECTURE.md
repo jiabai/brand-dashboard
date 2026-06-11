@@ -56,7 +56,7 @@ brand-dashboard/
 |------|------|
 | `web/src/config/routes.js` | 路由、主菜单、legacy 路由和 App route 生成的单一配置源 |
 | `web/src/App.jsx` | 前端路由定义；租户用户默认进入项目列表，平台管理员进入平台后台 |
-| `web/src/components/Sidebar.jsx` | 租户工作台侧边栏；当前主入口为“监测项目”和“账户管理” |
+| `web/src/components/Sidebar.jsx` | 租户工作台侧边栏；当前主入口为“监测项目”和“加入团队”，平台管理员只读客户视角隐藏加入入口 |
 | `web/src/components/projects/` | 项目列表、项目详情、项目数据质量页面和展示归一化逻辑 |
 | `web/src/api/index.js` | 前端 API Adapter 出口，避免组件中手写 URL |
 | `api/main.py` | FastAPI 应用入口、CORS、路由注册和健康检查 |
@@ -101,7 +101,7 @@ brand-dashboard/
 | 路由类别 | 路径 | 状态 |
 |----------|------|------|
 | 项目主流程 | `/projects/:tenantKey`、`/projects/:tenantKey/:projectId`、`/projects/:tenantKey/:projectId/quality` | 主入口 |
-| 租户账户 | `/accounts/:tenantKey` | 主入口 |
+| 加入团队 | `/accounts/:tenantKey` | 租户成员入口，保留历史路径 |
 | 平台后台 | `/platform/tenants`、`/platform/executors` | 平台管理员入口 |
 | legacy dashboard | `/dashboard/:tenantKey/:jobId`、`/trend/:tenantKey/:jobId`、`/platforms/:tenantKey/:jobId`、`/sources/:tenantKey/:jobId`、`/sentiment/:tenantKey/:jobId`、`/snapshots/:tenantKey/:jobId` | 直接访问可用，不在主导航中展示 |
 | legacy task | `/tasks/:tenantKey/new`、`/tasks/:tenantKey/status` | 直接访问可用，不在主导航中展示 |

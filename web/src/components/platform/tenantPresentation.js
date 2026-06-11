@@ -127,6 +127,11 @@ export const buildPlatformTenantProjectOverviewPath = (tenantKey) => {
   return detailPath ? `${detailPath}#project-overview` : '';
 };
 
+export const buildPlatformTenantAdminPath = (tenantKey) => {
+  const detailPath = buildPlatformTenantDetailPath(tenantKey);
+  return detailPath ? `${detailPath}#tenant-admin` : '';
+};
+
 export const buildTenantDashboardPath = (tenant) => {
   const tenantKey = tenant?.tenantKey || '';
   const jobId = tenant?.latestJob?.jobId || '';

@@ -50,7 +50,7 @@
 |---|---|---|---|
 | `/platform` | 重定向 | `platform_admin` | 重定向到 `/platform/tenants` |
 | `/platform/tenants` | 租户管理 | `platform_admin` | MVP 主页面：租户列表 + 创建租户 |
-| `/platform/tenants/:tenantKey` | 租户详情 | `platform_admin` | 查看租户元数据、项目摘要、项目工作台主入口和排障入口 |
+| `/platform/tenants/:tenantKey` | 租户详情 | `platform_admin` | 查看租户元数据、租户管理员、项目摘要、项目工作台主入口和排障入口 |
 | `/platform/executors` | 执行器健康 | `platform_admin` | 查看执行器健康、队列和失败任务 |
 
 ### 4.2 页面结构
@@ -156,7 +156,7 @@
 1. `/platform/*` 页面必须由前端 `PlatformRoute` 或等价 guard 保护。
 2. 后端平台 API 必须使用 `require_platform_admin`，不能依赖前端隐藏按钮。
 3. 平台 API 不接受 `tenant_key` 作为授权依据，不使用 `get_current_tenant`。
-4. 平台租户列表只能返回租户和首个管理员的运营元数据，不返回 activation token 历史、password hash、API Key 或业务数据。
+4. 平台租户列表只能返回租户和首个管理员的运营元数据（姓名、邮箱、手机号、账号状态），不返回 activation token 历史、password hash、API Key 或业务数据。
 5. 创建租户、查看租户列表、权限拒绝必须进入审计计划；当前阶段至少保留 request id 和操作者上下文。
 6. `PLATFORM_ADMIN_EMAILS` 是 MVP 机制；生产增强应迁移到可审计的平台管理员表。
 
@@ -170,9 +170,9 @@
 - `web/src/api/platform.js` 平台 API Adapter，显式跳过 `X-Tenant-Key`。
 - 独立 `/platform` 前端路由、平台后台壳层、平台权限 guard 和 403 状态。
 - `/platform/tenants` 租户管理页面，支持搜索、状态/计划筛选、分页、创建租户和创建结果面板。
-- `/platform/tenants/:tenantKey` 租户详情页，支持查看客户资料、项目概览、项目工作台入口、项目详情入口、数据质量入口和排障入口。
+- `/platform/tenants/:tenantKey` 租户详情页，支持查看租户管理员、客户资料、项目概览、项目工作台入口、项目详情入口、数据质量入口和排障入口。
 - 平台管理员直接登录后的默认落点为 `/platform/tenants`；从受保护页面跳转到登录页时仍返回原页面。
-- 平台租户列表只保留“详情”主入口；最新任务看板和任务状态入口统一放在 `/platform/tenants/:tenantKey` 的“排障入口”区。
+- 平台租户列表操作列只保留“详情”主入口；管理员列展示姓名、邮箱、手机号和状态，并提供轻量“查看”锚点入口。最新任务看板和任务状态入口统一放在 `/platform/tenants/:tenantKey` 的“排障入口”区。
 - 项目工作台是平台管理员查看客户业务现状的主入口：`/projects/:tenantKey`、`/projects/:tenantKey/:projectId`、`/projects/:tenantKey/:projectId/quality`。
 - 租户工作台中的 `AccountManagement` 已降级租户创建入口，只为平台管理员展示跳转 `/platform/tenants`。
 
@@ -191,9 +191,10 @@
 - `platform_admin` 可以创建租户并看到激活链接、登录地址和邀请码。
 - 创建租户后列表刷新，新租户可见。
 - `platform_admin` 可以从租户列表进入 `/platform/tenants/:tenantKey` 查看租户详情和项目摘要。
+- `platform_admin` 可以从租户列表管理员列的“查看”入口进入 `/platform/tenants/:tenantKey#tenant-admin`，查看首个租户管理员姓名、邮箱、手机号和账号状态，但不能编辑、重置密码或重新发送激活邮件。
 - `platform_admin` 可以从租户详情进入 `/projects/:tenantKey` 项目工作台。
 - `platform_admin` 可以从租户详情项目行进入项目详情和数据质量页。
 - `platform_admin` 无 membership 时只读项目 GET，访问 inactive 租户或项目写接口仍被拒绝。
 - 平台后台 API 请求携带 `Authorization`，不携带 `X-Tenant-Key`。
-- `AccountManagement` 不再作为正式平台运营入口；租户工作台只保留租户侧员工注册、邀请码核验和登录辅助能力，管理员首次激活仅通过公开 `/activate` 流程完成。
+- `AccountManagement` 不再作为正式平台运营入口；租户工作台 `/accounts/:tenantKey` 以“加入团队”承载员工注册和邀请码核验，管理员首次激活仅通过公开 `/activate` 流程完成，登录仍走公开登录页。
 - `npm --prefix web test`、`npm --prefix web run build`、`uv run --project api --extra dev pytest api/tests/ -q`、`python scripts/validate_agents_docs.py --level ERROR` 通过。

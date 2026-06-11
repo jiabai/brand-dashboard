@@ -48,7 +48,7 @@
 - API 使用 `/api/v1/platform/*`，只依赖 `Authorization` 和 `platform_admin`。
 - 不使用 `get_current_tenant`，不发送 `X-Tenant-Key`。
 - MVP 页面聚焦租户列表和租户创建；执行器管理后续接入同一后台。
-- 租户管理员首次激活使用公开 `/activate?token=...` 入口；登录后的账户管理页只保留员工注册、邀请码核验和登录辅助能力。
+- 租户管理员首次激活使用公开 `/activate?token=...` 入口；登录后的 `/accounts/:tenantKey` 加入团队页只保留员工注册和邀请码核验，不承载租户创建、成员管理或登录辅助表单。
 
 ## 2. 目标架构
 

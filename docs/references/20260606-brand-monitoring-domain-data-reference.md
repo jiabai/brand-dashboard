@@ -544,7 +544,7 @@ Phase 8.1 将租户工作台的主入口从旧 `tenant_key + job_id` dashboard �
 | 范围 | 策略 | 说明 |
 |------|------|------|
 | 默认入口 | 租户用户登录后进入 `/projects/:tenantKey` | 项目列表成为客户主流程入口。 |
-| 主侧边栏 | 仅展示 `projects` 和 `accounts` | 旧分析页、任务页、禁用设置和订阅入口不再作为主工作流暴露。 |
+| 主侧边栏 | 租户成员仅展示 `projects` 和 `accounts`；平台管理员只读客户视角仅展示 `projects` | `accounts` 的产品文案为“加入团队”；旧分析页、任务页、禁用设置和订阅入口不再作为主工作流暴露。 |
 | 旧 dashboard 路由 | 标记为 `legacy`，继续参与路由生成 | `/dashboard/:tenantKey/:jobId`、`/trend/:tenantKey/:jobId`、`/platforms/:tenantKey/:jobId`、`/sources/:tenantKey/:jobId`、`/sentiment/:tenantKey/:jobId`、`/snapshots/:tenantKey/:jobId` 仍可直接访问。 |
 | 旧任务路由 | 标记为 `legacy`，继续参与路由生成 | `/tasks/:tenantKey/new` 和 `/tasks/:tenantKey/status` 仍可作为兼容排障入口。 |
 | 原始来源跳转 | 保留 protected route 的 `from` 跳转 | 用户直接访问旧兼容链接并登录后仍回到原目标页面。 |

@@ -76,6 +76,27 @@ CREATE TABLE IF NOT EXISTS user_tenants (
 );
 CREATE INDEX IF NOT EXISTS idx_tenant_user ON user_tenants (tenant_id, user_id);
 
+CREATE TABLE IF NOT EXISTS tenant_role_audit_logs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    tenant_id INTEGER NOT NULL,
+    target_user_id INTEGER NOT NULL,
+    actor_user_id INTEGER NOT NULL,
+    actor_scope VARCHAR(20) NOT NULL CHECK (actor_scope IN ('tenant', 'platform')),
+    action VARCHAR(50) NOT NULL CHECK (action IN ('role_updated', 'status_updated', 'membership_updated')),
+    old_role VARCHAR(50),
+    new_role VARCHAR(50),
+    old_status VARCHAR(20),
+    new_status VARCHAR(20),
+    reason TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
+    FOREIGN KEY (target_user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (actor_user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_tenant_role_audit_tenant ON tenant_role_audit_logs (tenant_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_tenant_role_audit_target ON tenant_role_audit_logs (target_user_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_tenant_role_audit_actor ON tenant_role_audit_logs (actor_user_id, created_at);
+
 -- 4. 租户配置表（tenant_configs）
 CREATE TABLE IF NOT EXISTS tenant_configs (
     tenant_id INTEGER PRIMARY KEY,

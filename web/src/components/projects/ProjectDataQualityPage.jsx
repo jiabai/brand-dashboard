@@ -31,6 +31,7 @@ import {
   normalizeProjectDataQualityResponse,
   readProjectNavigationSource,
 } from './projectPresentation.js';
+import PlatformReadonlyNotice from './PlatformReadonlyNotice.jsx';
 
 const formatDateTime = (value) => {
   if (!value) return '-';
@@ -144,6 +145,8 @@ const ProjectDataQualityPage = () => {
           </Button>
         </div>
       </div>
+
+      {isReadOnlyTenantAccess ? <PlatformReadonlyNotice /> : null}
 
       {feedback ? (
         <Alert variant="destructive">

@@ -27,6 +27,9 @@ def tenant_access_engine():
                     user_key VARCHAR(36) NOT NULL UNIQUE,
                     email VARCHAR(255) NOT NULL UNIQUE,
                     password_hash VARCHAR(255) NOT NULL,
+                    first_name VARCHAR(100),
+                    last_name VARCHAR(100),
+                    phone_number VARCHAR(50),
                     is_verified BOOLEAN NOT NULL DEFAULT 0,
                     status VARCHAR(20) NOT NULL DEFAULT 'active',
                     created_at TIMESTAMP,
@@ -63,6 +66,26 @@ def tenant_access_engine():
                 """
             )
         )
+        conn.execute(
+            text(
+                """
+                CREATE TABLE tenant_role_audit_logs (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    tenant_id INTEGER NOT NULL,
+                    target_user_id INTEGER NOT NULL,
+                    actor_user_id INTEGER NOT NULL,
+                    actor_scope VARCHAR(20) NOT NULL,
+                    action VARCHAR(50) NOT NULL,
+                    old_role VARCHAR(50),
+                    new_role VARCHAR(50),
+                    old_status VARCHAR(20),
+                    new_status VARCHAR(20),
+                    reason TEXT,
+                    created_at TIMESTAMP
+                )
+                """
+            )
+        )
     return engine
 
 
@@ -71,20 +94,24 @@ def _insert_user(engine, *, email="ops@example.com", status="active"):
     with engine.begin() as conn:
         result = conn.execute(
             text(
-                """
-                INSERT INTO users (
-                    user_key, email, password_hash, is_verified, status, created_at, updated_at
-                ) VALUES (
-                    :user_key, :email, 'hash', 1, :status, :now, :now
-                )
-                """
-            ),
-            {
-                "user_key": f"user_{email}",
-                "email": email,
-                "status": status,
-                "now": now,
-            },
+            """
+            INSERT INTO users (
+                user_key, email, password_hash, first_name, phone_number,
+                is_verified, status, created_at, updated_at
+            ) VALUES (
+                :user_key, :email, 'hash', :first_name, :phone_number,
+                1, :status, :now, :now
+            )
+            """
+        ),
+        {
+            "user_key": f"user_{email}",
+            "email": email,
+            "first_name": email.split("@")[0],
+            "phone_number": "13800000000",
+            "status": status,
+            "now": now,
+        },
         )
     return result.lastrowid
 
@@ -140,6 +167,20 @@ def _membership_row(engine, *, user_id, tenant_id):
             ),
             {"user_id": user_id, "tenant_id": tenant_id},
         ).first()
+
+
+def _audit_rows(engine):
+    with engine.connect() as conn:
+        return conn.execute(
+            text(
+                """
+                SELECT actor_user_id, actor_scope, target_user_id, action,
+                       old_role, new_role, old_status, new_status, reason
+                FROM tenant_role_audit_logs
+                ORDER BY id ASC
+                """
+            )
+        ).fetchall()
 
 
 def test_grant_tenant_access_creates_viewer_membership(tenant_access_engine):
@@ -204,6 +245,13 @@ def test_grant_tenant_access_updates_existing_role(tenant_access_engine):
         "admin",
         "active",
     )
+    audit_rows = _audit_rows(tenant_access_engine)
+    assert len(audit_rows) == 1
+    assert audit_rows[0]._mapping["actor_user_id"] == user_id
+    assert audit_rows[0]._mapping["actor_scope"] == "platform"
+    assert audit_rows[0]._mapping["target_user_id"] == user_id
+    assert audit_rows[0]._mapping["old_role"] == "member"
+    assert audit_rows[0]._mapping["new_role"] == "admin"
 
 
 def test_grant_tenant_access_reactivates_disabled_membership(tenant_access_engine):
@@ -229,6 +277,27 @@ def test_grant_tenant_access_reactivates_disabled_membership(tenant_access_engin
         "viewer",
         "active",
     )
+    assert len(_audit_rows(tenant_access_engine)) == 1
+
+
+def test_grant_tenant_access_rejects_demoting_last_active_admin(tenant_access_engine):
+    user_id = _insert_user(tenant_access_engine)
+    tenant_id = _insert_tenant(tenant_access_engine)
+    _insert_membership(tenant_access_engine, user_id=user_id, tenant_id=tenant_id, role="admin")
+
+    with pytest.raises(TenantAccessGrantError, match="active admin"):
+        grant_tenant_access(
+            tenant_access_engine,
+            email="ops@example.com",
+            tenant_key="tn_demo",
+            role="viewer",
+        )
+
+    assert tuple(_membership_row(tenant_access_engine, user_id=user_id, tenant_id=tenant_id)) == (
+        "admin",
+        "active",
+    )
+    assert _audit_rows(tenant_access_engine) == []
 
 
 def test_grant_tenant_access_rejects_invalid_role(tenant_access_engine):

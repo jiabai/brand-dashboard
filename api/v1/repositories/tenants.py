@@ -132,16 +132,16 @@ def list_platform_tenant_summaries(
         text(
             f"""
             SELECT
-                t.tenant_key,
-                t.tenant_name,
-                t.company_legal_name,
-                t.industry,
-                t.status,
-                t.plan_type,
-                t.max_users,
-                t.billing_cycle,
-                t.contract_start_date,
-                t.contract_end_date,
+                t.tenant_key AS tenant_key,
+                t.tenant_name AS tenant_name,
+                t.company_legal_name AS company_legal_name,
+                t.industry AS industry,
+                t.status AS tenant_status,
+                t.plan_type AS plan_type,
+                t.max_users AS max_users,
+                t.billing_cycle AS billing_cycle,
+                t.contract_start_date AS contract_start_date,
+                t.contract_end_date AS contract_end_date,
                 (
                     SELECT admin_u.email
                     FROM user_tenants admin_ut
@@ -151,6 +151,33 @@ def list_platform_tenant_summaries(
                     ORDER BY admin_ut.created_at ASC
                     LIMIT 1
                 ) AS admin_email,
+                (
+                    SELECT admin_u.first_name
+                    FROM user_tenants admin_ut
+                    JOIN users admin_u ON admin_u.id = admin_ut.user_id
+                    WHERE admin_ut.tenant_id = t.id
+                      AND admin_ut.role = 'admin'
+                    ORDER BY admin_ut.created_at ASC
+                    LIMIT 1
+                ) AS admin_first_name,
+                (
+                    SELECT admin_u.last_name
+                    FROM user_tenants admin_ut
+                    JOIN users admin_u ON admin_u.id = admin_ut.user_id
+                    WHERE admin_ut.tenant_id = t.id
+                      AND admin_ut.role = 'admin'
+                    ORDER BY admin_ut.created_at ASC
+                    LIMIT 1
+                ) AS admin_last_name,
+                (
+                    SELECT admin_u.phone_number
+                    FROM user_tenants admin_ut
+                    JOIN users admin_u ON admin_u.id = admin_ut.user_id
+                    WHERE admin_ut.tenant_id = t.id
+                      AND admin_ut.role = 'admin'
+                    ORDER BY admin_ut.created_at ASC
+                    LIMIT 1
+                ) AS admin_phone,
                 (
                     SELECT admin_u.status
                     FROM user_tenants admin_ut
@@ -165,7 +192,7 @@ def list_platform_tenant_summaries(
                     FROM user_tenants member_ut
                     WHERE member_ut.tenant_id = t.id
                 ) AS member_count,
-                t.created_at,
+                t.created_at AS created_at,
                 (
                     SELECT COUNT(DISTINCT job_count.job_id)
                     FROM llm_query_jobs job_count

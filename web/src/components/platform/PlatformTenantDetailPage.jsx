@@ -12,13 +12,16 @@ import {
   MailPlus,
   RefreshCw,
   ShieldCheck,
+  UserRound,
   Users,
 } from 'lucide-react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 
 import {
   fetchPlatformTenantDetail,
+  fetchPlatformTenantMembers,
   resendPlatformTenantActivation,
+  updatePlatformTenantMember,
 } from '../../api/platform.js';
 import EmptyState from '../EmptyState.jsx';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert.jsx';
@@ -32,6 +35,23 @@ import {
   CardTitle,
 } from '../ui/card.jsx';
 import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../ui/select.jsx';
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from '../ui/sheet.jsx';
+import { Spinner } from '../ui/spinner.jsx';
+import {
   Table,
   TableBody,
   TableCell,
@@ -39,6 +59,7 @@ import {
   TableHeader,
   TableRow,
 } from '../ui/table.jsx';
+import { Textarea } from '../ui/textarea.jsx';
 import {
   PROJECT_NAV_SOURCE_PLATFORM_TENANT_DETAIL,
   buildProjectDataQualityPath,
@@ -74,11 +95,21 @@ const PlatformTenantDetailPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const projectOverviewRef = useRef(null);
+  const tenantAdminRef = useRef(null);
   const [tenant, setTenant] = useState(null);
   const [projects, setProjects] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [refreshToken, setRefreshToken] = useState(0);
+  const [memberSheetOpen, setMemberSheetOpen] = useState(false);
+  const [members, setMembers] = useState([]);
+  const [isLoadingMembers, setIsLoadingMembers] = useState(false);
+  const [membersError, setMembersError] = useState('');
+  const [selectedMemberId, setSelectedMemberId] = useState('');
+  const [reason, setReason] = useState('');
+  const [isSubmittingMember, setIsSubmittingMember] = useState(false);
+  const [memberActionError, setMemberActionError] = useState('');
+  const [memberActionMessage, setMemberActionMessage] = useState('');
   const [isResendingActivation, setIsResendingActivation] = useState(false);
   const [resendError, setResendError] = useState('');
   const [resendResult, setResendResult] = useState(null);
@@ -113,10 +144,59 @@ const PlatformTenantDetailPage = () => {
     return () => controller.abort();
   }, [loadTenant, refreshToken]);
 
+  const loadTenantMembers = useCallback(
+    async (signal) => {
+      if (!tenantKey) return;
+      setIsLoadingMembers(true);
+      setMembersError('');
+      try {
+        const response = await fetchPlatformTenantMembers(tenantKey, { signal });
+        const nextMembers = Array.isArray(response?.data?.members) ? response.data.members : [];
+        setMembers(nextMembers);
+        setSelectedMemberId((current) => {
+          const hasCurrentActiveMember = nextMembers.some(
+            (member) =>
+              String(member.userId) === current &&
+              member.status === 'active' &&
+              member.userStatus === 'active',
+          );
+          if (hasCurrentActiveMember) return current;
+          const firstActiveMember = nextMembers.find(
+            (member) => member.status === 'active' && member.userStatus === 'active',
+          );
+          return firstActiveMember ? String(firstActiveMember.userId) : '';
+        });
+      } catch (loadError) {
+        if (loadError.name !== 'AbortError') {
+          setMembers([]);
+          setSelectedMemberId('');
+          setMembersError(loadError.message || '成员列表加载失败');
+        }
+      } finally {
+        if (!signal?.aborted) setIsLoadingMembers(false);
+      }
+    },
+    [tenantKey],
+  );
+
   useEffect(() => {
-    if (!tenant || location.hash !== '#project-overview') return undefined;
+    if (!memberSheetOpen) return undefined;
+    const controller = new AbortController();
+    loadTenantMembers(controller.signal);
+    return () => controller.abort();
+  }, [loadTenantMembers, memberSheetOpen]);
+
+  useEffect(() => {
+    if (!tenant) return undefined;
+    const target =
+      location.hash === '#project-overview'
+        ? projectOverviewRef.current
+        : location.hash === '#tenant-admin'
+          ? tenantAdminRef.current
+          : null;
+    if (!target) return undefined;
     const frameId = window.requestAnimationFrame(() => {
-      projectOverviewRef.current?.scrollIntoView({ block: 'start' });
+      target.scrollIntoView({ block: 'start' });
     });
     return () => window.cancelAnimationFrame(frameId);
   }, [location.hash, tenant]);
@@ -162,6 +242,63 @@ const PlatformTenantDetailPage = () => {
       icon: ListChecks,
     },
   ];
+
+  const activeMembers = useMemo(
+    () => members.filter((member) => member.status === 'active' && member.userStatus === 'active'),
+    [members],
+  );
+  const selectedMember = useMemo(
+    () => activeMembers.find((member) => String(member.userId) === selectedMemberId),
+    [activeMembers, selectedMemberId],
+  );
+  const adminActionLabel = tenant?.adminEmail || tenant?.adminName ? '应急设置' : '设置管理员';
+  const canSubmitMemberUpdate = Boolean(selectedMemberId && reason.trim()) && !isSubmittingMember;
+
+  const handleOpenMemberSheet = () => {
+    setMemberActionError('');
+    setMemberActionMessage('');
+    setReason('');
+    setMemberSheetOpen(true);
+  };
+
+  const handleSubmitMemberUpdate = async (event) => {
+    event.preventDefault();
+    const normalizedReason = reason.trim();
+    if (!selectedMemberId || !normalizedReason) {
+      setMemberActionError('请选择成员并填写应急原因');
+      return;
+    }
+
+    setIsSubmittingMember(true);
+    setMemberActionError('');
+    setMemberActionMessage('');
+    try {
+      const response = await updatePlatformTenantMember(
+        tenant?.tenantKey || tenantKey,
+        selectedMemberId,
+        {
+          role: 'admin',
+          status: 'active',
+          reason: normalizedReason,
+        },
+      );
+      const updatedMember = response?.data?.member;
+      if (updatedMember?.userId) {
+        setMembers((current) =>
+          current.map((member) => (member.userId === updatedMember.userId ? updatedMember : member)),
+        );
+      }
+      setMemberActionMessage(
+        `${selectedMember?.email || '选中成员'} 已设置为租户管理员`,
+      );
+      setReason('');
+      setRefreshToken((current) => current + 1);
+    } catch (submitError) {
+      setMemberActionError(submitError.message || '租户管理员设置失败');
+    } finally {
+      setIsSubmittingMember(false);
+    }
+  };
 
   const resendDeliveryMeta = resendResult
     ? getEmailDeliveryMeta(resendResult.emailDelivery)
@@ -337,72 +474,101 @@ const PlatformTenantDetailPage = () => {
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader className="gap-3 sm:flex-row sm:items-start sm:justify-between">
-                <div className="grid gap-1">
+            <div className="grid gap-4">
+              <div id="tenant-admin" ref={tenantAdminRef}>
+                <Card>
+                  <CardHeader className="gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="grid gap-1">
+                      <CardTitle className="flex items-center gap-2">
+                        <UserRound className="size-4" aria-hidden="true" />
+                        租户管理员
+                      </CardTitle>
+                      <CardDescription>平台只读查看，用于客户识别、联络和排障交接。</CardDescription>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      {tenant.adminStatus === 'pending_activation' ? (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          disabled={isResendingActivation}
+                          onClick={handleResendActivation}
+                        >
+                          <MailPlus className="size-3.5" />
+                          {isResendingActivation ? '重发中...' : '重发激活邮件'}
+                        </Button>
+                      ) : null}
+                      <Button
+                        type="button"
+                        size="sm"
+                        disabled={!canOpenTenantTools}
+                        onClick={handleOpenMemberSheet}
+                      >
+                        <ShieldCheck className="size-3.5" />
+                        {adminActionLabel}
+                      </Button>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="grid gap-4 sm:grid-cols-2">
+                    <DetailField label="管理员姓名" value={tenant.adminName} />
+                    <DetailField label="管理员邮箱" value={tenant.adminEmail} />
+                    <DetailField label="管理员手机号" value={tenant.adminPhone} />
+                    <DetailField label="管理员状态" value={getAdminStatusLabel(tenant.adminStatus)} />
+                    {resendError ? (
+                      <Alert variant="destructive" className="sm:col-span-2">
+                        <AlertTitle>激活邮件重发失败</AlertTitle>
+                        <AlertDescription>{resendError}</AlertDescription>
+                      </Alert>
+                    ) : null}
+                    {resendResult ? (
+                      <div className="grid gap-3 sm:col-span-2">
+                        {resendDeliveryMeta ? (
+                          <Alert variant={resendDeliveryMeta.variant}>
+                            <AlertTitle>{resendDeliveryMeta.title}</AlertTitle>
+                            <AlertDescription>{resendDeliveryMeta.description}</AlertDescription>
+                          </Alert>
+                        ) : null}
+                        <div className="grid gap-1">
+                          <span className="text-xs font-medium text-muted-foreground">新激活链接</span>
+                          <div className="flex min-w-0 items-center gap-2">
+                            <code className="min-w-0 flex-1 truncate text-xs text-foreground">
+                              {resendResult.activationUrl || '未返回'}
+                            </code>
+                            {resendResult.activationUrl ? (
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="icon-sm"
+                                onClick={handleCopyActivationUrl}
+                                title="复制激活链接"
+                              >
+                                {copiedActivation ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
+                              </Button>
+                            ) : null}
+                          </div>
+                        </div>
+                      </div>
+                    ) : null}
+                  </CardContent>
+                </Card>
+              </div>
+
+              <Card>
+                <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Building2 className="size-4" aria-hidden="true" />
                     客户资料
                   </CardTitle>
                   <CardDescription>{getPlanTypeLabel(tenant.planType)} / {getBillingCycleLabel(tenant.billingCycle)}</CardDescription>
-                </div>
-                {tenant.adminStatus === 'pending_activation' ? (
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    disabled={isResendingActivation}
-                    onClick={handleResendActivation}
-                  >
-                    <MailPlus className="size-3.5" />
-                    {isResendingActivation ? '重发中...' : '重发激活邮件'}
-                  </Button>
-                ) : null}
-              </CardHeader>
-              <CardContent className="grid gap-4 sm:grid-cols-2">
-                <DetailField label="管理员" value={tenant.adminEmail} />
-                <DetailField label="管理员状态" value={getAdminStatusLabel(tenant.adminStatus)} />
-                <DetailField label="行业" value={tenant.industry} />
-                <DetailField label="合同开始" value={formatDate(tenant.contractStartDate)} />
-                <DetailField label="合同到期" value={formatDate(tenant.contractEndDate)} />
-                <DetailField label="创建时间" value={formatDateTime(tenant.createdAt)} />
-                {resendError ? (
-                  <Alert variant="destructive" className="sm:col-span-2">
-                    <AlertTitle>激活邮件重发失败</AlertTitle>
-                    <AlertDescription>{resendError}</AlertDescription>
-                  </Alert>
-                ) : null}
-                {resendResult ? (
-                  <div className="grid gap-3 sm:col-span-2">
-                    {resendDeliveryMeta ? (
-                      <Alert variant={resendDeliveryMeta.variant}>
-                        <AlertTitle>{resendDeliveryMeta.title}</AlertTitle>
-                        <AlertDescription>{resendDeliveryMeta.description}</AlertDescription>
-                      </Alert>
-                    ) : null}
-                    <div className="grid gap-1">
-                      <span className="text-xs font-medium text-muted-foreground">新激活链接</span>
-                      <div className="flex min-w-0 items-center gap-2">
-                        <code className="min-w-0 flex-1 truncate text-xs text-foreground">
-                          {resendResult.activationUrl || '未返回'}
-                        </code>
-                        {resendResult.activationUrl ? (
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="icon-sm"
-                            onClick={handleCopyActivationUrl}
-                            title="复制激活链接"
-                          >
-                            {copiedActivation ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
-                          </Button>
-                        ) : null}
-                      </div>
-                    </div>
-                  </div>
-                ) : null}
-              </CardContent>
-            </Card>
+                </CardHeader>
+                <CardContent className="grid gap-4 sm:grid-cols-2">
+                  <DetailField label="行业" value={tenant.industry} />
+                  <DetailField label="合同开始" value={formatDate(tenant.contractStartDate)} />
+                  <DetailField label="合同到期" value={formatDate(tenant.contractEndDate)} />
+                  <DetailField label="创建时间" value={formatDateTime(tenant.createdAt)} />
+                </CardContent>
+              </Card>
+            </div>
           </section>
 
           <div id="project-overview" ref={projectOverviewRef}>
@@ -503,6 +669,98 @@ const PlatformTenantDetailPage = () => {
           </div>
         </>
       ) : null}
+
+      <Sheet open={memberSheetOpen} onOpenChange={setMemberSheetOpen}>
+        <SheetContent className="w-full sm:max-w-md">
+          <SheetHeader>
+            <SheetTitle>设置租户管理员</SheetTitle>
+            <SheetDescription>
+              {tenant?.tenantName || tenantKey} / {tenant?.tenantKey || tenantKey}
+            </SheetDescription>
+          </SheetHeader>
+          <form className="flex min-h-0 flex-1 flex-col" onSubmit={handleSubmitMemberUpdate}>
+            <div className="grid flex-1 content-start gap-4 overflow-y-auto px-4">
+              {membersError ? (
+                <Alert variant="destructive">
+                  <AlertTitle>成员列表加载失败</AlertTitle>
+                  <AlertDescription>{membersError}</AlertDescription>
+                </Alert>
+              ) : null}
+              {memberActionError ? (
+                <Alert variant="destructive">
+                  <AlertTitle>设置失败</AlertTitle>
+                  <AlertDescription>{memberActionError}</AlertDescription>
+                </Alert>
+              ) : null}
+              {memberActionMessage ? (
+                <Alert>
+                  <AlertTitle>设置成功</AlertTitle>
+                  <AlertDescription>{memberActionMessage}</AlertDescription>
+                </Alert>
+              ) : null}
+
+              <label className="grid gap-1.5">
+                <span className="text-xs font-medium text-muted-foreground">成员</span>
+                {isLoadingMembers ? (
+                  <div className="flex h-10 items-center gap-2 rounded-md border border-border bg-muted/35 px-3 text-sm text-muted-foreground">
+                    <Spinner />
+                    正在加载成员
+                  </div>
+                ) : activeMembers.length ? (
+                  <Select value={selectedMemberId || undefined} onValueChange={setSelectedMemberId}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="选择成员" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectGroup>
+                        {activeMembers.map((member) => (
+                          <SelectItem key={member.userId} value={String(member.userId)}>
+                            {member.email}
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <div className="rounded-md border border-dashed border-border bg-muted/25 p-3 text-sm text-muted-foreground">
+                    暂无可设置的 active 成员
+                  </div>
+                )}
+              </label>
+
+              {selectedMember ? (
+                <div className="grid gap-2 rounded-md border border-border bg-muted/25 p-3 text-sm">
+                  <div className="font-medium text-foreground">{selectedMember.email}</div>
+                  <div className="grid gap-1 text-muted-foreground">
+                    <span>当前角色：{selectedMember.role}</span>
+                    <span>成员状态：{selectedMember.status}</span>
+                  </div>
+                </div>
+              ) : null}
+
+              <label className="grid gap-1.5">
+                <span className="text-xs font-medium text-muted-foreground">应急原因</span>
+                <Textarea
+                  value={reason}
+                  onChange={(event) => setReason(event.target.value)}
+                  rows={4}
+                  placeholder="填写客户支持工单、授权来源或处理背景"
+                  required
+                />
+              </label>
+            </div>
+            <SheetFooter className="border-t border-border">
+              <Button type="button" variant="outline" onClick={() => setMemberSheetOpen(false)}>
+                取消
+              </Button>
+              <Button type="submit" disabled={!canSubmitMemberUpdate}>
+                {isSubmittingMember ? <Spinner /> : <ShieldCheck className="size-4" />}
+                设置管理员
+              </Button>
+            </SheetFooter>
+          </form>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 };

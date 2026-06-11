@@ -38,7 +38,7 @@
 
 前端以 `web/src/config/routes.js` 作为单一策略源：
 
-- `getProductShapeRoutes()` 返回当前产品形态路由：项目列表、项目详情、项目数据质量和账户管理。
+- `getProductShapeRoutes()` 返回当前产品形态路由：项目列表、项目详情、项目数据质量和加入团队。
 - `getLegacyCompatibilityRoutes()` 返回历史兼容路由：旧 dashboard、趋势、平台、信源、情感、问答快照和旧任务页。
 - 当前产品形态路由不得要求 `jobId`。
 - Legacy 路由可以参与 App route 生成，但不得参与主侧边栏菜单。

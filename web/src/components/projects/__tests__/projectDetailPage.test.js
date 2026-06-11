@@ -20,6 +20,11 @@ describe('ProjectDetailPage contract', () => {
     assert.match(source, /buildProjectListPath/);
     assert.match(source, /返回项目工作台/);
   });
+
+  it('shows a readonly customer-view notice for platform-only access', () => {
+    assert.match(source, /isPlatformReadonlyTenantAccess/);
+    assert.match(source, /PlatformReadonlyNotice/);
+  });
 });
 
 describe('ProjectDetailPage dashboard entry contract', () => {

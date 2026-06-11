@@ -52,6 +52,9 @@ def platform_db_engine():
                     user_key VARCHAR(36) NOT NULL UNIQUE,
                     email VARCHAR(255) NOT NULL UNIQUE,
                     password_hash VARCHAR(255) NOT NULL,
+                    first_name VARCHAR(100),
+                    last_name VARCHAR(100),
+                    phone_number VARCHAR(50),
                     is_verified BOOLEAN NOT NULL DEFAULT 1,
                     status VARCHAR(20) NOT NULL DEFAULT 'active',
                     created_at TIMESTAMP,
@@ -134,15 +137,17 @@ def client(db_session, monkeypatch):
     return TestClient(app)
 
 
-def _insert_user(db_session, *, user_id, email):
+def _insert_user(db_session, *, user_id, email, first_name=None, phone_number=None):
     now = datetime.now(UTC)
     db_session.execute(
         text(
             """
             INSERT INTO users (
-                id, user_key, email, password_hash, is_verified, status, created_at, updated_at
+                id, user_key, email, password_hash, first_name, phone_number,
+                is_verified, status, created_at, updated_at
             ) VALUES (
-                :user_id, :user_key, :email, :password_hash, 1, 'active', :now, :now
+                :user_id, :user_key, :email, :password_hash, :first_name,
+                :phone_number, 1, 'active', :now, :now
             )
             """
         ),
@@ -151,6 +156,8 @@ def _insert_user(db_session, *, user_id, email):
             "user_key": f"user_{user_id}",
             "email": email,
             "password_hash": hash_password("User12345"),
+            "first_name": first_name,
+            "phone_number": phone_number,
             "now": now,
         },
     )
@@ -220,6 +227,8 @@ def _insert_tenant(
         db_session,
         user_id=abs(hash(admin_email)) % 1000000 + 100,
         email=admin_email,
+        first_name="张三",
+        phone_number="13800138000",
     )
     db_session.execute(
         text(
@@ -380,7 +389,9 @@ def test_platform_admin_can_list_tenants(client, db_session, monkeypatch):
     }
     assert body["data"]["items"][0]["tenantKey"] == "tn_alibaba"
     assert body["data"]["items"][0]["tenantName"] == "阿里巴巴集团"
+    assert body["data"]["items"][0]["adminName"] == "张三"
     assert body["data"]["items"][0]["adminEmail"] == "admin@alibaba.com"
+    assert body["data"]["items"][0]["adminPhone"] == "13800138000"
     assert body["data"]["items"][0]["memberCount"] == 1
     assert body["data"]["items"][0]["jobCount"] == 0
     assert body["data"]["items"][0]["latestJob"] is None
@@ -562,6 +573,9 @@ def test_platform_admin_can_view_tenant_detail_with_project_summaries(
     data = response.json()["data"]
     assert data["tenantKey"] == "tn_alibaba"
     assert data["tenantName"] == "阿里巴巴集团"
+    assert data["adminName"] == "张三"
+    assert data["adminEmail"] == "admin@alibaba.com"
+    assert data["adminPhone"] == "13800138000"
     assert data["latestJob"]["jobId"] == "job_latest"
     assert data["projects"] == [
         {

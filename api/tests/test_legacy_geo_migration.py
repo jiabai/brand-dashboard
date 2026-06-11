@@ -2,11 +2,9 @@ import importlib.util
 import sqlite3
 from pathlib import Path
 
+from api.v1.repositories.fact_metrics import list_project_fact_metric_rows
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
-
-from api.v1.repositories.fact_metrics import list_project_fact_metric_rows
-
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 MIGRATION_SCRIPT = PROJECT_ROOT / "scripts" / "migrate_legacy_geo_sqlite.py"

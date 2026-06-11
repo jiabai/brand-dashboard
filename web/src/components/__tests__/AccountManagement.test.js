@@ -18,6 +18,31 @@ test('logged-in account management page does not include admin activation workfl
   assert.doesNotMatch(source, /管理员激活/);
 });
 
+test('join team page does not include tenant opening or login workflows', () => {
+  const source = accountManagementSource();
+
+  assert.doesNotMatch(source, /login as loginApi/);
+  assert.doesNotMatch(source, /loginApi/);
+  assert.doesNotMatch(source, /TabsTrigger\s+value="login"/);
+  assert.doesNotMatch(source, /TabsContent\s+value="login"/);
+  assert.doesNotMatch(source, /账户登录/);
+  assert.doesNotMatch(source, /登录并获取访问令牌/);
+  assert.doesNotMatch(source, /TabsTrigger\s+value="tenant"/);
+  assert.doesNotMatch(source, /TabsContent\s+value="tenant"/);
+  assert.doesNotMatch(source, /租户开通/);
+  assert.doesNotMatch(source, /进入平台租户管理/);
+});
+
+test('join team page keeps invite verification and employee registration as the only workflows', () => {
+  const source = accountManagementSource();
+
+  assert.match(source, /加入团队与邀请注册/);
+  assert.match(source, /邀请码核验/);
+  assert.match(source, /员工注册/);
+  assert.match(source, /verifyInviteCode/);
+  assert.match(source, /registerUser/);
+});
+
 test('account management page exposes a change password form calling the authed endpoint', () => {
   const source = accountManagementSource();
 

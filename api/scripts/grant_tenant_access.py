@@ -30,6 +30,8 @@ def _parse_args() -> argparse.Namespace:
         default=os.getenv("TENANT_ACCESS_GRANT_ROLE", "viewer"),
         choices=("viewer", "member", "admin"),
     )
+    parser.add_argument("--actor-email", default=os.getenv("TENANT_ACCESS_GRANT_ACTOR_EMAIL"))
+    parser.add_argument("--reason", default=os.getenv("TENANT_ACCESS_GRANT_REASON"))
     parser.add_argument(
         "--env-file",
         default=str(_api_env_path()),
@@ -61,6 +63,8 @@ def main() -> int:
             email=args.email,
             tenant_key=args.tenant_key,
             role=args.role,
+            actor_email=args.actor_email,
+            reason=args.reason,
         )
     except TenantAccessGrantError as exc:
         print(f"ERROR: {exc}", file=sys.stderr)

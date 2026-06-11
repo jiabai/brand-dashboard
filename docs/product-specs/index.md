@@ -8,6 +8,12 @@ Product specs describe user-visible intent and boundaries before or alongside im
 
 | File | Scope |
 |------|-------|
+| [20260611-010000-project-dashboard-entry-collection-jobs.md](20260611-010000-project-dashboard-entry-collection-jobs.md) | 项目看板入口改用 collection_jobs 作为采集任务来源（一次采集一行，经 source_job_id 进 legacy 看板）；修订前一份的数据源 |
+| [20260611-project-dashboard-entry.md](20260611-project-dashboard-entry.md) | 项目详情页「进入看板」入口：用户选 job 进 legacy 首页看板，复用 query-jobs/status 加 project_id 过滤 |
+| [20260610-password-reset-and-change.md](20260610-password-reset-and-change.md) | 自助密码重置（防枚举邮件流程 + 指纹一次性令牌）与已登录修改密码 |
+| [20260610-platform-resend-admin-activation.md](20260610-platform-resend-admin-activation.md) | 平台租户详情页重发管理员激活邮件：对待激活管理员重签 7 天令牌，复用 SMTP 发送与人工兜底 |
+| [20260610-platform-tenant-admin-emergency-entry.md](20260610-platform-tenant-admin-emergency-entry.md) | 平台租户详情页补齐受审计的租户管理员应急设置入口 |
+| [20260610-tenant-member-governance.md](20260610-tenant-member-governance.md) | 租户成员管理 API、平台应急角色修改审计与最后 active admin 保护 |
 | [20260201-140000-add-platform-filter-to-brand-metrics.md](20260201-140000-add-platform-filter-to-brand-metrics.md) | 品牌指标接口新增 platform 可选参数，支持按平台筛选 |
 | [20260204-150415-add-top3-mention-rate.md](20260204-150415-add-top3-mention-rate.md) | 声量份额表格新增 Top 3 Mention Rate 列 |
 | [20260206-120000-add-source-analysis-page.md](20260206-120000-add-source-analysis-page.md) | 新增信源分析页面，展示品牌渠道分布与引用数据 |
@@ -23,3 +29,4 @@ Product specs describe user-visible intent and boundaries before or alongside im
 | [20260521-185332-platform-admin-job-aware-dashboard-entry.md](20260521-185332-platform-admin-job-aware-dashboard-entry.md) | 平台管理员 Job 感知排障入口：平台租户详情使用真实 tenant/job/brand 进入 legacy dashboard |
 | [20260603-000000-admin-activation-email.md](20260603-000000-admin-activation-email.md) | 管理员激活邮件发送：创建租户后通过 SMTP 自动发送激活链接，并保留人工兜底 |
 | [20260606-brand-monitoring-system-refactor.md](20260606-brand-monitoring-system-refactor.md) | 品牌监测业务系统重构：以监测项目为主线，补齐采集、分析、指标、告警和报告闭环 |
+| [20260609-tenant-join-entry-boundary.md](20260609-tenant-join-entry-boundary.md) | 租户加入团队入口：平台管理员只读客户视角隐藏入口，租户成员保留邀请码核验与员工注册 |

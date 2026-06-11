@@ -1,5 +1,13 @@
 # Security
 
+## 2026-06-10 租户成员治理补充
+
+- 平台管理员可通过 `GET /api/v1/platform/tenants/{tenant_key}/members` 读取目标租户现有成员，用于受审计的应急设置入口；该读取不写入 membership，也不能替代租户侧成员管理授权。
+- 租户成员管理 API 只允许目标租户的 active `admin` 调用；成员列表和成员角色/状态更新必须基于 path `tenant_key` 做服务端 membership 校验。
+- 平台管理员只保留应急/客服修改租户成员能力，必须通过 `/api/v1/platform/tenants/{tenant_key}/members/{user_id}`，并提交 `reason`。
+- 租户侧和平台侧成员角色/状态变更必须写入 `tenant_role_audit_logs`，记录操作者、目标用户、变更前后角色/状态、操作范围和原因。
+- 任意成员变更后必须至少保留一个 active admin；禁止把最后一个 active admin 降级或停用。
+
 ## 认证与授权
 
 - 多租户架构：每个租户通过 `tenant_key` 隔离数据。
@@ -40,6 +48,7 @@
 - 分析血缘：事实表、告警和报告必须保留 `analysis_run_id`、`collection_job_id` 或项目血缘，便于审计和重算。
 - 导入租户补授权：非平台用户优先授予 `viewer`，仅在明确需要租户内代操作时授予 `admin`。
 - 平台只读访问：只允许 dashboard 查询，不允许复用到任务加载、成员管理、执行器写入、项目配置写入或其他租户写接口。
+- 平台客户视角：平台管理员进入租户项目页时只用于查看、排障和体验客户视角；前端不得展示基于平台身份的项目创建、编辑、归档或删除入口。
 - 审计：创建租户、登录失败、激活失败、权限拒绝、执行器认证失败、报告生成和分析 retry 应记录 request id、操作者、租户、项目和结果，不记录密码、token 或 API Key。
 
 ## 前端安全

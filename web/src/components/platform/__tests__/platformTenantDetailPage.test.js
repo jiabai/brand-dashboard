@@ -20,6 +20,35 @@ describe('PlatformTenantDetailPage contract', () => {
     assert.match(source, /PROJECT_NAV_SOURCE_PLATFORM_TENANT_DETAIL/);
     assert.match(source, /scrollIntoView/);
   });
+
+  it('does not expose tenant project management actions to platform admins', () => {
+    assert.doesNotMatch(source, /新建项目/);
+    assert.doesNotMatch(source, /编辑项目/);
+    assert.doesNotMatch(source, /归档项目/);
+    assert.doesNotMatch(source, /删除项目/);
+  });
+
+  it('renders a tenant administrator information section', () => {
+    assert.match(source, /id="tenant-admin"/);
+    assert.match(source, /租户管理员/);
+    assert.match(source, /adminName/);
+    assert.match(source, /adminEmail/);
+    assert.match(source, /adminPhone/);
+    assert.match(source, /管理员状态/);
+  });
+});
+
+describe('PlatformTenantDetailPage emergency admin setting contract', () => {
+  it('exposes an audited platform emergency admin setting entry', () => {
+    assert.match(source, /fetchPlatformTenantMembers/);
+    assert.match(source, /updatePlatformTenantMember/);
+    assert.match(source, /SheetContent/);
+    assert.match(source, /SelectItem/);
+    assert.match(source, /Textarea/);
+    assert.match(source, /reason/);
+    assert.match(source, /role: 'admin'/);
+    assert.match(source, /status: 'active'/);
+  });
 });
 
 describe('PlatformTenantDetailPage resend activation contract', () => {

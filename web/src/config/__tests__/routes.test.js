@@ -20,6 +20,7 @@ test('route config describes analysis and tenant routes from one source', () => 
   assert.equal(getRouteByViewKey('project-detail').path, '/projects/:tenantKey/:projectId');
   assert.equal(getRouteByViewKey('project-quality').path, '/projects/:tenantKey/:projectId/quality');
   assert.equal(getRouteByViewKey('accounts').path, '/accounts/:tenantKey');
+  assert.equal(getRouteByViewKey('accounts').menuLabel, '加入团队');
   assert.equal(getRouteByViewKey('accounts').requiresJobId, false);
   assert.equal(getRouteByPathSegment('projects').viewKey, 'projects');
 });
@@ -28,6 +29,10 @@ test('route config keeps the main sidebar project-first', () => {
   assert.deepEqual(
     getSidebarMenuRoutes().map((route) => route.viewKey),
     ['projects', 'accounts'],
+  );
+  assert.deepEqual(
+    getSidebarMenuRoutes().map((route) => route.menuLabel),
+    ['监测项目', '加入团队'],
   );
   assert.deepEqual(getTaskMenuRoutes(), []);
 });

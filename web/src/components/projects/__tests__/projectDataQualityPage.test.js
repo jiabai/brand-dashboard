@@ -28,6 +28,7 @@ describe('ProjectDataQualityPage contract', () => {
   it('guards recompute actions for platform readonly tenant access', () => {
     assert.match(source, /isPlatformReadonlyTenantAccess/);
     assert.match(source, /isReadOnlyTenantAccess/);
+    assert.match(source, /PlatformReadonlyNotice/);
   });
 
   it('preserves tenant overview navigation source when returning to project detail', () => {

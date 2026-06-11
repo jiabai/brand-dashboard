@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ArrowRight, RefreshCw, Search } from 'lucide-react';
+import { ArrowRight, RefreshCw, Search, UserRound } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 import { fetchPlatformTenants } from '../../api/platform.js';
@@ -26,6 +26,7 @@ import {
 import CreateTenantPanel from './CreateTenantPanel.jsx';
 import {
   formatDate,
+  buildPlatformTenantAdminPath,
   buildPlatformTenantDetailPath,
   getAdminStatusLabel,
   getBillingCycleLabel,
@@ -130,6 +131,15 @@ const PlatformTenantsPage = () => {
   const handleOpenTenantDetail = useCallback(
     (tenant) => {
       const path = buildPlatformTenantDetailPath(tenant?.tenantKey);
+      if (!path) return;
+      navigate(path);
+    },
+    [navigate],
+  );
+
+  const handleOpenTenantAdmin = useCallback(
+    (tenant) => {
+      const path = buildPlatformTenantAdminPath(tenant?.tenantKey);
       if (!path) return;
       navigate(path);
     },
@@ -256,7 +266,27 @@ const PlatformTenantsPage = () => {
                     </TableCell>
                     <TableCell>
                       <div className="grid gap-1">
-                        <span>{tenant.adminEmail || '未设置'}</span>
+                        <div className="flex min-w-0 items-center gap-2">
+                          <span className="truncate">{tenant.adminName || tenant.adminEmail || '未设置'}</span>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 px-2 text-xs"
+                            disabled={!tenant.tenantKey}
+                            aria-label={`查看${tenant.adminName || tenant.adminEmail || tenant.tenantName || '租户'}的租户管理员信息`}
+                            onClick={() => handleOpenTenantAdmin(tenant)}
+                          >
+                            <UserRound className="size-3.5" />
+                            查看
+                          </Button>
+                        </div>
+                        {tenant.adminEmail ? (
+                          <span className="text-xs text-muted-foreground">{tenant.adminEmail}</span>
+                        ) : null}
+                        {tenant.adminPhone ? (
+                          <span className="text-xs text-muted-foreground">{tenant.adminPhone}</span>
+                        ) : null}
                         <span className="text-xs text-muted-foreground">{getAdminStatusLabel(tenant.adminStatus)}</span>
                       </div>
                     </TableCell>

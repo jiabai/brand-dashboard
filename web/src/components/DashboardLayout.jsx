@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import dayjs from 'dayjs';
-import { CircleDot, LogOut } from 'lucide-react';
+import { CircleDot, LogOut, ShieldCheck, UserCircle } from 'lucide-react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 
 import { fetchBrandMetrics } from '@/api';
@@ -8,6 +8,7 @@ import TaskName from './TaskName.jsx';
 import ThemeToggle from './ThemeToggle.jsx';
 import Sidebar from './Sidebar.jsx';
 import { useAuth } from '../auth/AuthContext.jsx';
+import { isPlatformReadonlyTenantAccess } from '@/auth/platformAccess.js';
 import { Badge } from './ui/badge.jsx';
 import { Button } from './ui/button.jsx';
 import {
@@ -91,6 +92,7 @@ const DashboardLayout = () => {
     start,
   } = useTimeframeManager(dashboardParams);
   const activeTenantKey = dashboardParams.tenantKey || currentTenantKey;
+  const isReadonlyTenantAccess = isPlatformReadonlyTenantAccess({ user, tenantKey: activeTenantKey });
   const viewKey = getViewKeyFromPath(location.pathname);
   const [brandResolution, setBrandResolution] = useState({
     key: '',
@@ -251,6 +253,28 @@ const DashboardLayout = () => {
               <TaskName />
             </div>
             <div className="app-shell-controls">
+              {user?.email ? (
+                <Badge
+                  variant="outline"
+                  className="max-w-[14rem] gap-1.5 rounded-md border-border bg-card px-2.5 py-1 text-xs font-medium text-foreground"
+                  title={user.realName ? `${user.realName} / ${user.email}` : user.email}
+                >
+                  <UserCircle className="size-3" aria-hidden="true" />
+                  <span className="text-muted-foreground">当前账号</span>
+                  <span className="truncate">{user.email}</span>
+                </Badge>
+              ) : null}
+              {isReadonlyTenantAccess ? (
+                <Badge
+                  variant="secondary"
+                  className="max-w-[14rem] gap-1.5 rounded-md border border-border bg-card px-2.5 py-1 text-xs font-medium text-foreground"
+                  title={`平台管理员客户视角 / ${activeTenantKey}`}
+                >
+                  <ShieldCheck className="size-3 text-primary" aria-hidden="true" />
+                  <span>客户视角</span>
+                  <span className="truncate font-mono text-muted-foreground">{activeTenantKey}</span>
+                </Badge>
+              ) : null}
               <Badge variant="secondary" className="gap-1.5 rounded-md border border-border bg-card px-2.5 py-1 text-xs font-medium text-foreground">
                 <CircleDot className="size-3 text-primary" aria-hidden="true" />
                 实时数据

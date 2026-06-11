@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 
 import {
   buildPlatformTenantDetailPath,
+  buildPlatformTenantAdminPath,
   buildPlatformTenantProjectOverviewPath,
   buildTenantDashboardPath,
   buildTenantTaskStatusPath,
@@ -148,6 +149,14 @@ test('buildPlatformTenantProjectOverviewPath links the tenant detail project ove
     '/platform/tenants/tn%20space#project-overview',
   );
   assert.equal(buildPlatformTenantProjectOverviewPath(''), '');
+});
+
+test('buildPlatformTenantAdminPath links the tenant administrator section', () => {
+  assert.equal(
+    buildPlatformTenantAdminPath('tn space'),
+    '/platform/tenants/tn%20space#tenant-admin',
+  );
+  assert.equal(buildPlatformTenantAdminPath(''), '');
 });
 
 test('buildTenantDashboardPath links platform tenants with a real latest job and target brand', () => {

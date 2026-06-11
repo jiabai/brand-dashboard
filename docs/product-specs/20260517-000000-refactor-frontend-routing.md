@@ -45,7 +45,7 @@
 | 分平台分析 | `/platforms/:tenantKey/:jobId` | 分析数据页，`jobId` 是资源定位符 |
 | 信源分析 | `/sources/:tenantKey/:jobId` | 分析数据页，`jobId` 是资源定位符 |
 | 情感分析 | `/sentiment/:tenantKey/:jobId` | 分析数据页，`jobId` 是资源定位符 |
-| 账户管理 | `/accounts/:tenantKey` | 租户级页面，不强制携带 `jobId` |
+| 加入团队 | `/accounts/:tenantKey` | 租户级页面，不强制携带 `jobId`，保留历史账户路径 |
 | 新建任务 | `/tasks/:tenantKey/new` | 租户级页面，`executor_id` 保留为查询参数 |
 | 任务状态 | `/tasks/:tenantKey/status` | 租户级页面，`job_id` 保留为可选查询筛选 |
 

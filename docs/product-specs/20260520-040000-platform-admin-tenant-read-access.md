@@ -15,7 +15,7 @@
 1. 平台管理员可以只读访问任意 active 租户的项目工作台和 dashboard 数据。
 2. 平台管理员不需要被写入每个租户的 `user_tenants`。
 3. 租户成员权限模型保持不变：普通用户仍必须通过 `user_tenants` 才能访问租户数据。
-4. 写操作不随只读权限自动放开，任务加载、成员管理、租户内配置仍需要租户管理员或单独的平台代操作设计。
+4. 写操作不随只读权限自动放开，任务加载、成员管理、租户内配置仍需要租户管理员；平台管理员不作为租户管理员代理创建、编辑、归档或删除租户项目。
 5. 平台后台租户列表只提供目标租户详情入口，不依赖前端 demo 默认 `jobId` 或 `brand`；租户详情页以“进入项目工作台”为主入口，旧 dashboard 和任务状态放入排障入口。
 
 ## 3. 非目标
@@ -94,9 +94,11 @@ Dashboard 和项目 GET 只读接口使用新的授权依赖：
 5. 当平台 API 返回 `latestJob` 时，由 `/platform/tenants/:tenantKey` 详情页的“排障入口”提供使用真实 `tenantKey + jobId + brand` 的“最新任务看板”入口。
 6. 平台管理员进入项目工作台或 dashboard 时，不要求目标租户出现在登录响应的 `user.tenants` 中。
 7. API client 继续从 URL/query/body 提取目标 `tenant_key` 并注入 `X-Tenant-Key`。
-8. Dashboard 顶部租户选择器仍只展示用户真实 membership；平台只读浏览时可显示当前路由租户名或 `tenant_key`，不必把所有租户塞进登录态。
-9. 平台只读进入数据质量页时不展示“重新分析”等写操作按钮；如果平台管理员同时拥有该租户真实 membership，则按真实租户权限展示。
-10. 前端不再使用 `VITE_DEFAULT_TENANT_KEY`、`VITE_DEFAULT_JOB_ID`、`VITE_DEFAULT_BRAND` 作为 dashboard 兜底；租户和任务来自路由/会话，平台租户列表进入 dashboard 时品牌必须来自 `latestJob.brand`。
+8. Dashboard 顶部租户选择器仍只展示用户真实 membership；平台只读浏览时必须显示当前登录账号，并显示当前路由租户名或 `tenant_key`，不必把所有租户塞进登录态。
+9. 平台管理员进入租户项目工作台时始终按平台客户视角处理；即使该账号历史上拥有目标租户 membership，也不展示“加入团队”等租户侧入口。
+10. 平台只读进入数据质量页时不展示“重新分析”等写操作按钮。
+11. 平台只读进入项目列表、项目详情或数据质量页时，应显示“平台只读视角”提示，说明当前页面只用于查看、排障和体验客户视角。
+11. 前端不再使用 `VITE_DEFAULT_TENANT_KEY`、`VITE_DEFAULT_JOB_ID`、`VITE_DEFAULT_BRAND` 作为 dashboard 兜底；租户和任务来自路由/会话，平台租户列表进入 dashboard 时品牌必须来自 `latestJob.brand`。
 
 ## 8. 验收标准
 
@@ -106,4 +108,5 @@ Dashboard 和项目 GET 只读接口使用新的授权依赖：
 - 平台管理员访问停用租户 dashboard 返回 403。
 - 平台管理员访问 `query-jobs/load` 等写接口仍返回 403，除非同时是该租户 admin。
 - `/platform/tenants` 只跳租户详情；租户详情可跳项目工作台、项目详情、数据质量、最新任务看板和任务状态，且不需要默认 job id。
+- 平台管理员以只读旁路进入项目列表、项目详情和数据质量页时，页面提示其不能创建、编辑、归档或删除客户项目。
 - 文档、后端测试、前端测试和构建通过。

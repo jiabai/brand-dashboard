@@ -10,7 +10,7 @@ export const hasTenantMembership = (user, tenantKey) => {
 };
 
 export const isPlatformReadonlyTenantAccess = ({ user, tenantKey } = {}) =>
-  hasPlatformAdminRole(user) && !hasTenantMembership(user, tenantKey);
+  hasPlatformAdminRole(user) && Boolean(String(tenantKey || '').trim());
 
 export const getPlatformAccessState = ({ isInitializing = false, isAuthenticated = false, user = null }) => {
   if (isInitializing) return 'loading';

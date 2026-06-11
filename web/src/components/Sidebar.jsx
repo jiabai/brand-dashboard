@@ -26,6 +26,8 @@ import {
   SidebarMenuItem,
   SidebarSeparator,
 } from './ui/sidebar.jsx';
+import { useAuth } from '../auth/AuthContext.jsx';
+import { isPlatformReadonlyTenantAccess } from '@/auth/platformAccess.js';
 import { getSidebarMenuRoutes, getTaskMenuRoutes } from '@/config/routes';
 import { useDashboardParams } from '@/hooks/useDashboardParams';
 import { buildRouteSearch, buildViewPath, getViewKeyFromPath } from '@/utils/routing';
@@ -79,10 +81,18 @@ const SidebarMenuSection = ({ label, items, selectedKey, onSelect }) => (
 const Sidebar = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user } = useAuth();
   const { tenantKey, jobId } = useDashboardParams();
   const selectedKey = useMemo(
     () => getViewKeyFromPath(location.pathname),
     [location.pathname],
+  );
+  const isReadonlyTenantAccess = isPlatformReadonlyTenantAccess({ user, tenantKey });
+  const visibleMenuItems = useMemo(
+    () => (isReadonlyTenantAccess
+      ? MENU_ITEMS.filter((item) => item.viewKey !== 'accounts')
+      : MENU_ITEMS),
+    [isReadonlyTenantAccess],
   );
 
   const handleMenuSelect = (viewKey) => {
@@ -128,7 +138,7 @@ const Sidebar = () => {
         ) : null}
         <SidebarMenuSection
           label="工作台"
-          items={MENU_ITEMS}
+          items={visibleMenuItems}
           selectedKey={selectedKey}
           onSelect={handleMenuSelect}
         />

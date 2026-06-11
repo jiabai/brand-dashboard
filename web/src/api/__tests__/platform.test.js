@@ -4,9 +4,11 @@ import assert from 'node:assert/strict';
 import {
   createPlatformTenant,
   fetchPlatformCollectionHealth,
+  fetchPlatformTenantMembers,
   fetchPlatformTenantDetail,
   fetchPlatformTenants,
   resendPlatformTenantActivation,
+  updatePlatformTenantMember,
 } from '../platform.js';
 import { clearAuthSession, writeAuthSession } from '../../auth/storage.js';
 
@@ -110,6 +112,61 @@ test('platform tenant detail API skips tenant header', async () => {
   assert.equal(request.url, '/api/v1/platform/tenants/tn%20space');
   assert.equal(request.options.headers.Authorization, 'Bearer platform-token');
   assert.equal(request.options.headers['X-Tenant-Key'], undefined);
+});
+
+test('platform tenant member list API skips tenant header', async () => {
+  writeAuthSession({
+    accessToken: 'platform-token',
+    currentTenantKey: 'tn_customer',
+    user: {
+      platformRoles: ['platform_admin'],
+      tenants: [{ tenantKey: 'tn_customer', status: 'active' }],
+    },
+  });
+  let request;
+  globalThis.fetch = async (url, options) => {
+    request = { url, options };
+    return jsonResponse({ data: { members: [] } });
+  };
+
+  await fetchPlatformTenantMembers('tn space');
+
+  assert.equal(request.url, '/api/v1/platform/tenants/tn%20space/members');
+  assert.equal(request.options.headers.Authorization, 'Bearer platform-token');
+  assert.equal(request.options.headers['X-Tenant-Key'], undefined);
+});
+
+test('platform tenant emergency member update posts json without tenant header', async () => {
+  writeAuthSession({
+    accessToken: 'platform-token',
+    currentTenantKey: 'tn_customer',
+    user: {
+      platformRoles: ['platform_admin'],
+      tenants: [{ tenantKey: 'tn_customer', status: 'active' }],
+    },
+  });
+  let request;
+  globalThis.fetch = async (url, options) => {
+    request = { url, options };
+    return jsonResponse({ data: { member: { userId: 7, role: 'admin', status: 'active' } } });
+  };
+
+  await updatePlatformTenantMember('tn space', 7, {
+    role: 'admin',
+    status: 'active',
+    reason: 'customer support ticket CS-456',
+  });
+
+  assert.equal(request.url, '/api/v1/platform/tenants/tn%20space/members/7');
+  assert.equal(request.options.method, 'PATCH');
+  assert.equal(request.options.headers.Authorization, 'Bearer platform-token');
+  assert.equal(request.options.headers['Content-Type'], 'application/json');
+  assert.equal(request.options.headers['X-Tenant-Key'], undefined);
+  assert.deepEqual(JSON.parse(request.options.body), {
+    role: 'admin',
+    status: 'active',
+    reason: 'customer support ticket CS-456',
+  });
 });
 
 test('platform create API posts json without tenant header', async () => {

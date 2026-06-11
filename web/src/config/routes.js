@@ -95,7 +95,7 @@ export const ROUTES = {
     viewKey: 'accounts',
     path: '/accounts/:tenantKey',
     routeSegment: 'accounts',
-    menuLabel: '账户管理',
+    menuLabel: '加入团队',
     menuIcon: 'UserOutlined',
     menuSection: 'main',
     requiresJobId: false,
