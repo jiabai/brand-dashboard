@@ -1,6 +1,6 @@
 # 租户分析看板上下文二级导航
 
-> 状态：设计中（待 ExecPlan 与实现），2026-06-11
+> 状态：已实现，2026-06-11
 >
 > 关联：Legacy 兼容边界见 `docs/design-docs/20260608-legacy-compatibility-boundary.md`；路由策略源 `web/src/config/routes.js`；分析页判定 `web/src/utils/routing.js`（`isAnalysisView`）；主侧边栏 `web/src/components/Sidebar.jsx`；App 路由 `web/src/App.jsx`。
 

@@ -1,6 +1,6 @@
 # 租户分析看板上下文二级导航 实现计划
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** 让租户成员在按采集（`jobId`）取数的 6 个 legacy 分析页（首页/趋势/分平台/信源/情感/问答快照）之间自由导航，方式是在分析路由内加一条顶部水平标签栏，主侧边栏保持项目优先不变。
 
@@ -33,7 +33,7 @@
 - Modify: `web/src/utils/routing.js`
 - Modify: `web/src/utils/__tests__/routing.test.js`
 
-- [ ] **Step 1: 写失败的测试**
+- [x] **Step 1: 写失败的测试**
 
 `web/src/utils/__tests__/routing.test.js`：把顶部 import 中加入 `getAnalysisNavRoutes`，整块替换为：
 
@@ -69,12 +69,12 @@ test('getAnalysisNavRoutes entries are all legacy job-scoped routes', () => {
 });
 ```
 
-- [ ] **Step 2: 运行确认失败**
+- [x] **Step 2: 运行确认失败**
 
 Run: `npm --prefix web test`
 Expected: 新用例 FAIL（`getAnalysisNavRoutes` 未导出 → `undefined is not a function`）。
 
-- [ ] **Step 3: 实现选择器**
+- [x] **Step 3: 实现选择器**
 
 `web/src/utils/routing.js`：把顶部 import 块加入 `ROUTE_DEFINITIONS`：
 
@@ -95,12 +95,12 @@ export const getAnalysisNavRoutes = () =>
   ROUTE_DEFINITIONS.filter((route) => isAnalysisView(route.viewKey));
 ```
 
-- [ ] **Step 4: 运行确认通过**
+- [x] **Step 4: 运行确认通过**
 
 Run: `npm --prefix web test`
 Expected: 全绿（139 + 2 = **141 pass**）。
 
-- [ ] **Step 5: Commit**（两文件 clean）
+- [x] **Step 5: Commit**（两文件 clean）
 
 ```bash
 git add web/src/utils/routing.js web/src/utils/__tests__/routing.test.js
@@ -118,7 +118,7 @@ Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
 - Create: `web/src/components/AnalysisLayout.jsx`
 - Create: `web/src/components/__tests__/analysisNav.test.js`
 
-- [ ] **Step 1: 写失败的测试**
+- [x] **Step 1: 写失败的测试**
 
 创建 `web/src/components/__tests__/analysisNav.test.js`（源码契约风格，对照 `Sidebar.test.js`）：
 
@@ -142,12 +142,12 @@ test('analysis nav renders tabs from the shared analysis route source', () => {
 });
 ```
 
-- [ ] **Step 2: 运行确认失败**
+- [x] **Step 2: 运行确认失败**
 
 Run: `npm --prefix web test`
 Expected: 该用例 FAIL（`readFileSync` 抛 ENOENT，`AnalysisNav.jsx` 尚不存在）。
 
-- [ ] **Step 3: 创建 `AnalysisNav.jsx`**
+- [x] **Step 3: 创建 `AnalysisNav.jsx`**
 
 `web/src/components/AnalysisNav.jsx`：
 
@@ -207,7 +207,7 @@ const AnalysisNav = () => {
 export default React.memo(AnalysisNav);
 ```
 
-- [ ] **Step 4: 创建 `AnalysisLayout.jsx`**
+- [x] **Step 4: 创建 `AnalysisLayout.jsx`**
 
 `web/src/components/AnalysisLayout.jsx`：
 
@@ -227,7 +227,7 @@ const AnalysisLayout = () => (
 export default AnalysisLayout;
 ```
 
-- [ ] **Step 5: 运行确认通过 + 构建**
+- [x] **Step 5: 运行确认通过 + 构建**
 
 Run: `npm --prefix web test`
 Expected: 全绿（141 + 1 = **142 pass**）。
@@ -235,7 +235,7 @@ Expected: 全绿（141 + 1 = **142 pass**）。
 Run: `npm --prefix web run build`
 Expected: 构建成功（两个新组件此时尚未被 import，不进 bundle 但语法被解析；若有 JSX/import 错误会在 Task 3 接线后暴露，这里先确保无语法错误）。
 
-- [ ] **Step 6: Commit**（三文件新建 clean）
+- [x] **Step 6: Commit**（三文件新建 clean）
 
 ```bash
 git add web/src/components/AnalysisNav.jsx web/src/components/AnalysisLayout.jsx web/src/components/__tests__/analysisNav.test.js
@@ -252,7 +252,7 @@ Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
 - Modify: `web/src/App.jsx`
 - Modify: `web/src/components/HomeView.jsx`
 
-- [ ] **Step 1: 确认无测试断言将被破坏**
+- [x] **Step 1: 确认无测试断言将被破坏**
 
 Run: `npm --prefix web test`（基线应为 142 pass）。
 检查没有测试依赖 HomeView 面包屑：
@@ -260,7 +260,7 @@ Run: `npm --prefix web test`（基线应为 142 pass）。
 Run: `grep -rn "面包屑" web/src`
 Expected: 仅 `web/src/components/HomeView.jsx` 命中（即将删除）；若有测试文件命中，停下评估。
 
-- [ ] **Step 2: 改 `App.jsx` —— 加导入**
+- [x] **Step 2: 改 `App.jsx` —— 加导入**
 
 (a) 在 `import DashboardLayout ...` 之后加一行：
 
@@ -275,7 +275,7 @@ import AnalysisLayout from './components/AnalysisLayout.jsx';
 import { buildViewPath, isAnalysisView } from './utils/routing.js';
 ```
 
-- [ ] **Step 3: 改 `App.jsx` —— 路由拆分**
+- [x] **Step 3: 改 `App.jsx` —— 路由拆分**
 
 在 `AppRoutes` 组件体内、`defaultPath` 定义之后、`return (` 之前插入：
 
@@ -308,7 +308,7 @@ import { buildViewPath, isAnalysisView } from './utils/routing.js';
       </Route>
 ```
 
-- [ ] **Step 4: 改 `HomeView.jsx` —— 删重复面包屑**
+- [x] **Step 4: 改 `HomeView.jsx` —— 删重复面包屑**
 
 (a) 删除 `ChevronRight` 导入。把开头：
 
@@ -344,7 +344,7 @@ import { useDashboardRequestParams } from '@/hooks/useDashboardParams';
             <h1 className="text-2xl font-medium text-foreground">首页概览</h1>
 ```
 
-- [ ] **Step 5: 测试 + lint + 构建**
+- [x] **Step 5: 测试 + lint + 构建**
 
 ```bash
 npm --prefix web test
@@ -354,14 +354,14 @@ npm --prefix web run build
 
 Expected: 测试 142 pass；lint 通过（`ChevronRight` 已无未用引用）；构建成功。
 
-- [ ] **Step 6: 手动验证（关键 —— node:test 无法渲染路由）**
+- [x] **Step 6: 手动验证（关键 —— node:test 无法渲染路由）**
 
 Run: `npm --prefix web run dev`，浏览器走一遍：租户登录 → 监测项目 → 项目详情 → 进入看板 → 选一次采集 → 落地 `/dashboard/:tenantKey/:jobId`。确认：
 - 内容区顶部出现 6 个标签（首页/趋势/分平台/信源/情感/问答快照），「首页」高亮。
 - 点击各标签能切换页面，URL 段切换且 `tenantKey/jobId` 保留；时间范围等参数不丢。
 - 左侧主侧边栏仍只有「监测项目 / 加入团队」（未回灌分析项）。
 
-- [ ] **Step 7: Commit**（两文件 clean）
+- [x] **Step 7: Commit**（两文件 clean）
 
 ```bash
 git add web/src/App.jsx web/src/components/HomeView.jsx
@@ -381,7 +381,7 @@ Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
 - Modify: `docs/exec-plans/active/index.md`（恢复空态）
 - Modify（DIRTY，按需仅改工作区）: `docs/exec-plans/completed/index.md`
 
-- [ ] **Step 1: 全量门禁复跑**
+- [x] **Step 1: 全量门禁复跑**
 
 ```bash
 npm --prefix web test
@@ -391,7 +391,7 @@ python scripts/validate_agents_docs.py --level ERROR
 
 Expected: 前端 142 pass；构建成功；文档 0 错误。失败先排查；本功能问题修复，他人在途问题报告 BLOCKED。
 
-- [ ] **Step 2: changelog**
+- [x] **Step 2: changelog**
 
 创建 `docs/changelog/20260611-093000-tenant-analysis-navigation.md`（若该文件名已存在则把 `093000` 递增为当前时间）：
 
@@ -421,21 +421,21 @@ Expected: 前端 142 pass；构建成功；文档 0 错误。失败先排查；�
 
 按 Step 1 真实结果核对验证小节。
 
-- [ ] **Step 3: 规格状态 + 计划归档**
+- [x] **Step 3: 规格状态 + 计划归档**
 
 1. `docs/design-docs/20260611-tenant-analysis-navigation.md` 状态行 `状态：设计中（待 ExecPlan 与实现），2026-06-11` → `状态：已实现，2026-06-11`。
-2. 本计划所有 `- [ ]` → `- [x]`（确认每步真的完成）。
+2. 本计划所有 `- [x]` → `- [x]`（确认每步真的完成）。
 3. `git mv docs/exec-plans/active/20260611-tenant-analysis-navigation.md docs/exec-plans/completed/20260611-tenant-analysis-navigation.md`，随后 `git add` 该 completed 路径（确保勾选后内容入暂存）。
 4. `docs/exec-plans/active/index.md`（clean）→ 恢复 `# Active ExecPlans\n\n当前无进行中的 ExecPlan。`，一并提交。
 5. `docs/exec-plans/completed/index.md`：先 `git status --porcelain -- docs/exec-plans/completed/index.md`。
    - 表头后插入：`| [20260611-tenant-analysis-navigation.md](20260611-tenant-analysis-navigation.md) | 租户分析看板上下文二级导航：legacy 分析页随采集上下文出现的标签栏 | 2026-06-11 |`
    - 若该文件 **DIRTY（带他人在途行）→ 只改工作区不提交**；若 clean → 可一并提交。
 
-- [ ] **Step 4: 复跑文档验证**
+- [x] **Step 4: 复跑文档验证**
 
 Run: `python scripts/validate_agents_docs.py --level ERROR` → 0 错误。
 
-- [ ] **Step 5: Commit**（按 clean/DIRTY 结论组织）
+- [x] **Step 5: Commit**（按 clean/DIRTY 结论组织）
 
 ```bash
 git add docs/changelog/20260611-093000-tenant-analysis-navigation.md docs/design-docs/20260611-tenant-analysis-navigation.md docs/exec-plans/active/20260611-tenant-analysis-navigation.md docs/exec-plans/completed/20260611-tenant-analysis-navigation.md docs/exec-plans/active/index.md
