@@ -1,6 +1,6 @@
 # 自助密码重置与修改密码实现计划
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** 租户用户可经登录页申请重置邮件并凭 1 小时一次性令牌设置新密码；已登录用户可在账户管理页验证当前密码后修改密码。
 
@@ -30,7 +30,7 @@
 - Create: `api/tests/test_password_reset.py`
 - Modify: `api/v1/repositories/auth.py`（顶部 import + 在 `regenerate_admin_activation` 之后、`verify_invite_code` 之前新增）
 
-- [ ] **Step 1: 写失败的仓储测试**
+- [x] **Step 1: 写失败的仓储测试**
 
 创建 `api/tests/test_password_reset.py`：
 
@@ -209,12 +209,12 @@ def test_change_password_requires_correct_current_password(memory_engine):
     assert verify_password("NewPass12345", _password_hash_of(memory_engine, user_id))
 ```
 
-- [ ] **Step 2: 运行测试确认失败**
+- [x] **Step 2: 运行测试确认失败**
 
 Run: `$env:PYTHONPATH='.'; uv run --project api --extra dev pytest api/tests/test_password_reset.py -q`
 Expected: FAIL，fixture 阶段报 `AttributeError: ... has no attribute '_reset_email_last_sent'`
 
-- [ ] **Step 3: 实现仓储函数**
+- [x] **Step 3: 实现仓储函数**
 
 `api/v1/repositories/auth.py` 修改一：顶部 import 块（第 1-6 行区域）加入 `hashlib` 与 `time`：
 
@@ -363,12 +363,12 @@ def change_password(
 
 说明：`Engine`、`Dict`、`Any`、`datetime`、`UTC`、`text`、`sign_token`、`verify_token`、`hash_password`、`verify_password`、`_get_auth_secret`、`_build_tenant_base_url` 均已存在；本任务新增 import 只有 `hashlib` 和 `time`。
 
-- [ ] **Step 4: 运行测试确认通过**
+- [x] **Step 4: 运行测试确认通过**
 
 Run: `$env:PYTHONPATH='.'; uv run --project api --extra dev pytest api/tests/test_password_reset.py -q`
 Expected: 8 passed
 
-- [ ] **Step 5: Commit**（两文件均干净，正常 add）
+- [x] **Step 5: Commit**（两文件均干净，正常 add）
 
 ```powershell
 git add api/tests/test_password_reset.py api/v1/repositories/auth.py
@@ -387,7 +387,7 @@ Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>
 - Modify: `api/v1/services/email_sender.py`（文件末尾新增）
 - Modify: `api/tests/test_email_sender.py`（追加测试类）
 
-- [ ] **Step 1: 写失败的测试**
+- [x] **Step 1: 写失败的测试**
 
 `api/tests/test_email_sender.py` 顶部 import 行改为：
 
@@ -479,12 +479,12 @@ class TestPasswordResetEmailSender(unittest.TestCase):
         self.assertNotIn("smtp-secret", str(result))
 ```
 
-- [ ] **Step 2: 运行测试确认失败**
+- [x] **Step 2: 运行测试确认失败**
 
 Run: `$env:PYTHONPATH='.'; uv run --project api --extra dev pytest api/tests/test_email_sender.py -q`
 Expected: FAIL，`ImportError: cannot import name 'send_password_reset_email'`
 
-- [ ] **Step 3: 实现邮件函数**
+- [x] **Step 3: 实现邮件函数**
 
 `api/v1/services/email_sender.py` 常量区（第 8-10 行之后）追加：
 
@@ -552,12 +552,12 @@ def send_password_reset_email(reset_result: Dict[str, Any]) -> Dict[str, str | N
         }
 ```
 
-- [ ] **Step 4: 运行测试确认通过**
+- [x] **Step 4: 运行测试确认通过**
 
 Run: `$env:PYTHONPATH='.'; uv run --project api --extra dev pytest api/tests/test_email_sender.py -q`
 Expected: 6 passed（原 3 + 新 3）
 
-- [ ] **Step 5: Commit**（两文件均干净）
+- [x] **Step 5: Commit**（两文件均干净）
 
 ```powershell
 git add api/v1/services/email_sender.py api/tests/test_email_sender.py
@@ -576,7 +576,7 @@ Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>
 - Modify: `api/tests/test_password_reset.py`（追加路由测试）
 - Modify: `api/v1/routes/auth.py`（⚠️ 带在途改动，过滤暂存）
 
-- [ ] **Step 1: 追加失败的路由测试**
+- [x] **Step 1: 追加失败的路由测试**
 
 `api/tests/test_password_reset.py` 顶部 import 区追加：
 
@@ -753,12 +753,12 @@ def test_change_password_route_requires_auth_and_current_password(memory_engine)
     assert ok.json()["message"] == "密码已修改"
 ```
 
-- [ ] **Step 2: 运行测试确认失败**
+- [x] **Step 2: 运行测试确认失败**
 
 Run: `$env:PYTHONPATH='.'; uv run --project api --extra dev pytest api/tests/test_password_reset.py -q`
 Expected: 新增 6 个路由测试 FAIL（patch 目标缺失报 `AttributeError` / 路由不存在 404），原 8 个仓储测试 PASS
 
-- [ ] **Step 3: 实现路由**
+- [x] **Step 3: 实现路由**
 
 `api/v1/routes/auth.py` 修改一：repositories.auth 导入块按字母序加入三个函数：
 
@@ -873,12 +873,12 @@ def change_password_handler(
 
 说明：`Engine`、`Depends`、`JSONResponse`、`BaseModel`、`Field`、`get_engine`、`get_current_user`、`CurrentUser` 均已导入。`forgot-password` 的防枚举要求：响应字面量三处路径完全一致，不携带 `emailDelivery`。
 
-- [ ] **Step 4: 运行测试确认通过**
+- [x] **Step 4: 运行测试确认通过**
 
 Run: `$env:PYTHONPATH='.'; uv run --project api --extra dev pytest api/tests/test_password_reset.py -q`
 Expected: 14 passed（8 仓储 + 6 路由）
 
-- [ ] **Step 5: 后端回归与 lint**
+- [x] **Step 5: 后端回归与 lint**
 
 Run: `$env:PYTHONPATH='.'; uv run --project api --extra dev pytest api/tests/ -q`
 Expected: 约 211 passed（194 基线 + Task 1 的 8 + Task 2 的 3 + 本任务的 6），0 失败
@@ -886,7 +886,7 @@ Expected: 约 211 passed（194 基线 + Task 1 的 8 + Task 2 的 3 + 本任务�
 Run: `uv run --project api ruff check api`
 Expected: All checks passed!
 
-- [ ] **Step 6: ⚠️ 过滤暂存与提交**
+- [x] **Step 6: ⚠️ 过滤暂存与提交**
 
 `api/v1/routes/auth.py` 带他人在途改动（成员治理路由，引用未跟踪文件 `api/v1/repositories/tenant_members.py`）。提交 blob = `git show HEAD:api/v1/routes/auth.py` + 仅本任务四处修改（导入两处、模型、路由），不得包含任何 `tenant_members` / `TenantMemberGovernance` / `/members` 内容。构造后静态核对提交版本所有 import 在提交树存在，并用临时 worktree 跑 `pytest api/tests/test_password_reset.py`（标准做法见 Task 2 of 前序功能 commit 12c8519）。测试文件干净，正常 add。
 
@@ -911,7 +911,7 @@ Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>
 - Modify: `web/src/api/index.js`（先核对：若该 barrel 文件存在且 re-export auth.js，确认新函数随之导出；若需显式列出则补；该文件当前干净）
 - Create: `web/src/api/__tests__/auth.test.js`
 
-- [ ] **Step 1: 写失败的适配器测试**
+- [x] **Step 1: 写失败的适配器测试**
 
 创建 `web/src/api/__tests__/auth.test.js`：
 
@@ -1019,12 +1019,12 @@ test('changePassword posts with authorization header', async () => {
 });
 ```
 
-- [ ] **Step 2: 运行测试确认失败**
+- [x] **Step 2: 运行测试确认失败**
 
 Run: `npm --prefix web test`
 Expected: FAIL，`does not provide an export named 'changePassword'`（或 forgotPassword）
 
-- [ ] **Step 3: 实现适配器**
+- [x] **Step 3: 实现适配器**
 
 `web/src/api/auth.js` 在 `login` 之后、`getMe` 之前追加：
 
@@ -1044,12 +1044,12 @@ export const changePassword = (payload, options) => {
 
 随后核对 `web/src/api/index.js`：若 barrel 用 `export * from './auth.js'` 则无需改动；若逐名导出则按字母序补三个名字。
 
-- [ ] **Step 4: 运行测试确认通过**
+- [x] **Step 4: 运行测试确认通过**
 
 Run: `npm --prefix web test`
 Expected: 全部通过（基线 122 + 新增 3 = 125 pass）
 
-- [ ] **Step 5: Commit**（涉及文件均干净；index.js 未改动则不加）
+- [x] **Step 5: Commit**（涉及文件均干净；index.js 未改动则不加）
 
 ```powershell
 git add web/src/api/auth.js web/src/api/__tests__/auth.test.js
@@ -1070,7 +1070,7 @@ Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>
 - Modify: `web/src/components/LoginView.jsx`（干净）
 - Modify: `web/src/App.jsx`（干净）
 
-- [ ] **Step 1: 写失败的契约测试**
+- [x] **Step 1: 写失败的契约测试**
 
 创建 `web/src/components/__tests__/loginView.test.js`：
 
@@ -1110,12 +1110,12 @@ describe('App reset-password route contract', () => {
 });
 ```
 
-- [ ] **Step 2: 运行测试确认失败**
+- [x] **Step 2: 运行测试确认失败**
 
 Run: `npm --prefix web test`
 Expected: 3 个新用例 FAIL（regex 不匹配）
 
-- [ ] **Step 3: 实现页面改动**
+- [x] **Step 3: 实现页面改动**
 
 `web/src/App.jsx`：在 `/register` 路由行之后新增：
 
@@ -1313,7 +1313,7 @@ import { CheckCircle2, KeyRound, Lock, MailQuestion, UserPlus } from 'lucide-rea
               <p className="text-sm text-muted-foreground">登录、激活管理员账号、邀请码注册或重置密码</p>
 ```
 
-- [ ] **Step 4: 运行测试与构建确认通过**
+- [x] **Step 4: 运行测试与构建确认通过**
 
 Run: `npm --prefix web test`
 Expected: 全部通过（约 128 pass）
@@ -1321,7 +1321,7 @@ Expected: 全部通过（约 128 pass）
 Run: `npm --prefix web run build`
 Expected: 构建成功
 
-- [ ] **Step 5: Commit**（三个文件全部干净，正常 add）
+- [x] **Step 5: Commit**（三个文件全部干净，正常 add）
 
 ```powershell
 git add web/src/components/__tests__/loginView.test.js web/src/components/LoginView.jsx web/src/App.jsx
@@ -1340,7 +1340,7 @@ Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>
 - Modify: `web/src/components/__tests__/AccountManagement.test.js`（⚠️ 带在途改动，过滤暂存）
 - Modify: `web/src/components/AccountManagement.jsx`（⚠️ 带在途改动，过滤暂存）
 
-- [ ] **Step 1: 写失败的契约测试**
+- [x] **Step 1: 写失败的契约测试**
 
 `AccountManagement.test.js` 文件末尾追加（先 Read 该文件确认 describe 风格与 `source` 变量名，与现有保持一致；若现有用其他变量名读取源码则沿用）：
 
@@ -1357,12 +1357,12 @@ describe('AccountManagement change password contract', () => {
 });
 ```
 
-- [ ] **Step 2: 运行测试确认失败**
+- [x] **Step 2: 运行测试确认失败**
 
 Run: `npm --prefix web test`
 Expected: 新用例 FAIL（regex 不匹配）
 
-- [ ] **Step 3: 实现页面改动**
+- [x] **Step 3: 实现页面改动**
 
 `web/src/components/AccountManagement.jsx` 共 5 处修改（工作区版本）：
 
@@ -1456,7 +1456,7 @@ import {
             </form>
 ```
 
-- [ ] **Step 4: 运行测试与构建确认通过**
+- [x] **Step 4: 运行测试与构建确认通过**
 
 Run: `npm --prefix web test`
 Expected: 全部通过（约 129 pass）
@@ -1464,7 +1464,7 @@ Expected: 全部通过（约 129 pass）
 Run: `npm --prefix web run build`
 Expected: 构建成功
 
-- [ ] **Step 5: ⚠️ 过滤暂存与提交**
+- [x] **Step 5: ⚠️ 过滤暂存与提交**
 
 两个文件都带在途改动（加入团队边界相关）。提交 blob = `git show HEAD:<file>` + 仅本任务增量，适配 HEAD 上下文：若 HEAD 版本的导入块、表单区与工作区不同，提交版本以 HEAD 实际内容为基底只加本任务内容；提交版本不得引用 HEAD 中不存在且非本任务新增的标识符。构造后用临时 worktree 跑 `node --test <worktree>/web/src/components/__tests__/AccountManagement.test.js` 验证提交版本自洽（该测试只读源码文件，不需要 node_modules）。
 
@@ -1488,7 +1488,7 @@ Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>
 - Create: `docs/changelog/20260610-070000-password-reset-and-change.md`
 - Move: `docs/exec-plans/active/20260610-password-reset-and-change.md` → `docs/exec-plans/completed/`
 
-- [ ] **Step 1: 运行全部门禁（真实执行并记录结果）**
+- [x] **Step 1: 运行全部门禁（真实执行并记录结果）**
 
 ```powershell
 uv run --project api ruff check api
@@ -1500,7 +1500,7 @@ python scripts/validate_agents_docs.py --level ERROR
 
 Expected: 全部通过。失败先排查：本功能问题修复后重跑；他人在途问题报告 BLOCKED。
 
-- [ ] **Step 2: SECURITY.md 限流清单补两个端点**
+- [x] **Step 2: SECURITY.md 限流清单补两个端点**
 
 「API 安全」节的速率限制行改为（HEAD 与工作区该行内容一致，提交 blob 基于 HEAD 构造，只改这一行）：
 
@@ -1508,7 +1508,7 @@ Expected: 全部通过。失败先排查：本功能问题修复后重跑；他�
 - 速率限制：登录、邀请码验证、员工注册、激活、忘记密码、重置密码、报告生成和重算类接口上线前必须纳入限流计划；忘记密码接口已内置按邮箱 60 秒进程级冷却。
 ```
 
-- [ ] **Step 3: 写 changelog**
+- [x] **Step 3: 写 changelog**
 
 创建 `docs/changelog/20260610-070000-password-reset-and-change.md`：
 
@@ -1543,18 +1543,18 @@ Expected: 全部通过。失败先排查：本功能问题修复后重跑；他�
 
 按 Step 1 真实结果核对验证小节，如有出入按实际改写（附 passed 数量）。
 
-- [ ] **Step 4: 勾选并归档 ExecPlan**
+- [x] **Step 4: 勾选并归档 ExecPlan**
 
-1. 把本计划所有 `- [ ]` 勾成 `- [x]`。
+1. 把本计划所有 `- [x]` 勾成 `- [x]`。
 2. `git mv docs/exec-plans/active/20260610-password-reset-and-change.md docs/exec-plans/completed/20260610-password-reset-and-change.md`
 3. 索引处理：`docs/exec-plans/active/index.md` 是干净文件且本计划的行已随计划文档一起提交——归档时删除该行、恢复「当前无进行中的 ExecPlan。」形态，并把这个删除**一并提交**；`docs/exec-plans/completed/index.md` 带在途改动，只在工作区加行（3 列格式，Completed 填 2026-06-10），**不提交**。
 
-- [ ] **Step 5: 复跑文档验证**
+- [x] **Step 5: 复跑文档验证**
 
 Run: `python scripts/validate_agents_docs.py --level ERROR`
 Expected: 0 错误
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```powershell
 # docs/SECURITY.md 经 blob 构造注入（基于 HEAD 只改限流行）后：
