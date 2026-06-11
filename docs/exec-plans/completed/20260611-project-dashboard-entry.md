@@ -1,6 +1,6 @@
 # 项目详情页进入看板入口实现计划
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** 租户用户在项目详情页点击「进入看板」，从该项目的 job 记录中选一条，跳转到 legacy 首页看板。
 
@@ -33,7 +33,7 @@
 - Modify: `api/v1/routes/query_jobs.py`（`list_query_jobs_status` 路由）
 - Modify: `api/tests/test_query_jobs_project_link.py`（追加两个测试）
 
-- [ ] **Step 1: 追加失败的测试**
+- [x] **Step 1: 追加失败的测试**
 
 先 Read `api/tests/test_query_jobs_project_link.py` 顶部，确认已有 fixture `query_job_project_session`、`_client`、`_token`、`_seed_admin_and_project`、以及 `text` 已导入（均已存在）。在文件末尾追加：
 
@@ -120,12 +120,12 @@ def test_status_without_project_id_returns_all_tenant_jobs(query_job_project_ses
     assert {j["job_id"] for j in resp.json()["jobs"]} == {"job_a", "job_b"}
 ```
 
-- [ ] **Step 2: 运行测试确认失败**
+- [x] **Step 2: 运行测试确认失败**
 
 Run: `$env:PYTHONPATH='.'; uv run --project api --extra dev pytest api/tests/test_query_jobs_project_link.py -q`
 Expected: `test_status_filters_jobs_by_project_id` FAIL（未过滤，返回了 job_a 和 job_b），另一个可能已 PASS。
 
-- [ ] **Step 3: 实现仓储过滤**
+- [x] **Step 3: 实现仓储过滤**
 
 `api/v1/repositories/query_jobs.py` 的 `list_query_jobs_status`：函数签名加 `project_id` 参数，并在 `job_id` 子句之后加过滤。修改后函数头与 where 组装为：
 
@@ -155,7 +155,7 @@ def list_query_jobs_status(
 
 （其后的 SELECT/ORDER BY/return 保持不变。）
 
-- [ ] **Step 4: 实现路由透传**
+- [x] **Step 4: 实现路由透传**
 
 `api/v1/routes/query_jobs.py` 的 `list_query_jobs_status` 路由（约第 217 行）：在 `job_id` 参数之后加 `project_id` 查询参数，并规范化后传入仓储。
 
@@ -185,17 +185,17 @@ def list_query_jobs_status(
     )
 ```
 
-- [ ] **Step 5: 运行测试确认通过**
+- [x] **Step 5: 运行测试确认通过**
 
 Run: `$env:PYTHONPATH='.'; uv run --project api --extra dev pytest api/tests/test_query_jobs_project_link.py -q`
 Expected: 全部通过（原有用例 + 新增 2 个）。
 
-- [ ] **Step 6: 后端回归与 lint**
+- [x] **Step 6: 后端回归与 lint**
 
 Run: `$env:PYTHONPATH='.'; uv run --project api --extra dev pytest api/tests/ -q` → 约 222 passed，0 失败。
 Run: `uv run --project api ruff check api` → All checks passed!
 
-- [ ] **Step 7: Commit**（三文件均 clean）
+- [x] **Step 7: Commit**（三文件均 clean）
 
 ```powershell
 git add api/v1/repositories/query_jobs.py api/v1/routes/query_jobs.py api/tests/test_query_jobs_project_link.py
@@ -218,7 +218,7 @@ Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>
 - Modify: `web/src/components/projects/projectPresentation.js`
 - Modify: `web/src/components/projects/__tests__/projectPresentation.test.js`
 
-- [ ] **Step 1: 写失败的测试**
+- [x] **Step 1: 写失败的测试**
 
 创建 `web/src/api/__tests__/queryJobs.test.js`：
 
@@ -309,12 +309,12 @@ test('buildProjectDashboardPath omits brand when empty and returns empty when mi
 });
 ```
 
-- [ ] **Step 2: 运行测试确认失败**
+- [x] **Step 2: 运行测试确认失败**
 
 Run: `npm --prefix web test`
 Expected: 新增用例 FAIL（`fetchQueryJobStatus` 未透传 project_id；`normalizeProjectJobRecords`/`buildProjectDashboardPath` 未导出）。
 
-- [ ] **Step 3: 实现适配器透传**
+- [x] **Step 3: 实现适配器透传**
 
 `web/src/api/queryJobs.js` 的 `fetchQueryJobStatus` 改为：
 
@@ -330,7 +330,7 @@ export const fetchQueryJobStatus = ({ tenantKey, jobId, projectId, includeDelete
 };
 ```
 
-- [ ] **Step 4: 实现展示层纯函数**
+- [x] **Step 4: 实现展示层纯函数**
 
 `web/src/components/projects/projectPresentation.js` 末尾追加（文件顶部已有 `encodePathSegment`，无需新增 import）：
 
@@ -359,12 +359,12 @@ export const buildProjectDashboardPath = ({ tenantKey, jobId, brand } = {}) => {
 };
 ```
 
-- [ ] **Step 5: 运行测试确认通过**
+- [x] **Step 5: 运行测试确认通过**
 
 Run: `npm --prefix web test`
 Expected: 全部通过（基线 129 + 新增 5 = 134 pass 左右）。
 
-- [ ] **Step 6: Commit**（四文件均 clean）
+- [x] **Step 6: Commit**（四文件均 clean）
 
 ```powershell
 git add web/src/api/queryJobs.js web/src/api/__tests__/queryJobs.test.js web/src/components/projects/projectPresentation.js web/src/components/projects/__tests__/projectPresentation.test.js
@@ -385,7 +385,7 @@ Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>
 
 前置：Task 2 已入库，所以提交树里 `web/src/components/projects/projectPresentation.js` 已含 `normalizeProjectJobRecords`/`buildProjectDashboardPath`，`web/src/api/queryJobs.js` 已透传 projectId；`getQueryJobStatusMeta` 在 `web/src/components/platform/tenantPresentation.js` 自始已有。本任务提交版引用这些标识符都成立。
 
-- [ ] **Step 1: 写失败的契约测试**
+- [x] **Step 1: 写失败的契约测试**
 
 `web/src/components/projects/__tests__/projectDetailPage.test.js` 末尾追加（先 Read 该文件确认它用 `source` 变量读取 `../ProjectDetailPage.jsx` 源码、describe/it 风格；沿用现有变量名）：
 
@@ -407,12 +407,12 @@ describe('ProjectDetailPage dashboard entry contract', () => {
 });
 ```
 
-- [ ] **Step 2: 运行测试确认失败**
+- [x] **Step 2: 运行测试确认失败**
 
 Run: `npm --prefix web test`
 Expected: 上述 2 个契约用例 FAIL（regex 不匹配）。
 
-- [ ] **Step 3: 实现页面改动（工作区版本）**
+- [x] **Step 3: 实现页面改动（工作区版本）**
 
 `web/src/components/projects/ProjectDetailPage.jsx` 改动：
 
@@ -566,12 +566,12 @@ import {
 
 说明：`Alert/AlertTitle/AlertDescription`、`Badge`、`EmptyState`、`navigate`、`tenantKey`、`projectId` 均为该文件既有标识符。
 
-- [ ] **Step 4: 运行测试与构建确认通过**
+- [x] **Step 4: 运行测试与构建确认通过**
 
 Run: `npm --prefix web test` → 全部通过（约 136 pass）。
 Run: `npm --prefix web run build` → 构建成功。
 
-- [ ] **Step 5: ⚠️ blob 构造提交**
+- [x] **Step 5: ⚠️ blob 构造提交**
 
 两文件 DIRTY。对每个文件：提交 blob = `git show HEAD:<file>`（HEAD 此时已含 Task 1/2 提交，但这两个文件 Task 1/2 未碰，故 HEAD 版 = 原始已提交版）+ 仅本任务上述增量，适配 HEAD 上下文（HEAD 版的导入块/动作区/JSX 结构若与工作区在途版不同，以 HEAD 实际内容为基底叠加本任务增量；不得引用 HEAD 中不存在且非本任务新增的标识符）。`git hash-object -w --no-filters` → `git update-index --cacheinfo 100644,<hash>,<path>`。
 
@@ -599,7 +599,7 @@ Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>
 - Move: `docs/exec-plans/active/20260611-project-dashboard-entry.md` → `docs/exec-plans/completed/`
 - Modify: `docs/exec-plans/active/index.md`（移除本计划行，恢复空态，提交）
 
-- [ ] **Step 1: 运行全部门禁（真实执行并记录）**
+- [x] **Step 1: 运行全部门禁（真实执行并记录）**
 
 ```powershell
 uv run --project api ruff check api
@@ -611,11 +611,11 @@ python scripts/validate_agents_docs.py --level ERROR
 
 Expected: 全部通过（后端约 222；前端约 136；构建成功；文档 0 错误）。失败先排查：本功能问题修复后重跑；他人在途问题报告 BLOCKED。
 
-- [ ] **Step 2: 规格状态行翻转**
+- [x] **Step 2: 规格状态行翻转**
 
 `docs/product-specs/20260611-project-dashboard-entry.md` 第 3 行 `> 状态：待实现，2026-06-11` 改为 `> 状态：已实现，2026-06-11`。
 
-- [ ] **Step 3: 写 changelog**
+- [x] **Step 3: 写 changelog**
 
 创建 `docs/changelog/20260611-020000-project-dashboard-entry.md`：
 
@@ -644,18 +644,18 @@ Expected: 全部通过（后端约 222；前端约 136；构建成功；文档 0
 
 按 Step 1 真实结果核对验证小节（附 passed 数量）。
 
-- [ ] **Step 4: 勾选并归档 ExecPlan**
+- [x] **Step 4: 勾选并归档 ExecPlan**
 
-1. 本计划所有 `- [ ]` 勾成 `- [x]`。
+1. 本计划所有 `- [x]` 勾成 `- [x]`。
 2. `git mv docs/exec-plans/active/20260611-project-dashboard-entry.md docs/exec-plans/completed/20260611-project-dashboard-entry.md`，随后 `git add` 该 completed 路径以确保勾选后的内容（而非 HEAD 旧内容）入暂存。
 3. `docs/exec-plans/active/index.md`（clean，本计划行随计划文档一起提交过）：删除本计划行、恢复为 `# Active ExecPlans\n\n当前无进行中的 ExecPlan。`，一并提交。
 4. `docs/exec-plans/completed/index.md`（DIRTY，带在途行）：表格顶部加行 `| [20260611-project-dashboard-entry.md](20260611-project-dashboard-entry.md) | 项目详情页进入看板入口：用户选 job 进 legacy 首页看板 | 2026-06-11 |`——**只改工作区，不提交**。
 
-- [ ] **Step 5: 复跑文档验证**
+- [x] **Step 5: 复跑文档验证**
 
 Run: `python scripts/validate_agents_docs.py --level ERROR` → 0 错误。
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```powershell
 git add docs/changelog/20260611-020000-project-dashboard-entry.md docs/product-specs/20260611-project-dashboard-entry.md docs/exec-plans/active/20260611-project-dashboard-entry.md docs/exec-plans/completed/20260611-project-dashboard-entry.md docs/exec-plans/active/index.md
