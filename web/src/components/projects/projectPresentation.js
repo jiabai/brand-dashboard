@@ -188,3 +188,26 @@ export const normalizeProjectDataQualityResponse = (response = {}) => {
     })),
   };
 };
+
+export const normalizeProjectJobRecords = (response) => {
+  const jobs = Array.isArray(response?.jobs) ? response.jobs : [];
+  return jobs.map((job) => ({
+    jobId: job.job_id || '',
+    projectId: job.project_id || '',
+    brand: job.brand || '',
+    queryStatus: job.query_status,
+    effectiveFrom: job.effective_from || '',
+    effectiveTo: job.effective_to || '',
+  }));
+};
+
+export const buildProjectDashboardPath = ({ tenantKey, jobId, brand } = {}) => {
+  const tk = encodePathSegment(tenantKey);
+  const jid = encodePathSegment(jobId);
+  if (!tk || !jid) return '';
+  const path = `/dashboard/${tk}/${jid}`;
+  const normalizedBrand = String(brand || '').trim();
+  if (!normalizedBrand) return path;
+  const params = new URLSearchParams({ brand: normalizedBrand });
+  return `${path}?${params.toString()}`;
+};
