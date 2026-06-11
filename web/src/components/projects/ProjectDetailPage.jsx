@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, BarChart3, Boxes, FileQuestion, FolderKanban, Gauge, RefreshCw } from 'lucide-react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 
-import { fetchProjectDetail, fetchQueryJobStatus } from '@/api';
+import { fetchProjectDetail, fetchProjectCollectionJobs } from '@/api';
 import { useAuth } from '@/auth/AuthContext.jsx';
 import { hasPlatformAdminRole } from '@/auth/platformAccess.js';
 import { useDashboardParams } from '@/hooks/useDashboardParams';
@@ -25,19 +25,17 @@ import {
   SheetHeader,
   SheetTitle,
 } from '../ui/sheet.jsx';
-import {
-  buildPlatformTenantProjectOverviewPath,
-  getQueryJobStatusMeta,
-} from '../platform/tenantPresentation.js';
+import { buildPlatformTenantProjectOverviewPath } from '../platform/tenantPresentation.js';
 import {
   PROJECT_NAV_SOURCE_PLATFORM_TENANT_DETAIL,
   buildProjectDashboardPath,
   buildProjectListPath,
   buildProjectDataQualityPath,
   countProjectBrandsByRole,
+  getCollectionJobStatusMeta,
   getProjectStatusMeta,
+  normalizeProjectCollectionJobs,
   normalizeProjectDetailResponse,
-  normalizeProjectJobRecords,
   readProjectNavigationSource,
 } from './projectPresentation.js';
 
@@ -53,6 +51,7 @@ const ProjectDetailPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [dashboardSheetOpen, setDashboardSheetOpen] = useState(false);
   const [jobRecords, setJobRecords] = useState([]);
+  const [targetBrand, setTargetBrand] = useState('');
   const [isLoadingJobs, setIsLoadingJobs] = useState(false);
   const [jobsError, setJobsError] = useState('');
 
@@ -106,11 +105,14 @@ const ProjectDetailPage = () => {
     setIsLoadingJobs(true);
     setJobsError('');
     try {
-      const response = await fetchQueryJobStatus({ tenantKey, projectId });
-      setJobRecords(normalizeProjectJobRecords(response));
+      const response = await fetchProjectCollectionJobs({ tenantKey, projectId });
+      const normalized = normalizeProjectCollectionJobs(response);
+      setJobRecords(normalized.collectionJobs);
+      setTargetBrand(normalized.targetBrand);
     } catch (loadError) {
       setJobRecords([]);
-      setJobsError(loadError.message || '加载采集任务失败');
+      setTargetBrand('');
+      setJobsError(loadError?.message || '加载采集任务失败');
     } finally {
       setIsLoadingJobs(false);
     }
@@ -119,8 +121,8 @@ const ProjectDetailPage = () => {
   const enterDashboard = (job) => {
     const path = buildProjectDashboardPath({
       tenantKey,
-      jobId: job.jobId,
-      brand: job.brand,
+      jobId: job.sourceJobId,
+      brand: targetBrand,
     });
     if (path) navigate(path);
   };
@@ -335,19 +337,21 @@ const ProjectDetailPage = () => {
             ) : null}
             {!isLoadingJobs && !jobsError
               ? jobRecords.map((job) => {
-                const meta = getQueryJobStatusMeta(job.queryStatus);
+                const meta = getCollectionJobStatusMeta(job.status);
                 return (
                   <button
-                    key={`${job.jobId}-${job.brand}`}
+                    key={job.collectionJobId}
                     type="button"
                     onClick={() => enterDashboard(job)}
                     className="flex items-center justify-between gap-3 rounded-md border border-border px-3 py-2 text-left hover:bg-muted/50"
                   >
                     <span className="min-w-0">
-                      <span className="block truncate text-sm font-medium text-foreground">{job.brand || '未命名品牌'}</span>
+                      <span className="block truncate text-sm font-medium text-foreground">
+                        {(job.windowStart || '').slice(0, 10)}
+                        {job.windowEnd ? ` ~ ${job.windowEnd.slice(0, 10)}` : ' ~ 进行中'}
+                      </span>
                       <span className="block truncate text-xs text-muted-foreground">
-                        {(job.effectiveFrom || '').slice(0, 10)}
-                        {job.effectiveTo ? ` ~ ${job.effectiveTo.slice(0, 10)}` : ' ~ 进行中'}
+                        成功 {job.succeededTaskCount}/{job.expectedTaskCount}
                       </span>
                     </span>
                     <Badge variant={meta.variant}>{meta.label}</Badge>
