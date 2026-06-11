@@ -172,11 +172,36 @@ def test_change_password_requires_correct_current_password(memory_engine):
     assert verify_password("NewPass12345", _password_hash_of(memory_engine, user_id))
 
 
-def test_request_reset_cooldown_ignores_email_case_variants(memory_engine):
-    _seed_user(memory_engine)
+def test_request_reset_cooldown_ignores_email_case_variants(monkeypatch):
+    monkeypatch.setenv("AUTH_SECRET", "test-secret-with-at-least-32-bytes")
+    monkeypatch.setenv("AUTH_BASE_URL", "https://example.com")
+    auth_repository._reset_email_last_sent.clear()
+    engine = create_engine(
+        "sqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    with engine.begin() as conn:
+        conn.execute(
+            text(
+                """
+                CREATE TABLE users (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_key VARCHAR(36) NOT NULL UNIQUE,
+                    email VARCHAR(255) NOT NULL UNIQUE COLLATE NOCASE,
+                    password_hash VARCHAR(255) NOT NULL,
+                    is_verified BOOLEAN NOT NULL DEFAULT 0,
+                    status VARCHAR(20) NOT NULL DEFAULT 'active',
+                    created_at TIMESTAMP,
+                    updated_at TIMESTAMP
+                )
+                """
+            )
+        )
+    _seed_user(engine)
 
-    first = auth_repository.request_password_reset(memory_engine, "user@demo.test")
-    case_variant = auth_repository.request_password_reset(memory_engine, "User@demo.test")
+    first = auth_repository.request_password_reset(engine, "user@demo.test")
+    case_variant = auth_repository.request_password_reset(engine, "User@demo.test")
 
     assert first is not None
     assert case_variant is None
