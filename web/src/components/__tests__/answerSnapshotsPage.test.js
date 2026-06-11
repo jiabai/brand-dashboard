@@ -22,3 +22,18 @@ describe('AnswerSnapshotsPage presentation contract', () => {
     assert.match(source, /当前筛选下没有问答快照/);
   });
 });
+
+describe('AnswerSnapshotsPage detail dialog contract', () => {
+  it('wires the markdown dialog', () => {
+    assert.match(source, /from '\.\/ui\/dialog\.jsx'/);
+    assert.match(source, /from '\.\/MarkdownContent\.jsx'/);
+    assert.match(source, /<MarkdownContent/);
+  });
+
+  it('opens full prompt and answer via a clickable preview', () => {
+    assert.match(source, /activeRecord/);
+    assert.match(source, /<button/);
+    assert.match(source, /queryContent/);
+    assert.match(source, /answerContent/);
+  });
+});

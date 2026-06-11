@@ -1,8 +1,9 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   BookOpen,
   Filter,
   Link as LinkIcon,
+  Maximize2,
   MessageSquareText,
   RotateCcw,
   Tags,
@@ -31,6 +32,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from './ui/select.jsx';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from './ui/dialog.jsx';
+import MarkdownContent from './MarkdownContent.jsx';
 
 const ALL_VALUE = ANSWER_SNAPSHOT_ALL_VALUE;
 
@@ -99,16 +108,24 @@ const ReferenceList = ({ references }) => {
   );
 };
 
-const AnswerText = ({ title, content }) => (
-  <div className="max-w-[34rem] space-y-1">
-    <div className="text-xs font-medium text-muted-foreground">{title}</div>
-    <p className="max-h-24 overflow-hidden whitespace-normal break-words text-sm leading-relaxed text-foreground">
+const AnswerText = ({ title, content, onClick }) => (
+  <button
+    type="button"
+    onClick={onClick}
+    className="group block w-full max-w-[34rem] space-y-1 rounded-md text-left transition hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+  >
+    <span className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
+      {title}
+      <Maximize2 className="size-3 opacity-0 transition group-hover:opacity-100" aria-hidden="true" />
+    </span>
+    <span className="block max-h-24 overflow-hidden whitespace-normal break-words text-sm leading-relaxed text-foreground">
       {content || '--'}
-    </p>
-  </div>
+    </span>
+    <span className="sr-only">点击查看全文</span>
+  </button>
 );
 
-const MobileAnswerSnapshotList = ({ rows }) => (
+const MobileAnswerSnapshotList = ({ rows, onOpen }) => (
   <div className="space-y-3 md:hidden">
     {rows.map((record) => (
       <article key={record.id} className="space-y-3 rounded-md border bg-background p-3">
@@ -129,8 +146,8 @@ const MobileAnswerSnapshotList = ({ rows }) => (
             {record.referenceLabel}
           </Badge>
         </div>
-        <AnswerText title="Prompt" content={record.queryContent} />
-        <AnswerText title="Answer" content={record.answerContent} />
+        <AnswerText title="Prompt" content={record.queryContent} onClick={() => onOpen(record)} />
+        <AnswerText title="Answer" content={record.answerContent} onClick={() => onOpen(record)} />
         <div className="space-y-1">
           <div className="text-xs font-medium text-muted-foreground">引用</div>
           <ReferenceList references={record.references} />
@@ -159,6 +176,9 @@ const AnswerSnapshotsPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [reloadKey, setReloadKey] = useState(0);
+  const [activeRecord, setActiveRecord] = useState(null);
+
+  const openRecord = useCallback((record) => setActiveRecord(record), []);
 
   useEffect(() => {
     if (!brand) return;
@@ -321,13 +341,17 @@ const AnswerSnapshotsPage = () => {
         title: '问题',
         key: 'query',
         width: 260,
-        render: (_, record) => <AnswerText title="Prompt" content={record.queryContent} />,
+        render: (_, record) => (
+          <AnswerText title="Prompt" content={record.queryContent} onClick={() => openRecord(record)} />
+        ),
       },
       {
         title: '回答',
         key: 'answer',
         width: 360,
-        render: (_, record) => <AnswerText title="Answer" content={record.answerContent} />,
+        render: (_, record) => (
+          <AnswerText title="Answer" content={record.answerContent} onClick={() => openRecord(record)} />
+        ),
       },
       {
         title: '引用状态',
@@ -343,7 +367,7 @@ const AnswerSnapshotsPage = () => {
         ),
       },
     ],
-    [],
+    [openRecord],
   );
 
   return (
@@ -447,7 +471,7 @@ const AnswerSnapshotsPage = () => {
                   emptyDescription="当前筛选下没有问答快照"
                 />
               </div>
-              <MobileAnswerSnapshotList rows={rows} />
+              <MobileAnswerSnapshotList rows={rows} onOpen={openRecord} />
             </>
           ) : (
             <EmptyState
@@ -459,6 +483,53 @@ const AnswerSnapshotsPage = () => {
           )}
         </CardContent>
       </Card>
+
+      <Dialog
+        open={Boolean(activeRecord)}
+        onOpenChange={(open) => {
+          if (!open) setActiveRecord(null);
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>问答详情</DialogTitle>
+            <DialogDescription className="sr-only">
+              问答快照原始问题与回答全文
+            </DialogDescription>
+            <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+              <span className="font-medium text-foreground">{activeRecord?.dateLabel}</span>
+              <Badge variant="secondary" className="rounded-md">{activeRecord?.platform}</Badge>
+              <Badge variant="outline" className="rounded-md">{activeRecord?.keyword}</Badge>
+              <span className="font-medium text-foreground">{activeRecord?.brand}</span>
+              <Badge
+                variant={activeRecord?.sentimentStatus === 'negative' ? 'destructive' : 'secondary'}
+                className="rounded-md"
+              >
+                {activeRecord?.sentimentLabel}
+              </Badge>
+              <Badge variant={activeRecord?.hasReference ? 'default' : 'outline'} className="rounded-md">
+                {activeRecord?.referenceLabel}
+              </Badge>
+            </div>
+          </DialogHeader>
+          <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 pb-4 pt-3">
+            <section className="space-y-1.5">
+              <h3 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">问题 Prompt</h3>
+              <MarkdownContent content={activeRecord?.queryContent} />
+            </section>
+            <section className="space-y-1.5">
+              <h3 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">回答 Answer</h3>
+              <MarkdownContent content={activeRecord?.answerContent} />
+            </section>
+            {activeRecord?.references?.length ? (
+              <section className="space-y-1.5">
+                <h3 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">引用</h3>
+                <ReferenceList references={activeRecord.references} />
+              </section>
+            ) : null}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
