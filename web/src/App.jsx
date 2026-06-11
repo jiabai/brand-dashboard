@@ -4,6 +4,7 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import './styles/app-shell.css';
 import ErrorBoundary from './components/ErrorBoundary';
 import DashboardLayout from './components/DashboardLayout.jsx';
+import AnalysisLayout from './components/AnalysisLayout.jsx';
 import HomeView from './components/HomeView.jsx';
 import LoadingSpinner from './components/LoadingSpinner.jsx';
 import LoginView from './components/LoginView.jsx';
@@ -16,7 +17,7 @@ import { useAuth } from './auth/AuthContext.jsx';
 import { hasPlatformAdminRole } from './auth/platformAccess.js';
 import { getRoutableRoutes } from './config/routes.js';
 import { useDashboardRequestParams } from './hooks/useDashboardParams.js';
-import { buildViewPath } from './utils/routing.js';
+import { buildViewPath, isAnalysisView } from './utils/routing.js';
 
 const BrandShareOfVoiceTable = React.lazy(() => import('./components/BrandShareOfVoiceTable.jsx'));
 const CreateQueryJob = React.lazy(() => import('./components/CreateQueryJob.jsx'));
@@ -76,6 +77,10 @@ const AppRoutes = () => {
     ? '/platform/tenants'
     : buildViewPath('projects', { tenantKey: currentTenantKey });
 
+  const routableRoutes = getRoutableRoutes();
+  const standaloneRoutes = routableRoutes.filter((route) => !isAnalysisView(route.viewKey));
+  const analysisRoutes = routableRoutes.filter((route) => isAnalysisView(route.viewKey));
+
   return (
     <Routes>
       <Route path="/" element={<Navigate to={isAuthenticated && hasDefaultPath ? defaultPath : '/login'} replace />} />
@@ -90,13 +95,22 @@ const AppRoutes = () => {
         <Route path="executors" element={<RouteShell><PlatformExecutorsPage /></RouteShell>} />
       </Route>
       <Route element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
-        {getRoutableRoutes().map((route) => (
+        {standaloneRoutes.map((route) => (
           <Route
             key={route.viewKey}
             path={route.path}
             element={<RouteShell>{ROUTE_ELEMENT_FACTORIES[route.viewKey]?.()}</RouteShell>}
           />
         ))}
+        <Route element={<AnalysisLayout />}>
+          {analysisRoutes.map((route) => (
+            <Route
+              key={route.viewKey}
+              path={route.path}
+              element={<RouteShell>{ROUTE_ELEMENT_FACTORIES[route.viewKey]?.()}</RouteShell>}
+            />
+          ))}
+        </Route>
       </Route>
       <Route path="*" element={<Navigate to={isAuthenticated && hasDefaultPath ? defaultPath : '/login'} replace />} />
     </Routes>
