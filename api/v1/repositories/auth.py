@@ -1,6 +1,8 @@
+import hashlib
 import os
 import secrets
 import string
+import time
 from datetime import UTC, datetime, timedelta
 from typing import Any, Dict, List
 from urllib.parse import urlparse
@@ -419,6 +421,135 @@ def regenerate_admin_activation(engine: Engine, tenant_key: str) -> Dict[str, An
         "activationUrl": f"{tenant_base_url}/activate?token={activation_token}",
         "loginUrl": f"{tenant_base_url}/login",
     }
+
+
+RESET_TOKEN_TTL_SECONDS = 3600
+_RESET_EMAIL_COOLDOWN_SECONDS = 60
+_reset_email_last_sent: Dict[str, float] = {}
+
+
+def _password_fingerprint(password_hash: str) -> str:
+    return hashlib.sha256(password_hash.encode("utf-8")).hexdigest()[:16]
+
+
+def request_password_reset(engine: Engine, email: str) -> Dict[str, Any] | None:
+    """为 active 账号签发 1 小时重置令牌。
+
+    防枚举契约：邮箱不存在、账号非 active、冷却期内一律返回 None，
+    调用方不得让响应体现任何差异。冷却为进程内存级，按邮箱 60 秒。
+    """
+    now = time.time()
+    last_sent = _reset_email_last_sent.get(email)
+    if last_sent is not None and now - last_sent < _RESET_EMAIL_COOLDOWN_SECONDS:
+        return None
+
+    with engine.connect() as conn:
+        user_row = conn.execute(
+            text(
+                "SELECT id, email, password_hash, status FROM users"
+                " WHERE email = :email"
+            ),
+            {"email": email},
+        ).fetchone()
+    if not user_row or user_row[3] != "active":
+        return None
+
+    user_id, user_email, password_hash, _status = user_row
+    reset_token = sign_token(
+        {
+            "user_id": user_id,
+            "email": user_email,
+            "type": "password_reset",
+            "pwd_fp": _password_fingerprint(password_hash),
+            "exp": int(datetime.now(UTC).timestamp()) + RESET_TOKEN_TTL_SECONDS,
+        },
+        _get_auth_secret(),
+    )
+    _reset_email_last_sent[email] = now
+    base_url = _build_tenant_base_url(None)
+    return {
+        "email": user_email,
+        "resetToken": reset_token,
+        "resetUrl": f"{base_url}/reset-password?token={reset_token}",
+    }
+
+
+def reset_password_with_token(engine: Engine, token: str, password: str) -> Dict[str, Any]:
+    """凭重置令牌设置新密码。
+
+    对外失败文案统一为「重置链接无效或已失效」，不区分签名错误、过期、
+    类型不符与指纹不匹配（已使用或密码已变更），避免泄露令牌状态。
+    """
+    try:
+        payload = verify_token(token, _get_auth_secret())
+    except ValueError as exc:
+        raise ValueError("重置链接无效或已失效") from exc
+    if payload.get("type") != "password_reset":
+        raise ValueError("重置链接无效或已失效")
+    user_id = int(payload["user_id"])
+    now = datetime.now(UTC)
+
+    with engine.begin() as conn:
+        user_row = conn.execute(
+            text(
+                "SELECT id, email, password_hash, status FROM users"
+                " WHERE id = :user_id"
+            ),
+            {"user_id": user_id},
+        ).fetchone()
+        if (
+            not user_row
+            or user_row[3] != "active"
+            or _password_fingerprint(user_row[2]) != payload.get("pwd_fp")
+        ):
+            raise ValueError("重置链接无效或已失效")
+        conn.execute(
+            text(
+                """
+                UPDATE users SET
+                    password_hash = :password_hash,
+                    updated_at = :updated_at
+                WHERE id = :user_id
+                """
+            ),
+            {
+                "password_hash": hash_password(password),
+                "updated_at": now,
+                "user_id": user_id,
+            },
+        )
+    return {"userId": user_id, "email": user_row[1]}
+
+
+def change_password(
+    engine: Engine, user_id: int, current_password: str, new_password: str
+) -> Dict[str, Any]:
+    now = datetime.now(UTC)
+    with engine.begin() as conn:
+        user_row = conn.execute(
+            text("SELECT id, email, password_hash FROM users WHERE id = :user_id"),
+            {"user_id": user_id},
+        ).fetchone()
+        if not user_row:
+            raise ValueError("用户不存在")
+        if not verify_password(current_password, user_row[2]):
+            raise ValueError("当前密码错误")
+        conn.execute(
+            text(
+                """
+                UPDATE users SET
+                    password_hash = :password_hash,
+                    updated_at = :updated_at
+                WHERE id = :user_id
+                """
+            ),
+            {
+                "password_hash": hash_password(new_password),
+                "updated_at": now,
+                "user_id": user_id,
+            },
+        )
+    return {"userId": user_id, "email": user_row[1]}
 
 
 def verify_invite_code(engine: Engine, code: str) -> Dict[str, Any]:
