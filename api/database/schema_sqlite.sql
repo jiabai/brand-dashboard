@@ -637,39 +637,6 @@ BEGIN
     UPDATE llm_query_jobs SET updated_at = CURRENT_TIMESTAMP WHERE id = OLD.id;
 END;
 
--- 10. 每日品牌情感和提及统计汇总表
-CREATE TABLE IF NOT EXISTS qa_brand_summary (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    tenant_key VARCHAR(255) NOT NULL,
-    job_id VARCHAR(255) NOT NULL,
-    date DATE NOT NULL,
-    brand VARCHAR(50) NOT NULL,
-    product VARCHAR(255),
-    platform VARCHAR(64) NOT NULL,
-    question_count INTEGER NOT NULL,
-    mention_count INTEGER NOT NULL,
-    first_mention_count INTEGER NOT NULL,
-    mention_rate DECIMAL(5,2) NOT NULL,
-    first_mention_rate DECIMAL(5,2) NOT NULL,
-    positive_count INTEGER NOT NULL,
-    negative_count INTEGER NOT NULL,
-    positive_ratio DECIMAL(5,2) NOT NULL,
-    negative_ratio DECIMAL(5,2) NOT NULL,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (tenant_key) REFERENCES tenants(tenant_key) ON DELETE CASCADE
-);
-CREATE INDEX IF NOT EXISTS idx_qbs_tenant_date_brand ON qa_brand_summary (tenant_key, date, brand);
-CREATE INDEX IF NOT EXISTS idx_qbs_tenant_platform ON qa_brand_summary (tenant_key, platform);
-CREATE INDEX IF NOT EXISTS idx_qbs_tenant_brand_product ON qa_brand_summary (tenant_key, brand, product);
-
-CREATE TRIGGER trg_qa_brand_summary_updated_at
-AFTER UPDATE ON qa_brand_summary
-FOR EACH ROW
-BEGIN
-    UPDATE qa_brand_summary SET updated_at = CURRENT_TIMESTAMP WHERE id = OLD.id;
-END;
-
 -- 11. 品牌在问答中的具体状态记录表
 CREATE TABLE IF NOT EXISTS qa_brand_state (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

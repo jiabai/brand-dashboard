@@ -693,66 +693,6 @@ def _copy_fact_table_with_analysis_run(
     return count
 
 
-def _insert_qa_brand_summary(target: sqlite3.Connection) -> int:
-    if not _table_exists(target, "qa_brand_state"):
-        return 0
-    rows = target.execute(
-        """
-        SELECT
-          tenant_key,
-          job_id,
-          date,
-          brand,
-          category,
-          platform,
-          COUNT(DISTINCT conversation_id) AS question_count,
-          SUM(is_mentioned) AS mention_count,
-          SUM(is_first_mentioned) AS first_mention_count,
-          SUM(CASE WHEN LOWER(COALESCE(sentiment_status, '')) = 'positive' THEN 1 ELSE 0 END)
-            AS positive_count,
-          SUM(CASE WHEN LOWER(COALESCE(sentiment_status, '')) = 'negative' THEN 1 ELSE 0 END)
-            AS negative_count,
-          MIN(created_at) AS created_at,
-          MAX(updated_at) AS updated_at
-        FROM qa_brand_state
-        GROUP BY tenant_key, job_id, date, brand, category, platform
-        """
-    ).fetchall()
-    count = 0
-    for row in rows:
-        question_count = int(row["question_count"] or 0)
-        mention_count = int(row["mention_count"] or 0)
-        first_mention_count = int(row["first_mention_count"] or 0)
-        positive_count = int(row["positive_count"] or 0)
-        negative_count = int(row["negative_count"] or 0)
-        divisor = question_count or 1
-        _insert(
-            target,
-            "qa_brand_summary",
-            {
-                "tenant_key": row["tenant_key"],
-                "job_id": row["job_id"],
-                "date": row["date"],
-                "brand": row["brand"],
-                "product": row["category"],
-                "platform": row["platform"],
-                "question_count": question_count,
-                "mention_count": mention_count,
-                "first_mention_count": first_mention_count,
-                "mention_rate": round(mention_count * 100.0 / divisor, 2),
-                "first_mention_rate": round(first_mention_count * 100.0 / divisor, 2),
-                "positive_count": positive_count,
-                "negative_count": negative_count,
-                "positive_ratio": round(positive_count * 100.0 / divisor, 2),
-                "negative_ratio": round(negative_count * 100.0 / divisor, 2),
-                "created_at": row["created_at"],
-                "updated_at": row["updated_at"],
-            },
-        )
-        count += 1
-    return count
-
-
 def _prepare_target(target_path: Path, overwrite: bool) -> None:
     if target_path.exists():
         if not overwrite:
@@ -814,7 +754,6 @@ def migrate_legacy_geo_sqlite(
         qa_reference_rows = _copy_fact_table_with_analysis_run(
             source, target, "qa_reference", mappings
         )
-        _insert_qa_brand_summary(target)
 
         target.commit()
         return MigrationSummary(

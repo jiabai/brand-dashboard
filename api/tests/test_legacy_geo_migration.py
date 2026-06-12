@@ -269,7 +269,6 @@ def test_migrates_legacy_jobs_to_current_project_and_analysis_model(tmp_path):
 
     assert con.execute("SELECT COUNT(*) FROM prompt_items").fetchone()[0] == 2
     assert con.execute("SELECT COUNT(*) FROM collection_jobs").fetchone()[0] == 2
-    assert con.execute("SELECT COUNT(*) FROM qa_brand_summary").fetchone()[0] == 2
     con.close()
 
     engine = create_engine(f"sqlite:///{target}")

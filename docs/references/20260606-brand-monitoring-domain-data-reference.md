@@ -599,7 +599,6 @@ Phase 8.1 将租户工作台的主入口从旧 `tenant_key + job_id` dashboard �
 | `llm_conversation_references` | `answer_references` | 引入 `url_hash` 和引用规范化。 |
 | `qa_brand_state` | `brand_mention_facts` | 增加唯一键和 `analysis_run_id`。 |
 | `qa_reference` | `reference_classifications` | 增加 `analysis_run_id`、`answer_reference_id`。 |
-| `qa_brand_summary` | 可废弃兼容汇总 | 当前指标读取以 `qa_brand_state` / `qa_reference` 事实聚合为准。 |
 
 ## 5. API 契约草案
 

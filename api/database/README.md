@@ -99,15 +99,7 @@
 - `uk_tenant_job_conv_brand` - 约束同一 `(tenant_key, job_id, conversation_id, brand)` 只保留一条品牌状态事实，支撑 `mention_status` 重跑时的 upsert。
 - 历史库应用该约束前，先执行 `api/scripts/check_duplicate_analysis_rows.py` 检查重复数据。
 
-### 8. qa_brand_summary - 品牌汇总统计表
-存储按日、按品牌、按平台的统计摘要。
-
-**主要字段：**
-- `mention_rate` - 提及率
-- `first_mention_rate` - 首位提及率
-- `positive_ratio` - 正面情感比例
-
-### 9. qa_reference - 问答引用详情表（分析用）
+### 8. qa_reference - 问答引用详情表（分析用）
 专门用于分析的引用链接表，包含发稿链接校验。
 
 **主要字段：**
@@ -156,8 +148,7 @@ mysql -u root -p geo -e "SHOW TABLES;"
 ## 📊 使用场景
 
 1. **qa_brand_state** - 适用于实时记录和分析Q&A平台上的品牌提及情况
-2. **qa_brand_summary** - 适用于生成品牌分析报表和趋势分析
-3. **qa_reference** - 适用于跟踪答案中的参考链接来源和商品链接分析
+2. **qa_reference** - 适用于跟踪答案中的参考链接来源和商品链接分析
 
 ## ⚙️ 技术规范
 

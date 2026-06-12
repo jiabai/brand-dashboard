@@ -303,32 +303,6 @@ CREATE TABLE `llm_query_jobs` (
 -- 品牌分析相关表结构
 -- 
 
--- 每日品牌情感和提及统计汇总表
-CREATE TABLE `qa_brand_summary` ( 
-  `id` BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT 'Auto-increment ID', 
-  `tenant_key` VARCHAR(255) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '租户唯一字符串标识（tenants.tenant_key）',
-  `job_id` VARCHAR(255) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '作业ID',
-  `date` DATE NOT NULL COMMENT 'Summary date, means analysis_date', 
-  `brand` VARCHAR(50) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Brand name', 
-  `product` VARCHAR(255) COLLATE utf8mb4_unicode_ci COMMENT 'Product name (optional)', 
-  `platform` VARCHAR(64) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Platform (e.g., Qwen, Deepseek)', 
-  `question_count` INT NOT NULL COMMENT 'Total number of questions, means total_files', 
-  `mention_count` INT NOT NULL COMMENT 'Total mentions of the brand, means mentioned_files', 
-  `first_mention_count` INT NOT NULL COMMENT 'Number of first-time mentions, means first_mention_files', 
-  `mention_rate` DECIMAL(5,2) NOT NULL COMMENT 'Mention rate (e.g., 0.85 for 85%)', 
-  `first_mention_rate` DECIMAL(5,2) NOT NULL COMMENT 'First mention rate (e.g., 0.30 for 30%)', 
-  `positive_count` INT NOT NULL COMMENT 'Number of positive sentiment questions', 
-  `negative_count` INT NOT NULL COMMENT 'Number of negative sentiment questions', 
-  `positive_ratio` DECIMAL(5,2) NOT NULL COMMENT 'Positive sentiment ratio (e.g., 0.70 for 70%)', 
-  `negative_ratio` DECIMAL(5,2) NOT NULL COMMENT 'Negative sentiment ratio (e.g., 0.25 for 25%)', 
-  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-  KEY `idx_tenant_date_brand` (`tenant_key`, `date`, `brand`), 
-  KEY `idx_tenant_platform` (`tenant_key`, `platform`), 
-  KEY `idx_tenant_brand_product` (`tenant_key`, `brand`, `product`),
-  CONSTRAINT `qa_brand_summary_ibfk_tenant` FOREIGN KEY (`tenant_key`) REFERENCES `tenants` (`tenant_key`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Daily brand sentiment and mention statistics summary'; 
-
 -- 品牌在问答中的具体状态记录表
 CREATE TABLE `qa_brand_state` (
   `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT 'Auto-increment primary key',
@@ -395,9 +369,8 @@ CREATE TABLE `qa_reference` (
 
 -- 数据库设计总结：
 -- 1. 基础对话存储：llm_conversations 和 llm_conversation_references 存储原始抓取对话及引用
--- 2. 品牌分析统计：qa_brand_summary 存储每日品牌提及和情感分析统计
--- 3. 品牌状态详情：qa_brand_state 存储每个问题中品牌的具体表现（提及、首位、情感）
--- 4. 引用详情：qa_reference 存储问题相关的引用链接详情
--- 5. 时间字段：extracted_at使用文件原始时间，created_at/updated_at使用数据库时间
--- 6. 索引优化：针对常用查询场景设计，支持用户、任务、平台、关键词、品牌、日期等多维度查询
--- 7. 字符集：使用utf8mb4支持完整的Unicode字符
+-- 2. 品牌状态详情：qa_brand_state 存储每个问题中品牌的具体表现（提及、首位、情感）
+-- 3. 引用详情：qa_reference 存储问题相关的引用链接详情
+-- 4. 时间字段：extracted_at使用文件原始时间，created_at/updated_at使用数据库时间
+-- 5. 索引优化：针对常用查询场景设计，支持用户、任务、平台、关键词、品牌、日期等多维度查询
+-- 6. 字符集：使用utf8mb4支持完整的Unicode字符

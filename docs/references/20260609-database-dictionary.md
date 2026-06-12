@@ -28,7 +28,6 @@ tenant
 llm_query_jobs
 llm_conversations
 llm_conversation_references
-qa_brand_summary
 qa_brand_state
 qa_reference
 ```
@@ -667,39 +666,7 @@ qa_reference
 - `project_id` 不加外键，避免历史任务和项目删除策略互相阻塞。
 - 长期目标是由 `collection_jobs`、`collection_tasks`、`collection_attempts` 接管采集生命周期。
 
-### 9.2 `qa_brand_summary`
-
-旧每日品牌汇总表，保存按日期、品牌、平台聚合后的提及和情感统计。当前目标模型是逐步迁移到 `qa_brand_state` / `qa_reference` 事实聚合。
-
-| 字段 | 说明 |
-|------|------|
-| `id` | 内部自增主键。 |
-| `tenant_key` | 租户隔离键。 |
-| `job_id` | 旧作业/批次 ID。 |
-| `date` | 汇总业务日期。 |
-| `brand` | 品牌名称。 |
-| `product` | 产品名称，可为空。 |
-| `platform` | AI 平台。 |
-| `question_count` | 问题总数。 |
-| `mention_count` | 品牌被提及的问题数。 |
-| `first_mention_count` | 品牌首位提及的问题数。 |
-| `mention_rate` | 提及率。 |
-| `first_mention_rate` | 首位提及率。 |
-| `positive_count` | 正面情感问题数。 |
-| `negative_count` | 负面情感问题数。 |
-| `positive_ratio` | 正面情感比例。 |
-| `negative_ratio` | 负面情感比例。 |
-| `created_at` | 创建时间。 |
-| `updated_at` | 更新时间。 |
-
-关键约束：
-
-| 类型 | 说明 |
-|------|------|
-| 外键 | `tenant_key -> tenants.tenant_key`。 |
-| 索引 | `(tenant_key, date, brand)`、`(tenant_key, platform)`、`(tenant_key, brand, product)` 支持旧 dashboard 汇总读取。 |
-
-### 9.3 `qa_brand_state`
+### 9.2 `qa_brand_state`
 
 品牌问答事实表，记录每个回答中某个品牌是否被提及、是否首位/Top3、情绪等。当前用于 dashboard、情感分析、报告、告警和数据质量的指标聚合输入。
 
@@ -736,7 +703,7 @@ qa_reference
 - `analysis_run_id` 可为空，是为了不破坏历史事实行。
 - 唯一键使用前缀字段，是为了兼容 MySQL `utf8mb4` 组合索引长度限制。
 
-### 9.4 `qa_reference`
+### 9.3 `qa_reference`
 
 分析后的引用事实表，记录回答引用链接是否为发稿链接及其分类结果。
 
